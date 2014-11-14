@@ -127,14 +127,16 @@ int32_t add_line(FILE *a_file_ptr, host_list_t &a_host_list);
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 bool g_test_finished = false;
+bool g_cancelled = false;
 
 void sig_handler(int signo)
 {
   if (signo == SIGINT)
   {
           // Kill program
-          //NDBG_PRINT("SIGINT\n");
+          NDBG_PRINT("SIGINT\n");
           g_test_finished = true;
+          g_cancelled = true;
           hle::get()->stop();
   }
 }
@@ -204,6 +206,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Output Options: -defaults to line delimited\n");
         fprintf(a_stream, "  -l, --line_delimited Output <HOST> <RESPONSE BODY> per line\n");
         fprintf(a_stream, "  -j, --json           JSON { <HOST>: \"body\": <RESPONSE> ...\n");
+        fprintf(a_stream, "  -P, --pretty         Pretty output\n");
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Debug Options:\n");
@@ -232,7 +235,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Setup default headers before the user
         // -------------------------------------------
-        l_hle->set_header("User-Agent", "EdgeCast HTTP Load Runner hle ");
+        l_hle->set_header("User-Agent", "EdgeCast Parallel Curl hle ");
         //l_hlo->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
         //l_hlo->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
         //l_hlo->set_header("x-select-backend", "self");
@@ -249,25 +252,28 @@ int main(int argc, char** argv)
         int l_option_index = 0;
         struct option l_long_options[] =
                 {
-                { "help",          0, 0, 'h' },
-                { "version",       0, 0, 'v' },
-                { "url",           1, 0, 'u' },
-                { "host_file",     1, 0, 'f' },
-                { "execute",       1, 0, 'x' },
-                { "cipher",        1, 0, 'y' },
-                { "parallel",      1, 0, 'p' },
-                { "threads",       1, 0, 't' },
-                { "header",        1, 0, 'H' },
-                { "timeout",       1, 0, 'T' },
-                { "recv_buffer",   1, 0, 'R' },
-                { "send_buffer",   1, 0, 'S' },
-                { "no_delay",      1, 0, 'D' },
-                { "ai_cache",      1, 0, 'A' },
-                { "verbose",       0, 0, 'r' },
-                { "color",         0, 0, 'c' },
-                { "quiet",         0, 0, 'q' },
-                { "show_progress", 0, 0, 's' },
-                { "gprofile",      1, 0, 'G' },
+                { "help",           0, 0, 'h' },
+                { "version",        0, 0, 'v' },
+                { "url",            1, 0, 'u' },
+                { "host_file",      1, 0, 'f' },
+                { "execute",        1, 0, 'x' },
+                { "cipher",         1, 0, 'y' },
+                { "parallel",       1, 0, 'p' },
+                { "threads",        1, 0, 't' },
+                { "header",         1, 0, 'H' },
+                { "timeout",        1, 0, 'T' },
+                { "recv_buffer",    1, 0, 'R' },
+                { "send_buffer",    1, 0, 'S' },
+                { "no_delay",       1, 0, 'D' },
+                { "ai_cache",       1, 0, 'A' },
+                { "verbose",        0, 0, 'r' },
+                { "color",          0, 0, 'c' },
+                { "quiet",          0, 0, 'q' },
+                { "show_progress",  0, 0, 's' },
+                { "line_delimited", 0, 0, 'l' },
+                { "json",           0, 0, 'j' },
+                { "pretty",         0, 0, 'P' },
+                { "gprofile",       1, 0, 'G' },
 
                 // list sentinel
                 { 0, 0, 0, 0 }
@@ -281,6 +287,16 @@ int main(int argc, char** argv)
         std::string l_host_file_str;
         std::string l_url;
         std::string l_ai_cache;
+
+        // Defaults
+        reqlet_repo::output_type_t l_output_mode = reqlet_repo::OUTPUT_JSON;
+        //bool l_output_part_user_specd = false;
+        int l_output_part = reqlet_repo::PART_HOST |
+                            reqlet_repo::PART_STATUS_CODE |
+                            reqlet_repo::PART_HEADERS |
+                            reqlet_repo::PART_HEADERS |
+                            reqlet_repo::PART_BODY;
+        bool l_output_pretty = false;
 
         // -------------------------------------------
         // Assume unspecified arg url...
@@ -312,7 +328,7 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
-        char l_short_arg_list[] = "hvu:f:x:y:p:t:H:T:R:S:DA:rcqsG:";
+        char l_short_arg_list[] = "hvu:f:x:y:p:t:H:T:R:S:DA:rcqsljPG:";
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -542,6 +558,33 @@ int main(int argc, char** argv)
                 }
 
                 // ---------------------------------------
+                // line delimited
+                // ---------------------------------------
+                case 'l':
+                {
+                        l_output_mode = reqlet_repo::OUTPUT_LINE_DELIMITED;
+                        break;
+                }
+
+                // ---------------------------------------
+                // json output
+                // ---------------------------------------
+                case 'j':
+                {
+                        l_output_mode = reqlet_repo::OUTPUT_JSON;
+                        break;
+                }
+
+                // ---------------------------------------
+                // pretty output
+                // ---------------------------------------
+                case 'P':
+                {
+                        l_output_pretty = true;
+                        break;
+                }
+
+                // ---------------------------------------
                 // Google Profiler Output File
                 // ---------------------------------------
                 case 'G':
@@ -719,16 +762,19 @@ int main(int argc, char** argv)
         l_hle->wait_till_stopped();
 
         if (!l_gprof_file.empty())
+        {
                 ProfilerStop();
+        }
 
         //uint64_t l_end_time_ms = get_time_ms() - l_start_time_ms;
 
         // -------------------------------------------
         // Results...
         // -------------------------------------------
-        //reqlet_repo::get()->dump_all_response_headers(l_settings.m_color);
-        reqlet_repo::get()->dump_all_responses(l_settings.m_color);
-        //NDBG_PRINT("%sDONE%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
+        if(!g_cancelled)
+        {
+                reqlet_repo::get()->dump_all_responses(l_settings.m_color, l_output_pretty, l_output_mode, l_output_part);
+        }
 
         // -------------------------------------------
         // Cleanup...
@@ -825,6 +871,7 @@ void command_exec(thread_args_struct_t &a_thread_args)
                         case 'q':
                         {
                                 g_test_finished = true;
+                                g_cancelled = true;
                                 l_hle->stop();
                                 l_sent_stop = true;
                                 break;

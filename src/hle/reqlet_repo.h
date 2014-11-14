@@ -63,7 +63,23 @@ typedef std::list <reqlet *> reqlet_list_t;
 //: ----------------------------------------------------------------------------
 class reqlet_repo
 {
+
 public:
+        // -------------------------------------------------
+        // enums
+        // -------------------------------------------------
+        typedef enum {
+                OUTPUT_LINE_DELIMITED,
+                OUTPUT_JSON
+        } output_type_t;
+
+        typedef enum {
+                PART_HOST = 1,
+                PART_STATUS_CODE = 1 << 1,
+                PART_HEADERS = 1 << 2,
+                PART_BODY = 1 << 3
+        } output_part_t;
+
         reqlet *get_reqlet(void);
         int32_t add_reqlet(reqlet *a_reqlet);
 
@@ -77,8 +93,7 @@ public:
         void up_done(bool a_error) { ++m_num_done; if(a_error)++m_num_error;};
         void up_resolved(bool a_error) {if(a_error)++m_num_error; else ++m_num_resolved;};
         void display_status_line(bool a_color);
-        void dump_all_response_headers(bool a_color);
-        void dump_all_responses(bool a_color);
+        void dump_all_responses(bool a_color, bool a_pretty, output_type_t a_output_type, int a_part_map);
         reqlet *try_get_resolved(void);
 
 private:

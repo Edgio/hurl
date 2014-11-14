@@ -144,14 +144,12 @@ int32_t hle::stop(void)
 {
         int32_t l_retval = STATUS_OK;
 
-#if 0
         for (t_client_list_t::iterator i_t_client = m_t_client_list.begin();
                         i_t_client != m_t_client_list.end();
                         ++i_t_client)
         {
                 (*i_t_client)->stop();
         }
-#endif
 
         return l_retval;
 

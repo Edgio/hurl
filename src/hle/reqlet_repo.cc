@@ -33,66 +33,100 @@
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void reqlet_repo::dump_all_response_headers(bool a_color)
+void reqlet_repo::dump_all_responses(bool a_color, bool a_pretty, output_type_t a_output_type, int a_part_map)
 {
-        for(reqlet_list_t::iterator i_reqlet = m_reqlet_list.begin();
-            i_reqlet != m_reqlet_list.end();
-            ++i_reqlet)
+        std::string l_host_color = "";
+        std::string l_status_color = "";
+        std::string l_header_color = "";
+        std::string l_body_color = "";
+        std::string l_off_color = "";
+        if(a_color)
         {
-                if(a_color)
-                NDBG_OUTPUT("%shost%s: %s\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (*i_reqlet)->m_url.m_host.c_str());
-                else
-                NDBG_OUTPUT("host: %s\n", (*i_reqlet)->m_url.m_host.c_str());
-
-                // Display all Headers
-                //header_map_t m_response_headers;
-                //header_map_t::iterator m_next_response_value;
-                //std::string m_response_body;
-                for(header_map_t::iterator i_header = (*i_reqlet)->m_response_headers.begin();
-                                i_header != (*i_reqlet)->m_response_headers.end();
-                    ++i_header)
-                {
-                        if(a_color)
-                        NDBG_OUTPUT("    %s%s%s: %s\n",
-                                        ANSI_COLOR_FG_YELLOW, i_header->first.c_str(), ANSI_COLOR_OFF,
-                                        i_header->second.c_str());
-                        else
-                        NDBG_OUTPUT("    %s: %s\n",
-                                        i_header->first.c_str(),
-                                        i_header->second.c_str());
-                }
-
-                if(a_color)
-                NDBG_OUTPUT("    %sStatus-Code%s: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, (*i_reqlet)->m_response_status);
-                else
-                NDBG_OUTPUT("    Status-Code: %d\n", (*i_reqlet)->m_response_status);
-
-
+                l_host_color = ANSI_COLOR_FG_BLUE;
+                l_status_color = ANSI_COLOR_FG_MAGENTA;
+                l_header_color = ANSI_COLOR_FG_GREEN;
+                l_body_color = ANSI_COLOR_FG_YELLOW;
+                l_off_color = ANSI_COLOR_OFF;
         }
 
-}
+        if(a_output_type == OUTPUT_JSON)
+        {
+                NDBG_OUTPUT("[");
+                if(a_pretty) NDBG_OUTPUT("\n");
+        }
 
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void reqlet_repo::dump_all_responses(bool a_color)
-{
+        int l_cur_reqlet = 0;
+        int l_reqlet_num = m_reqlet_list.size();
         for(reqlet_list_t::iterator i_reqlet = m_reqlet_list.begin();
             i_reqlet != m_reqlet_list.end();
-            ++i_reqlet)
+            ++i_reqlet, ++l_cur_reqlet)
         {
-                if(a_color)
+
+
+                bool l_fbf = false;
+                if(a_output_type == OUTPUT_JSON)
                 {
-                NDBG_OUTPUT("%s%s%s ", ANSI_COLOR_FG_BLUE, (*i_reqlet)->m_url.m_host.c_str(), ANSI_COLOR_OFF);
-                NDBG_OUTPUT("%s%s%s\n", ANSI_COLOR_FG_YELLOW, (*i_reqlet)->m_response_body.c_str(), ANSI_COLOR_OFF);
+                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("  ");
+                        NDBG_OUTPUT("{");
+                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("\n");
                 }
-                else
+
+                // Host
+                if(a_part_map & PART_HOST)
                 {
-                NDBG_OUTPUT("%s ", (*i_reqlet)->m_url.m_host.c_str());
-                NDBG_OUTPUT("%s\n", (*i_reqlet)->m_response_body.c_str());
+                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("    ");
+                        NDBG_OUTPUT("\"%sHost%s\": \"%s\"", l_host_color.c_str(), l_off_color.c_str(), (*i_reqlet)->m_url.m_host.c_str());
+                        l_fbf = true;
                 }
+
+                // Status Code
+                if(a_part_map & PART_STATUS_CODE)
+                {
+                        if(l_fbf) {NDBG_OUTPUT(", "); l_fbf = false;}
+                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("\n    ");
+                        NDBG_OUTPUT("\"%sStatus-Code%s\": %d", l_status_color.c_str(), l_off_color.c_str(), (*i_reqlet)->m_response_status);
+                        l_fbf = true;
+                }
+
+                // Headers
+                // TODO -only in json mode for now
+                if(a_output_type == OUTPUT_JSON)
+                if(a_part_map & PART_HEADERS)
+                {
+                        for(header_map_t::iterator i_header = (*i_reqlet)->m_response_headers.begin();
+                                        i_header != (*i_reqlet)->m_response_headers.end();
+                            ++i_header)
+                        {
+                                if(l_fbf) {NDBG_OUTPUT(", "); l_fbf = false;}
+                                if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("\n    ");
+                                NDBG_OUTPUT("\"%s%s%s\": \"%s\"",
+                                                l_header_color.c_str(), i_header->first.c_str(), l_off_color.c_str(),
+                                                i_header->second.c_str());
+                                l_fbf = true;
+                        }
+                }
+
+                // Body
+                if(a_part_map & PART_BODY)
+                {
+                        if(l_fbf) {NDBG_OUTPUT(", "); l_fbf = false;}
+                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("\n    ");
+                        NDBG_OUTPUT("\"%sBody%s\": %s", l_body_color.c_str(), l_off_color.c_str(), (*i_reqlet)->m_response_body.c_str());
+                        l_fbf = true;
+                }
+
+                if(a_output_type == OUTPUT_JSON)
+                {
+                        if(a_pretty) NDBG_OUTPUT("\n  ");
+                        NDBG_OUTPUT("}");
+                        if(l_cur_reqlet < (l_reqlet_num - 1)) NDBG_OUTPUT(", ");
+                }
+                NDBG_OUTPUT("\n");
+        }
+
+        if(a_output_type == OUTPUT_JSON)
+        {
+                NDBG_OUTPUT("]\n");
         }
 }
 
@@ -105,7 +139,7 @@ reqlet *reqlet_repo::get_reqlet(void)
 {
         reqlet *l_reqlet = NULL;
 
-       // pthread_mutex_lock(&m_mutex);
+        pthread_mutex_lock(&m_mutex);
         if(!m_reqlet_list.empty() &&
            (m_num_get < m_num_reqlets))
         {
@@ -113,7 +147,7 @@ reqlet *reqlet_repo::get_reqlet(void)
                 ++m_num_get;
                 ++m_reqlet_list_iter;
         }
-        //pthread_mutex_unlock(&m_mutex);
+        pthread_mutex_unlock(&m_mutex);
 
         return l_reqlet;
 }

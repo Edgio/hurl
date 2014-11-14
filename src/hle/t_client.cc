@@ -169,6 +169,17 @@ int t_client::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void t_client::stop(void)
+{
+        m_stopped = true;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_writeable_cb(void *a_data)
 {
         nconn* l_nconn = static_cast<nconn*>(a_data);
@@ -362,6 +373,10 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
         l_t_client->m_conn_used_set.erase(l_connection_id);
         ++(l_reqlet->m_stat_agg.m_num_idle_killed);
 
+        // Set reqlet response
+        l_reqlet->m_response_status = 502;
+        l_reqlet->m_response_body = "\"Connection timed out\"";
+
         // Reduce num pending
         --(l_t_client->m_num_pending);
         reqlet_repo::get()->up_done(true);
@@ -431,7 +446,7 @@ void *t_client::t_run(void *a_nothing)
         //NDBG_PRINT("%sFINISHING_CONNECTIONS%s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
 
         // Still awaiting responses -wait...
-        uint32_t l_max_wait = 1000*m_timeout_s;
+        uint32_t l_max_wait = 100*m_timeout_s;
         while((m_num_pending > 0 && (--l_max_wait)) && !m_stopped)
         {
                 // Run loop
@@ -439,7 +454,7 @@ void *t_client::t_run(void *a_nothing)
                 m_evr_loop->run();
 
                 // TODO -this is pretty hard polling -make option???
-                usleep(1000);
+                usleep(10000);
 
         }
         //NDBG_PRINT("%sDONE_CONNECTIONS%s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
@@ -465,7 +480,8 @@ int32_t t_client::start_connections(void)
         //NDBG_PRINT("m_conn_free_list.size(): %Zu\n", m_conn_free_list.size());
         for (conn_id_list_t::iterator i_conn = m_conn_free_list.begin();
                (i_conn != m_conn_free_list.end()) &&
-               (!l_reqlet_repo->done());
+               (!l_reqlet_repo->done()) &&
+               !m_stopped;
              )
         {
 

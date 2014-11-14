@@ -88,7 +88,6 @@ pthread
 microhttpd
 rt
 #asan
-tcmalloc
 profiler
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
 rt
@@ -96,6 +95,8 @@ crypto
 ssl
 snappy
 leveldb
+#efence
+tcmalloc
 )
 
 install(TARGETS hle_cmd

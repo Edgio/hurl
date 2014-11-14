@@ -58,20 +58,20 @@
 //: ----------------------------------------------------------------------------
 // Set socket option macro...
 #define SET_SOCK_OPT(_sock_fd, _sock_opt_level, _sock_opt_name, _sock_opt_val) \
-                do { \
-                        int _l__sock_opt_val = _sock_opt_val; \
-                        int _l_status = 0; \
-                        _l_status = ::setsockopt(_sock_fd, \
-                                        _sock_opt_level, \
-                                        _sock_opt_name, \
-                                        &_l__sock_opt_val, \
-                                        sizeof(_l__sock_opt_val)); \
-                                        if (_l_status == -1) { \
-                                                NDBG_PRINT("STATUS_ERROR: Failed to set %s count.  Reason: %s.\n", #_sock_opt_name, strerror(errno)); \
-                                                return STATUS_ERROR;\
-                                        } \
-                                        \
-                } while(0)
+        do { \
+                int _l__sock_opt_val = _sock_opt_val; \
+                int _l_status = 0; \
+                _l_status = ::setsockopt(_sock_fd, \
+                                _sock_opt_level, \
+                                _sock_opt_name, \
+                                &_l__sock_opt_val, \
+                                sizeof(_l__sock_opt_val)); \
+                                if (_l_status == -1) { \
+                                        NDBG_PRINT("STATUS_ERROR: Failed to set %s count.  Reason: %s.\n", #_sock_opt_name, strerror(errno)); \
+                                        return STATUS_ERROR;\
+                                } \
+                                \
+        } while(0)
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -919,40 +919,34 @@ void nconn::reset_stats(void)
 //: Globals
 //: ----------------------------------------------------------------------------
 static pthread_mutex_t *g_lock_cs;
-static long *g_lock_count;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void pthreads_locking_callback(int mode, int type, const char *file, int line)
+static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file, int a_line)
 {
 #if 0
         fprintf(stdout,"thread=%4d mode=%s lock=%s %s:%d\n",
                         (int)CRYPTO_thread_id(),
                         (mode&CRYPTO_LOCK)?"l":"u",
-                                        (type&CRYPTO_READ)?"r":"w",file,line);
+                                        (type&CRYPTO_READ)?"r":"w",a_file,a_line);
 #endif
 
 #if 0
         if (CRYPTO_LOCK_SSL_CERT == type)
                 fprintf(stdout,"(t,m,f,l) %ld %d %s %d\n",
                                 CRYPTO_thread_id(),
-                                mode,file,line);
+                                a_mode,a_file,a_line);
 #endif
 
-        if (mode & CRYPTO_LOCK)
+        if (a_mode & CRYPTO_LOCK)
         {
-
-                pthread_mutex_lock(&(g_lock_cs[type]));
-
-                g_lock_count[type]++;
-
+                pthread_mutex_lock(&(g_lock_cs[a_type]));
         } else
         {
-
-                pthread_mutex_unlock(&(g_lock_cs[type]));
+                pthread_mutex_unlock(&(g_lock_cs[a_type]));
 
         }
 
@@ -985,7 +979,7 @@ struct CRYPTO_dynlock_value
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static struct CRYPTO_dynlock_value* dyn_create_function(const char* /*file*/, int /*line*/)
+static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int a_line)
 {
         struct CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
         if (!value) return NULL;
@@ -999,18 +993,18 @@ static struct CRYPTO_dynlock_value* dyn_create_function(const char* /*file*/, in
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void dyn_lock_function(int mode,
-                              struct CRYPTO_dynlock_value* l,
+static void dyn_lock_function(int a_mode,
+                              struct CRYPTO_dynlock_value* a_l,
                               const char* a_file,
                               int a_line)
 {
-        if (mode & CRYPTO_LOCK)
+        if (a_mode & CRYPTO_LOCK)
         {
-                pthread_mutex_lock(&l->mutex);
+                pthread_mutex_lock(&a_l->mutex);
         }
         else
         {
-                pthread_mutex_unlock(&l->mutex);
+                pthread_mutex_unlock(&a_l->mutex);
         }
 }
 
@@ -1019,12 +1013,15 @@ static void dyn_lock_function(int mode,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void dyn_destroy_function(struct CRYPTO_dynlock_value* l,
+static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
                                  const char* a_file,
                                  int a_line)
 {
-        pthread_mutex_destroy(&l->mutex);
-        delete l;
+        if(a_l)
+        {
+                pthread_mutex_destroy(&a_l->mutex);
+                free(a_l);
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -1034,15 +1031,18 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* l,
 //: ----------------------------------------------------------------------------
 void nconn_kill_locks(void)
 {
-        int i;
-
+        CRYPTO_set_id_callback(NULL);
         CRYPTO_set_locking_callback(NULL);
-        for (i=0; i<CRYPTO_num_locks(); i++)
+        if(g_lock_cs)
         {
-                pthread_mutex_destroy(&(g_lock_cs[i]));
+                for (int i=0; i<CRYPTO_num_locks(); ++i)
+                {
+                        pthread_mutex_destroy(&(g_lock_cs[i]));
+                }
         }
 
         OPENSSL_free(g_lock_cs);
+        g_lock_cs = NULL;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1054,23 +1054,17 @@ void nconn_kill_locks(void)
 //: ----------------------------------------------------------------------------
 static void init_ssl_locking(void)
 {
-        int i;
+        int l_num_locks = CRYPTO_num_locks();
+        g_lock_cs = (pthread_mutex_t *)OPENSSL_malloc(l_num_locks * sizeof(pthread_mutex_t));
+        //g_lock_cs =(pthread_mutex_t*)malloc(        l_num_locks * sizeof(pthread_mutex_t));
 
-        g_lock_cs = (pthread_mutex_t *)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
-        g_lock_count = (long *)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(long));
-
-        for (i=0; i<CRYPTO_num_locks(); ++i)
+        for (int i=0; i<l_num_locks; ++i)
         {
-
-                g_lock_count[i]=0;
-
                 pthread_mutex_init(&(g_lock_cs[i]),NULL);
-
         }
 
         CRYPTO_set_id_callback(pthreads_thread_id);
         CRYPTO_set_locking_callback(pthreads_locking_callback);
-
         CRYPTO_set_dynlock_create_callback(dyn_create_function);
         CRYPTO_set_dynlock_lock_callback(dyn_lock_function);
         CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
@@ -1155,128 +1149,6 @@ SSL_CTX* nconn_ssl_init(const std::string &a_cipher_list)
         return server_ctx;
 
 }
-
-
-// -----------------------------------------------------------------------------
-// TODO SCOTTS CODE TODO SCOTTS CODE TODO SCOTTS CODE TODO SCOTTS CODE
-// -----------------------------------------------------------------------------
-#if 0
-void get_servers(subbuffer pop, subbuffer srvtype, subbuffer status, subbuffer indexes, buffer& servers)
-{
-        buffer cmd;
-        servers.reset();
-
-        cmd << "/EdgeCast/base/getServers --domain-root";
-        if (!pop.empty())
-        {
-                cmd << " --pop='";
-                cmd.append(pop, comma_to_pipe());
-                cmd << "'";
-        }
-        if (!srvtype.empty())
-                cmd << " --srvtype='" << srvtype << "'";
-        if (!status.empty())
-                cmd << " --status='" << status << "'";
-        if (!indexes.empty())
-                cmd << " --index='" << indexes << "'";
-        run_cmd(cmd.b_str(), servers);
-        servers.transform(lr_to_comma());
-
-        if (s_verbose)
-                fprintf(stderr, "cmd: %s, results: %s\n", cmd.b_str(), servers.b_str());
-}
-#endif
-
-
-#if 0
-struct CRYPTO_dynlock_value
-{
-        pthread_mutex_t mutex;
-};
-
-#define MUTEX_TYPE pthread_mutex_t
-#define MUTEX_SETUP(x) pthread_mutex_init(&(x), NULL)
-#define MUTEX_CLEANUP(x) pthread_mutex_destroy(&(x))
-#define MUTEX_LOCK(x) pthread_mutex_lock(&(x))
-#define MUTEX_UNLOCK(x) pthread_mutex_unlock(&(x))
-#define THREAD_ID pthread_self( )
-static MUTEX_TYPE* mutex_buf = NULL ;
-
-static void locking_function(int mode, int n, const char* /*file*/, int /*line*/)
-{
-        if (mode & CRYPTO_LOCK)
-                MUTEX_LOCK(mutex_buf[n]);
-        else
-                MUTEX_UNLOCK(mutex_buf[n]);
-}
-
-static unsigned long id_function(void)
-{
-        return ((unsigned long)THREAD_ID);
-}
-
-static struct CRYPTO_dynlock_value* dyn_create_function(const char* /*file*/, int /*line*/)
-{
-        struct CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
-        if (!value) return NULL;
-
-        pthread_mutex_init(&value->mutex, NULL);
-        return value;
-}
-static void dyn_lock_function(int mode, struct CRYPTO_dynlock_value* l, const char* /*file*/, int /*line*/)
-{
-        if (mode & CRYPTO_LOCK)
-                pthread_mutex_lock(&l->mutex);
-        else
-                pthread_mutex_unlock(&l->mutex);
-}
-
-static void dyn_destroy_function(struct CRYPTO_dynlock_value* l, const char* /*file*/, int /*line*/)
-{
-        pthread_mutex_destroy(&l->mutex);
-        delete l;
-}
-
-int THREAD_setup(void)
-{
-        int num_locks = CRYPTO_num_locks();
-        mutex_buf = (MUTEX_TYPE*) malloc(num_locks * sizeof(MUTEX_TYPE));
-        if(!mutex_buf) return 0;
-        for (int i = 0; i < num_locks; i++)
-                MUTEX_SETUP(mutex_buf[i]);
-        CRYPTO_set_id_callback(id_function);
-        CRYPTO_set_locking_callback(locking_function);
-        CRYPTO_set_dynlock_create_callback(dyn_create_function);
-        CRYPTO_set_dynlock_lock_callback(dyn_lock_function);
-        CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
-        return 1;
-}
-
-int THREAD_cleanup(void)
-{
-        if (!mutex_buf) return 0;
-        CRYPTO_set_id_callback(NULL);
-        CRYPTO_set_locking_callback(NULL);
-        for (int i = 0; i < CRYPTO_num_locks( ); i++)
-                MUTEX_CLEANUP(mutex_buf[i]);
-        free(mutex_buf);
-        mutex_buf = NULL;
-        return 1;
-}
-
-void init_OpenSSL(void)
-{
-        if (!THREAD_setup() || !SSL_library_init())
-        {
-                fprintf(stderr, "** OpenSSL initialization failed!\n");
-                exit(-1);
-        }
-        SSLeay_add_ssl_algorithms();
-        SSL_load_error_strings();
-        SSL_library_init();
-}
-#endif
-
 
 // -----------------------------------------------------------------------------
 // TODO OLD CODE TODO OLD CODE TODO OLD CODE TODO OLD CODE TODO OLD CODE TODO
