@@ -128,6 +128,7 @@ t_client::t_client(bool a_verbose,
                                 m_sock_opt_send_buf_size,
                                 m_sock_opt_no_delay,
                                 false,
+                                true,
                                 m_max_reqs_per_conn,
                                 m_rand_ptr);
 
@@ -190,8 +191,30 @@ int t_client::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void t_client::stop(void)
+{
+        m_stopped = true;
+        int32_t l_status;
+        l_status = m_evr_loop->stop();
+        if(l_status != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing stop.\n");
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_writeable_cb(void *a_data)
 {
+
+        if(!a_data)
+        {
+                return NULL;
+        }
+
         nconn* l_nconn = static_cast<nconn*>(a_data);
         reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
         t_client *l_t_client = g_t_client;
@@ -205,29 +228,92 @@ void *t_client::evr_loop_file_writeable_cb(void *a_data)
         {
 
         case CONN_STATE_CONNECTING:
-        case CONN_STATE_SSL_CONNECTING:
         {
-                l_t_client->m_num_pending++;
                 int l_status;
                 //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
                 l_status = l_nconn->connect_cb(l_reqlet->m_host_info);
                 if(EAGAIN == l_status)
                 {
                         return NULL;
-
                 }
                 else if(STATUS_OK != l_status)
                 {
-                        NDBG_PRINT("Error: performing connect_cb -maybe server is down.  Bailing out.\n");
+                        NDBG_PRINT("Error: performing connect_cb\n");
                         l_t_client->cleanup_connection(l_nconn);
-                        l_t_client->stop();
                         return NULL;
                 }
+
+                // Add idle timeout
+                l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
 
                 // -------------------------------------------
                 // Add to event handler
                 // -------------------------------------------
-                if (0 != l_t_client->m_evr_loop->add_file(l_nconn->get_fd(), EVR_FILE_ATTR_MASK_READ, l_nconn))
+                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                l_nconn->get_fd(),
+                                EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                l_nconn))
+                {
+                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        l_t_client->cleanup_connection(l_nconn);
+                        return NULL;
+                }
+
+                break;
+        }
+        case CONN_STATE_SSL_CONNECTING:
+        case CONN_STATE_SSL_CONNECTING_WANT_WRITE:
+        case CONN_STATE_SSL_CONNECTING_WANT_READ:
+        {
+                int l_status;
+                //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                l_status = l_nconn->ssl_connect_cb(l_reqlet->m_host_info);
+                if(EAGAIN == l_status)
+                {
+                        if(CONN_STATE_SSL_CONNECTING_WANT_READ == l_nconn->get_state())
+                        {
+                                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                                l_nconn->get_fd(),
+                                                EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                l_nconn))
+                                {
+                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                                        l_t_client->cleanup_connection(l_nconn);
+                                        return NULL;
+                                }
+                        }
+                        else if(CONN_STATE_SSL_CONNECTING_WANT_WRITE == l_nconn->get_state())
+                        {
+                                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                                l_nconn->get_fd(),
+                                                EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                l_nconn))
+                                {
+                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                                        l_t_client->cleanup_connection(l_nconn);
+                                        return NULL;
+                                }
+                        }
+                        return NULL;
+
+                }
+                else if(STATUS_OK != l_status)
+                {
+                        NDBG_PRINT("Error: performing connect_cb\n");
+                        l_t_client->cleanup_connection(l_nconn);
+                        return NULL;
+                }
+
+                // Add idle timeout
+                l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
+
+                // -------------------------------------------
+                // Add to event handler
+                // -------------------------------------------
+                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                l_nconn->get_fd(),
+                                EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                l_nconn))
                 {
                         NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                         l_t_client->cleanup_connection(l_nconn);
@@ -250,6 +336,12 @@ void *t_client::evr_loop_file_writeable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_readable_cb(void *a_data)
 {
+
+        if(!a_data)
+        {
+                return NULL;
+        }
+
         nconn* l_nconn = static_cast<nconn*>(a_data);
         reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
         t_client *l_t_client = g_t_client;
@@ -257,10 +349,70 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
         //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_nconn);
 
         // Cancel last timer
-        l_t_client->m_evr_loop->cancel_timer(l_nconn->m_timer_obj);
+        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
 
         switch (l_nconn->get_state())
         {
+        case CONN_STATE_SSL_CONNECTING:
+        case CONN_STATE_SSL_CONNECTING_WANT_WRITE:
+        case CONN_STATE_SSL_CONNECTING_WANT_READ:
+        {
+                int l_status;
+                //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                l_status = l_nconn->ssl_connect_cb(l_reqlet->m_host_info);
+                if(EAGAIN == l_status)
+                {
+                        if(CONN_STATE_SSL_CONNECTING_WANT_READ == l_nconn->get_state())
+                        {
+                                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                                l_nconn->get_fd(),
+                                                EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                l_nconn))
+                                {
+                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                                        l_t_client->cleanup_connection(l_nconn);
+                                        return NULL;
+                                }
+                        }
+                        else if(CONN_STATE_SSL_CONNECTING_WANT_WRITE == l_nconn->get_state())
+                        {
+                                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                                l_nconn->get_fd(),
+                                                EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                l_nconn))
+                                {
+                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                                        l_t_client->cleanup_connection(l_nconn);
+                                        return NULL;
+                                }
+                        }
+                        return NULL;
+                }
+                else if(STATUS_OK != l_status)
+                {
+                        NDBG_PRINT("Error: performing connect_cb\n");
+                        l_t_client->cleanup_connection(l_nconn);
+                        return NULL;
+                }
+
+                // Add idle timeout
+                l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
+
+                // -------------------------------------------
+                // Add to event handler
+                // -------------------------------------------
+                if (0 != l_t_client->m_evr_loop->mod_fd(
+                                l_nconn->get_fd(),
+                                EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                l_nconn))
+                {
+                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        l_t_client->cleanup_connection(l_nconn);
+                        return NULL;
+                }
+
+                break;
+        }
         case CONN_STATE_READING:
         {
                 int l_read_status = 0;
@@ -354,6 +506,11 @@ void *t_client::evr_loop_file_error_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_timeout_cb(void *a_data)
 {
+
+        if(!a_data)
+        {
+                return NULL;
+        }
 
         nconn* l_nconn = static_cast<nconn*>(a_data);
         reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
@@ -551,11 +708,13 @@ int32_t t_client::start_connections(void)
                         return STATUS_ERROR;
                 }
 
-                if (0 != m_evr_loop->add_file(l_nconn->get_fd(), EVR_FILE_ATTR_MASK_WRITE, l_nconn))
+                if (0 != m_evr_loop->add_fd(l_nconn->get_fd(),
+                                EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                l_nconn))
                 {
                         NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                         cleanup_connection(l_nconn);
-                        return STATUS_ERROR;
+                        continue;
                 }
 
                 // -------------------------------------------
@@ -563,11 +722,14 @@ int32_t t_client::start_connections(void)
                 // -------------------------------------------
                 if(l_nconn->get_state() != CONN_STATE_CONNECTING)
                 {
-                        if (0 != m_evr_loop->add_file(l_nconn->get_fd(), EVR_FILE_ATTR_MASK_READ, l_nconn))
+                        if (0 != m_evr_loop->mod_fd(
+                                        l_nconn->get_fd(),
+                                        EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                        l_nconn))
                         {
                                 NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                                 cleanup_connection(l_nconn);
-                                return STATUS_ERROR;
+                                continue;
                         }
                 }
 
@@ -658,9 +820,9 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
         // Cancel last timer
         if(a_cancel_timer)
         {
-                m_evr_loop->cancel_timer(a_nconn->m_timer_obj);
+                m_evr_loop->cancel_timer(&(a_nconn->m_timer_obj));
         }
-        m_evr_loop->remove_file(a_nconn->get_fd(), 0);
+        m_evr_loop->del_fd(a_nconn->get_fd());
         a_nconn->done_cb();
 
         return STATUS_OK;

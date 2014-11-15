@@ -221,6 +221,12 @@ int t_client::run(void)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_writeable_cb(void *a_data)
 {
+
+        if(!a_data)
+        {
+                return NULL;
+        }
+
         t_client *l_t_client = g_t_client;
         int32_t l_fd = (intptr_t)a_data;
         nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
@@ -291,6 +297,11 @@ void *t_client::evr_loop_file_writeable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_readable_cb(void *a_data)
 {
+        if(!a_data)
+        {
+                return NULL;
+        }
+
         t_client *l_t_client = g_t_client;
         int32_t l_fd = (intptr_t)a_data;
         nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
@@ -342,8 +353,7 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
                         ++(l_reqlet->m_stat_agg.m_num_conn_completed);
 
                         // Cancel timer
-                        l_t_client->m_evr_loop->cancel_timer(l_nconn->m_timer_obj);
-                        l_nconn->m_timer_obj = NULL;
+                        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
 
                         // Add stats
                         add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
@@ -385,6 +395,11 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_error_cb(void *a_data)
 {
+        if(!a_data)
+        {
+                return NULL;
+        }
+
         t_client *l_t_client = g_t_client;
         int32_t l_fd = (intptr_t)a_data;
         nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
@@ -405,6 +420,12 @@ void *t_client::evr_loop_file_error_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_file_timeout_cb(void *a_data)
 {
+
+        if(!a_data)
+        {
+                return NULL;
+        }
+
         t_client *l_t_client = g_t_client;
         int32_t l_fd = (intptr_t)a_data;
         nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
@@ -478,6 +499,7 @@ nconn *t_client::try_take_locked_nconn_w_hash(uint64_t a_hash)
                                 m_sock_opt_recv_buf_size,
                                 m_sock_opt_send_buf_size,
                                 m_sock_opt_no_delay,
+                                false,
                                 false,
                                 -1,
                                 NULL);
@@ -906,8 +928,7 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
         // Cancel last timer
         if(a_cancel_timer)
         {
-                m_evr_loop->cancel_timer(a_nconn->m_timer_obj);
-                a_nconn->m_timer_obj = NULL;
+                m_evr_loop->cancel_timer(&(a_nconn->m_timer_obj));
         }
 
         // stats

@@ -90,15 +90,16 @@ target_link_libraries(hlo_cmd
 pthread
 microhttpd
 rt
-#asan
-tcmalloc
-profiler
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
 rt
 crypto
 ssl
 snappy
 leveldb
+tcmalloc
+profiler
+#asan
+#efence
 )
 
 install(TARGETS hlo_cmd

@@ -60,6 +60,8 @@ typedef enum conn_state
         CONN_STATE_CONNECTING,
         CONN_STATE_CONNECTED,
         CONN_STATE_SSL_CONNECTING,
+        CONN_STATE_SSL_CONNECTING_WANT_READ,
+        CONN_STATE_SSL_CONNECTING_WANT_WRITE,
         CONN_STATE_SSL_CONNECTED,
         CONN_STATE_READING,
         CONN_STATE_DONE
@@ -77,6 +79,7 @@ public:
               uint32_t a_sock_opt_send_buf_size,
               bool a_sock_opt_no_delay,
               bool a_save_response_in_reqlet,
+              bool a_collect_stats,
               int64_t a_max_reqs_per_conn = -1,
               void *a_rand_ptr = NULL):
                 m_req_buf_len(0),
@@ -106,7 +109,8 @@ public:
                 m_ssl_ctx(NULL),
                 m_rand_ptr(a_rand_ptr),
                 m_scheme(URL_SCHEME_HTTP),
-                m_host("NA")
+                m_host("NA"),
+                m_collect_stats_flag(a_collect_stats)
         {
                 // Set up callbacks...
                 m_http_parser_settings.on_message_begin = hp_on_message_begin;
@@ -119,7 +123,10 @@ public:
                 m_http_parser_settings.on_message_complete = hp_on_message_complete;
 
                 // Set stats
-                stat_init(m_stat);
+                if(m_collect_stats_flag)
+                {
+                        stat_init(m_stat);
+                }
 
                 pthread_mutex_init(&m_mutex, NULL);
 
@@ -127,6 +134,7 @@ public:
 
         int32_t do_connect(host_info_t &a_host_info, const std::string &a_host);
         int32_t connect_cb(host_info_t &a_host_info);
+        int32_t ssl_connect_cb(host_info_t &a_host_info);
         int32_t send_request(bool is_reuse = false);
         int32_t read_cb(void);
         int32_t done_cb(void);
@@ -234,7 +242,7 @@ private:
         void *m_rand_ptr;
         url_scheme_t m_scheme;
         std::string m_host;
-
+        bool m_collect_stats_flag;
 };
 
 //: ----------------------------------------------------------------------------

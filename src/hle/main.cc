@@ -134,7 +134,7 @@ void sig_handler(int signo)
   if (signo == SIGINT)
   {
           // Kill program
-          NDBG_PRINT("SIGINT\n");
+          //NDBG_PRINT("SIGINT\n");
           g_test_finished = true;
           g_cancelled = true;
           hle::get()->stop();

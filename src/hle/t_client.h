@@ -112,8 +112,8 @@ public:
         void stop(void);
         bool is_running(void) { return !m_stopped; }
         int32_t set_header(const std::string &a_header_key, const std::string &a_header_val);
-        void set_ssl_ctx(SSL_CTX * a_ssl_ctx) { m_ssl_ctx = a_ssl_ctx;}
-        uint32_t get_timeout_s(void) { return m_timeout_s;}
+        void set_ssl_ctx(SSL_CTX * a_ssl_ctx) { m_ssl_ctx = a_ssl_ctx;};
+        uint32_t get_timeout_s(void) { return m_timeout_s;};
 
         // -------------------------------------------------
         // Public members

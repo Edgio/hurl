@@ -42,10 +42,20 @@ class evr_epoll: public evr
 {
 public:
         evr_epoll(int a_max_connections);
+
+#if 0
         int wait_events(epoll_event* a_ev, int a_max_events, int a_timeout_msec);
         int add_out(int a_fd, void* a_data);
         int add_in(int a_fd, void* a_data);
+        int add_in_only(int a_fd, void* a_data);
         void forget(int a_fd, void* a_data);
+        int raw_set(int a_op, int a_fd, uint32_t a_events, void *a_data);
+#else
+        int wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec);
+        int add(int a_fd, uint32_t a_attr_mask, void* a_data);
+        int mod(int a_fd, uint32_t a_attr_mask, void* a_data);
+        int del(int a_fd);
+#endif
 
 private:
         DISALLOW_COPY_AND_ASSIGN(evr_epoll);

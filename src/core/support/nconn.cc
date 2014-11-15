@@ -254,7 +254,10 @@ int nconn::hp_on_headers_complete(http_parser* a_parser)
                 }
 
                 // Stats
-                l_conn->m_stat.m_tt_header_completion_us = get_delta_time_us(l_conn->m_request_start_time_us);
+                if(l_conn->m_collect_stats_flag)
+                {
+                        l_conn->m_stat.m_tt_header_completion_us = get_delta_time_us(l_conn->m_request_start_time_us);
+                }
 
         }
         return 0;
@@ -279,7 +282,10 @@ int nconn::hp_on_body(http_parser* a_parser, const char *a_at, size_t a_length)
                 }
 
                 // Stats
-                l_conn->m_stat.m_body_bytes += a_length;
+                if(l_conn->m_collect_stats_flag)
+                {
+                        l_conn->m_stat.m_body_bytes += a_length;
+                }
 
                 if(l_conn->m_save_response_in_reqlet)
                 {
@@ -311,7 +317,11 @@ int nconn::hp_on_message_complete(http_parser* a_parser)
                 }
 
                 // Stats
-                l_conn->m_stat.m_tt_completion_us = get_delta_time_us(l_conn->m_request_start_time_us);
+                // Stats
+                if(l_conn->m_collect_stats_flag)
+                {
+                        l_conn->m_stat.m_tt_completion_us = get_delta_time_us(l_conn->m_request_start_time_us);
+                }
 
                 //NDBG_PRINT("CONN[%u--%d] m_request_start_time_us: %" PRIu64 " m_tt_completion_us: %" PRIu64 "\n",
                 //		l_conn->m_connection_id,
@@ -402,7 +412,11 @@ int32_t nconn::do_connect(host_info_t &a_host_info, const std::string &a_host)
         }
 
         // Get start time
-        m_connect_start_time_us = get_time_us();
+        // Stats
+        if(m_collect_stats_flag)
+        {
+                m_connect_start_time_us = get_time_us();
+        }
         //NDBG_PRINT("CONN[%u--%d] %s--SET_--%s m_connect_start_time_us: %" PRIu64 "\n", m_connection_id, m_fd, ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_stat.m_connect_start_time_us);
 
         // -------------------------------------------
@@ -426,7 +440,7 @@ int32_t nconn::do_connect(host_info_t &a_host_info, const std::string &a_host)
         uint32_t l_retry_connect_count = 0;
 
 retry_connect:
-        //NDBG_OUTPUT("%sCONNECT%s[%3d]\n", ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, m_fd);
+        //NDBG_PRINT("%sCONNECT%s[%3d]\n", ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, m_fd);
 
         l_connect_status = connect(m_fd,
                         (struct sockaddr*) &(a_host_info.m_sa),
@@ -452,7 +466,7 @@ retry_connect:
                 {
                         // TODO -bad to spin like this???
                         // Retry connect
-                        //NDBG_PRINT("%sRETRY CONNECT%s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
+                        NDBG_PRINT("%sRETRY CONNECT%s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
                         if(++l_retry_connect_count < 1024)
                         {
                                 usleep(1000);
@@ -531,17 +545,27 @@ int32_t nconn::connect_cb(host_info_t &a_host_info)
                                         (a_host_info.m_sa_len));
 
                         // TODO REMOVE
-                        //NDBG_OUTPUT("%sCONNECT%s[%3d]: Status %3d. Reason: %s\n",
-                        //                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd, l_connect_status, strerror(errno));
+                        //++l_retry;
+                        //NDBG_PRINT_BT();
+                        //NDBG_PRINT("%sCONNECT%s[%3d]: Retry: %d Status %3d. Reason[%d]: %s\n",
+                        //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
+                        //                m_fd, l_retry, l_connect_status,
+                        //                errno,
+                        //                strerror(errno));
 
                         if (l_connect_status < 0)
                         {
                                 switch (errno)
                                 {
                                 case EISCONN:
+                                {
+                                        //NDBG_PRINT("%sCONNECT%s[%3d]: SET CONNECTED\n",
+                                        //                ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF,
+                                        //                m_fd);
                                         // Ok!
                                         m_state = CONN_STATE_CONNECTED;
                                         break;
+                                }
                                 case EINVAL:
                                 {
                                         int l_err;
@@ -561,13 +585,19 @@ int32_t nconn::connect_cb(host_info_t &a_host_info)
                                         break;
                                 }
                                 case ECONNREFUSED:
+                                {
                                         return STATUS_ERROR;
                                         break;
+                                }
                                 case EINPROGRESS:
+                                {
                                         break;
+                                }
                                 default:
+                                {
                                         return STATUS_ERROR;
                                         break;
+                                }
                                 }
                         }
                         else
@@ -577,10 +607,13 @@ int32_t nconn::connect_cb(host_info_t &a_host_info)
                 }
         }
         // Stats
-        m_stat.m_tt_connect_us = get_delta_time_us(m_connect_start_time_us);
+        if(m_collect_stats_flag)
+        {
+                m_stat.m_tt_connect_us = get_delta_time_us(m_connect_start_time_us);
 
-        // Save last connect time for reuse
-        m_last_connect_time_us = m_stat.m_tt_connect_us;
+                // Save last connect time for reuse
+                m_last_connect_time_us = m_stat.m_tt_connect_us;
+        }
 
         //NDBG_PRINT("%s connect: %" PRIu64 " -- start: %" PRIu64 " %s.\n",
         //		ANSI_COLOR_BG_RED,
@@ -595,90 +628,139 @@ int32_t nconn::connect_cb(host_info_t &a_host_info)
         {
 
                 int l_status;
-                m_state = CONN_STATE_CONNECTING;
-                l_status = SSL_connect(m_ssl);
-                // TODO REMOVE
-                //NDBG_OUTPUT("%sSSL_CON%s[%3d]: Status %3d. Reason: %s\n",
-                //                ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd, l_status, strerror(errno));
-                if (l_status <= 0)
+                m_state = CONN_STATE_SSL_CONNECTING;
+
+                l_status = ssl_connect_cb(a_host_info);
+                if(l_status != STATUS_OK)
                 {
-                        //fprintf(stderr, "%s: SSL connection failed - %d\n", "hlo", l_status);
-                        //NDBG_PRINT("Showing error.\n");
-
-                        int l_ssl_error = SSL_get_error(m_ssl, l_status);
-                        switch(l_ssl_error) {
-                        case SSL_ERROR_SSL:
-                        {
-                                NDBG_PRINT("SSL_ERROR_SSL %lu: %s\n", ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
-                                break;
-                        }
-                        case SSL_ERROR_WANT_READ:
-                        case SSL_ERROR_WANT_WRITE:
-                        {
-                                // Recoverable error try again
-                                return EAGAIN;
-                        }
-
-                        case SSL_ERROR_WANT_X509_LOOKUP:
-                        {
-                                NDBG_PRINT("SSL_ERROR_WANT_X509_LOSTATUS_OKUP\n");
-                                break;
-                        }
-
-                        // look at error stack/return value/errno
-                        case SSL_ERROR_SYSCALL:
-                        {
-                                NDBG_PRINT("SSL_ERROR_SYSCALL %lu: %s\n", ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
-                                if(l_status == 0) {
-                                        NDBG_PRINT("An EOF was observed that violates the protocol\n");
-                                } else if(l_status == -1) {
-                                        NDBG_PRINT("%s\n", strerror(errno));
-                                }
-                                break;
-                        }
-                        case SSL_ERROR_ZERO_RETURN:
-                        {
-                                NDBG_PRINT("SSL_ERROR_ZERO_RETURN\n");
-                                break;
-                        }
-                        case SSL_ERROR_WANT_CONNECT:
-                        {
-                                NDBG_PRINT("SSL_ERROR_WANT_CONNECT\n");
-                                break;
-                        }
-                        case SSL_ERROR_WANT_ACCEPT:
-                        {
-                                NDBG_PRINT("SSL_ERROR_WANT_ACCEPT\n");
-                                break;
-                        }
-                        }
-
-
-                        ERR_print_errors_fp(stderr);
-                        return STATUS_ERROR;
-                }
-                else if(1 == l_status)
-                {
-                        m_state = CONN_STATE_CONNECTED;
+                        return l_status;
                 }
 
-                // Stats
+        }
+
+        //did_connect = 1;
+
+        // -------------------------------------------
+        // Send request
+        // -------------------------------------------
+        int32_t l_request_status = STATUS_OK;
+        l_request_status = send_request(false);
+        if(l_request_status != STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
+
+        return STATUS_OK;
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn::ssl_connect_cb(host_info_t &a_host_info)
+{
+        // -------------------------------------------
+        // HTTPS
+        // -------------------------------------------
+
+        int l_status;
+        m_state = CONN_STATE_SSL_CONNECTING;
+
+        l_status = SSL_connect(m_ssl);
+        // TODO REMOVE
+        //NDBG_OUTPUT("%sSSL_CON%s[%3d]: Status %3d. Reason: %s\n",
+        //                ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd, l_status, strerror(errno));
+        //NDBG_PRINT_BT();
+        if (l_status <= 0)
+        {
+                //fprintf(stderr, "%s: SSL connection failed - %d\n", "hlo", l_status);
+                //NDBG_PRINT("Showing error.\n");
+
+                int l_ssl_error = SSL_get_error(m_ssl, l_status);
+                switch(l_ssl_error) {
+                case SSL_ERROR_SSL:
+                {
+                        NDBG_PRINT("SSL_ERROR_SSL %lu: %s\n", ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
+                        break;
+                }
+                case SSL_ERROR_WANT_READ:
+                {
+                        //epoll_control(s_epfd, EPOLL_CTL_MOD, handle->sock, EPOLLIN);
+                        m_state = CONN_STATE_SSL_CONNECTING_WANT_READ;
+                        return EAGAIN;
+
+                }
+                case SSL_ERROR_WANT_WRITE:
+                {
+                        //epoll_control(s_epfd, EPOLL_CTL_MOD, handle->sock, EPOLLOUT);
+                        m_state = CONN_STATE_SSL_CONNECTING_WANT_WRITE;
+                        return EAGAIN;
+                }
+
+                case SSL_ERROR_WANT_X509_LOOKUP:
+                {
+                        NDBG_PRINT("SSL_ERROR_WANT_X509_LOSTATUS_OKUP\n");
+                        break;
+                }
+
+                // look at error stack/return value/errno
+                case SSL_ERROR_SYSCALL:
+                {
+                        NDBG_PRINT("SSL_ERROR_SYSCALL %lu: %s\n", ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
+                        if(l_status == 0) {
+                                NDBG_PRINT("An EOF was observed that violates the protocol\n");
+                        } else if(l_status == -1) {
+                                NDBG_PRINT("%s\n", strerror(errno));
+                        }
+                        break;
+                }
+                case SSL_ERROR_ZERO_RETURN:
+                {
+                        NDBG_PRINT("SSL_ERROR_ZERO_RETURN\n");
+                        break;
+                }
+                case SSL_ERROR_WANT_CONNECT:
+                {
+                        NDBG_PRINT("SSL_ERROR_WANT_CONNECT\n");
+                        break;
+                }
+                case SSL_ERROR_WANT_ACCEPT:
+                {
+                        NDBG_PRINT("SSL_ERROR_WANT_ACCEPT\n");
+                        break;
+                }
+                }
+
+
+                ERR_print_errors_fp(stderr);
+                return STATUS_ERROR;
+        }
+        else if(1 == l_status)
+        {
+                m_state = CONN_STATE_CONNECTED;
+        }
+
+        // Stats
+        if(m_collect_stats_flag)
+        {
                 m_stat.m_tt_ssl_connect_us = get_delta_time_us(m_connect_start_time_us);
+        }
 
 #if 0
-                static bool s_first = true;
-                if (s_first)
+        static bool s_first = true;
+        if (s_first)
+        {
+                s_first = false;
+                const char* cipher_name = SSL_get_cipher_name(m_ssl);
+                const char* cipher_version = SSL_get_cipher_version(m_ssl);
+                if(m_verbose)
                 {
-                        s_first = false;
-                        const char* cipher_name = SSL_get_cipher_name(m_ssl);
-                        const char* cipher_version = SSL_get_cipher_version(m_ssl);
-                        if(m_verbose)
-                        {
-                                NDBG_PRINT("got ssl m_cipher %s %s\n", cipher_name, cipher_version);
-                        }
+                        NDBG_PRINT("got ssl m_cipher %s %s\n", cipher_name, cipher_version);
                 }
-#endif
         }
+#endif
 
         //did_connect = 1;
 
@@ -709,7 +791,10 @@ int32_t nconn::send_request(bool is_reuse)
         // Save last connect time for reuse
         if(is_reuse)
         {
-                m_stat.m_tt_connect_us = m_last_connect_time_us;
+                if(m_collect_stats_flag)
+                {
+                        m_stat.m_tt_connect_us = m_last_connect_time_us;
+                }
         }
 
         // Reset to support reusing connection
@@ -757,7 +842,10 @@ int32_t nconn::send_request(bool is_reuse)
         //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_fd, l_status, strerror(errno));
 
         // Get request time
-        m_request_start_time_us = get_time_us();
+        if(m_collect_stats_flag)
+        {
+                m_request_start_time_us = get_time_us();
+        }
 
         m_state = CONN_STATE_READING;
         //header_state = HDST_LINE1_PROTOCOL;
@@ -784,7 +872,9 @@ int32_t nconn::read_cb(void)
 
                 if (m_scheme == URL_SCHEME_HTTPS)
                 {
+
                         l_bytes_read = SSL_read(m_ssl, m_read_buf + m_read_buf_idx, l_max_read);
+                        //NDBG_PRINT("%sREAD%s[%3d] l_bytes_read: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, SSL_get_fd(m_ssl), l_bytes_read);
                 }
                 else
                 {
@@ -819,9 +909,12 @@ int32_t nconn::read_cb(void)
                 // Stats
                 m_stat.m_total_bytes += l_bytes_read;
 
-                if((m_read_buf_idx == 0) && (m_stat.m_tt_first_read_us == 0))
+                if(m_collect_stats_flag)
                 {
-                        m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
+                        if((m_read_buf_idx == 0) && (m_stat.m_tt_first_read_us == 0))
+                        {
+                                m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
+                        }
                 }
 
                 // Parse result
@@ -1090,6 +1183,7 @@ SSL_CTX* nconn_ssl_init(const std::string &a_cipher_list)
         // TODO Deprecated???
         //SSLeay_add_ssl_algorithms();
         OpenSSL_add_all_algorithms();
+
 
         // Set up for thread safety
         init_ssl_locking();
