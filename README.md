@@ -12,7 +12,7 @@ A few utilities for testing and curling from http servers.
 eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html". 
 
 * **Stats API**:
-If  *hlo* is started with **-P *port_number* ** option,  *hlo* listens on the user specified port for stats requests:
+If  *hlo* is started with *-P port_number* option,  *hlo* listens on the user specified port for stats requests:
 For example if hlo is run with:
 ```bash
 ~>hlo "http://127.0.0.1:8089/index.html" -P12345
@@ -105,37 +105,40 @@ printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | hle -p2 -t3 -u"https:
 ```bash
 Usage: hle [http[s]://]hostname[:port]/path [options]
 Options are:
-  -h, --help         Display this help and exit.
-  -v, --version      Display the version number and exit.
+  -h, --help           Display this help and exit.
+  -v, --version        Display the version number and exit.
   
 URL Options -or without parameter
-  -u, --url           URL -REQUIRED.
+  -u, --url            URL -REQUIRED.
   
 Hostname Input Options -also STDIN:
-  -f, --host_file     Host name file.
-  -x, --execute       Script to execute to get host names.
+  -f, --host_file      Host name file.
+  -x, --execute        Script to execute to get host names.
   
 Settings:
-  -y, --cipher        Cipher --see "openssl ciphers" for list.
-  -p, --parallel      Num parallel.
-  -t, --threads       Number of parallel threads.
-  -H, --header        Request headers -can add multiple ie -H<> -H<>...
-  -T, --timeout       Timeout (seconds).
-  -R, --recv_buffer   Socket receive buffer size.
-  -S, --send_buffer   Socket send buffer size.
-  -D, --no_delay      Socket TCP no-delay.
-  -A, --ai_cache      Path to Address Info Cache (DNS lookup cache).
+  -y, --cipher         Cipher --see "openssl ciphers" for list.
+  -p, --parallel       Num parallel.
+  -t, --threads        Number of parallel threads.
+  -H, --header         Request headers -can add multiple ie -H<> -H<>...
+  -T, --timeout        Timeout (seconds).
+  -R, --recv_buffer    Socket receive buffer size.
+  -S, --send_buffer    Socket send buffer size.
+  -D, --no_delay       Socket TCP no-delay.
+  -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).
   
 Print Options:
-  -r, --verbose       Verbose logging
-  -c, --color         Color
-  -q, --quiet         Shaddup!
-  -s, --show_progress Show progress
+  -r, --verbose        Verbose logging
+  -c, --color          Color
+  -q, --quiet          Suppress output
+  -s, --show_progress  Show progress
   
-Output Options:
+Output Options: -defaults to line delimited
+  -l, --line_delimited Output <HOST> <RESPONSE BODY> per line
+  -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
+  -P, --pretty         Pretty output
   
 Debug Options:
-  -G, --gprofile     Google profiler output file
+  -G, --gprofile       Google profiler output file
   
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
