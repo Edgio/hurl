@@ -28,6 +28,7 @@
 #include "util.h"
 #include "reqlet.h"
 #include "ndebug.h"
+#include "evr.h"
 
 #include <errno.h>
 #include <string.h>
@@ -524,7 +525,7 @@ retry_connect:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::connect_cb(host_info_t &a_host_info)
+int32_t nconn::connect_cb(const host_info_t &a_host_info)
 {
 
         // -------------------------------------------
@@ -659,7 +660,7 @@ int32_t nconn::connect_cb(host_info_t &a_host_info)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::ssl_connect_cb(host_info_t &a_host_info)
+int32_t nconn::ssl_connect_cb(const host_info_t &a_host_info)
 {
         // -------------------------------------------
         // HTTPS
@@ -1003,6 +1004,119 @@ void nconn::reset_stats(void)
         stat_init(m_stat);
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn::run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info)
+{
+
+        // Cancel last timer
+        a_evr_loop->cancel_timer(&(m_timer_obj));
+
+state_top:
+        switch (m_state)
+        {
+        case CONN_STATE_CONNECTING:
+        {
+                int l_status;
+                //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                l_status = connect_cb(a_host_info);
+                if(EAGAIN == l_status)
+                {
+                        // TODO Check if in SSL_CONNECTING STATE???
+                        if(m_state == CONN_STATE_SSL_CONNECTING ||
+                           m_state == CONN_STATE_SSL_CONNECTING_WANT_WRITE ||
+                           m_state == CONN_STATE_SSL_CONNECTING_WANT_READ)
+                        {
+                                goto state_top;
+                        }
+                        return STATUS_OK;
+                }
+                else if(STATUS_OK != l_status)
+                {
+                        NDBG_PRINT("Error: performing connect_cb\n");
+                        return STATUS_ERROR;
+                }
+
+                // -------------------------------------------
+                // Add to event handler
+                // -------------------------------------------
+                if (0 != a_evr_loop->mod_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                            this))
+                {
+                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        return STATUS_ERROR;
+                }
+
+                break;
+        }
+        case CONN_STATE_SSL_CONNECTING:
+        case CONN_STATE_SSL_CONNECTING_WANT_WRITE:
+        case CONN_STATE_SSL_CONNECTING_WANT_READ:
+        {
+                int l_status;
+                //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                l_status = ssl_connect_cb(a_host_info);
+                if(EAGAIN == l_status)
+                {
+                        if(CONN_STATE_SSL_CONNECTING_WANT_READ == m_state)
+                        {
+                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            this))
+                                {
+                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                                        return STATUS_ERROR;
+                                }
+                        }
+                        else if(CONN_STATE_SSL_CONNECTING_WANT_WRITE == m_state)
+                        {
+                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            this))
+                                {
+                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                                        return STATUS_ERROR;
+                                }
+                        }
+                        return STATUS_OK;
+                }
+                else if(STATUS_OK != l_status)
+                {
+                        NDBG_PRINT("Error: performing connect_cb\n");
+                        return STATUS_ERROR;
+                }
+
+                // -------------------------------------------
+                // Add to event handler
+                // -------------------------------------------
+                if (0 != a_evr_loop->mod_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                            this))
+                {
+                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        return STATUS_ERROR;
+                }
+
+                break;
+        }
+        case CONN_STATE_READING:
+        {
+                int l_read_status = 0;
+                //NDBG_PRINT("CNST_READING\n");
+                l_read_status = read_cb();
+                return l_read_status;
+                break;
+        }
+        default:
+                break;
+        }
+
+        return STATUS_OK;
+}
 
 //: ----------------------------------------------------------------------------
 //:                          OpenSSL Support

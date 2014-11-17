@@ -545,6 +545,38 @@ const std::string &reqlet::get_label(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void reqlet::set_response(uint16_t a_response_status, const char *a_response)
+{
+        // Set reqlet response
+        if(a_response_status)
+        {
+                m_response_status = a_response_status;
+        }
+
+        std::string l_response(a_response);
+        if(!l_response.empty())
+        {
+                m_response_body = "\"" + l_response + "\"";
+        }
+
+        if(m_response_status == 502)
+        {
+                ++(m_stat_agg.m_num_idle_killed);
+        }
+        if(m_response_status >= 500)
+        {
+                ++(m_stat_agg.m_num_errors);
+        }
+
+        ++(m_stat_agg.m_num_conn_completed);
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void add_stat_to_agg(total_stat_agg_t &ao_stat_agg, const req_stat_t &a_req_stat)
 {
 

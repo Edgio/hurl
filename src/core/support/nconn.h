@@ -49,7 +49,7 @@
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-
+class evr_loop;
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -80,6 +80,7 @@ public:
               bool a_sock_opt_no_delay,
               bool a_save_response_in_reqlet,
               bool a_collect_stats,
+              uint32_t a_timeout_s,
               int64_t a_max_reqs_per_conn = -1,
               void *a_rand_ptr = NULL):
                 m_req_buf_len(0),
@@ -110,7 +111,8 @@ public:
                 m_rand_ptr(a_rand_ptr),
                 m_scheme(URL_SCHEME_HTTP),
                 m_host("NA"),
-                m_collect_stats_flag(a_collect_stats)
+                m_collect_stats_flag(a_collect_stats),
+                m_timeout_s(a_timeout_s)
         {
                 // Set up callbacks...
                 m_http_parser_settings.on_message_begin = hp_on_message_begin;
@@ -132,9 +134,10 @@ public:
 
         };
 
+        int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
         int32_t do_connect(host_info_t &a_host_info, const std::string &a_host);
-        int32_t connect_cb(host_info_t &a_host_info);
-        int32_t ssl_connect_cb(host_info_t &a_host_info);
+        int32_t connect_cb(const host_info_t &a_host_info);
+        int32_t ssl_connect_cb(const host_info_t &a_host_info);
         int32_t send_request(bool is_reuse = false);
         int32_t read_cb(void);
         int32_t done_cb(void);
@@ -243,6 +246,8 @@ private:
         url_scheme_t m_scheme;
         std::string m_host;
         bool m_collect_stats_flag;
+        uint32_t m_timeout_s;
+
 };
 
 //: ----------------------------------------------------------------------------

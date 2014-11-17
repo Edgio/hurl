@@ -162,6 +162,8 @@ public:
         const header_map_t &get_extra_headers(void) { return m_extra_headers; }
         const std::string &get_label(void);
         void set_host(std::string &a_host) { m_url.m_host = a_host;}
+        void set_response(uint16_t a_response_status, const char *a_response);
+
         // -------------------------------------------
         // Public members
         // -------------------------------------------
