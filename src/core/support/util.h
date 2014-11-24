@@ -53,6 +53,11 @@ uint64_t get_time_us(void);
 uint64_t get_delta_time_ms(uint64_t a_start_time_ms);
 uint64_t get_delta_time_us(uint64_t a_start_time_us);
 
+std::string get_file_wo_path(std::string &a_filename);
+std::string get_file_path(std::string &a_filename);
+std::string get_base_filename(std::string &a_filename);
+std::string get_file_ext(std::string &a_filename);
+std::string get_file_wo_ext(std::string &a_filename);
 
 #endif
 

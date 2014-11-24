@@ -30,7 +30,6 @@
 #include "http_parser.h"
 #include "host_info.h"
 #include "req_stat.h"
-#include "parsed_url.h"
 
 // OpenSSL
 #include <openssl/ssl.h>
@@ -50,22 +49,12 @@
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class evr_loop;
+class parsed_url;
 
 //: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
-typedef enum conn_state
-{
-        CONN_STATE_FREE = 0,
-        CONN_STATE_CONNECTING,
-        CONN_STATE_CONNECTED,
-        CONN_STATE_SSL_CONNECTING,
-        CONN_STATE_SSL_CONNECTING_WANT_READ,
-        CONN_STATE_SSL_CONNECTING_WANT_WRITE,
-        CONN_STATE_SSL_CONNECTED,
-        CONN_STATE_READING,
-        CONN_STATE_DONE
-} conn_state_t;
+
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -73,6 +62,35 @@ typedef enum conn_state
 class nconn
 {
 public:
+
+        // ---------------------------------------
+        // Protocol
+        // ---------------------------------------
+        typedef enum scheme_enum {
+
+                SCHEME_HTTP = 0,
+                SCHEME_HTTPS
+
+        } scheme_t;
+
+        // ---------------------------------------
+        // Connection state
+        // ---------------------------------------
+        typedef enum conn_state
+        {
+                CONN_STATE_FREE = 0,
+                CONN_STATE_CONNECTING,
+
+                // SSL
+                CONN_STATE_SSL_CONNECTING,
+                CONN_STATE_SSL_CONNECTING_WANT_READ,
+                CONN_STATE_SSL_CONNECTING_WANT_WRITE,
+
+                CONN_STATE_CONNECTED,
+                CONN_STATE_READING,
+                CONN_STATE_DONE
+        } conn_state_t;
+
         nconn(bool a_verbose,
               bool a_color,
               uint32_t a_sock_opt_recv_buf_size,
@@ -86,7 +104,11 @@ public:
                 m_req_buf_len(0),
                 m_timer_obj(NULL),
                 m_fd(-1),
+
+                // ssl
+                m_ssl_ctx(NULL),
                 m_ssl(NULL),
+
                 m_state(CONN_STATE_FREE),
                 m_stat(),
                 m_id(0),
@@ -107,9 +129,7 @@ public:
                 m_connect_start_time_us(0),
                 m_request_start_time_us(0),
                 m_last_connect_time_us(0),
-                m_ssl_ctx(NULL),
-                m_rand_ptr(a_rand_ptr),
-                m_scheme(URL_SCHEME_HTTP),
+                m_scheme(SCHEME_HTTP),
                 m_host("NA"),
                 m_collect_stats_flag(a_collect_stats),
                 m_timeout_s(a_timeout_s)
@@ -134,10 +154,8 @@ public:
 
         };
 
+        void set_host(const std::string &a_host) {m_host = a_host;};
         int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
-        int32_t do_connect(host_info_t &a_host_info, const std::string &a_host);
-        int32_t connect_cb(const host_info_t &a_host_info);
-        int32_t ssl_connect_cb(const host_info_t &a_host_info);
         int32_t send_request(bool is_reuse = false);
         int32_t read_cb(void);
         int32_t done_cb(void);
@@ -157,7 +175,7 @@ public:
         void set_ssl_ctx(SSL_CTX * a_ssl_ctx) { m_ssl_ctx = a_ssl_ctx;};
         void reset_stats(void);
         const req_stat_t &get_stats(void) const { return m_stat;};
-        void set_scheme(url_scheme_t a_scheme) {m_scheme = a_scheme;};
+        void set_scheme(scheme_t a_scheme) {m_scheme = a_scheme;};
         int32_t take_lock(void)
         {
                 return 0;
@@ -197,6 +215,8 @@ public:
         char m_req_buf[MAX_REQ_BUF];
         uint32_t m_req_buf_len;
         void *m_timer_obj;
+        int m_fd;
+
 
 private:
         // -------------------------------------------------
@@ -204,20 +224,22 @@ private:
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(nconn)
 
+        int32_t setup_socket(const host_info_t &a_host_info);
+        int32_t ssl_connect_cb(const host_info_t &a_host_info);
+
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-public:
-        int m_fd;
-private:
+        // ssl
+        SSL_CTX * m_ssl_ctx;
         SSL *m_ssl;
+
         conn_state_t m_state;
         req_stat_t m_stat;
         uint64_t m_id;
         void *m_data1;
         bool m_save_response_in_reqlet;
 
-        // TODO Testing...
         http_parser_settings m_http_parser_settings;
         http_parser m_http_parser;
         bool m_server_response_supports_keep_alives;
@@ -241,9 +263,7 @@ private:
         uint64_t m_request_start_time_us;
         uint64_t m_last_connect_time_us;
 
-        SSL_CTX * m_ssl_ctx;
-        void *m_rand_ptr;
-        url_scheme_t m_scheme;
+        scheme_t m_scheme;
         std::string m_host;
         bool m_collect_stats_flag;
         uint32_t m_timeout_s;

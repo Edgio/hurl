@@ -136,3 +136,94 @@ uint64_t get_delta_time_us(uint64_t a_start_time_us)
 
 	return l_retval - a_start_time_us;
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+std::string get_file_wo_path(std::string &a_filename)
+{
+        std::string fName(a_filename);
+        size_t pos = fName.rfind("/");
+
+        if(pos == std::string::npos)  //No extension.
+                return fName;
+        if(pos == 0)    //. is at the front. Not an extension.
+                return fName;
+
+        return fName.substr(pos + 1, fName.length());
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+std::string get_file_path(std::string &a_filename)
+{
+        std::string fName(a_filename);
+        size_t pos = fName.rfind("/");
+
+        if(pos == std::string::npos)  //No extension.
+                return fName;
+        if(pos == 0)    //. is at the front. Not an extension.
+                return fName;
+
+        return fName.substr(0, pos);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+std::string get_base_filename(std::string &a_filename)
+{
+        std::string fName(a_filename);
+        size_t pos = fName.rfind(".");
+
+        if(pos == std::string::npos)  //No extension.
+                return fName;
+        if(pos == 0)    //. is at the front. Not an extension.
+                return fName;
+
+        return fName.substr(0, pos);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+std::string get_file_ext(std::string &a_filename)
+{
+        std::string fName(a_filename);
+        size_t pos = fName.rfind(".");
+
+        if(pos == std::string::npos)  //No extension.
+                return NULL;
+        if(pos == 0)    //. is at the front. Not an extension.
+                return NULL;
+
+        return fName.substr(pos + 1, fName.length());
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+std::string get_file_wo_ext(std::string &a_filename)
+{
+        std::string fName(a_filename);
+        size_t pos = fName.rfind(".");
+
+        if(pos == std::string::npos)  //No extension.
+                return NULL;
+        if(pos == 0)    //. is at the front. Not an extension.
+                return NULL;
+
+        return fName.substr(0, pos);
+}
+

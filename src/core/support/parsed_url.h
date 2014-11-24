@@ -30,18 +30,12 @@
 #include <vector>
 #include <map>
 #include <list>
+#include "nconn.h"
 
 //: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
 
-// Protocol
-typedef enum url_scheme_enum {
-
-        URL_SCHEME_HTTP = 0,
-        URL_SCHEME_HTTPS
-
-} url_scheme_t;
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -61,7 +55,7 @@ public:
         // Public methods
         // -------------------------------------------
         parsed_url() :
-                m_scheme(URL_SCHEME_HTTP),
+                m_scheme(nconn::SCHEME_HTTP),
                 m_host(""),
                 m_port(80),
                 m_path("")
@@ -73,7 +67,7 @@ public:
         // -------------------------------------------
         // Public members
         // -------------------------------------------
-        url_scheme_t m_scheme;
+        nconn::scheme_t m_scheme;
         std::string m_host;
         uint16_t m_port;
         std::string m_path;

@@ -263,7 +263,7 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
         }
 
         // Check for done...
-        if((l_nconn->get_state() == CONN_STATE_DONE) ||
+        if((l_nconn->get_state() == nconn::CONN_STATE_DONE) ||
                         (l_status == STATUS_ERROR))
         {
                 if(l_status == STATUS_ERROR)
@@ -389,7 +389,13 @@ void *t_client::t_run(void *a_nothing)
                 //NDBG_PRINT("%sSTART_CONNECTIONS%s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
                 if(!l_reqlet_repo->done())
                 {
-                        start_connections();
+                        int32_t l_status;
+                        l_status = start_connections();
+                        if(l_status != STATUS_OK)
+                        {
+                                NDBG_PRINT("%sSTART_CONNECTIONS%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                                return NULL;
+                        }
                 }
 
                 // Run loop
@@ -468,51 +474,25 @@ int32_t t_client::start_connections(void)
                 // Create request
                 create_request(*l_nconn, *l_reqlet);
 
-                //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_reqlet->m_url.m_host.c_str());
-                l_status = l_nconn->do_connect(l_reqlet->m_host_info, l_reqlet->m_url.m_host);
+                m_conn_used_set.insert(*i_conn);
+                m_conn_free_list.erase(i_conn++);
 
                 // TODO Make configurable
                 m_evr_loop->add_timer(m_timeout_s*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
 
-                m_conn_used_set.insert(*i_conn);
-                m_conn_free_list.erase(i_conn++);
-
                 // Add to num pending
                 ++m_num_pending;
 
+                //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_reqlet->m_url.m_host.c_str());
+                l_nconn->set_host(l_reqlet->m_url.m_host);
+                l_status = l_nconn->run_state_machine(m_evr_loop, l_reqlet->m_host_info);
                 if((STATUS_OK != l_status) &&
-                                (l_nconn->get_state() != CONN_STATE_CONNECTING))
+                                (l_nconn->get_state() != nconn::CONN_STATE_CONNECTING))
                 {
                         NDBG_PRINT("Error: Performing do_connect\n");
                         T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Performing do_connect");
                         continue;
                 }
-
-                if (0 != m_evr_loop->add_fd(l_nconn->get_fd(),
-                                EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
-                                l_nconn))
-                {
-                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                        T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Couldn't add socket file descriptor");
-                        continue;
-                }
-
-                // -------------------------------------------
-                // Add to event handler
-                // -------------------------------------------
-                if(l_nconn->get_state() != CONN_STATE_CONNECTING)
-                {
-                        if (0 != m_evr_loop->mod_fd(
-                                        l_nconn->get_fd(),
-                                        EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
-                                        l_nconn))
-                        {
-                                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                                T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Couldn't add socket file descriptor");
-                                continue;
-                        }
-                }
-
         }
 
         return STATUS_OK;
@@ -557,13 +537,16 @@ int32_t t_client::create_request(nconn &ao_conn,
                         i_header != m_header_map.end();
                         ++i_header)
         {
-                //printf("Adding HEADER: %s: %s\n", i_header->first.c_str(), i_header->second.c_str());
-                l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len,
-                                "%s: %s\r\n", i_header->first.c_str(), i_header->second.c_str());
-
-                if (strcasecmp(i_header->first.c_str(), "host") == 0)
+                if(!i_header->first.empty() && !i_header->second.empty())
                 {
-                        l_specd_host = true;
+                        //printf("Adding HEADER: %s: %s\n", i_header->first.c_str(), i_header->second.c_str());
+                        l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len,
+                                        "%s: %s\r\n", i_header->first.c_str(), i_header->second.c_str());
+
+                        if (strcasecmp(i_header->first.c_str(), "host") == 0)
+                        {
+                                l_specd_host = true;
+                        }
                 }
         }
 

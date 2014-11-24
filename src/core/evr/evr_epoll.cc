@@ -85,6 +85,7 @@ static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
 int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
         //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
+        //NDBG_PRINT_BT();
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
         ev.data.ptr = a_data;

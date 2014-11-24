@@ -85,7 +85,6 @@ add_executable(hle_cmd ${HDRS} ${SRCS})
 SET_TARGET_PROPERTIES(hle_cmd PROPERTIES OUTPUT_NAME "hle")
 target_link_libraries(hle_cmd
 pthread
-microhttpd
 rt
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
 rt

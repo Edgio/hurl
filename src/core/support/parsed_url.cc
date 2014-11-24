@@ -72,11 +72,11 @@ int32_t parsed_url::parse(const std::string &a_url)
 
 		if(strcasecmp(l_scheme_str.c_str(), "https") == 0)
 		{
-			m_scheme = URL_SCHEME_HTTPS;
+			m_scheme = nconn::SCHEME_HTTPS;
 		}
 		else if(strcasecmp(l_scheme_str.c_str(), "http") == 0)
 		{
-			m_scheme = URL_SCHEME_HTTP;
+			m_scheme = nconn::SCHEME_HTTP;
 		} else {
 			fprintf(stderr, "Error unrecognnized scheme\n");
 			return STATUS_ERROR;
@@ -87,7 +87,7 @@ int32_t parsed_url::parse(const std::string &a_url)
 	}
 	else
 	{
-		m_scheme = URL_SCHEME_HTTP;
+		m_scheme = nconn::SCHEME_HTTP;
 		l_prefix_pos = 0;
 	}
 
@@ -139,11 +139,11 @@ int32_t parsed_url::parse(const std::string &a_url)
 		m_host = munch(l_host_str);
 
 		// Use defaults for types
-		if(URL_SCHEME_HTTP == m_scheme)
+		if(nconn::SCHEME_HTTP == m_scheme)
 		{
 			m_port = 80;
 		}
-		else if(URL_SCHEME_HTTPS == m_scheme)
+		else if(nconn::SCHEME_HTTPS == m_scheme)
 		{
 			m_port = 443;
 		}
@@ -167,9 +167,9 @@ int32_t parsed_url::parse(const std::string &a_url)
 //: ----------------------------------------------------------------------------
 void parsed_url::show(void)
 {
-	if(m_scheme == URL_SCHEME_HTTP)
+	if(m_scheme == nconn::SCHEME_HTTP)
 	printf("scheme: %s\n", "HTTP");
-	else if(m_scheme == URL_SCHEME_HTTPS)
+	else if(m_scheme == nconn::SCHEME_HTTPS)
 	printf("scheme: %s\n", "HTTPS");
 	else
 	printf("scheme: %s\n", "Unrecognized");

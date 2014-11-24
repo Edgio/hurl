@@ -248,8 +248,8 @@ hle::hle(void):
         m_sock_opt_send_buf_size(0),
         m_sock_opt_no_delay(false),
         m_evr_loop_type(EVR_LOOP_EPOLL),
-        m_start_parallel(1),
-        m_num_threads(1),
+        m_start_parallel(100),
+        m_num_threads(4),
         m_url(),
         m_header_map(),
         m_timeout_s(HLE_DEFAULT_CONN_TIMEOUT_S)

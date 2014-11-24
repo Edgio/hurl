@@ -45,7 +45,7 @@
 #define HLE_VERSION_MACRO 1
 #define HLE_VERSION_PATCH "alpha"
 
-#define HLE_DEFAULT_CONN_TIMEOUT_S 30
+#define HLE_DEFAULT_CONN_TIMEOUT_S 10
 
 
 //: ----------------------------------------------------------------------------
