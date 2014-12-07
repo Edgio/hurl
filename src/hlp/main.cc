@@ -176,6 +176,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -R, --recv_buffer  Socket receive buffer size.\n");
         fprintf(a_stream, "  -S, --send_buffer  Socket send buffer size.\n");
         fprintf(a_stream, "  -D, --no_delay     Socket TCP no-delay.\n");
+        fprintf(a_stream, "  -T, --timeout      Timeout (seconds).\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
@@ -187,7 +188,10 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Stat Options:\n");
         fprintf(a_stream, "  -B, --breakdown    Show breakdown\n");
-        fprintf(a_stream, "  -X, --http_load    Display in http load mode [MODE] -Legacy support\n");
+
+        fprintf(a_stream, "  \n");
+        fprintf(a_stream, "Example:\n");
+        fprintf(a_stream, "  hlp -a sample.txt -I 127.0.0.1 -c\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running long jobs consider enabling tcp_tw_reuse -eg:\n");
@@ -212,7 +216,6 @@ int main(int argc, char** argv)
 
         settings_struct_t l_settings;
         thread_args_struct_t l_thread_args;
-        int32_t l_http_load_display = -1;
         bool l_show_breakdown = false;
         bool l_input_flag = false;
 
@@ -236,12 +239,12 @@ int main(int argc, char** argv)
                 { "recv_buffer",  1, 0, 'R' },
                 { "send_buffer",  1, 0, 'S' },
                 { "no_delay",     0, 0, 'D' },
+                { "timeout",      1, 0, 'T' },
                 { "verbose",      0, 0, 'x' },
                 { "color",        0, 0, 'c' },
                 { "quiet",        0, 0, 'q' },
                 { "extra_info",   1, 0, 'e' },
                 { "breakdown",    0, 0, 'B' },
-                { "http_load",    1, 0, 'X' },
 
                 // list sentinel
                 { 0, 0, 0, 0 }
@@ -252,7 +255,7 @@ int main(int argc, char** argv)
         std::string l_pb_dest_addr;
         int32_t l_pb_dest_port = -1;
 
-        while ((l_opt = getopt_long_only(argc, argv, "hva:I:o:s:t:y:H:R:S:Dxcqe:BX:", l_long_options, &l_option_index)) != -1)
+        while ((l_opt = getopt_long_only(argc, argv, "hva:I:o:s:t:y:H:R:S:DT:xcqe:B", l_long_options, &l_option_index)) != -1)
         {
 
                 if (optarg)
@@ -401,32 +404,59 @@ int main(int argc, char** argv)
                 // No delay
                 // ---------------------------------------
                 case 'D':
+                {
                         l_hlp->set_sock_opt_no_delay(true);
                         break;
+                }
+
+                // ---------------------------------------
+                // timeout
+                // ---------------------------------------
+                case 'T':
+                {
+                        //NDBG_PRINT("arg: --fetches: %s\n", optarg);
+                        //l_settings.m_end_type = END_FETCHES;
+                        int l_timeout;
+                        l_timeout = atoi(optarg);
+                        if (l_timeout < 1)
+                        {
+                                printf("timeout must be at > 0\n");
+                                print_usage(stdout, -1);
+                        }
+                        l_hlp->set_timeout_s(l_timeout);
+
+                        break;
+                }
 
                 // ---------------------------------------
                 // verbose
                 // ---------------------------------------
                 case 'x':
+                {
                         l_settings.m_verbose = true;
                         l_hlp->set_verbose(true);
                         break;
+                }
 
                 // ---------------------------------------
                 // color
                 // ---------------------------------------
                 case 'c':
+                {
                         l_settings.m_color = true;
                         l_hlp->set_color(true);
                         break;
+                }
 
                 // ---------------------------------------
                 // quiet
                 // ---------------------------------------
                 case 'q':
+                {
                         l_settings.m_quiet = true;
                         l_hlp->set_quiet(true);
                         break;
+                }
 
                 // ---------------------------------------
                 // Extra Info
@@ -446,38 +476,32 @@ int main(int argc, char** argv)
                 }
 
                 // ---------------------------------------
-                // http_load
-                // ---------------------------------------
-                case 'X':
-                        l_http_load_display = atoi(optarg);
-                        if ((l_http_load_display < 0) || (l_http_load_display > 3))
-                        {
-                                printf("Error: http load display mode must be between 0--3\n");
-                                print_usage(stdout, -1);
-                        }
-                        break;
-
-                // ---------------------------------------
                 // show breakdown
                 // ---------------------------------------
                 case 'B':
+                {
                         l_show_breakdown = true;
                         break;
+                }
 
                 // What???
                 case '?':
+                {
                         // Required argument was missing
                         // '?' is provided when the 3rd arg to getopt_long does not begin with a ':', and is preceeded
                         // by an automatic error message.
                         fprintf(stdout, "  Exiting.\n");
                         print_usage(stdout, -1);
                         break;
+                }
 
                 // Huh???
                 default:
+                {
                         fprintf(stdout, "Unrecognized option.\n");
                         print_usage(stdout, -1);
                         break;
+                }
                 }
         }
 
@@ -553,16 +577,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Stats summary
         // -------------------------------------------
-        if(l_http_load_display != -1)
-        {
-                l_hlp->display_results_http_load_style(((double)l_end_time_ms)/1000.0, 100,
-                                (bool)(l_http_load_display&(0x1)),
-                                (bool)((l_http_load_display&(0x2)) >> 1));
-        }
-        else
-        {
-                l_hlp->display_results(((double)l_end_time_ms)/1000.0, 100, l_show_breakdown);
-        }
+        l_hlp->display_results(((double)l_end_time_ms)/1000.0, 100, l_show_breakdown);
 
         //if(l_settings.m_verbose)
         //{

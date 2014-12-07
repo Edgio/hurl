@@ -115,12 +115,17 @@ typedef struct client_pb_cmd_struct {
         t_client *m_t_client;
 } client_pb_cmd_t;
 
+
+typedef struct {
+        nconn *m_nconn;
+        pthread_mutex_t m_mutex;
+} nconn_lock_t;
+
 typedef std::map <uint64_t, reqlet *> reqlet_map_t;
 
 // connection types
-typedef std::vector<nconn *> nconn_vector_t;
-typedef std::map<uint64_t, nconn *> nconn_map_t;
-typedef std::list<nconn *> nconn_list_t;
+typedef std::map<uint64_t, nconn_lock_t> nconn_lock_map_t;
+typedef std::list<nconn_lock_t> nconn_lock_list_t;
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -146,7 +151,8 @@ public:
                 const std::string & a_cipher_str,
                 SSL_CTX *a_ctx,
                 evr_type_t a_evr_type,
-                uint32_t a_max_parallel_connections);
+                uint32_t a_max_parallel_connections,
+                int32_t a_timeout_s);
 
         ~t_client();
 
@@ -158,9 +164,13 @@ public:
         void get_stats_copy(tag_stat_map_t &ao_tag_stat_map);
         void set_scale(float a_scale) {m_scale = a_scale;};
         void set_first_timestamp_ms(uint64_t a_start_time_ms) {m_first_timestamp_ms = a_start_time_ms;};
+        void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
 
-        uint32_t get_num_conns(void) { return m_nconn_map.size();}
+        uint32_t get_timeout_s(void) { return m_timeout_s;};
+
+        uint32_t get_num_conns(void) { return m_nconn_lock_map.size();}
         nconn *try_take_locked_nconn_w_hash(uint64_t a_hash);
+        void give_lock(uint64_t a_id);
 
         void show_stats(void);
 
@@ -169,9 +179,9 @@ public:
         void set_feeder_done(bool a_state) {m_feeder_done = a_state;}
 
         reqlet *evoke_reqlet(const pb_cmd_t &a_cmd);
-        int32_t add_nconn(nconn *a_nconn);
+        int32_t reassign_nconn(nconn *a_nconn, uint64_t a_new_id);
         int32_t remove_nconn(nconn *a_nconn);
-        nconn *get_locked_conn(int32_t a_fd);
+        nconn *get_locked_conn(uint64_t a_id);
 
         // -------------------------------------------------
         // Public members
@@ -179,6 +189,7 @@ public:
         // Needs to be public for now -to join externally
         pthread_t m_t_run_thread;
         pthread_t m_t_run_cmd_thread;
+        int32_t m_timeout_s;
 
         // TODO add getters
         uint64_t m_num_cmds;
@@ -279,10 +290,9 @@ private:
         uint64_t m_stat_err_read_cb;
         uint64_t m_stat_err_error_cb;
 
-        nconn_vector_t m_nconn_vector;
-        nconn_map_t m_nconn_map;
-        nconn_list_t m_nconn_free_list;
-        pthread_mutex_t m_nconn_map_mutex;
+        nconn_lock_map_t m_nconn_lock_map;
+        nconn_lock_list_t m_nconn_lock_free_list;
+        pthread_mutex_t m_nconn_lock_map_mutex;
 
 };
 

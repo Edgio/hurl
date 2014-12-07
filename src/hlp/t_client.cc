@@ -78,9 +78,11 @@ t_client::t_client(
         const std::string & a_cipher_str,
         SSL_CTX *a_ssl_ctx,
         evr_type_t a_evr_type,
-        uint32_t a_max_parallel_connections):
+        uint32_t a_max_parallel_connections,
+        int32_t a_timeout_s):
         m_t_run_thread(),
         m_t_run_cmd_thread(),
+        m_timeout_s(a_timeout_s),
         m_num_cmds(0),
         m_num_cmds_serviced(0),
         m_num_cmds_dropped(0),
@@ -121,14 +123,13 @@ t_client::t_client(
         m_stat_err_send_request(0),
         m_stat_err_read_cb(0),
         m_stat_err_error_cb(0),
-        m_nconn_vector(NCONN_MAX),
-        m_nconn_map(),
-        m_nconn_free_list(),
-        m_nconn_map_mutex()
+        m_nconn_lock_map(),
+        m_nconn_lock_free_list(),
+        m_nconn_lock_map_mutex()
 {
 
         pthread_mutex_init(&m_loop_mutex, NULL);
-        pthread_mutex_init(&m_nconn_map_mutex, NULL);
+        pthread_mutex_init(&m_nconn_lock_map_mutex, NULL);
 
         evr_loop_type_t l_evr_loop_type = EVR_LOOP_EPOLL;
         // -------------------------------------------
@@ -222,72 +223,48 @@ int t_client::run(void)
 void *t_client::evr_loop_file_writeable_cb(void *a_data)
 {
 
+        //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, a_data);
+
         if(!a_data)
         {
+                //NDBG_PRINT("%sWRITEABLE%s ERROR\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF);
                 return NULL;
         }
 
         t_client *l_t_client = g_t_client;
-        int32_t l_fd = (intptr_t)a_data;
-        nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
+        nconn *l_nconn = (nconn *)a_data;
         if(!l_nconn)
         {
+                //NDBG_PRINT("%sWRITEABLE%s ERROR\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF);
                 return NULL;
         }
 
-        // Get state
-        conn_state_t l_state = l_nconn->get_state();
-
-        //NDBG_PRINT("%sWRITEABLE%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
-
-        switch (l_state)
+        l_nconn = l_t_client->get_locked_conn(l_nconn->get_id());
+        if(!l_nconn)
         {
-        case CONN_STATE_CONNECTING:
-        {
-                int l_status;
-                //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
-                reqlet *l_reqlet = (reqlet *)l_nconn->get_data1();
-                if(!l_reqlet)
-                {
-                        NDBG_PRINT("Error: getting reqlet\n");
-                        l_t_client->cleanup_connection(l_nconn);
-                        l_nconn->give_lock();
-                        return NULL;
-                }
-
-                l_status = l_nconn->connect_cb(l_reqlet->m_host_info);
-                if(STATUS_OK != l_status)
-                {
-                        NDBG_PRINT("Error: performing connect_cb\n");
-                        l_t_client->cleanup_connection(l_nconn);
-                        l_nconn->give_lock();
-                        return NULL;
-                }
-                ++(l_t_client->m_num_reqs_sent);
-
-                // -------------------------------------------
-                // Add to event handler
-                // -------------------------------------------
-                void *l_fd_ptr = (void *) (intptr_t)l_fd;
-                if (0 != l_t_client->m_evr_loop->add_file(l_fd, EVR_FILE_ATTR_MASK_READ, l_fd_ptr))
-                {
-                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                        l_t_client->cleanup_connection(l_nconn);
-                        l_nconn->give_lock();
-                        return NULL;
-                }
-
-                // TODO Add timer for callback
-                l_t_client->m_evr_loop->add_timer(HLP_DEFAULT_CONN_TIMEOUT_MS, evr_loop_file_timeout_cb, l_fd_ptr, &(l_nconn->m_timer_obj));
-                break;
-        }
-        default:
-                break;
+                //NDBG_PRINT("%sWRITEABLE%s ERROR fd[%" PRIu64 "]\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_nconn->get_id());
+                return NULL;
         }
 
-        l_nconn->give_lock();
+        //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_nconn);
+
+        reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
+
+        int32_t l_status = STATUS_OK;
+        l_status = l_nconn->run_state_machine(l_t_client->m_evr_loop, l_reqlet->m_host_info);
+        if(STATUS_ERROR == l_status)
+        {
+                NDBG_PRINT("Error: performing run_state_machine\n");
+                // TODO FIX!!!
+                //T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 500, "Error performing connect_cb");
+                l_t_client->cleanup_connection(l_nconn);
+                return NULL;
+        }
+
+        // Add idle timeout
+        l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
+        l_t_client->give_lock(l_nconn->get_id());
         return NULL;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -299,92 +276,82 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
 {
         if(!a_data)
         {
+                //NDBG_PRINT("%sREADABLE%s ERROR\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
                 return NULL;
         }
 
-        t_client *l_t_client = g_t_client;
-        int32_t l_fd = (intptr_t)a_data;
-        nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
+        nconn* l_nconn = static_cast<nconn*>(a_data);
         if(!l_nconn)
         {
+                //NDBG_PRINT("%sREADABLE%s ERROR\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
                 return NULL;
         }
 
-        conn_state_t l_state = l_nconn->get_state();
-        switch (l_state)
+        reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
+        t_client *l_t_client = g_t_client;
+
+        //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_nconn);
+
+        // Cancel last timer
+        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
+
+        int32_t l_status = STATUS_OK;
+        l_status = l_nconn->run_state_machine(l_t_client->m_evr_loop, l_reqlet->m_host_info);
+        if(STATUS_ERROR == l_status)
         {
-        case CONN_STATE_READING:
-        {
-
-                reqlet *l_reqlet = (reqlet *)l_nconn->get_data1();
-                if(!l_reqlet)
-                {
-                        NDBG_PRINT("Error: getting reqlet\n");
-                        l_t_client->cleanup_connection(l_nconn);
-                        l_nconn->give_lock();
-                        return NULL;
-                }
-
-                int l_read_status = 0;
-                l_read_status = l_nconn->read_cb();
-                if(l_read_status == STATUS_ERROR)
-                {
-                        if(l_t_client->m_verbose)
-                        {
-                                NDBG_PRINT("Error: performing read for l_rconn_pb[%" PRIu64 "]\n", l_nconn->get_id());
-                        }
-                        l_t_client->cleanup_connection(l_nconn);
-                        l_nconn->give_lock();
-                        return NULL;
-                        //++(l_reqlet->m_stat_agg.m_num_errors);
-                        //++(l_t_client->m_stat_err_read_cb);
-                }
-                else
-                {
-                        //l_t_client->m_stat_bytes_read += l_read_status;
-                        //++l_t_client->m_num_fetched;
-                        l_reqlet->m_stat_agg.m_num_bytes_read += l_read_status;
-                }
-
-                // Check for done...
-                l_state = l_nconn->get_state();
-                if(l_state == CONN_STATE_DONE)
-                {
-                        ++(l_reqlet->m_stat_agg.m_num_conn_completed);
-
-                        // Cancel timer
-                        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
-
-                        // Add stats
-                        add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
-                        l_nconn->reset_stats();
-
-                        // You complete me...
-                        if(!l_nconn->can_reuse())
-                        {
-                                l_t_client->cleanup_connection(l_nconn, false);
-                                l_nconn->give_lock();
-                                return NULL;
-                        }
-                }
-
-                break;
-        }
-        default:
-        {
-                //NDBG_OUTPUT("* %sBADX%s[%6d]\n",
-                //                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                //                l_fd);
-
+                NDBG_PRINT("Error: performing run_state_machine\n");
+                // TODO FIX!!!
+                //T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 500, "Error performing connect_cb");
                 l_t_client->cleanup_connection(l_nconn);
-                l_nconn->give_lock();
                 return NULL;
-
-                break;
-        }
         }
 
-        l_nconn->give_lock();
+        if(l_status >= 0)
+        {
+                l_reqlet->m_stat_agg.m_num_bytes_read += l_status;
+        }
+
+        // Check for done...
+        if((l_nconn->get_state() == nconn::CONN_STATE_DONE) ||
+                        (l_status == STATUS_ERROR))
+        {
+                // Add stats
+                add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
+                l_nconn->reset_stats();
+
+                l_reqlet->m_stat_agg.m_num_conn_completed++;
+                l_t_client->m_num_fetched++;
+
+                // Bump stats
+                if(l_status == STATUS_ERROR)
+                {
+                        ++(l_reqlet->m_stat_agg.m_num_errors);
+                }
+
+                // Give back reqlet
+                bool l_can_reuse = false;
+                l_can_reuse = (l_nconn->can_reuse());
+
+                //NDBG_PRINT("CONN[%d] %sREUSE%s: %d\n",
+                //              l_nconn->m_fd,
+                //              ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+                //              l_can_reuse
+                //              );
+
+                if(!l_can_reuse) {
+                        //NDBG_PRINT("DONE: l_reqlet: %sHOST%s: %d / %d\n",
+                        //              ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+                        //              l_can_reuse,
+                        //              l_nconn->can_reuse());
+
+                        l_t_client->cleanup_connection(l_nconn, false);
+                        return NULL;
+                }
+        }
+
+        // Add idle timeout
+        l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
+        l_t_client->give_lock(l_nconn->get_id());
         return NULL;
 }
 
@@ -401,15 +368,20 @@ void *t_client::evr_loop_file_error_cb(void *a_data)
         }
 
         t_client *l_t_client = g_t_client;
-        int32_t l_fd = (intptr_t)a_data;
-        nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
+        nconn *l_nconn = (nconn *)a_data;
         if(!l_nconn)
         {
                 return NULL;
         }
+
+        l_nconn = l_t_client->get_locked_conn(l_nconn->get_id());
+        if(!l_nconn)
+        {
+                return NULL;
+        }
+
         //NDBG_PRINT("%sSTATUS_ERRORS%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         l_t_client->cleanup_connection(l_nconn, true);
-        l_nconn->give_lock();
         return NULL;
 }
 
@@ -427,8 +399,13 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
         }
 
         t_client *l_t_client = g_t_client;
-        int32_t l_fd = (intptr_t)a_data;
-        nconn *l_nconn = l_t_client->get_locked_conn(l_fd);
+        nconn *l_nconn = (nconn *)a_data;
+        if(!l_nconn)
+        {
+                return NULL;
+        }
+
+        l_nconn = l_t_client->get_locked_conn(l_nconn->get_id());
         if(!l_nconn)
         {
                 return NULL;
@@ -436,9 +413,9 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
 
         if(l_t_client->m_verbose)
         {
-                NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %d\n",
+                NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %" PRIu64 "\n",
                         ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                        l_fd);
+                        l_nconn->get_id());
         }
 
         // TODO
@@ -447,7 +424,6 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
         //add_stat_to_agg(l_reqlet->m_stat_agg, l_conn->get_stats());
 
         l_t_client->cleanup_connection(l_nconn, true);
-        l_nconn->give_lock();
         return NULL;
 
 }
@@ -460,61 +436,79 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
 nconn *t_client::try_take_locked_nconn_w_hash(uint64_t a_hash)
 {
 
+        //NDBG_PRINT("ID[%" PRIu64 "]\n", a_hash);
+
+        nconn_lock_t l_nconn_lock;
+
         // ---------------------------------
         // Look up
         // ---------------------------------
-        pthread_mutex_lock(&m_nconn_map_mutex);
-        nconn_map_t::iterator i_nconn = m_nconn_map.find(a_hash);
-        if(i_nconn != m_nconn_map.end())
+        pthread_mutex_lock(&m_nconn_lock_map_mutex);
+        nconn_lock_map_t::iterator i_nconn = m_nconn_lock_map.find(a_hash);
+        if(i_nconn != m_nconn_lock_map.end())
         {
                 // Found it!!! try take lock
-                if(i_nconn->second->try_lock() == 0)
+                if(pthread_mutex_trylock(&(i_nconn->second.m_mutex)) == 0)
                 {
-                        pthread_mutex_unlock(&m_nconn_map_mutex);
-                        return i_nconn->second;
+                        pthread_mutex_unlock(&m_nconn_lock_map_mutex);
+                        return i_nconn->second.m_nconn;
                 }
 
                 // else was busy
-                pthread_mutex_unlock(&m_nconn_map_mutex);
+                pthread_mutex_unlock(&m_nconn_lock_map_mutex);
                 return NULL;
 
         }
-        pthread_mutex_unlock(&m_nconn_map_mutex);
+        pthread_mutex_unlock(&m_nconn_lock_map_mutex);
 
         // ---------------------------------
         // Create new
         // ---------------------------------
         // Try take from unused list
-        nconn *l_conn = NULL;
-        if(!m_nconn_free_list.empty())
+        if(!m_nconn_lock_free_list.empty())
         {
-                l_conn = m_nconn_free_list.front();
-                m_nconn_free_list.pop_front();
+                l_nconn_lock = m_nconn_lock_free_list.front();
+                m_nconn_lock_free_list.pop_front();
         }
         else
         {
-                // Allocate new connection
-                l_conn = new nconn(m_verbose,
+                nconn *l_nconn = NULL;
+                l_nconn = new nconn(m_verbose,
                                 m_color,
                                 m_sock_opt_recv_buf_size,
                                 m_sock_opt_send_buf_size,
                                 m_sock_opt_no_delay,
                                 false,
                                 false,
+                                m_timeout_s,
                                 -1,
                                 NULL);
-
+                l_nconn_lock.m_nconn = l_nconn;
+                pthread_mutex_init(&l_nconn_lock.m_mutex, NULL);
         }
 
-        pthread_mutex_lock(&m_nconn_map_mutex);
-        m_nconn_map[a_hash] = l_conn;
-        pthread_mutex_unlock(&m_nconn_map_mutex);
+        // Set id
+        l_nconn_lock.m_nconn->set_id(a_hash);
 
+        pthread_mutex_lock(&m_nconn_lock_map_mutex);
+        m_nconn_lock_map[a_hash] = l_nconn_lock;
+        pthread_mutex_unlock(&m_nconn_lock_map_mutex);
+
+        //NDBG_PRINT("CREATE_ID[%" PRIu64 "]\n", a_hash);
 
         // Take lock
-        l_conn->take_lock();
+        pthread_mutex_lock(&l_nconn_lock.m_mutex);
+        return l_nconn_lock.m_nconn;
+}
 
-        return l_conn;
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void t_client::give_lock(uint64_t a_id)
+{
+
 }
 
 //: ----------------------------------------------------------------------------
@@ -524,6 +518,8 @@ nconn *t_client::try_take_locked_nconn_w_hash(uint64_t a_hash)
 //: ----------------------------------------------------------------------------
 void *t_client::evr_loop_timer_cb(void *a_data)
 {
+
+        //NDBG_PRINT("%sHERE%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
 
         // Get refs
         client_pb_cmd_t *l_client_pb_cmd = static_cast<client_pb_cmd_t *>(a_data);
@@ -558,7 +554,6 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                 //++(l_t_client->m_stat_cmd_fins);
 
                 l_t_client->cleanup_connection(l_nconn);
-                l_nconn->give_lock();
                 delete l_client_pb_cmd;
                 delete l_pb_cmd;
                 return NULL;
@@ -566,7 +561,6 @@ void *t_client::evr_loop_timer_cb(void *a_data)
         else
         {
 
-                conn_state_t l_state = l_nconn->get_state();
                 // Stats
                 //++(l_t_client->m_stat_cmd_gets);
 
@@ -578,7 +572,7 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                 if(!l_reqlet)
                 {
                         NDBG_PRINT("Error: performing evoke_reqlet.  Something's busted.\n");
-                        l_nconn->give_lock();
+                        l_t_client->give_lock(l_nconn->get_id());
                         delete l_client_pb_cmd;
                         delete l_pb_cmd;
                         return NULL;
@@ -595,7 +589,11 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                 // Connection DONE
                 // available for reuse ?
                 // ---------------------------------------
-                if(l_state == CONN_STATE_DONE)
+                nconn::conn_state_t l_state = l_nconn->get_state();
+
+                //NDBG_PRINT("%sHERE%s: l_state %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_state);
+
+                if(l_state == nconn::CONN_STATE_DONE)
                 {
                         // Can reuse???
                         if(l_nconn->can_reuse())
@@ -609,11 +607,7 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                                         //++(l_t_client->m_stat_err_send_request);
                                 }
                                 //++(l_t_client->m_num_reqs_sent);
-
-                                // Use (intptr_t) to convert back
-                                // convert to void * with (void *) (intptr_t)
-                                void *l_fd = (void *) (intptr_t)l_nconn->get_fd();
-                                l_t_client->m_evr_loop->add_timer(HLP_DEFAULT_CONN_TIMEOUT_MS, evr_loop_file_timeout_cb, l_fd, &(l_nconn->m_timer_obj));
+                                l_t_client->m_evr_loop->add_timer(l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
 
                         }
                         // You complete me...
@@ -624,7 +618,6 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                                 ++(l_reqlet->m_stat_agg.m_num_errors);
                                 ++(l_t_client->m_stat_err_state);
 
-                                l_nconn->give_lock();
                                 l_t_client->cleanup_connection(l_nconn);
                                 delete l_client_pb_cmd;
                                 delete l_pb_cmd;
@@ -635,67 +628,30 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                 // ---------------------------------------
                 // Connection Free
                 // ---------------------------------------
-                else if(l_state == CONN_STATE_FREE)
+                else if(l_state == nconn::CONN_STATE_FREE)
                 {
 
                         int l_status;
                         // Set scheme (mode HTTP/HTTPS)
                         l_nconn->set_scheme(l_reqlet->m_url.m_scheme);
+                        l_t_client->reassign_nconn(l_nconn, l_cmd_hash);
 
                         // Bump stats
                         ++(l_reqlet->m_stat_agg.m_num_conn_started);
 
-                        //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_reqlet->m_url.m_host.c_str());
-                        l_status = l_nconn->do_connect(l_reqlet->m_host_info, l_reqlet->m_url.m_host);
-                        conn_state_t l_state = l_nconn->get_state();
-                        if((STATUS_OK != l_status) &&
-                                (l_state != CONN_STATE_CONNECTING))
-                        {
-                                NDBG_PRINT("Error: Performing do_connect\n");
-                                //++(l_t_client->m_stat_err_do_connect);
-                                ++(l_reqlet->m_stat_agg.m_num_errors);
+                        l_t_client->m_evr_loop->add_timer(l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
 
+                        //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_reqlet->m_url.m_host.c_str());
+                        l_status = l_nconn->run_state_machine(l_t_client->m_evr_loop, l_reqlet->m_host_info);
+                        if((l_status != STATUS_OK) &&
+                                        (l_nconn->get_state() != nconn::CONN_STATE_CONNECTING))
+                        {
+                                NDBG_PRINT("Error: Performing do_connect: connection_state: %d status: %d\n", l_nconn->get_state(), l_status);
+                                ++(l_reqlet->m_stat_agg.m_num_errors);
                                 l_t_client->cleanup_connection(l_nconn);
-                                l_nconn->give_lock();
                                 delete l_client_pb_cmd;
                                 delete l_pb_cmd;
                                 return NULL;
-
-                        }
-
-                        l_nconn->set_id(l_cmd_hash);
-                        l_t_client->add_nconn(l_nconn);
-
-                        // -------------------------------------------
-                        // Add to event handler
-                        // -------------------------------------------
-                        int32_t l_fd = l_nconn->get_fd();
-                        void *l_fd_ptr = (void *) (intptr_t)l_nconn->get_fd();
-                        if (0 != l_t_client->m_evr_loop->add_file(l_fd, EVR_FILE_ATTR_MASK_WRITE, l_fd_ptr))
-                        {
-#if 0
-                                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                                ++(l_reqlet->m_stat_agg.m_num_errors);
-                                goto connection_error;
-#endif
-                        }
-
-                        if(l_state != CONN_STATE_CONNECTING)
-                        {
-                                ++(l_t_client->m_num_reqs_sent);
-
-                                if (0 != l_t_client->m_evr_loop->add_file(l_fd, EVR_FILE_ATTR_MASK_READ, l_fd_ptr))
-                                {
-#if 0
-                                        NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                                        ++(l_reqlet->m_stat_agg.m_num_errors);
-                                        goto connection_error;
-#endif
-                                }
-
-                                // TODO Add timer for callback
-                                l_t_client->m_evr_loop->add_timer(HLP_DEFAULT_CONN_TIMEOUT_MS, evr_loop_file_timeout_cb, l_fd_ptr, &(l_nconn->m_timer_obj));
-
                         }
 
                 }
@@ -719,7 +675,7 @@ void *t_client::evr_loop_timer_cb(void *a_data)
         // Cleanup
         // -------------------------------------------
         // Give back lock
-        l_nconn->give_lock();
+        l_t_client->give_lock(l_nconn->get_id());
         delete l_client_pb_cmd;
         delete l_pb_cmd;
 
@@ -886,7 +842,7 @@ int32_t t_client::create_request(nconn &ao_conn,
                         i_header != a_cmd.m_header_map.end();
                         ++i_header)
         {
-                //printf("Adding HEADER: %s: %s\n", i_header->first.c_str(), i_header->second.c_str());
+                //NDBG_PRINT("Adding HEADER: %s: %s\n", i_header->first.c_str(), i_header->second.c_str());
                 l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len,
                                   "%s: %s\r\n", i_header->first.c_str(), i_header->second.c_str());
 
@@ -924,7 +880,6 @@ int32_t t_client::create_request(nconn &ao_conn,
 //: ----------------------------------------------------------------------------
 int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
 {
-
         // Cancel last timer
         if(a_cancel_timer)
         {
@@ -935,11 +890,13 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
         //++m_stat_rconn_deleted;
 
         int32_t l_fd = a_nconn->get_fd();
-        m_evr_loop->remove_file(l_fd, 0);
+
+        //NDBG_PRINT("FD[%d] Cleanup\n", l_fd);
+
+        m_evr_loop->del_fd(l_fd);
         a_nconn->done_cb();
         a_nconn->set_data1(NULL);
         remove_nconn(a_nconn);
-
         return STATUS_OK;
 }
 
@@ -948,13 +905,31 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::add_nconn(nconn *a_nconn)
+int32_t t_client::reassign_nconn(nconn *a_nconn, uint64_t a_new_id)
 {
-        int32_t l_fd = a_nconn->get_fd();
-        int32_t l_id = a_nconn->get_id();
+        uint64_t l_old_id = a_nconn->get_id();
+        //NDBG_PRINT("OLD_ID[%" PRIu64 "] --> NEW_ID[%" PRIu64 "]\n", l_old_id, a_new_id);
+        if(l_old_id == a_new_id)
+        {
+                // Do nothing...
+                return STATUS_OK;
+        }
 
-        m_nconn_map[l_id] = a_nconn;
-        m_nconn_vector[l_fd] = a_nconn;
+        nconn_lock_map_t::iterator i_nconn_lock = m_nconn_lock_map.find(l_old_id);
+        if(i_nconn_lock != m_nconn_lock_map.end())
+        {
+                nconn_lock_t l_nconn_lock = i_nconn_lock->second;
+                pthread_mutex_unlock(&l_nconn_lock.m_mutex);
+                pthread_mutex_lock(&m_nconn_lock_map_mutex);
+                m_nconn_lock_map.erase(l_old_id);
+                m_nconn_lock_map[a_new_id] = l_nconn_lock;
+                pthread_mutex_unlock(&m_nconn_lock_map_mutex);
+        }
+        else
+        {
+                NDBG_PRINT("Error could not find old nconn id: %" PRIu64 "\n", l_old_id);
+                return STATUS_ERROR;
+        }
 
         return STATUS_OK;
 }
@@ -968,21 +943,23 @@ int32_t t_client::remove_nconn(nconn *a_nconn)
 {
 
         //NDBG_PRINT("REMOVING\n");
-
-        int32_t l_fd = a_nconn->get_fd();
         uint64_t l_id = a_nconn->get_id();
-
-        pthread_mutex_lock(&m_nconn_map_mutex);
-        if(m_nconn_map.find(l_id) != m_nconn_map.end())
+        nconn_lock_map_t::iterator i_nconn_lock = m_nconn_lock_map.find(l_id);
+        if(i_nconn_lock != m_nconn_lock_map.end())
         {
-                m_nconn_map.erase(l_id);
+                nconn_lock_t l_nconn_lock = i_nconn_lock->second;
+                pthread_mutex_unlock(&l_nconn_lock.m_mutex);
+                pthread_mutex_lock(&m_nconn_lock_map_mutex);
+                m_nconn_lock_map.erase(l_id);
+                m_nconn_lock_free_list.push_back(l_nconn_lock);
+                pthread_mutex_unlock(&m_nconn_lock_map_mutex);
         }
-        pthread_mutex_unlock(&m_nconn_map_mutex);
-        m_nconn_vector[l_fd] = NULL;
-        m_nconn_free_list.push_back(a_nconn);
-
+        else
+        {
+                NDBG_PRINT("Error could not find nconn id: %" PRIu64 "\n", l_id);
+                return STATUS_ERROR;
+        }
         return STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -990,15 +967,25 @@ int32_t t_client::remove_nconn(nconn *a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_client::get_locked_conn(int32_t a_fd)
+nconn *t_client::get_locked_conn(uint64_t a_id)
 {
-        nconn *l_conn;
-        l_conn = m_nconn_vector[a_fd];
-        if(l_conn)
+        // TODO REMOVE
+        //NDBG_PRINT("%sGET_LOCK%s: a_fd: %" PRIu64 "\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_id);
+
+        nconn_lock_map_t::iterator i_nconn_lock = m_nconn_lock_map.find(a_id);
+        if(i_nconn_lock != m_nconn_lock_map.end())
         {
-                l_conn->take_lock();
+                nconn_lock_t l_nconn_lock = i_nconn_lock->second;
+                pthread_mutex_lock(&l_nconn_lock.m_mutex);
+                return l_nconn_lock.m_nconn;
         }
-        return l_conn;
+        else
+        {
+                NDBG_PRINT("Error could not find nconn id: %" PRIu64 "\n", a_id);
+                return NULL;
+        }
+
+        return NULL;
 }
 
 
@@ -1033,14 +1020,13 @@ void t_client::show_stats(void)
                         m_stat_rconn_deleted,
                         m_stat_rconn_reuse
                         );
-        NDBG_OUTPUT("* %sSTATS%s: bytes_read: %lu tq = %lu eq = %lu nconn_vector = %lu free_size = %lu map_size = %lu\n",
+        NDBG_OUTPUT("* %sSTATS%s: bytes_read: %lu tq = %lu eq = %lu free_size = %lu map_size = %lu\n",
                         ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                         m_stat_bytes_read,
                         m_evr_cmd_loop->get_pq_size(),
                         m_evr_loop->get_pq_size(),
-                        m_nconn_vector.size(),
-                        m_nconn_free_list.size(),
-                        m_nconn_map.size()
+                        m_nconn_lock_free_list.size(),
+                        m_nconn_lock_map.size()
                         );
         NDBG_OUTPUT("* %sSTATUS_ERROR%s: stat: %lu connect: %lu do_connect: %lu send_request: %lu read_cb: %lu error_cb: %lu\n",
                         ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,

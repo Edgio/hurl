@@ -80,7 +80,8 @@ int32_t hlp::run(const std::string &a_playback_file,
                         m_ssl_ctx,
                         m_evr_type,
                         // TODO How to configure max connections???
-                        2048);
+                        2048,
+                        m_timeout_s);
 
                 l_t_client->set_scale(m_scale);
 
@@ -403,19 +404,6 @@ void hlp::display_results(double a_elapsed_time,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlp::display_results_http_load_style(double a_elapsed_time,
-                uint32_t a_max_parallel,
-                bool a_show_breakdown_flag,
-                bool a_one_line_flag)
-{
-        stats_collector::get()->display_results_http_load_style(a_elapsed_time, a_max_parallel, a_show_breakdown_flag, a_one_line_flag);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 void hlp::display_results_line_desc(bool a_color_flag)
 {
         stats_collector::get()->display_results_line_desc(a_color_flag);
@@ -605,6 +593,7 @@ hlp::hlp(void):
         m_evr_type(EV_EPOLL),
         m_playback_file(),
         m_header_map(),
+        m_timeout_s(HLP_DEFAULT_CONN_TIMEOUT_S),
         m_playback_stat_percent_complete(0.0),
         m_pb_dest_addr(),
         m_pb_dest_port(-1),

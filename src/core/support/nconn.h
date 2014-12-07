@@ -117,7 +117,6 @@ public:
                 m_http_parser_settings(),
                 m_http_parser(),
                 m_server_response_supports_keep_alives(false),
-                m_mutex(),
                 m_verbose(a_verbose),
                 m_color(a_color),
                 m_sock_opt_recv_buf_size(a_sock_opt_recv_buf_size),
@@ -149,9 +148,6 @@ public:
                 {
                         stat_init(m_stat);
                 }
-
-                pthread_mutex_init(&m_mutex, NULL);
-
         };
 
         void set_host(const std::string &a_host) {m_host = a_host;};
@@ -176,19 +172,6 @@ public:
         void reset_stats(void);
         const req_stat_t &get_stats(void) const { return m_stat;};
         void set_scheme(scheme_t a_scheme) {m_scheme = a_scheme;};
-        int32_t take_lock(void)
-        {
-                return 0;
-                //return pthread_mutex_lock(&m_mutex);
-        }
-        int32_t try_lock(void) {
-                return 0;
-                //return pthread_mutex_trylock(&m_mutex);
-        }
-        int32_t give_lock(void) {
-                return 0;
-                //return pthread_mutex_unlock(&m_mutex);
-        }
         conn_state_t get_state(void) { return m_state;}
         int32_t get_fd(void) { return m_fd; }
         void set_id(uint64_t a_id) {m_id = a_id;}
@@ -243,7 +226,6 @@ private:
         http_parser_settings m_http_parser_settings;
         http_parser m_http_parser;
         bool m_server_response_supports_keep_alives;
-        pthread_mutex_t m_mutex;
 
         bool m_verbose;
         bool m_color;

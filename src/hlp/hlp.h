@@ -32,6 +32,8 @@
 #include <map>
 #include <stdint.h>
 
+#include "ndebug.h"
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -41,27 +43,12 @@
 #define HLP_VERSION_MACRO 1
 #define HLP_VERSION_PATCH "alpha"
 
-#define HLP_DEFAULT_CONN_TIMEOUT_MS 10000
+#define HLP_DEFAULT_CONN_TIMEOUT_S 5
 
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
-// DA:  I stole this from google: http://google-styleguide.googlecode.com/svn/trunk/cppguide.xml#Copy_Constructors
-#ifndef DISALLOW_ASSIGN
-#define DISALLOW_ASSIGN(class_name)\
-    class_name& operator=(const class_name &);
-#endif
 
-#ifndef DISALLOW_COPY
-#define DISALLOW_COPY(class_name)\
-    class_name(const class_name &);
-#endif
-
-#ifndef DISALLOW_COPY_AND_ASSIGN
-#define DISALLOW_COPY_AND_ASSIGN(class_name)\
-    DISALLOW_COPY(class_name)\
-    DISALLOW_ASSIGN(class_name)
-#endif
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -113,6 +100,7 @@ public:
         void set_event_handler_type(evr_type_t a_val) {m_evr_type = a_val;}
         void set_scale(float a_scale) {m_scale = a_scale;};
         void set_num_threads(uint32_t a_num_threads) {m_num_threads = a_num_threads;};
+        void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
 
         // Running...
         int32_t run(const std::string &a_playback_file, const std::string &a_pb_dest_addr, int32_t a_pb_dest_port);
@@ -124,10 +112,6 @@ public:
         // Stats
         void display_results_line_desc(bool a_color_flag);
         void display_results_line(bool a_color_flag);
-
-        void display_results_http_load_style(double a_elapsed_time,
-                        uint32_t a_max_parallel,
-                        bool a_show_breakdown_flag = false, bool a_one_line_flag = false);
         void display_results(double a_elapsed_time,
                         uint32_t a_max_parallel,
                         bool a_show_breakdown_flag = false);
@@ -185,6 +169,7 @@ private:
         evr_type_t m_evr_type;
         std::string m_playback_file;
         header_map_t m_header_map;
+        int32_t m_timeout_s;
 
         // Playback info
         float m_playback_stat_percent_complete;
