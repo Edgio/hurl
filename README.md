@@ -144,6 +144,51 @@ Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
 
+## *hlp* HTTP Playback
+*hlp* plays back requests from a playback file -see [here](https://github.com/EdgeCast/hlo/blob/master/tests/hlp/data/sample.txt) for example of playback format.
+
+####An example
+```bash
+hlp -a sample.txt -I 127.0.0.1 -c
+```
+
+####Options
+```bash
+Usage: hlp [options]
+Options are:
+  -h, --help         Display this help and exit.
+  -v, --version      Display the version number and exit.
+  
+Playback Options:
+  -a, --playback     Playback file.
+  -I, --pb_dest_addr Hard coded destination address for playback.
+  -o, --pb_dest_port Hard coded destination port for playback.
+  -s, --scale        Time scaling (float).
+  -t, --threads      Number of threads.
+  
+Settings:
+  -y, --cipher       Cipher --see "openssl ciphers" for list.
+  -H, --header       Request headers -can add multiple ie -H<> -H<>...
+  -R, --recv_buffer  Socket receive buffer size.
+  -S, --send_buffer  Socket send buffer size.
+  -D, --no_delay     Socket TCP no-delay.
+  -T, --timeout      Timeout (seconds).
+  
+Print Options:
+  -x, --verbose      Verbose logging
+  -c, --color        Color
+  -q, --quiet        Suppress progress output
+  -e, --extra_info   Extra Info output
+  
+Stat Options:
+  -B, --breakdown    Show breakdown
+  
+Example:
+  hlp -a sample.txt -I 127.0.0.1 -c
+  
+Note: If running long jobs consider enabling tcp_tw_reuse -eg:
+echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+
 ## Building
 
 ###Install dependecies:
@@ -166,7 +211,4 @@ And optionally install
 cd ./build
 sudo make install
 ```
-
-## *hlp* HTTP Playback
-*hlp* plays back requests from a playback file.  *hlp* is a work in progress and is not well supported yet.  *hlp* is *not* built or installed by default.
 

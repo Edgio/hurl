@@ -152,7 +152,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 void print_usage(FILE* a_stream, int a_exit_code)
 {
-        fprintf(a_stream, "Usage: hlp [http[s]://]hostname[:port]/path [options]\n");
+        fprintf(a_stream, "Usage: hlp [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help         Display this help and exit.\n");
         fprintf(a_stream, "  -v, --version      Display the version number and exit.\n");
