@@ -194,13 +194,9 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 ###Install dependecies:
 Library requirements:
-* libgoogle-perftools-dev
-* libmicrohttpd-dev
-* libleveldb-dev
-
-```bash
-sudo apt-get install libgoogle-perftools-dev libmicrohttpd-dev libleveldb-dev
-```
+* libgoogle-perftools
+* libmicrohttpd
+* libleveldb
 
 ###Building the tools
 ```bash
