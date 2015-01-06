@@ -122,7 +122,7 @@ void command_exec(thread_args_struct_t &a_thread_args);
 int32_t add_line(FILE *a_file_ptr, host_list_t &a_host_list);
 
 //: ----------------------------------------------------------------------------
-//: \details: Print the version.
+//: \details: Signal handler
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
@@ -131,14 +131,14 @@ bool g_cancelled = false;
 
 void sig_handler(int signo)
 {
-  if (signo == SIGINT)
-  {
-          // Kill program
-          //NDBG_PRINT("SIGINT\n");
-          g_test_finished = true;
-          g_cancelled = true;
-          hle::get()->stop();
-  }
+        if (signo == SIGINT)
+        {
+                // Kill program
+                //NDBG_PRINT("SIGINT\n");
+                g_test_finished = true;
+                g_cancelled = true;
+                hle::get()->stop();
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -291,11 +291,11 @@ int main(int argc, char** argv)
         // Defaults
         reqlet_repo::output_type_t l_output_mode = reqlet_repo::OUTPUT_JSON;
         //bool l_output_part_user_specd = false;
-        int l_output_part = reqlet_repo::PART_HOST |
-                            reqlet_repo::PART_STATUS_CODE |
-                            reqlet_repo::PART_HEADERS |
-                            reqlet_repo::PART_HEADERS |
-                            reqlet_repo::PART_BODY;
+        int l_output_part =   reqlet_repo::PART_HOST
+                            | reqlet_repo::PART_STATUS_CODE
+                            | reqlet_repo::PART_HEADERS
+                            //| reqlet_repo::PART_BODY
+                            ;
         bool l_output_pretty = false;
 
         // -------------------------------------------
