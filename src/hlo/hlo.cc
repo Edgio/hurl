@@ -196,6 +196,8 @@ int32_t hlo::run(void)
 
 	// Caculate num parallel per thread
 	uint32_t l_num_parallel_conn_per_thread = m_start_parallel / m_num_threads;
+	if(l_num_parallel_conn_per_thread < 1) l_num_parallel_conn_per_thread = 1;
+
         uint32_t l_num_fetches_per_thread = m_end_fetches / m_num_threads;
         uint32_t l_remainder_fetches = m_end_fetches % m_num_threads;
 
@@ -379,7 +381,7 @@ hlo::hlo(void) :
 	m_sock_opt_send_buf_size(0),
 	m_sock_opt_no_delay(false),
 	m_evr_type(EV_EPOLL),
-	m_start_parallel(1),
+	m_start_parallel(64),
 	m_end_fetches(-1),
 	m_max_reqs_per_conn(1),
 	m_run_time_s(-1),

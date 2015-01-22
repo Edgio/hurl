@@ -169,7 +169,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
         fprintf(a_stream, "  -y, --cipher       Cipher --see \"openssl ciphers\" for list.\n");
-        fprintf(a_stream, "  -p, --parallel     Num parallel.\n");
+        fprintf(a_stream, "  -p, --parallel     Num parallel Default: 64.\n");
         fprintf(a_stream, "  -f, --fetches      Num fetches.\n");
         fprintf(a_stream, "  -N, --num_calls    Number of requests per connection\n");
         fprintf(a_stream, "  -k, --keep_alive   Re-use connections for all requests\n");
@@ -236,7 +236,8 @@ int main(int argc, char** argv)
         int32_t l_http_data_port = -1;
         bool l_show_breakdown = false;
         int l_max_threads = 1;
-        int l_start_parallel = 1;
+        // TODO Make default definitions
+        int l_start_parallel = 64;
         int l_max_reqs_per_conn = 1;
         int l_end_fetches = -1;
         bool l_input_flag = false;
