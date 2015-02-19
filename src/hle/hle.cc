@@ -76,8 +76,19 @@ int32_t hle::run(host_list_t &a_host_list)
                 reqlet *l_reqlet = new reqlet(l_reqlet_num, 1);
                 l_reqlet->init_with_url(m_url);
 
-                // override host
-                l_reqlet->set_host(*i_host);
+                // Get host and port if exist
+                parsed_url l_url;
+                l_url.parse(*i_host);
+
+                if(strchr(i_host->c_str(), (int)':'))
+                {
+                        l_reqlet->set_host(l_url.m_host);
+                        l_reqlet->set_port(l_url.m_port);
+                }
+                else
+                {
+                        l_reqlet->set_host(*i_host);
+                }
 
                 // Add to list
                 l_reqlet_repo->add_reqlet(l_reqlet);
