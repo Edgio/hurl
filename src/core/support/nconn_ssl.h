@@ -87,7 +87,7 @@ public:
                           m_ssl_ctx(NULL),
                           m_ssl(NULL),
                           m_ssl_opt_verify(false),
-                          m_ssl_opt_verify_allow_self_signed(true),
+                          m_ssl_opt_verify_allow_self_signed(false),
                           m_ssl_opt_tlsext_hostname(""),
                           m_ssl_opt_ca_file(""),
                           m_ssl_opt_ca_path(""),

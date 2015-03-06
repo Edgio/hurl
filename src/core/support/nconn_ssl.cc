@@ -48,6 +48,11 @@
 
 
 //: ----------------------------------------------------------------------------
+//: Globals
+//: ----------------------------------------------------------------------------
+__thread char gts_last_ssl_error[256] = "\0";
+
+//: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 static int ssl_cert_verify_callback(int ok, X509_STORE_CTX* store);
@@ -82,7 +87,24 @@ int32_t nconn_ssl::ssl_connect(const host_info_t &a_host_info)
                 switch(l_ssl_error) {
                 case SSL_ERROR_SSL:
                 {
-                        NCONN_ERROR("HOST[%s]: SSL_ERROR_SSL %lu: %s", m_host.c_str(), ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
+                        if(gts_last_ssl_error[0] != '\0')
+                        {
+                                NCONN_ERROR("HOST[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s",
+                                                m_host.c_str(),
+                                                ERR_get_error(),
+                                                ERR_error_string(ERR_get_error(),NULL),
+                                                gts_last_ssl_error);
+                                // Set back
+                                gts_last_ssl_error[0] = '\0';
+                        }
+                        else
+                        {
+                                NCONN_ERROR("HOST[%s]: SSL_ERROR_SSL %lu: %s.",
+                                                m_host.c_str(),
+                                                ERR_get_error(),
+                                                ERR_error_string(ERR_get_error(),NULL));
+                        }
+
                         break;
                 }
                 case SSL_ERROR_WANT_READ:
@@ -1040,8 +1062,10 @@ int ssl_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
                         }
                         else
                         {
-                                NDBG_PRINT("ssl_cert_verify_callback_allow_self_signed Error[%d].  Reason: %s\n",
+                                sprintf(gts_last_ssl_error, "ssl_cert_verify_callback_allow_self_signed Error[%d].  Reason: %s",
                                       err, X509_verify_cert_error_string(err));
+                                //NDBG_PRINT("ssl_cert_verify_callback_allow_self_signed Error[%d].  Reason: %s\n",
+                                //      err, X509_verify_cert_error_string(err));
                         }
                 }
         }
@@ -1063,8 +1087,10 @@ int ssl_cert_verify_callback(int ok, X509_STORE_CTX* store)
                         // TODO Can add check for depth here.
                         //int depth = X509_STORE_CTX_get_error_depth(store);
                         int err = X509_STORE_CTX_get_error(store);
-                        NDBG_PRINT("ssl_cert_verify_callback Error[%d].  Reason: %s\n",
+                        sprintf(gts_last_ssl_error, "ssl_cert_verify_callback Error[%d].  Reason: %s",
                               err, X509_verify_cert_error_string(err));
+                        //NDBG_PRINT("ssl_cert_verify_callback Error[%d].  Reason: %s\n",
+                        //      err, X509_verify_cert_error_string(err));
                 }
         }
         return ok;
