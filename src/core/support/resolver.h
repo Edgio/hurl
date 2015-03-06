@@ -62,7 +62,7 @@ public:
         void set_verbose(bool a_val) { m_verbose = a_val;}
         void set_color(bool a_val) { m_color = a_val;}
         void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
-        int32_t cached_resolve(std::string &a_host, uint16_t a_port, host_info_t &a_host_info);
+        int32_t cached_resolve(std::string &a_host, uint16_t a_port, host_info_t &a_host_info, std::string &ao_error);
 
         // -------------------------------------------------
         // Class methods

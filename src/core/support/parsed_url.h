@@ -41,8 +41,6 @@
 //: Types
 //: ----------------------------------------------------------------------------
 
-
-
 //: ----------------------------------------------------------------------------
 //: \details: parsed_url
 //: ----------------------------------------------------------------------------
@@ -55,10 +53,13 @@ public:
         // Public methods
         // -------------------------------------------
         parsed_url() :
-                m_scheme(nconn::SCHEME_HTTP),
+                m_scheme(nconn::SCHEME_TCP),
                 m_host(""),
                 m_port(80),
-                m_path("")
+                m_path(""),
+                m_hostname(""),
+                m_id(""),
+                m_where("")
         {}
 
         void show(void);
@@ -71,6 +72,9 @@ public:
         std::string m_host;
         uint16_t m_port;
         std::string m_path;
+        std::string m_hostname;
+        std::string m_id;
+        std::string m_where;
 
 private:
 

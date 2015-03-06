@@ -29,6 +29,7 @@
 #include "stats_collector.h"
 #include "t_client.h"
 #include "util.h"
+#include "ssl_util.h"
 
 #include "city.h"
 
@@ -557,7 +558,7 @@ int32_t hlp::init(void)
                 return STATUS_OK;
 
         // SSL init...
-        m_ssl_ctx = nconn_ssl_init(m_cipher_list);
+        m_ssl_ctx = ssl_init(m_cipher_list);
         if(NULL == m_ssl_ctx) {
                 NDBG_PRINT("Error: performing ssl_init with cipher_list: %s\n", m_cipher_list.c_str());
                 return STATUS_ERROR;
@@ -612,7 +613,7 @@ hlp::hlp(void):
 hlp::~hlp()
 {
         // SSL Cleanup
-        nconn_kill_locks();
+        ssl_kill_locks();
         // TODO Deprecated???
         //EVP_cleanup();
 }

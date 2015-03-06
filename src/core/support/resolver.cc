@@ -40,14 +40,34 @@
 #include <netdb.h>
 #include <algorithm>
 #include <string.h>
+#include <unistd.h>
 
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
+#define RESOLVER_ERROR(...)\
+        do { \
+                char _buf[1024];\
+                sprintf(_buf, __VA_ARGS__);\
+                ao_error = _buf;\
+                if(m_verbose)\
+                {\
+                        fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
+                        fprintf(stdout, __VA_ARGS__);               \
+                        fflush(stdout); \
+                }\
+        }while(0)
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t resolver::cached_resolve(std::string &a_host, uint16_t a_port, host_info_t &a_host_info)
+int32_t resolver::cached_resolve(std::string &a_host,
+                                 uint16_t a_port,
+                                 host_info_t &a_host_info,
+                                 std::string &ao_error)
 {
 
         if(!m_is_initd)
@@ -83,7 +103,7 @@ int32_t resolver::cached_resolve(std::string &a_host, uint16_t a_port, host_info
                 // Check for errors
                 if (!l_ldb_status.IsNotFound())
                 {
-                        printf("Error: performing get on address info db\n");
+                        RESOLVER_ERROR("Error: performing get on address info db\n");
                         return STATUS_ERROR;
                 }
         }
@@ -111,7 +131,7 @@ int32_t resolver::cached_resolve(std::string &a_host, uint16_t a_port, host_info
         gaierr = getaddrinfo(a_host.c_str(), portstr, &hints, &l_addrinfo);
         if (gaierr != 0)
         {
-                NDBG_PRINT("Error getaddrinfo '%s': %s\n", a_host.c_str(), gai_strerror(gaierr));
+                RESOLVER_ERROR("Error getaddrinfo '%s': %s\n", a_host.c_str(), gai_strerror(gaierr));
                 return STATUS_ERROR;
         }
 
@@ -142,7 +162,7 @@ int32_t resolver::cached_resolve(std::string &a_host, uint16_t a_port, host_info
         {
                 if (sizeof(a_host_info.m_sa) < l_addrinfo_v4->ai_addrlen)
                 {
-                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n", a_host.c_str(),
+                        RESOLVER_ERROR("Error %s - sockaddr too small (%lu < %lu)\n", a_host.c_str(),
                               (unsigned long) sizeof(a_host_info.m_sa),
                               (unsigned long) l_addrinfo_v4->ai_addrlen);
                         return STATUS_ERROR;
@@ -164,11 +184,10 @@ int32_t resolver::cached_resolve(std::string &a_host, uint16_t a_port, host_info
         {
                 if (sizeof(a_host_info.m_sa) < l_addrinfo_v6->ai_addrlen)
                 {
-                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n", a_host.c_str(),
+                        RESOLVER_ERROR("Error %s - sockaddr too small (%lu < %lu)\n", a_host.c_str(),
                               (unsigned long) sizeof(a_host_info.m_sa),
                               (unsigned long) l_addrinfo_v6->ai_addrlen);
                         return STATUS_ERROR;
-
                 }
                 a_host_info.m_sock_family = l_addrinfo_v6->ai_family;
                 a_host_info.m_sock_type = l_addrinfo_v6->ai_socktype;
@@ -184,7 +203,7 @@ int32_t resolver::cached_resolve(std::string &a_host, uint16_t a_port, host_info
         }
         else
         {
-                NDBG_PRINT("Error no valid address found for host %s\n", a_host.c_str());
+                RESOLVER_ERROR("Error no valid address found for host %s\n", a_host.c_str());
                 return STATUS_ERROR;
 
         }
@@ -227,11 +246,11 @@ int32_t resolver::init(std::string addr_info_cache_db, bool a_use_cache)
         m_use_cache = a_use_cache;
         if(m_use_cache)
         {
-
                 // Init with cache file if exists
-                std::string l_db_name;
-                if(addr_info_cache_db.empty())
+                std::string l_db_name = addr_info_cache_db;
+                if(l_db_name.empty())
                 {
+                        NDBG_PRINT("Using: %s\n", l_db_name.c_str());
                         l_db_name = RESOLVER_DEFAULT_LDB_PATH;
                 }
 

@@ -44,9 +44,14 @@ SET(SRCS
     ./evr/evr_select.cc
     ./cityhash/city.cc
     ./support/util.cc
+    ./support/ssl_util.cc
+    ./support/hostcheck.cc
+    ./support/http_cb.cc
     ./support/parsed_url.cc
     ./support/reqlet.cc
     ./support/nconn.cc
+    ./support/nconn_tcp.cc
+    ./support/nconn_ssl.cc
     ./support/resolver.cc
 )
 

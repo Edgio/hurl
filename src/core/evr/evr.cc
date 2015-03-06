@@ -49,6 +49,7 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         m_use_lock(a_use_lock),
         m_max_connections(a_max_conn),
         m_loop_type(a_type),
+        m_is_running(false),
         m_epoll_event_vector(NULL),
         m_stopped(false),
         m_evr(NULL),
@@ -129,6 +130,13 @@ evr_loop::~evr_loop(void)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::run(void)
 {
+        if(m_is_running)
+        {
+                // is already running
+                return STATUS_OK;
+        }
+
+        m_is_running = true;
 
         // -------------------------------------------
         // TODO:
@@ -235,6 +243,7 @@ int32_t evr_loop::run(void)
 
         }
 
+        m_is_running = false;
         return STATUS_OK;
 }
 

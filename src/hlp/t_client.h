@@ -225,12 +225,9 @@ private:
                 return reinterpret_cast<t_client *>(a_context)->t_run_cmd(NULL);
         }
 
-        // TODO FIX!!!
         int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true);
-
-        int32_t create_request(nconn &ao_conn,
-                        reqlet &a_reqlet,
-                        const pb_cmd_t &a_cmd);
+        int32_t create_request(nconn &ao_conn, reqlet &a_reqlet, const pb_cmd_t &a_cmd);
+        nconn *create_new_nconn(const reqlet &a_reqlet);
 
         // TODO FIX!!!
         //int32_t delete_rconn_pb(uint64_t a_id);

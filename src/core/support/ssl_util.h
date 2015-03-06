@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    nconn.cc
+//: \file:    ssl_util.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    02/07/2014
@@ -20,19 +20,23 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
+#ifndef _SSL_UTIL_H
+#define _SSL_UTIL_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nconn.h"
+#include <string>
+#include <openssl/ssl.h>
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
+//: Fwd Decl's
 //: ----------------------------------------------------------------------------
-nconn::~nconn(void)
-{
-        // oh c++...
-}
-
+SSL_CTX* ssl_init(const std::string &a_cipher_list,
+		  long a_options = 0,
+		  const std::string &a_ca_file = "",
+		  const std::string &a_ca_path = "");
+void ssl_kill_locks(void);
+int32_t get_ssl_options_str_val(const std::string a_options_str, long &ao_val);
+int32_t get_ssl_session_info(SSL *a_ssl, std::string &ao_protocol, std::string &ao_cipher);
+#endif

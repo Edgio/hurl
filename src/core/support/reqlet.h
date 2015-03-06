@@ -131,8 +131,9 @@ public:
                 m_stat_agg(),
                 m_response_headers(),
                 m_next_response_value(m_response_headers.begin()),
-                m_response_body(),
+                m_response_body(""),
                 m_response_status(0),
+                m_conn_info(),
                 m_id(a_id),
                 m_is_resolved_flag(false),
                 m_num_to_req(a_num_to_req),
@@ -176,6 +177,7 @@ public:
         header_map_t::iterator m_next_response_value;
         std::string m_response_body;
         uint16_t m_response_status;
+        header_map_t m_conn_info;
 
         // -------------------------------------------
         // Class methods

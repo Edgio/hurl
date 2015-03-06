@@ -97,9 +97,11 @@ int32_t reqlet::resolve(void)
 {
 
         int32_t l_status = STATUS_OK;
-        l_status = resolver::get()->cached_resolve(m_url.m_host, m_url.m_port, m_host_info);
+        std::string l_error;
+        l_status = resolver::get()->cached_resolve(m_url.m_host, m_url.m_port, m_host_info, l_error);
         if(l_status != STATUS_OK)
         {
+                set_response(900, "Address resolution failed.");
                 return STATUS_ERROR;
         }
 
@@ -570,7 +572,6 @@ void reqlet::set_response(uint16_t a_response_status, const char *a_response)
 
         ++(m_stat_agg.m_num_conn_completed);
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

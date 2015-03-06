@@ -28,6 +28,8 @@
 #include "city.h"
 #include "hlp.h"
 #include "util.h"
+#include "nconn_ssl.h"
+#include "nconn_tcp.h"
 
 #include "ndebug.h"
 
@@ -53,6 +55,25 @@
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
+#define HLP_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
+        do { \
+                int _status = 0; \
+                _status = _conn.set_opt((_opt), (_buf), (_len)); \
+                if (_status != STATUS_OK) { \
+                        NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
+                        return NULL;\
+                } \
+        } while(0)
+
+#define HLP_GET_NCONN_OPT(_conn, _opt, _buf, _len) \
+        do { \
+                int _status = 0; \
+                _status = _conn.get_opt((_opt), (_buf), (_len)); \
+                if (_status != STATUS_OK) { \
+                        NDBG_PRINT("STATUS_ERROR: Failed to get_opt %d.  Status: %d.\n", _opt, _status); \
+                        return NULL;\
+                } \
+        } while(0)
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -312,8 +333,8 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
         }
 
         // Check for done...
-        if((l_nconn->get_state() == nconn::CONN_STATE_DONE) ||
-                        (l_status == STATUS_ERROR))
+        if((l_nconn->is_done()) ||
+           (l_status == STATUS_ERROR))
         {
                 // Add stats
                 add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
@@ -473,16 +494,15 @@ nconn *t_client::try_take_locked_nconn_w_hash(uint64_t a_hash)
         else
         {
                 nconn *l_nconn = NULL;
-                l_nconn = new nconn(m_verbose,
-                                m_color,
-                                m_sock_opt_recv_buf_size,
-                                m_sock_opt_send_buf_size,
-                                m_sock_opt_no_delay,
-                                false,
-                                false,
-                                m_timeout_s,
-                                -1,
-                                NULL);
+
+                // Assume tcp -fix later
+                l_nconn = new nconn_tcp(m_verbose, m_color, -1, false, false);
+
+                // Set generic options
+                HLP_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_sock_opt_recv_buf_size);
+                HLP_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_sock_opt_send_buf_size);
+                HLP_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_sock_opt_no_delay);
+
                 l_nconn_lock.m_nconn = l_nconn;
                 pthread_mutex_init(&l_nconn_lock.m_mutex, NULL);
         }
@@ -589,11 +609,10 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                 // Connection DONE
                 // available for reuse ?
                 // ---------------------------------------
-                nconn::conn_state_t l_state = l_nconn->get_state();
 
                 //NDBG_PRINT("%sHERE%s: l_state %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_state);
 
-                if(l_state == nconn::CONN_STATE_DONE)
+                if(l_nconn->is_done())
                 {
                         // Can reuse???
                         if(l_nconn->can_reuse())
@@ -628,12 +647,31 @@ void *t_client::evr_loop_timer_cb(void *a_data)
                 // ---------------------------------------
                 // Connection Free
                 // ---------------------------------------
-                else if(l_state == nconn::CONN_STATE_FREE)
+                else if(l_nconn->is_free())
                 {
 
                         int l_status;
-                        // Set scheme (mode HTTP/HTTPS)
-                        l_nconn->set_scheme(l_reqlet->m_url.m_scheme);
+
+                        // Check if scheme is same...
+                        if(l_nconn &&
+                           (l_nconn->m_scheme != l_reqlet->m_url.m_scheme))
+                        {
+                                // Destroy nconn and recreate
+                                delete l_nconn;
+                                l_nconn = NULL;
+                        }
+
+                        if(!l_nconn)
+                        {
+                                // Create nconn
+                                l_nconn = l_t_client->create_new_nconn(*l_reqlet);
+                                if(!l_nconn)
+                                {
+                                        NDBG_PRINT("Error performing create_new_nconn\n");
+                                        return NULL;
+                                }
+                        }
+
                         l_t_client->reassign_nconn(l_nconn, l_cmd_hash);
 
                         // Bump stats
@@ -643,10 +681,9 @@ void *t_client::evr_loop_timer_cb(void *a_data)
 
                         //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_reqlet->m_url.m_host.c_str());
                         l_status = l_nconn->run_state_machine(l_t_client->m_evr_loop, l_reqlet->m_host_info);
-                        if((l_status != STATUS_OK) &&
-                                        (l_nconn->get_state() != nconn::CONN_STATE_CONNECTING))
+                        if(l_status != STATUS_OK)
                         {
-                                NDBG_PRINT("Error: Performing do_connect: connection_state: %d status: %d\n", l_nconn->get_state(), l_status);
+                                NDBG_PRINT("Error: Performing do_connect: status: %d\n", l_status);
                                 ++(l_reqlet->m_stat_agg.m_num_errors);
                                 l_t_client->cleanup_connection(l_nconn);
                                 delete l_client_pb_cmd;
@@ -680,6 +717,46 @@ void *t_client::evr_loop_timer_cb(void *a_data)
         delete l_pb_cmd;
 
         return NULL;
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nconn *t_client::create_new_nconn(const reqlet &a_reqlet)
+{
+        nconn *l_nconn = NULL;
+
+
+        if(a_reqlet.m_url.m_scheme == nconn::SCHEME_TCP)
+        {
+                // TODO SET OPTIONS!!!
+                l_nconn = new nconn_tcp(m_verbose, m_color, 1, true, false);
+        }
+        else if(a_reqlet.m_url.m_scheme == nconn::SCHEME_SSL)
+        {
+                // TODO SET OPTIONS!!!
+                l_nconn = new nconn_ssl(m_verbose, m_color, 1, true, false);
+        }
+
+        // -------------------------------------------
+        // Set options
+        // -------------------------------------------
+        // Set generic options
+        HLP_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_sock_opt_recv_buf_size);
+        HLP_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_sock_opt_send_buf_size);
+        HLP_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_sock_opt_no_delay);
+
+        // Set ssl options
+        if(a_reqlet.m_url.m_scheme == nconn::SCHEME_SSL)
+        {
+                HLP_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_CIPHER_STR, m_cipher_str.c_str(), m_cipher_str.length());
+                HLP_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_CTX, m_ssl_ctx, sizeof(m_ssl_ctx));
+        }
+
+        return l_nconn;
 
 }
 
@@ -814,9 +891,12 @@ int32_t t_client::create_request(nconn &ao_conn,
                 const pb_cmd_t &a_cmd)
 {
 
-        char *l_req_buf = ao_conn.m_req_buf;
+        // Get client
+        char *l_req_buf = NULL;
         uint32_t l_req_buf_len = 0;
-        uint32_t l_max_buf_len = sizeof(ao_conn.m_req_buf);
+        uint32_t l_max_buf_len = nconn_tcp::m_max_req_buf;
+
+        GET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF, (void **)(&l_req_buf), &l_req_buf_len);
 
         // -------------------------------------------
         // Request.
@@ -867,8 +947,7 @@ int32_t t_client::create_request(nconn &ao_conn,
         l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len, "\r\n");
 
         // Set len
-        ao_conn.m_req_buf_len = l_req_buf_len;
-
+        SET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF_LEN, NULL, l_req_buf_len);
         return STATUS_OK;
 }
 
@@ -888,13 +967,8 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
 
         // stats
         //++m_stat_rconn_deleted;
-
-        int32_t l_fd = a_nconn->get_fd();
-
         //NDBG_PRINT("FD[%d] Cleanup\n", l_fd);
-
-        m_evr_loop->del_fd(l_fd);
-        a_nconn->done_cb();
+        a_nconn->cleanup(m_evr_cmd_loop);
         a_nconn->set_data1(NULL);
         remove_nconn(a_nconn);
         return STATUS_OK;
@@ -1037,23 +1111,6 @@ void t_client::show_stats(void)
                         m_stat_err_read_cb,
                         m_stat_err_error_cb
                         );
-
-#if 0
-        // Show connection info
-        for(rconn_pb_map_t::iterator i_rconn = m_rconn_pb_map.begin();
-                        i_rconn != m_rconn_pb_map.end();
-                        ++i_rconn)
-        {
-                nconn *l_conn = i_rconn->second->m_conn;
-                NDBG_OUTPUT("! %sCONN%s[%6d] Content-Length: %12" PRIu64 " TOTAL: %12u STATE: %d\n",
-                                ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF,
-                                l_conn->m_fd,
-                                l_conn->m_http_parser.content_length,
-                                l_conn->m_stat.m_total_bytes,
-                                l_conn->m_state
-                                );
-        }
-#endif
 }
 
 
