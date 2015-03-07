@@ -96,6 +96,7 @@
 #define T_CLIENT_CONN_CLEANUP(a_t_client, a_conn, a_reqlet, a_status, a_response) \
         do { \
                 a_reqlet->set_response(a_status, a_response); \
+                if(a_t_client->m_settings.m_show_summary) reqlet_repo::get()->append_summary(a_reqlet);\
                 if(a_status >= 500) reqlet_repo::get()->up_done(true); \
                 else reqlet_repo::get()->up_done(false); \
                 a_t_client->cleanup_connection(a_conn); \
@@ -150,6 +151,7 @@ typedef std::list<uint32_t> conn_id_list_t;
 typedef std::unordered_set<uint32_t> conn_id_set_t;
 typedef std::map <std::string, std::string> header_map_t;
 typedef std::list <reqlet *> reqlet_list_t;
+typedef std::map <std::string, uint32_t> summary_map_t;
 
 //: ----------------------------------------------------------------------------
 //: Settings
@@ -160,6 +162,7 @@ typedef struct settings_struct
         bool m_color;
         bool m_quiet;
         bool m_show_stats;
+        bool m_show_summary;
 
         // request options
         std::string m_url;
@@ -196,12 +199,13 @@ typedef struct settings_struct
                 m_color(false),
                 m_quiet(false),
                 m_show_stats(false),
+                m_show_summary(false),
                 m_url(),
                 m_header_map(),
                 m_t_client_list(),
                 m_evr_loop_type(EVR_LOOP_EPOLL),
-                m_start_parallel(100),
-                m_num_threads(4),
+                m_start_parallel(128),
+                m_num_threads(8),
                 m_timeout_s(HLE_DEFAULT_CONN_TIMEOUT_S),
                 m_connect_only(false),
                 m_sock_opt_recv_buf_size(0),
@@ -259,10 +263,32 @@ public:
         void display_status_line(bool a_color);
         std::string dump_all_responses(bool a_color, bool a_pretty, output_type_t a_output_type, int a_part_map);
         reqlet *try_get_resolved(void);
-
+        int32_t append_summary(reqlet *a_reqlet);
+        void display_summary(bool a_color);
 private:
         DISALLOW_COPY_AND_ASSIGN(reqlet_repo)
-        reqlet_repo();
+        reqlet_repo(void):
+                m_reqlet_list(),
+                m_reqlet_list_iter(),
+                m_mutex(),
+                m_num_reqlets(0),
+                m_num_get(0),
+                m_num_done(0),
+                m_num_resolved(0),
+                m_num_error(0),
+                m_summary_success(0),
+                m_summary_error_addr(0),
+                m_summary_error_conn(0),
+                m_summary_error_unknown(0),
+                m_summary_ssl_error_self_signed(0),
+                m_summary_ssl_error_expired(0),
+                m_summary_ssl_error_other(0),
+                m_summary_ssl_protocols(),
+                m_summary_ssl_ciphers()
+        {
+                // Init mutex
+                pthread_mutex_init(&m_mutex, NULL);
+        };
 
         reqlet_list_t m_reqlet_list;
         reqlet_list_t::iterator m_reqlet_list_iter;
@@ -272,6 +298,23 @@ private:
         uint32_t m_num_done;
         uint32_t m_num_resolved;
         uint32_t m_num_error;
+
+        // -------------------------------------------------
+        // Summary info
+        // -------------------------------------------------
+        // Connectivity
+        uint32_t m_summary_success;
+        uint32_t m_summary_error_addr;
+        uint32_t m_summary_error_conn;
+        uint32_t m_summary_error_unknown;
+
+        // SSL info
+        uint32_t m_summary_ssl_error_self_signed;
+        uint32_t m_summary_ssl_error_expired;
+        uint32_t m_summary_ssl_error_other;
+
+        summary_map_t m_summary_ssl_protocols;
+        summary_map_t m_summary_ssl_ciphers;
 
         // -------------------------------------------------
         // Class members
@@ -474,6 +517,132 @@ std::string reqlet_repo::dump_all_responses(bool a_color, bool a_pretty, output_
 
 }
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t reqlet_repo::append_summary(reqlet *a_reqlet)
+{
+
+        // Examples:
+        //
+        // Address resolution
+        //{"status-code": 900, "body": "Address resolution failed."},
+        //
+        // Connectivity
+        //
+        //{"status-code": 0, "body": "NO_RESPONSE"
+        //
+        //{"status-code": 902, "body": "Connection timed out"
+        //
+        //{"status-code": 901, "body": "Error Connection refused. Reason: Connection refused"
+        //{"status-code": 901, "body": "Error Unkown. Reason: No route to host"
+        //
+        //{"status-code": 901, "body": "SSL_ERROR_SYSCALL 0: error:00000000:lib(0):func(0):reason(0). Connection reset by peer"
+        //{"status-code": 901, "body": "SSL_ERROR_SYSCALL 0: error:00000000:lib(0):func(0):reason(0). An EOF was observed that violates the protocol"
+        //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:140770FC:SSL routines:SSL23_GET_SERVER_HELLO:unknown protocol."
+        //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077410:SSL routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure."}
+        //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077438:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 alert internal error."
+        //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077458:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 unrecognized name."
+
+        if(a_reqlet->m_response_status == 900)
+        {
+                ++m_summary_error_addr;
+        }
+        else if((a_reqlet->m_response_status == 0) ||
+                (a_reqlet->m_response_status == 901) ||
+                (a_reqlet->m_response_status == 902))
+        {
+                // Missing ca
+                if(a_reqlet->m_response_body.find("unable to get local issuer certificate") != std::string::npos)
+                {
+                        ++m_summary_ssl_error_other;
+                }
+                // expired
+                if(a_reqlet->m_response_body.find("certificate has expired") != std::string::npos)
+                {
+                        ++m_summary_ssl_error_expired;
+                }
+                // expired
+                if(a_reqlet->m_response_body.find("self signed certificate") != std::string::npos)
+                {
+                        ++m_summary_ssl_error_self_signed;
+                }
+
+                ++m_summary_error_conn;
+        }
+        else if(a_reqlet->m_response_status == 200)
+        {
+                ++m_summary_success;
+
+                header_map_t::iterator i_h;
+                if((i_h = a_reqlet->m_conn_info.find("Protocol")) != a_reqlet->m_conn_info.end())
+                {
+                        ++m_summary_ssl_protocols[i_h->second];
+                }
+                if((i_h = a_reqlet->m_conn_info.find("Cipher")) != a_reqlet->m_conn_info.end())
+                {
+                        ++m_summary_ssl_ciphers[i_h->second];
+                }
+        }
+        else
+        {
+                ++m_summary_error_unknown;
+        }
+
+        // TODO
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void reqlet_repo::display_summary(bool a_color)
+{
+        std::string l_header_str = "";
+        std::string l_protocol_str = "";
+        std::string l_cipher_str = "";
+        std::string l_off_color = "";
+
+        if(a_color)
+        {
+                l_header_str = ANSI_COLOR_FG_CYAN;
+                l_protocol_str = ANSI_COLOR_FG_GREEN;
+                l_cipher_str = ANSI_COLOR_FG_YELLOW;
+                l_off_color = ANSI_COLOR_OFF;
+        }
+
+        NDBG_OUTPUT("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
+        NDBG_OUTPUT("| total hosts:                     %u\n",m_num_reqlets);
+        NDBG_OUTPUT("| success:                         %u\n",m_summary_success);
+        NDBG_OUTPUT("| error address lookup:            %u\n",m_summary_success);
+        NDBG_OUTPUT("| error connectivity:              %u\n",m_summary_success);
+        NDBG_OUTPUT("| ssl error cert expired           %u\n",m_summary_ssl_error_expired);
+        NDBG_OUTPUT("| ssl error cert self-signed       %u\n",m_summary_ssl_error_self_signed);
+        NDBG_OUTPUT("| ssl error cert self-signed       %u\n",m_summary_ssl_error_other);
+
+        // Sort
+        typedef std::map<uint32_t, std::string> _sorted_map_t;
+        _sorted_map_t l_sorted_map;
+        NDBG_OUTPUT("+--------------- %sSSL PROTOCOLS%s -------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
+        l_sorted_map.clear();
+        for(summary_map_t::iterator i_s = m_summary_ssl_protocols.begin(); i_s != m_summary_ssl_protocols.end(); ++i_s)
+        l_sorted_map[i_s->second] = i_s->first;
+        for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
+        NDBG_OUTPUT("| %-32s %u\n", i_s->second.c_str(), i_s->first);
+        NDBG_OUTPUT("+--------------- %sSSL CIPHERS%s ---------------- \n", l_cipher_str.c_str(), l_off_color.c_str());
+        l_sorted_map.clear();
+        for(summary_map_t::iterator i_s = m_summary_ssl_ciphers.begin(); i_s != m_summary_ssl_ciphers.end(); ++i_s)
+        l_sorted_map[i_s->second] = i_s->first;
+        for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
+        NDBG_OUTPUT("| %-32s %u\n", i_s->second.c_str(), i_s->first);
+
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -572,26 +741,6 @@ void reqlet_repo::display_status_line(bool a_color)
         {
                 printf("Done/Resolved/Req'd/Total/Error %8u / %8u / %8u / %8u / %8u\n",m_num_done, m_num_resolved, m_num_get, m_num_reqlets, m_num_error);
         }
-}
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-reqlet_repo::reqlet_repo(void):
-        m_reqlet_list(),
-        m_reqlet_list_iter(),
-        m_mutex(),
-        m_num_reqlets(0),
-        m_num_get(0),
-        m_num_done(0),
-        m_num_resolved(0),
-        m_num_error(0)
-{
-        // Init mutex
-        pthread_mutex_init(&m_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -728,6 +877,7 @@ t_client::t_client(const settings_struct_t &a_settings):
         COPY_SETTINGS(m_color);
         COPY_SETTINGS(m_quiet);
         COPY_SETTINGS(m_show_stats);
+        COPY_SETTINGS(m_show_summary);
 
         COPY_SETTINGS(m_url);
         COPY_SETTINGS(m_header_map);
@@ -851,7 +1001,7 @@ void *t_client::evr_loop_file_writeable_cb(void *a_data)
                 {
                         NDBG_PRINT("Error: performing run_state_machine\n");
                 }
-                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 500, l_nconn->m_last_error.c_str());
+                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, l_nconn->m_last_error.c_str());
                 return NULL;
         }
 
@@ -904,7 +1054,7 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
                 {
                         NDBG_PRINT("Error: performing run_state_machine\n");
                 }
-                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 500, l_nconn->m_last_error.c_str());
+                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, l_nconn->m_last_error.c_str());
                 return NULL;
         }
 
@@ -919,7 +1069,7 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
         {
                 if(l_status == STATUS_ERROR)
                 {
-                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 500, l_nconn->m_last_error.c_str());
+                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, l_nconn->m_last_error.c_str());
                 }
                 else
                 {
@@ -996,7 +1146,7 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
         }
 
         // Cleanup
-        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 502, "Connection timed out");
+        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 902, "Connection timed out");
 
         return NULL;
 }
@@ -1755,6 +1905,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -c, --color          Color\n");
         fprintf(a_stream, "  -q, --quiet          Suppress output\n");
         fprintf(a_stream, "  -s, --show_progress  Show progress\n");
+        fprintf(a_stream, "  -m, --show_summary   Show summary output\n");
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Output Options: -defaults to line delimited\n");
@@ -1835,6 +1986,7 @@ int main(int argc, char** argv)
                 { "color",          0, 0, 'c' },
                 { "quiet",          0, 0, 'q' },
                 { "show_progress",  0, 0, 's' },
+                { "show_summary",   0, 0, 'm' },
                 { "output",         1, 0, 'o' },
                 { "line_delimited", 0, 0, 'l' },
                 { "json",           0, 0, 'j' },
@@ -1893,7 +2045,7 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
-        char l_short_arg_list[] = "hvu:f:J:x:y:O:VNF:L:p:t:H:T:R:S:DA:Crcqso:ljPG:";
+        char l_short_arg_list[] = "hvu:f:J:x:y:O:VNF:L:p:t:H:T:R:S:DA:Crcqsmo:ljPG:";
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -2160,6 +2312,14 @@ int main(int argc, char** argv)
                 case 's':
                 {
                         l_settings.m_show_stats = true;
+                        break;
+                }
+                // ---------------------------------------
+                // show progress
+                // ---------------------------------------
+                case 'm':
+                {
+                        l_settings.m_show_summary = true;
                         break;
                 }
                 // ---------------------------------------
@@ -2534,6 +2694,14 @@ int main(int argc, char** argv)
 
                 }
 
+        }
+
+        // -------------------------------------------
+        // Summary...
+        // -------------------------------------------
+        if(l_settings.m_show_summary)
+        {
+                reqlet_repo::get()->display_summary(l_settings.m_color);
         }
 
         // -------------------------------------------
