@@ -619,11 +619,12 @@ void reqlet_repo::display_summary(bool a_color)
         NDBG_OUTPUT("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
         NDBG_OUTPUT("| total hosts:                     %u\n",m_num_reqlets);
         NDBG_OUTPUT("| success:                         %u\n",m_summary_success);
-        NDBG_OUTPUT("| error address lookup:            %u\n",m_summary_success);
-        NDBG_OUTPUT("| error connectivity:              %u\n",m_summary_success);
+        NDBG_OUTPUT("| error address lookup:            %u\n",m_summary_error_addr);
+        NDBG_OUTPUT("| error connectivity:              %u\n",m_summary_error_conn);
+        NDBG_OUTPUT("| error unknown:                   %u\n",m_summary_error_unknown);
         NDBG_OUTPUT("| ssl error cert expired           %u\n",m_summary_ssl_error_expired);
         NDBG_OUTPUT("| ssl error cert self-signed       %u\n",m_summary_ssl_error_self_signed);
-        NDBG_OUTPUT("| ssl error cert self-signed       %u\n",m_summary_ssl_error_other);
+        NDBG_OUTPUT("| ssl error other                  %u\n",m_summary_ssl_error_other);
 
         // Sort
         typedef std::map<uint32_t, std::string> _sorted_map_t;
@@ -687,6 +688,7 @@ reqlet *reqlet_repo::try_get_resolved(void)
         {
                 // TODO Set response and error
                 up_resolved(true);
+                append_summary(l_reqlet);
                 return NULL;
         }
 
