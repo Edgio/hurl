@@ -547,6 +547,8 @@ int32_t reqlet_repo::append_summary(reqlet *a_reqlet)
         //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077438:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 alert internal error."
         //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077458:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 unrecognized name."
 
+        pthread_mutex_lock(&m_mutex);
+
         if(a_reqlet->m_response_status == 900)
         {
                 ++m_summary_error_addr;
@@ -591,6 +593,8 @@ int32_t reqlet_repo::append_summary(reqlet *a_reqlet)
         {
                 ++m_summary_error_unknown;
         }
+
+        pthread_mutex_unlock(&m_mutex);
 
         // TODO
         return STATUS_OK;
