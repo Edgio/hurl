@@ -243,7 +243,6 @@ void nonblock(int state)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-// TODO PUT BACK!!!
 void command_exec(settings_struct_t &a_settings)
 {
         int i = 0;
@@ -288,13 +287,11 @@ void command_exec(settings_struct_t &a_settings)
                 // TODO add define...
                 usleep(200000);
 
-                // TODO PUT BACK!!!
                 if(a_settings.m_show_stats)
                 {
                         a_settings.m_hlx_client->display_status_line(a_settings.m_color);
                 }
 
-                // TODO PUT BACK!!!
                 if (!a_settings.m_hlx_client->is_running())
                 {
                         //NDBG_PRINT("IS NOT RUNNING.\n");
@@ -448,10 +445,11 @@ void print_usage(FILE* a_stream, int a_exit_code)
 int main(int argc, char** argv)
 {
 
-        ns_hlx::hlx_client *l_hlx_client = ns_hlx::hlx_client::get();
+        settings_struct_t l_settings;
+        ns_hlx::hlx_client *l_hlx_client = new ns_hlx::hlx_client();
+        l_settings.m_hlx_client = l_hlx_client;
 
         // For sighandler
-        settings_struct_t l_settings;
         g_settings = &l_settings;
 
         // -------------------------------------------
@@ -529,8 +527,6 @@ int main(int argc, char** argv)
                             | ns_hlx::PART_BODY
                             ;
         bool l_output_pretty = false;
-        // TODO PUT BACK!!!
-        UNUSED(l_output_pretty);
 
         // -------------------------------------------
         // Assume unspecified arg url...
@@ -644,8 +640,7 @@ int main(int argc, char** argv)
                         {
                                 l_cipher_str = "AES256-SHA";
                         }
-                        // TODO PUT BACK!!!
-                        //l_settings.m_cipher_list_str = l_cipher_str;
+                        l_hlx_client->set_cipher_list(l_cipher_str);
                         break;
                 }
                 // ---------------------------------------
@@ -653,16 +648,13 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'O':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_ssl_options_str = l_argument;
+                        int32_t l_status;
+                        l_status = l_hlx_client->set_ssl_options(l_argument);
+                        if(l_status != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
 
-                        // TODO PUT BACK!!!
-                        //int32_t l_status;
-                        //l_status = get_ssl_options_str_val(l_settings.m_ssl_options_str, l_settings.m_ssl_options);
-                        //if(l_status != STATUS_OK)
-                        //{
-                        //        return STATUS_ERROR;
-                        //}
                         break;
                 }
                 // ---------------------------------------
@@ -670,8 +662,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'V':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_ssl_verify = true;
+                        l_hlx_client->set_ssl_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -679,8 +670,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'N':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_ssl_sni = true;
+
+                        l_hlx_client->set_ssl_sni_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -688,8 +679,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'F':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_ssl_ca_file = l_argument;
+                        l_hlx_client->set_ssl_ca_file(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -697,8 +687,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'L':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_ssl_ca_path = l_argument;
+                        l_hlx_client->set_ssl_ca_path(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -716,8 +705,7 @@ int main(int argc, char** argv)
                                 print_usage(stdout, -1);
                         }
 
-                        // TODO PUT BACK!!!
-                        //l_settings.m_start_parallel = l_start_parallel;
+                        l_hlx_client->set_start_parallel(l_start_parallel);
                         break;
                 }
                 // ---------------------------------------
@@ -733,8 +721,7 @@ int main(int argc, char** argv)
                                 printf("num-threads must be at least 1\n");
                                 print_usage(stdout, -1);
                         }
-                        // TODO PUT BACK!!!
-                        //l_settings.m_num_threads = l_max_threads;
+                        l_hlx_client->set_num_threads(l_max_threads);
                         break;
                 }
                 // ---------------------------------------
@@ -764,8 +751,7 @@ int main(int argc, char** argv)
                                 printf("connection timeout must be at least 1\n");
                                 print_usage(stdout, -1);
                         }
-                        // TODO PUT BACK!!!
-                        //l_settings.m_timeout_s = l_timeout_s;
+                        l_hlx_client->set_timeout_s(l_timeout_s);
                         break;
                 }
                 // ---------------------------------------
@@ -773,10 +759,9 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'R':
                 {
-                        // TODO PUT BACK!!!
-                        //int l_sock_opt_recv_buf_size = atoi(optarg);
-                        //// TODO Check value...
-                        //l_settings.m_sock_opt_recv_buf_size = l_sock_opt_recv_buf_size;
+                        int l_sock_opt_recv_buf_size = atoi(optarg);
+                        // TODO Check value...
+                        l_hlx_client->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -784,10 +769,9 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'S':
                 {
-                        // TODO PUT BACK!!!
-                        //int l_sock_opt_send_buf_size = atoi(optarg);
-                        //// TODO Check value...
-                        //l_settings.m_sock_opt_send_buf_size = l_sock_opt_send_buf_size;
+                        int l_sock_opt_send_buf_size = atoi(optarg);
+                        // TODO Check value...
+                        l_hlx_client->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -795,8 +779,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_sock_opt_no_delay = true;
+                        l_hlx_client->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------
@@ -804,7 +787,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'A':
                 {
-                        l_ai_cache = l_argument;
+                        l_hlx_client->set_ai_cache(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -812,8 +795,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'C':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_connect_only = true;
+                        l_hlx_client->set_connect_only(true);
                         break;
                 }
                 // ---------------------------------------
@@ -821,8 +803,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'r':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_verbose = true;
+                        l_settings.m_verbose = true;
+                        l_hlx_client->set_verbose(true);
                         break;
                 }
                 // ---------------------------------------
@@ -830,8 +812,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'c':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_color = true;
+                        l_settings.m_color = true;
+                        l_hlx_client->set_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -839,8 +821,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'q':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_quiet = true;
+                        l_settings.m_quiet = true;
+                        l_hlx_client->set_quiet(true);
                         break;
                 }
                 // ---------------------------------------
@@ -848,8 +830,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 's':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_show_stats = true;
+                        l_settings.m_show_stats = true;
                         break;
                 }
                 // ---------------------------------------
@@ -857,8 +838,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'm':
                 {
-                        // TODO PUT BACK!!!
-                        //l_settings.m_show_summary = true;
+                        l_settings.m_show_summary = true;
                         break;
                 }
                 // ---------------------------------------
@@ -928,8 +908,7 @@ int main(int argc, char** argv)
                 print_usage(stdout, -1);
         }
         // else set url
-        // TODO PUT BACK!!!
-        //l_settings.m_url = l_url;
+        l_hlx_client->set_url(l_url);
 
         ns_hlx::host_list_t l_host_list;
         // -------------------------------------------------
@@ -1119,31 +1098,14 @@ int main(int argc, char** argv)
         // TODO???
         //signal(SIGPIPE, SIG_IGN);
 
-
-        // -------------------------------------------
-        // Init resolver with cache
-        // -------------------------------------------
-        // TODO PUT BACK!!!
-        //int32_t l_ldb_init_status;
-        //l_ldb_init_status = resolver::get()->init(l_ai_cache, true);
-        //if(STATUS_OK != l_ldb_init_status)
-        //{
-        //        return -1;
-        //}
-
-        // -------------------------------------------
-        // SSL init...
-        // -------------------------------------------
-        // TODO PUT BACK!!!
-        //l_settings.m_ssl_ctx = ssl_init(l_settings.m_cipher_list_str, // ctx cipher list str
-        //                                l_settings.m_ssl_options,     // ctx options
-        //                                l_settings.m_ssl_ca_file,     // ctx ca file
-        //                                l_settings.m_ssl_ca_path);    // ctx ca path
-        //if(NULL == l_settings.m_ssl_ctx)
-        //{
-        //        NDBG_PRINT("Error: performing ssl_init with cipher_list: %s\n", l_settings.m_cipher_list_str.c_str());
-        //        return STATUS_ERROR;
-        //}
+        // Initializer hlx_client
+        int l_status = 0;
+        l_status = l_hlx_client->init();
+        if(HLX_CLIENT_STATUS_OK != l_status)
+        {
+                printf("Error: initializing hlx_client.\n");
+                return -1;
+        }
 
         // Start Profiler
         if (!l_gprof_file.empty())
@@ -1151,15 +1113,21 @@ int main(int argc, char** argv)
                 ProfilerStart(l_gprof_file.c_str());
         }
 
+        // Set host list
+        l_status = l_hlx_client->set_host_list(l_host_list)
+        if(HLX_CLIENT_STATUS_OK != l_status)
+        {
+                printf("Error: performing set_host_list.\n");
+                return -1;
+        }
+
         // Run
-        // TODO PUT BACK!!!
-        //int32_t l_run_status = 0;
-        //l_run_status = run(l_settings, l_host_list);
-        //if(0 != l_run_status)
-        //{
-        //        printf("Error: performing hle::run");
-        //        return -1;
-        //}
+        l_status = l_hlx_client->run();
+        if(HLX_CLIENT_STATUS_OK != l_status)
+        {
+                printf("Error: performing run");
+                return -1;
+        }
 
         //uint64_t l_start_time_ms = get_time_ms();
 
@@ -1168,17 +1136,15 @@ int main(int argc, char** argv)
         // -------------------------------------------
         command_exec(l_settings);
 
-        // TODO PUT BACK!!!
-        //if(l_settings.m_verbose)
-        //{
-        //        printf("Finished -joining all threads\n");
-        //}
+        if(l_settings.m_verbose)
+        {
+                printf("Finished -joining all threads\n");
+        }
 
         // Wait for completion
         l_hlx_client->wait_till_stopped();
 
         // One more status for the lovers
-        // TODO PUT BACK!!!
         l_hlx_client->display_status_line(l_settings.m_color);
 
         if (!l_gprof_file.empty())
@@ -1243,22 +1209,11 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        // Delete t_client list...
-        // TODO PUT BACK!!!
-        //for(t_client_list_t::iterator i_client_hle = l_settings.m_t_client_list.begin();
-        //                i_client_hle != l_settings.m_t_client_list.end(); )
-        //{
-        //        t_client *l_t_client_ptr = *i_client_hle;
-        //        delete l_t_client_ptr;
-        //        l_settings.m_t_client_list.erase(i_client_hle++);
-        //}
-
-        // SSL Cleanup
-        // TODO PUT BACK!!!
-        //ssl_kill_locks();
-
-        // TODO Deprecated???
-        //EVP_cleanup();
+        if(l_hlx_client)
+        {
+                delete l_hlx_client;
+                l_hlx_client = NULL;
+        }
 
         //if(l_settings.m_verbose)
         //{

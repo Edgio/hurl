@@ -26,12 +26,12 @@
 //: ----------------------------------------------------------------------------
 #include "hlx_client.h"
 #include "util.h"
+#include "ssl_util.h"
 
 #if 0
 #include "ndebug.h"
 #include "resolver.h"
 #include "reqlet.h"
-#include "ssl_util.h"
 #include "nconn_ssl.h"
 #include "nconn_tcp.h"
 
@@ -245,12 +245,46 @@ private:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int hlx_client::init(void)
+{
+
+        // -------------------------------------------
+        // Init resolver with cache
+        // -------------------------------------------
+        int32_t l_ldb_init_status;
+        l_ldb_init_status = resolver::get()->init(m_ai_cache, true);
+        if(STATUS_OK != l_ldb_init_status)
+        {
+                return HLX_CLIENT_STATUS_ERROR;
+        }
+
+        // -------------------------------------------
+        // SSL init...
+        // -------------------------------------------
+        // TODO PUT BACK!!!
+        //l_settings.m_ssl_ctx = ssl_init(l_settings.m_cipher_list_str, // ctx cipher list str
+        //                                l_settings.m_ssl_options,     // ctx options
+        //                                l_settings.m_ssl_ca_file,     // ctx ca file
+        //                                l_settings.m_ssl_ca_path);    // ctx ca path
+        //if(NULL == l_settings.m_ssl_ctx)
+        //{
+        //        NDBG_PRINT("Error: performing ssl_init with cipher_list: %s\n", l_settings.m_cipher_list_str.c_str());
+        //        return HLX_CLIENT_STATUS_ERROR;
+        //}
+
+        // TODO!!! fill in...
+        return HLX_CLIENT_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int hlx_client::stop(void)
 {
         // TODO!!! fill in...
-
         return HLX_CLIENT_STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -352,12 +386,51 @@ void hlx_client::clear_headers(void)
 
 
 //: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_client::set_cipher_list(const std::string &a_cipher_list)
+{
+        m_cipher_list = a_cipher_list;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int hlx_client::set_ssl_options(const std::string &a_ssl_options_str)
+{
+        int32_t l_status;
+        l_status = get_ssl_options_str_val(a_ssl_options_str, m_ssl_options);
+        if(l_status != HLX_CLIENT_STATUS_OK)
+        {
+                return HLX_CLIENT_STATUS_ERROR;
+        }
+        return HLX_CLIENT_STATUS_OK;
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int hlx_client::set_ssl_options(long a_ssl_options)
+{
+        m_ssl_options = a_ssl_options;
+        return HLX_CLIENT_STATUS_OK;
+}
+
+
+//: ----------------------------------------------------------------------------
 //: \details: Constructor
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 hlx_client::hlx_client(void):
-        m_header_map()
+        m_header_map(),
         //m_reqlet_list(),
         //m_reqlet_list_iter(),
         //m_mutex(),
@@ -375,35 +448,43 @@ hlx_client::hlx_client(void):
         //m_summary_ssl_error_other(0),
         //m_summary_ssl_protocols(),
         //m_summary_ssl_ciphers()
+        m_is_initd(false)
 {
         //// Init mutex
         //pthread_mutex_init(&m_mutex, NULL);
 };
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
+//: \details: Constructor
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hlx_client *hlx_client::get(void)
+hlx_client::~hlx_client(void)
 {
-        // TODO Protect with static mutex -to make threadsafe
-        if (m_singleton_ptr == NULL)
-        {
-                //If not yet created, create the singleton instance
-                m_singleton_ptr = new hlx_client();
+        // TODO
 
-                // Initialize
+        // Delete t_client list...
+        // TODO PUT BACK!!!
+        //for(t_client_list_t::iterator i_client_hle = l_settings.m_t_client_list.begin();
+        //                i_client_hle != l_settings.m_t_client_list.end(); )
+        //{
+        //        t_client *l_t_client_ptr = *i_client_hle;
+        //        delete l_t_client_ptr;
+        //        l_settings.m_t_client_list.erase(i_client_hle++);
+        //}
 
-        }
-        return m_singleton_ptr;
+        // SSL Cleanup
+        // TODO PUT BACK!!!
+        //ssl_kill_locks();
+
+        // TODO Deprecated???
+        //EVP_cleanup();
+
 }
 
 //: ----------------------------------------------------------------------------
 //: Class variables
 //: ----------------------------------------------------------------------------
-// the pointer to the singleton for the instance
-hlx_client *hlx_client::m_singleton_ptr;
 
 
 #if 0
