@@ -98,38 +98,7 @@ typedef struct settings_struct
         bool m_quiet;
         bool m_show_stats;
         bool m_show_summary;
-
         ns_hlx::hlx_client *m_hlx_client;
-
-        // TODO ???
-#if 0
-        // request options
-        std::string m_url;
-        header_map_t m_header_map;
-
-        // run options
-        t_client_list_t m_t_client_list;
-        evr_loop_type_t m_evr_loop_type;
-        int32_t m_start_parallel;
-        uint32_t m_num_threads;
-        uint32_t m_timeout_s;
-        bool m_connect_only;
-
-        // tcp options
-        uint32_t m_sock_opt_recv_buf_size;
-        uint32_t m_sock_opt_send_buf_size;
-        bool m_sock_opt_no_delay;
-
-        // SSL options
-        SSL_CTX* m_ssl_ctx;
-        std::string m_cipher_list_str;
-        std::string m_ssl_options_str;
-        long m_ssl_options;
-        bool m_ssl_verify;
-        bool m_ssl_sni;
-        std::string m_ssl_ca_file;
-        std::string m_ssl_ca_path;
-#endif
 
         // ---------------------------------
         // Defaults...
@@ -141,29 +110,6 @@ typedef struct settings_struct
                 m_show_stats(false),
                 m_show_summary(false),
                 m_hlx_client(NULL)
-
-                // TODO ???
-#if 0
-                m_url(),
-                m_header_map(),
-                m_t_client_list(),
-                m_evr_loop_type(EVR_LOOP_EPOLL),
-                m_start_parallel(128),
-                m_num_threads(8),
-                m_timeout_s(HLE_DEFAULT_CONN_TIMEOUT_S),
-                m_connect_only(false),
-                m_sock_opt_recv_buf_size(0),
-                m_sock_opt_send_buf_size(0),
-                m_sock_opt_no_delay(false),
-                m_ssl_ctx(NULL),
-                m_cipher_list_str(""),
-                m_ssl_options_str(""),
-                m_ssl_options(0),
-                m_ssl_verify(false),
-                m_ssl_sni(false),
-                m_ssl_ca_file(""),
-                m_ssl_ca_path("")
-#endif
         {}
 
 private:
