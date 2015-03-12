@@ -641,17 +641,17 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'p':
                 {
-                        int l_start_parallel = 1;
+                        int l_num_parallel = 1;
                         //NDBG_PRINT("arg: --parallel: %s\n", optarg);
                         //l_settings.m_start_type = START_PARALLEL;
-                        l_start_parallel = atoi(optarg);
-                        if (l_start_parallel < 1)
+                        l_num_parallel = atoi(optarg);
+                        if (l_num_parallel < 1)
                         {
                                 printf("parallel must be at least 1\n");
                                 print_usage(stdout, -1);
                         }
 
-                        l_hlx_client->set_start_parallel(l_start_parallel);
+                        l_hlx_client->set_num_parallel(l_num_parallel);
                         break;
                 }
                 // ---------------------------------------
@@ -785,6 +785,7 @@ int main(int argc, char** argv)
                 case 'm':
                 {
                         l_settings.m_show_summary = true;
+                        l_hlx_client->set_show_summary(true);
                         break;
                 }
                 // ---------------------------------------

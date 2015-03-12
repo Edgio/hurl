@@ -28,6 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include <string>
 #include <list>
+#include <vector>
 #include <map>
 
 //: ----------------------------------------------------------------------------
@@ -35,7 +36,6 @@
 //: ----------------------------------------------------------------------------
 #define HLX_CLIENT_STATUS_OK 0
 #define HLX_CLIENT_STATUS_ERROR -1
-
 
 //: ----------------------------------------------------------------------------
 //: Macros
@@ -48,10 +48,22 @@
     HLX_CLIENT_DISALLOW_COPY(class_name)\
     HLX_CLIENT_DISALLOW_ASSIGN(class_name)
 
+
+//: ----------------------------------------------------------------------------
+//: Fwd decl's
+//: ----------------------------------------------------------------------------
+struct ssl_ctx_st;
+typedef ssl_ctx_st SSL_CTX;
+
+class reqlet;
+typedef std::vector <reqlet *> reqlet_list_t;
+
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
+class t_client;
+typedef std::list <t_client *> t_client_list_t;
 
 // -----------------------------------------------
 // Host info
@@ -72,6 +84,7 @@ typedef struct host_struct {
 
 typedef std::list <host_t> host_list_t;
 typedef std::list <std::string> host_str_list_t;
+typedef std::map <std::string, uint32_t> summary_map_t;
 
 // -----------------------------------------------
 // Output formats
@@ -125,10 +138,12 @@ public:
 
         // Run options
         void set_connect_only(bool a_val);
+        void set_use_ai_cache(bool a_val);
         void set_ai_cache(const std::string &a_ai_cache);
         void set_timeout_s(uint32_t a_timeout_s);
         void set_num_threads(uint32_t a_num_threads);
-        void set_start_parallel(uint32_t a_start_parallel);
+        void set_num_parallel(uint32_t a_num_parallel);
+        void set_show_summary(bool a_val);
 
         // Socket options
         void set_sock_opt_no_delay(bool a_val);
@@ -158,6 +173,13 @@ public:
                                        bool a_pretty,
                                        output_type_t a_output_type,
                                        int a_part_map);
+
+        // Support
+        int32_t append_summary(reqlet *a_reqlet);
+        void up_done(bool a_error);
+        bool done(void);
+        reqlet *try_get_resolved(void);
+
 private:
 
         // -------------------------------------------------
@@ -170,42 +192,78 @@ private:
         // -------------------------------------------------
         HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(hlx_client)
 
+        // reqlets
+        reqlet *get_reqlet(void);
+        int32_t add_reqlet(reqlet *a_reqlet);
+        uint32_t get_num_reqlets(void) {return m_num_reqlets;};
+        uint32_t get_num_get(void) {return m_num_get;};
+        bool empty(void) {return m_reqlet_list.empty();};
+        void up_resolved(bool a_error) {if(a_error)++m_num_error; else ++m_num_resolved;};
+
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        // Settings
+        // General
+        bool m_verbose;
+        bool m_color;
+        bool m_quiet;
+
+        // Run Settings
+        std::string m_url;
         header_map_t m_header_map;
+        bool m_use_ai_cache;
         std::string m_ai_cache;
+        int32_t m_num_parallel;
+        uint32_t m_num_threads;
+        uint32_t m_timeout_s;
+        bool m_connect_only;
+        bool m_show_summary;
+
+        // Socket options
+        uint32_t m_sock_opt_recv_buf_size;
+        uint32_t m_sock_opt_send_buf_size;
+        bool m_sock_opt_no_delay;
 
         // SSL
-        std::string m_cipher_list;
+        SSL_CTX* m_ssl_ctx;
+        std::string m_ssl_cipher_list;
+        std::string m_ssl_options_str;
         long m_ssl_options;
+        bool m_ssl_verify;
+        bool m_ssl_sni;
+        std::string m_ssl_ca_file;
+        std::string m_ssl_ca_path;
 
-        //reqlet_list_t m_reqlet_list;
-        //reqlet_list_t::iterator m_reqlet_list_iter;
-        //pthread_mutex_t m_mutex;
-        //uint32_t m_num_reqlets;
-        //uint32_t m_num_get;
-        //uint32_t m_num_done;
-        //uint32_t m_num_resolved;
-        //uint32_t m_num_error;
+        // t_client
+        t_client_list_t m_t_client_list;
+        int m_evr_loop_type;
+
+        // Reqlets
+        reqlet_list_t m_reqlet_list;
+        reqlet_list_t::iterator m_reqlet_list_iter;
+        pthread_mutex_t m_mutex;
+        uint32_t m_num_reqlets;
+        uint32_t m_num_get;
+        uint32_t m_num_done;
+        uint32_t m_num_resolved;
+        uint32_t m_num_error;
 
         // -----------------------------
         // Summary info
         // -----------------------------
-        //// Connectivity
-        //uint32_t m_summary_success;
-        //uint32_t m_summary_error_addr;
-        //uint32_t m_summary_error_conn;
-        //uint32_t m_summary_error_unknown;
+        // Connectivity
+        uint32_t m_summary_success;
+        uint32_t m_summary_error_addr;
+        uint32_t m_summary_error_conn;
+        uint32_t m_summary_error_unknown;
 
-        //// SSL info
-        //uint32_t m_summary_ssl_error_self_signed;
-        //uint32_t m_summary_ssl_error_expired;
-        //uint32_t m_summary_ssl_error_other;
+        // SSL info
+        uint32_t m_summary_ssl_error_self_signed;
+        uint32_t m_summary_ssl_error_expired;
+        uint32_t m_summary_ssl_error_other;
 
-        //summary_map_t m_summary_ssl_protocols;
-        //summary_map_t m_summary_ssl_ciphers;
+        summary_map_t m_summary_ssl_protocols;
+        summary_map_t m_summary_ssl_ciphers;
 
         // -----------------------------
         // State
