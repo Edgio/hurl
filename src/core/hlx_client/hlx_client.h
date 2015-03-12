@@ -141,14 +141,13 @@ public:
         void clear_headers(void);
 
         // SSL
-        void set_cipher_list(const std::string &a_cipher_list);
-        int set_ssl_options(const std::string &a_ssl_options_str);
-        int set_ssl_options(long a_ssl_options);
-
+        void set_ssl_cipher_list(const std::string &a_cipher_list);
         void set_ssl_ca_path(const std::string &a_ssl_ca_path);
-        void set_cipher_list(const std::string &a_cipher_list);
+        void set_ssl_ca_file(const std::string &a_ssl_ca_file);
         void set_ssl_sni_verify(bool a_val);
         void set_ssl_verify(bool a_val);
+        int set_ssl_options(const std::string &a_ssl_options_str);
+        int set_ssl_options(long a_ssl_options);
 
         // ---------------------------------------
         // Display/status

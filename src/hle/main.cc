@@ -640,7 +640,7 @@ int main(int argc, char** argv)
                         {
                                 l_cipher_str = "AES256-SHA";
                         }
-                        l_hlx_client->set_cipher_list(l_cipher_str);
+                        l_hlx_client->set_ssl_cipher_list(l_cipher_str);
                         break;
                 }
                 // ---------------------------------------
@@ -1114,7 +1114,7 @@ int main(int argc, char** argv)
         }
 
         // Set host list
-        l_status = l_hlx_client->set_host_list(l_host_list)
+        l_status = l_hlx_client->set_host_list(l_host_list);
         if(HLX_CLIENT_STATUS_OK != l_status)
         {
                 printf("Error: performing set_host_list.\n");

@@ -27,10 +27,11 @@
 #include "hlx_client.h"
 #include "util.h"
 #include "ssl_util.h"
-
-#if 0
 #include "ndebug.h"
 #include "resolver.h"
+
+#if 0
+
 #include "reqlet.h"
 #include "nconn_ssl.h"
 #include "nconn_tcp.h"
@@ -390,7 +391,7 @@ void hlx_client::clear_headers(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx_client::set_cipher_list(const std::string &a_cipher_list)
+void hlx_client::set_ssl_cipher_list(const std::string &a_cipher_list)
 {
         m_cipher_list = a_cipher_list;
 }
@@ -431,6 +432,11 @@ int hlx_client::set_ssl_options(long a_ssl_options)
 //: ----------------------------------------------------------------------------
 hlx_client::hlx_client(void):
         m_header_map(),
+        m_ai_cache(),
+
+        // SSL
+        m_cipher_list(),
+        m_ssl_options(0),
         //m_reqlet_list(),
         //m_reqlet_list_iter(),
         //m_mutex(),
@@ -452,6 +458,7 @@ hlx_client::hlx_client(void):
 {
         //// Init mutex
         //pthread_mutex_init(&m_mutex, NULL);
+
 };
 
 //: ----------------------------------------------------------------------------
