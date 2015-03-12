@@ -126,6 +126,7 @@
 #define DISALLOW_DEFAULT_CTOR(class_name)\
     class_name();
 
+#define UNUSED(x) ( (void)(x) )
 
 //: ----------------------------------------------------------------------------
 //: Legacy Macros...

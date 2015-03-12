@@ -53,12 +53,12 @@ SET(SRCS
     ./support/nconn_tcp.cc
     ./support/nconn_ssl.cc
     ./support/resolver.cc
+    ./hlx_client/hlx_client.cc
 )
 
 # Headers
 SET(HDRS
-    ./ndebug/ndebug.h
-    ./tinymt/tinymt64.h
+    ./hlx_client/hlx_client.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

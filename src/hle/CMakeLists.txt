@@ -35,6 +35,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ../core/http_parser
     ../core/tinymt
     ../core/cityhash
+    ../core/hlx_client
 )
 
 #add_definitions(-std=c++0x)
@@ -83,8 +84,9 @@ pthread
 rt
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
 rt
-crypto
-ssl
+dl
+/home/rmorrison/Downloads/openssl-1.0.2/libssl.a
+/home/rmorrison/Downloads/openssl-1.0.2/libcrypto.a
 snappy
 leveldb
 tcmalloc
