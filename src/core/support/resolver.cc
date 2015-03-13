@@ -250,7 +250,7 @@ int32_t resolver::init(std::string addr_info_cache_db, bool a_use_cache)
                 std::string l_db_name = addr_info_cache_db;
                 if(l_db_name.empty())
                 {
-                        NDBG_PRINT("Using: %s\n", l_db_name.c_str());
+                        //NDBG_PRINT("Using: %s\n", l_db_name.c_str());
                         l_db_name = RESOLVER_DEFAULT_LDB_PATH;
                 }
 
