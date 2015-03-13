@@ -76,8 +76,8 @@ install(TARGETS hlxcore
 )
 
 # Add install target for header files
-#install(FILES ${HDRS}
-#  DESTINATION include/hlo
-#  COMPONENT Headers
-#)
+install(FILES ${HDRS}
+  DESTINATION include/hlo
+  COMPONENT Headers
+)
 
