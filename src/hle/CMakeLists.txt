@@ -84,9 +84,8 @@ pthread
 rt
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
 rt
-dl
-/home/rmorrison/Downloads/openssl-1.0.2/libssl.a
-/home/rmorrison/Downloads/openssl-1.0.2/libcrypto.a
+ssl
+crypto
 snappy
 leveldb
 tcmalloc

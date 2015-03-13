@@ -98,6 +98,11 @@ int32_t reqlet::resolve(void)
 
         int32_t l_status = STATUS_OK;
         std::string l_error;
+
+        // TODO REMOVE!!!
+        //NDBG_PRINT("m_url.m_host: %s\n", m_url.m_host.c_str());
+        //NDBG_PRINT("m_url.m_port: %d\n", m_url.m_port);
+
         l_status = resolver::get()->cached_resolve(m_url.m_host, m_url.m_port, m_host_info, l_error);
         if(l_status != STATUS_OK)
         {

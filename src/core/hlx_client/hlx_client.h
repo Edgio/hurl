@@ -56,7 +56,7 @@ struct ssl_ctx_st;
 typedef ssl_ctx_st SSL_CTX;
 
 class reqlet;
-typedef std::vector <reqlet *> reqlet_list_t;
+typedef std::vector <reqlet *> reqlet_vector_t;
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
@@ -133,8 +133,8 @@ public:
         void set_url(const std::string &a_url);
 
         // Host list
-        int set_host_list(const host_list_t &a_host_list);
-        int set_host_list(const host_str_list_t &a_host_list);
+        int set_host_list(host_list_t &a_host_list);
+        int set_host_list(host_str_list_t &a_host_list);
 
         // Run options
         void set_connect_only(bool a_val);
@@ -197,7 +197,7 @@ private:
         int32_t add_reqlet(reqlet *a_reqlet);
         uint32_t get_num_reqlets(void) {return m_num_reqlets;};
         uint32_t get_num_get(void) {return m_num_get;};
-        bool empty(void) {return m_reqlet_list.empty();};
+        bool empty(void) {return m_reqlet_vector.empty();};
         void up_resolved(bool a_error) {if(a_error)++m_num_error; else ++m_num_resolved;};
 
         // -------------------------------------------------
@@ -239,8 +239,8 @@ private:
         int m_evr_loop_type;
 
         // Reqlets
-        reqlet_list_t m_reqlet_list;
-        reqlet_list_t::iterator m_reqlet_list_iter;
+        reqlet_vector_t m_reqlet_vector;
+        uint32_t m_reqlet_vector_idx;
         pthread_mutex_t m_mutex;
         uint32_t m_num_reqlets;
         uint32_t m_num_get;

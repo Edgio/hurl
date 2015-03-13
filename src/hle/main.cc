@@ -130,7 +130,6 @@ void sig_handler(int signo)
         if (signo == SIGINT)
         {
                 // Kill program
-                //NDBG_PRINT("SIGINT\n");
                 g_test_finished = true;
                 g_cancelled = true;
                 g_settings->m_hlx_client->stop();
@@ -966,8 +965,8 @@ int main(int argc, char** argv)
                         NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n", strerror(errno), l_read_size, l_size);
                         return STATUS_ERROR;
                 }
-                std::string l_buf_str = l_buf;
-
+                std::string l_buf_str;
+                l_buf_str.assign(l_buf, l_size);
                 Json::Value l_json_value(Json::objectValue);
                 Json::Reader l_json_reader;
                 bool l_result = l_json_reader.parse(l_buf_str, l_json_value);
@@ -983,7 +982,6 @@ int main(int argc, char** argv)
                 for( Json::ValueIterator itr = l_json_value.begin() ; itr != l_json_value.end() ; itr++ )
                 {
                         const Json::Value &l_value = (*itr);
-
                         if(l_value.isObject())
                         {
                                 ns_hlx::host_t l_host;

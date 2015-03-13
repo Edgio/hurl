@@ -292,6 +292,7 @@ t_client::t_client(const settings_struct_t &a_settings):
         COPY_SETTINGS(m_verbose);
         COPY_SETTINGS(m_color);
         COPY_SETTINGS(m_quiet);
+        COPY_SETTINGS(m_show_summary);
         COPY_SETTINGS(m_url);
         COPY_SETTINGS(m_header_map);
         COPY_SETTINGS(m_t_client_list);
@@ -579,6 +580,8 @@ void *t_client::evr_loop_timer_cb(void *a_data)
 void *t_client::t_run(void *a_nothing)
 {
 
+        m_stopped = false;
+
         // Set thread local
         g_t_client = this;
 
@@ -611,7 +614,7 @@ void *t_client::t_run(void *a_nothing)
                         l_status = start_connections();
                         if(l_status != STATUS_OK)
                         {
-                                NDBG_PRINT("%sSTART_CONNECTIONS%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                                //NDBG_PRINT("%sSTART_CONNECTIONS%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
                                 return NULL;
                         }
                 }
@@ -621,7 +624,7 @@ void *t_client::t_run(void *a_nothing)
 
         }
 
-        //NDBG_PRINT("%sFINISHING_CONNECTIONS%s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%sFINISHING_CONNECTIONS%s -done: %d -- m_stopped: %d\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_hlx_client->done(), m_stopped);
 
         // Still awaiting responses -wait...
         uint64_t l_cur_time = get_time_s();
@@ -653,7 +656,6 @@ void *t_client::t_run(void *a_nothing)
 nconn *t_client::create_new_nconn(uint32_t a_id, const reqlet &a_reqlet)
 {
         nconn *l_nconn = NULL;
-
 
         if(a_reqlet.m_url.m_scheme == nconn::SCHEME_TCP)
         {
@@ -1086,7 +1088,13 @@ void hlx_client::wait_till_stopped(void)
 //: ----------------------------------------------------------------------------
 bool hlx_client::is_running(void)
 {
-        // TODO !!!
+        for (t_client_list_t::iterator i_t_client = m_t_client_list.begin();
+                        i_t_client != m_t_client_list.end();
+                        ++i_t_client)
+        {
+                if((*i_t_client)->is_running())
+                        return true;
+        }
         return false;
 }
 
@@ -1135,7 +1143,7 @@ void hlx_client::set_url(const std::string &a_url)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::set_host_list(const host_list_t &a_host_list)
+int hlx_client::set_host_list(host_list_t &a_host_list)
 {
         // Create the reqlet list
         uint32_t l_reqlet_num = 0;
@@ -1149,6 +1157,10 @@ int hlx_client::set_host_list(const host_list_t &a_host_list)
 
                 // Get host and port if exist
                 parsed_url l_url;
+
+                //TODO REMOVE!!!
+                //NDBG_PRINT("HOST: %s\n", i_host->m_host.c_str());
+
                 l_url.parse(i_host->m_host);
 
                 if(strchr(i_host->m_host.c_str(), (int)':'))
@@ -1159,7 +1171,7 @@ int hlx_client::set_host_list(const host_list_t &a_host_list)
                 else
                 {
                         // TODO make set host take const
-                        l_reqlet->set_host((std::string &)i_host->m_host);
+                        l_reqlet->set_host(i_host->m_host);
                 }
 
                 if(!i_host->m_hostname.empty())
@@ -1188,7 +1200,7 @@ int hlx_client::set_host_list(const host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::set_host_list(const host_str_list_t &a_host_list)
+int hlx_client::set_host_list(host_str_list_t &a_host_list)
 {
         // Create the reqlet list
         uint32_t l_reqlet_num = 0;
@@ -1212,7 +1224,7 @@ int hlx_client::set_host_list(const host_str_list_t &a_host_list)
                 else
                 {
                         // TODO make set host take const
-                        l_reqlet->set_host((std::string &)*i_host);
+                        l_reqlet->set_host(*i_host);
                 }
 
                 // Add to list
@@ -1492,8 +1504,8 @@ hlx_client::hlx_client(void):
         m_t_client_list(),
         m_evr_loop_type(EVR_LOOP_EPOLL),
 
-        m_reqlet_list(),
-        m_reqlet_list_iter(),
+        m_reqlet_vector(),
+        m_reqlet_vector_idx(0),
         m_mutex(),
         m_num_reqlets(0),
         m_num_get(0),
@@ -1523,21 +1535,35 @@ hlx_client::hlx_client(void):
 //: ----------------------------------------------------------------------------
 hlx_client::~hlx_client(void)
 {
-        // TODO
+        // Delete reqlets
+
+        for(size_t i_reqlet = 0;
+            i_reqlet < m_reqlet_vector.size();
+            ++i_reqlet)
+        {
+                reqlet *i_reqlet_ptr = m_reqlet_vector[i_reqlet];
+                if(i_reqlet_ptr)
+                {
+                        delete i_reqlet_ptr;
+                        i_reqlet_ptr = NULL;
+                }
+        }
 
         // Delete t_client list...
-        // TODO PUT BACK!!!
-        //for(t_client_list_t::iterator i_client_hle = l_settings.m_t_client_list.begin();
-        //                i_client_hle != l_settings.m_t_client_list.end(); )
-        //{
-        //        t_client *l_t_client_ptr = *i_client_hle;
-        //        delete l_t_client_ptr;
-        //        l_settings.m_t_client_list.erase(i_client_hle++);
-        //}
+        for(t_client_list_t::iterator i_client_hle = m_t_client_list.begin();
+                        i_client_hle != m_t_client_list.end(); )
+        {
+                t_client *l_t_client_ptr = *i_client_hle;
+                if(l_t_client_ptr)
+                {
+                        delete l_t_client_ptr;
+                        m_t_client_list.erase(i_client_hle++);
+                        l_t_client_ptr = NULL;
+                }
+        }
 
         // SSL Cleanup
-        // TODO PUT BACK!!!
-        //ssl_kill_locks();
+        ssl_kill_locks();
 
         // TODO Deprecated???
         //EVP_cleanup();
@@ -1560,7 +1586,7 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
         std::string l_header_color = "";
         std::string l_body_color = "";
         std::string l_off_color = "";
-        char l_buf[2048];
+        char l_buf[1024*1024];
         if(a_color)
         {
                 l_host_color = ANSI_COLOR_FG_BLUE;
@@ -1578,9 +1604,9 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
         }
 
         int l_cur_reqlet = 0;
-        int l_reqlet_num = m_reqlet_list.size();
-        for(reqlet_list_t::iterator i_reqlet = m_reqlet_list.begin();
-            i_reqlet != m_reqlet_list.end();
+        int l_reqlet_num = m_reqlet_vector.size();
+        for(reqlet_vector_t::iterator i_reqlet = m_reqlet_vector.begin();
+            i_reqlet != m_reqlet_vector.end();
             ++i_reqlet, ++l_cur_reqlet)
         {
 
@@ -1704,6 +1730,8 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                 {
                         if(l_fbf) {ARESP(", "); l_fbf = false;}
                         if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("\n    ");
+
+                        //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_reqlet)->m_response_body.length());
                         if(!(*i_reqlet)->m_response_body.empty())
                         {
                                 sprintf(l_buf, "\"%sbody%s\": %s",
@@ -1765,7 +1793,6 @@ void hlx_client::up_done(bool a_error)
 //: ----------------------------------------------------------------------------
 int32_t hlx_client::append_summary(reqlet *a_reqlet)
 {
-
         // Examples:
         //
         // Address resolution
@@ -1897,15 +1924,20 @@ reqlet *hlx_client::get_reqlet(void)
 {
         reqlet *l_reqlet = NULL;
 
+        //NDBG_PRINT("%sREQLST%s[%lu]: .\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_reqlet_list.size());
+
         pthread_mutex_lock(&m_mutex);
-        if(!m_reqlet_list.empty() &&
+        if(!m_reqlet_vector.empty() &&
            (m_num_get < m_num_reqlets))
         {
-                l_reqlet = *m_reqlet_list_iter;
+                l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
                 ++m_num_get;
-                ++m_reqlet_list_iter;
+                ++m_reqlet_vector_idx;
         }
         pthread_mutex_unlock(&m_mutex);
+
+        //NDBG_PRINT("%sREQLET%s[%p]: Gettin to repo.\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_reqlet);
+        //NDBG_PRINT("%sREQLET%s[%p]: Gettin to repo.\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, *m_reqlet_list_iter);
 
         return l_reqlet;
 }
@@ -1949,20 +1981,26 @@ reqlet *hlx_client::try_get_resolved(void)
 //: ----------------------------------------------------------------------------
 int32_t hlx_client::add_reqlet(reqlet *a_reqlet)
 {
+
+        //NDBG_PRINT("%sREQLST%s[%lu]: .\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_reqlet_list.size());
+
         bool l_was_empty = false;
-        if(m_reqlet_list.empty())
+        if(m_reqlet_vector.empty())
         {
                 l_was_empty = true;
         }
 
-        //NDBG_PRINT("Adding to repo.\n");
-        m_reqlet_list.push_back(a_reqlet);
+        //NDBG_PRINT("%sREQLET%s[%p]: Adding to repo.\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, a_reqlet);
+        m_reqlet_vector.push_back(a_reqlet);
         ++m_num_reqlets;
 
         if(l_was_empty)
         {
-                m_reqlet_list_iter = m_reqlet_list.begin();
+                m_reqlet_vector_idx = 0;
+                //NDBG_PRINT("%sREQLET%s[%p]: Adding to repo.\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, *m_reqlet_list_iter);
         }
+
+        //NDBG_PRINT("%sREQLET%s[%p]: Adding to repo.\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, *m_reqlet_list_iter);
 
         return STATUS_OK;
 }
