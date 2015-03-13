@@ -23,6 +23,8 @@
 project(hlo)
 cmake_minimum_required(VERSION 2.8.0)
 
+SET(CMAKE_INSTALL_PREFIX "/usr")
+
 # Definitions
 add_definitions(-std=c++0x)
 add_definitions(-Wall)
