@@ -96,9 +96,10 @@ typedef enum {
 
 typedef enum {
         PART_HOST = 1,
-        PART_STATUS_CODE = 1 << 1,
-        PART_HEADERS = 1 << 2,
-        PART_BODY = 1 << 3
+        PART_SERVER = 1 << 1,
+        PART_STATUS_CODE = 1 << 2,
+        PART_HEADERS = 1 << 3,
+        PART_BODY = 1 << 4
 } output_part_t;
 
 //: ----------------------------------------------------------------------------

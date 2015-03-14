@@ -467,6 +467,7 @@ int main(int argc, char** argv)
         // Defaults
         ns_hlx::output_type_t l_output_mode = ns_hlx::OUTPUT_JSON;
         int l_output_part =   ns_hlx::PART_HOST
+                            | ns_hlx::PART_SERVER
                             | ns_hlx::PART_STATUS_CODE
                             | ns_hlx::PART_HEADERS
                             | ns_hlx::PART_BODY

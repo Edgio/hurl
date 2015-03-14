@@ -1628,7 +1628,11 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                                         (*i_reqlet)->m_url.m_host.c_str());
                         ARESP(l_buf);
                         l_fbf = true;
+                }
 
+                // Server
+                if(a_part_map & PART_SERVER)
+                {
 
                         if(l_fbf) {ARESP(", "); l_fbf = false;}
                         if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("    ");
