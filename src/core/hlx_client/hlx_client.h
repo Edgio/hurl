@@ -83,7 +83,7 @@ typedef struct host_struct {
 } host_t;
 
 typedef std::list <host_t> host_list_t;
-typedef std::list <std::string> host_str_list_t;
+typedef std::list <std::string> server_list_t;
 typedef std::map <std::string, uint32_t> summary_map_t;
 
 // -----------------------------------------------
@@ -135,7 +135,7 @@ public:
 
         // Host list
         int set_host_list(host_list_t &a_host_list);
-        int set_host_list(host_str_list_t &a_host_list);
+        int set_server_list(server_list_t &a_server_list);
 
         // Run options
         void set_connect_only(bool a_val);

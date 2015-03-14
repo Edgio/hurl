@@ -1200,13 +1200,13 @@ int hlx_client::set_host_list(host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::set_host_list(host_str_list_t &a_host_list)
+int hlx_client::set_server_list(server_list_t &a_server_list)
 {
         // Create the reqlet list
         uint32_t l_reqlet_num = 0;
-        for(host_str_list_t::const_iterator i_host = a_host_list.begin();
-                        i_host != a_host_list.end();
-                        ++i_host, ++l_reqlet_num)
+        for(server_list_t::const_iterator i_server = a_server_list.begin();
+            i_server != a_server_list.end();
+            ++i_server, ++l_reqlet_num)
         {
                 // Create a re
                 reqlet *l_reqlet = new reqlet(l_reqlet_num, 1);
@@ -1214,9 +1214,9 @@ int hlx_client::set_host_list(host_str_list_t &a_host_list)
 
                 // Get host and port if exist
                 parsed_url l_url;
-                l_url.parse(*i_host);
+                l_url.parse(*i_server);
 
-                if(strchr(i_host->c_str(), (int)':'))
+                if(strchr(i_server->c_str(), (int)':'))
                 {
                         l_reqlet->set_host(l_url.m_host);
                         l_reqlet->set_port(l_url.m_port);
@@ -1224,7 +1224,7 @@ int hlx_client::set_host_list(host_str_list_t &a_host_list)
                 else
                 {
                         // TODO make set host take const
-                        l_reqlet->set_host(*i_host);
+                        l_reqlet->set_host(*i_server);
                 }
 
                 // Add to list
