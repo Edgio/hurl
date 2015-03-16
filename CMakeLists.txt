@@ -54,10 +54,10 @@ SET(CPACK_DEBIAN_PACKAGE_NAME "hlo")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
-SET(CPACK_DEBIAN_PACKAGE_DEPENDS "google-perftools, libssl1.0.0, libsnappy1, libleveldb1 (>=1.15.0-2), libmicrohttpd5 | libmicrohttpd10")
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "google-perftools, libssl1.0.0, libsnappy1, libleveldb1 (>=1.15.0-2), libmicrohttpd5 | libmicrohttpd10, libjsoncpp0")
 
 # cpack doesn't actually use the following, but the build.sh command does
-SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libgoogle-perftools-dev, libssl-dev, libsnappy-dev, libleveldb-dev (>=1.15.0-2), libmicrohttpd-dev")
+SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libgoogle-perftools-dev, libssl-dev, libsnappy-dev, libleveldb-dev (>=1.15.0-2), libmicrohttpd-dev, libjsoncpp-dev")
 
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 INCLUDE(CPack)
