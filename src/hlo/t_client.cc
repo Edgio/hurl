@@ -299,10 +299,11 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
                 bool l_can_reuse = false;
                 l_can_reuse = (l_nconn->can_reuse() && l_t_client->reqlet_give_and_can_reuse_conn(l_reqlet));
 
-                //NDBG_PRINT("CONN[%d] %sREUSE%s: %d\n",
-                //              l_nconn->m_fd,
+                //NDBG_PRINT("CONN %sREUSE%s: %d -- l_nconn->can_reuse(): %d  --l_t_client->reqlet_give_and_can_reuse_conn(l_reqlet): %d\n",
                 //              ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                //              l_can_reuse
+                //              l_can_reuse,
+                //              l_nconn->can_reuse(),
+                //              l_t_client->reqlet_give_and_can_reuse_conn(l_reqlet)
                 //              );
 
                 if(l_can_reuse)
@@ -502,12 +503,12 @@ nconn *t_client::create_new_nconn(uint32_t a_id, const reqlet &a_reqlet)
         if(a_reqlet.m_url.m_scheme == nconn::SCHEME_TCP)
         {
                 // TODO SET OPTIONS!!!
-                l_nconn = new nconn_tcp(m_verbose, m_color, 1, true, false);
+                l_nconn = new nconn_tcp(m_verbose, m_color, m_max_reqs_per_conn, false, true);
         }
         else if(a_reqlet.m_url.m_scheme == nconn::SCHEME_SSL)
         {
                 // TODO SET OPTIONS!!!
-                l_nconn = new nconn_ssl(m_verbose, m_color, 1, true, false);
+                l_nconn = new nconn_ssl(m_verbose, m_color, m_max_reqs_per_conn, false, true);
         }
 
         return l_nconn;

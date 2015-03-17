@@ -94,14 +94,18 @@ public:
 
         {
                 // Set up callbacks...
-                m_http_parser_settings.on_message_begin = hp_on_message_begin;
-                m_http_parser_settings.on_url = hp_on_url;
                 m_http_parser_settings.on_status = hp_on_status;
-                m_http_parser_settings.on_header_field = hp_on_header_field;
-                m_http_parser_settings.on_header_value = hp_on_header_value;
-                m_http_parser_settings.on_headers_complete = hp_on_headers_complete;
-                m_http_parser_settings.on_body = hp_on_body;
                 m_http_parser_settings.on_message_complete = hp_on_message_complete;
+
+                if(a_save_response_in_reqlet)
+                {
+                        m_http_parser_settings.on_message_begin = hp_on_message_begin;
+                        m_http_parser_settings.on_url = hp_on_url;
+                        m_http_parser_settings.on_header_field = hp_on_header_field;
+                        m_http_parser_settings.on_header_value = hp_on_header_value;
+                        m_http_parser_settings.on_headers_complete = hp_on_headers_complete;
+                        m_http_parser_settings.on_body = hp_on_body;
+                }
         };
 
         // Destructor

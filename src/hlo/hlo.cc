@@ -91,7 +91,7 @@ void hlo::set_end_fetches(int32_t a_val)
 void hlo::set_max_reqs_per_conn(int64_t a_val)
 {
 	m_max_reqs_per_conn = a_val;
-	if(m_max_reqs_per_conn > 1 || a_val < 0)
+	if((m_max_reqs_per_conn > 1) || (m_max_reqs_per_conn < 0))
 	{
 		set_header("Connection", "keep-alive");
 	}

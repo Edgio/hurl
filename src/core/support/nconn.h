@@ -117,7 +117,7 @@ public:
                 m_host(),
                 m_stat(),
                 m_save_response_in_reqlet(a_save_response_in_reqlet),
-                m_collect_stats_flag(false),
+                m_collect_stats_flag(a_collect_stats),
                 m_data1(NULL),
                 m_connect_start_time_us(0),
                 m_request_start_time_us(0),
