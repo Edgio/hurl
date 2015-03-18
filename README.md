@@ -197,6 +197,7 @@ Library requirements:
 * libgoogle-perftools
 * libmicrohttpd
 * libleveldb
+* libjsoncpp
 
 ###Building the tools
 ```bash
