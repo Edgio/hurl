@@ -95,7 +95,7 @@ public:
                           m_ssl_opt_cipher_str(""),
                           m_ssl_state(SSL_STATE_FREE)
           {
-
+                m_scheme = SCHEME_SSL;
           };
 
         // Destructor
@@ -116,7 +116,7 @@ public:
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static const scheme_t m_scheme = SCHEME_SSL;
+
 
         // -------------------------------------------------
         // Public members

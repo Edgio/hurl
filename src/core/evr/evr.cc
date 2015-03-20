@@ -197,7 +197,7 @@ int32_t evr_loop::run(void)
         // -------------------------------------------
         int l_num_events = 0;
 
-        //NDBG_PRINT("%sWAIT4_CONNECTIONS%s: l_num_events = %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_num_events);
+        //NDBG_PRINT("%sWAIT4_CONNECTIONS%s: l_time_diff_ms = %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_time_diff_ms);
         l_num_events = m_evr->wait(m_epoll_event_vector, m_max_connections, l_time_diff_ms);
         //NDBG_PRINT("%sSTART_CONNECTIONS%s: l_num_events = %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_num_events);
 
@@ -219,7 +219,7 @@ int32_t evr_loop::run(void)
                 void* l_data = m_epoll_event_vector[i_event].data.ptr;
                 uint32_t l_events = m_epoll_event_vector[i_event].events;
 
-                //NDBG_PRINT("%sEVENTS%s: l_events = 0x%08X --fd=%d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, l_events);
+                //NDBG_PRINT("%sEVENTS%s: l_events = 0x%08X\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, l_events);
 
                 // Service callbacks per type
                 if(l_events & EPOLLIN)

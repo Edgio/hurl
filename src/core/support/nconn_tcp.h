@@ -93,6 +93,8 @@ public:
                           s_req_buf_len()
 
         {
+                m_scheme = SCHEME_TCP;
+
                 // Set up callbacks...
                 m_http_parser_settings.on_status = hp_on_status;
                 m_http_parser_settings.on_message_complete = hp_on_message_complete;
@@ -126,7 +128,6 @@ public:
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static const scheme_t m_scheme = SCHEME_TCP;
         static const uint32_t m_max_req_buf = 2048;
         static const uint32_t m_max_read_buf = 16*1024;
 

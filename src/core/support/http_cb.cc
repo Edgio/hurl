@@ -294,9 +294,6 @@ int hp_on_message_complete(http_parser* a_parser)
 
                 // we outtie
                 l_conn->set_state_done();
-
         }
-
-
         return 0;
 }

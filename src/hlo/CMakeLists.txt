@@ -29,12 +29,9 @@ LIST(APPEND INST_HDRS ${HDRS})
 # include paths
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 #${CMAKE_CURRENT_BINARY_DIR}
-    ../core/support/
-    ../core/evr/
+    ../core/support
     ../core/ndebug
-    ../core/http_parser
-    ../core/tinymt
-    ../core/cityhash
+    ../core/hlx_client    
 )
 
 #add_definitions(-std=c++0x)
@@ -42,18 +39,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 # Source files
 SET(SRCS
   main.cc
-  t_microhttpd.cc
-  stats_collector.cc
-  t_client.cc
-  hlo.cc
 )
 
 # Headers
 SET(HDRS
-  t_microhttpd.h
-  stats_collector.h
-  t_client.h
-  hlo.h
 )
 
 # ============================================================
@@ -87,19 +76,16 @@ SET(HDRS
 add_executable(hlo_cmd ${HDRS} ${SRCS})
 SET_TARGET_PROPERTIES(hlo_cmd PROPERTIES OUTPUT_NAME "hlo")
 target_link_libraries(hlo_cmd
-pthread
-microhttpd
-rt
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
+pthread
 rt
 crypto
 ssl
-snappy
-leveldb
 tcmalloc
 profiler
 #asan
 #efence
+microhttpd
 )
 
 install(TARGETS hlo_cmd

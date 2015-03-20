@@ -198,3 +198,12 @@ void ns_hlo::mem_display(const uint8_t* a_mem_buf, uint32_t a_length)
 
 }
 
+#if 0
+getrusage (RUSAGE_SELF, &test_rusage_start);
+test_time_start = timer_now ();
+core_loop ();
+test_time_stop = timer_now ();
+getrusage (RUSAGE_SELF, &test_rusage_stop);
+#endif
+
+

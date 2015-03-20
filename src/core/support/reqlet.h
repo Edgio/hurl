@@ -145,6 +145,7 @@ public:
                 m_path_vector_last_idx(0),
                 m_tag("UNDEFINED")
         {};
+        reqlet(const reqlet &a_reqlet);
         ~reqlet() {};
         int32_t init_with_url(const std::string &a_url, bool a_wildcarding=false);
         uint64_t get_id(void) {return m_id;}
@@ -165,6 +166,7 @@ public:
         void set_host(const std::string &a_host) { m_url.m_host = a_host;}
         void set_port(uint16_t &a_port) { m_url.m_port = a_port;}
         void set_response(uint16_t a_response_status, const char *a_response);
+        void set_id(uint64_t a_id) {m_id = a_id;};
 
         // -------------------------------------------
         // Public members
@@ -187,7 +189,7 @@ private:
         // -------------------------------------------
         // Private methods
         // -------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(reqlet)
+        //DISALLOW_COPY_AND_ASSIGN(reqlet)
 
 
         // -------------------------------------------

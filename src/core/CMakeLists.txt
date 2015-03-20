@@ -52,8 +52,10 @@ SET(SRCS
     ./support/nconn.cc
     ./support/nconn_tcp.cc
     ./support/nconn_ssl.cc
+    ./support/base64.cc
     ./support/resolver.cc
     ./hlx_client/hlx_client.cc
+    ./hlx_client/t_client.cc
 )
 
 # Headers

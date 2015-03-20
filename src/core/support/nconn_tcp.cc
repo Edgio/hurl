@@ -134,6 +134,7 @@ int32_t nconn_tcp::setup_socket(const host_info_t &a_host_info)
 //: ----------------------------------------------------------------------------
 int32_t nconn_tcp::send_request(bool is_reuse)
 {
+        m_tcp_state = TCP_STATE_CONNECTED;
 
         //NDBG_OUTPUT("%s: REQUEST-->\n%s%.*s%s\n", m_host.c_str(), ANSI_COLOR_BG_MAGENTA, (int)m_req_buf_len, m_req_buf, ANSI_COLOR_OFF);
 

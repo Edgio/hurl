@@ -44,6 +44,35 @@
 #include "city.h"
 
 //: ----------------------------------------------------------------------------
+//: \details: Copy constructor
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+reqlet::reqlet(const reqlet &a_reqlet):
+        m_url(a_reqlet.m_url),
+        m_host_info(a_reqlet.m_host_info),
+        m_stat_agg(a_reqlet.m_stat_agg),
+        m_response_headers(a_reqlet.m_response_headers),
+        m_next_response_value(a_reqlet.m_next_response_value),
+        m_response_body(a_reqlet.m_response_body),
+        m_response_status(a_reqlet.m_response_status),
+        m_conn_info(a_reqlet.m_conn_info),
+        m_id(a_reqlet.m_id),
+        m_is_resolved_flag(a_reqlet.m_is_resolved_flag),
+        m_num_to_req(a_reqlet.m_num_to_req),
+        m_num_reqd(a_reqlet.m_num_reqd),
+        m_repeat_path_flag(a_reqlet.m_repeat_path_flag),
+        m_path_vector(a_reqlet.m_path_vector),
+        m_path_order(a_reqlet.m_path_order),
+        m_extra_headers(a_reqlet.m_extra_headers),
+        m_path_vector_last_idx(a_reqlet.m_path_vector_last_idx),
+        m_tag(a_reqlet.m_tag)
+{
+
+}
+
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -568,14 +597,14 @@ void reqlet::set_response(uint16_t a_response_status, const char *a_response)
 
         if(m_response_status == 502)
         {
-                ++(m_stat_agg.m_num_idle_killed);
+                ++m_stat_agg.m_num_idle_killed;
         }
         if(m_response_status >= 500)
         {
-                ++(m_stat_agg.m_num_errors);
+                ++m_stat_agg.m_num_errors;
         }
 
-        ++(m_stat_agg.m_num_conn_completed);
+        ++m_stat_agg.m_num_conn_completed;
 }
 
 //: ----------------------------------------------------------------------------
@@ -585,7 +614,6 @@ void reqlet::set_response(uint16_t a_response_status, const char *a_response)
 //: ----------------------------------------------------------------------------
 void add_stat_to_agg(total_stat_agg_t &ao_stat_agg, const req_stat_t &a_req_stat)
 {
-
         update_stat(ao_stat_agg.m_stat_us_connect, a_req_stat.m_tt_connect_us);
         update_stat(ao_stat_agg.m_stat_us_ssl_connect, a_req_stat.m_tt_ssl_connect_us);
         update_stat(ao_stat_agg.m_stat_us_first_response, a_req_stat.m_tt_first_read_us);

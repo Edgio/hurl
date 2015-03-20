@@ -58,6 +58,10 @@ typedef ssl_ctx_st SSL_CTX;
 class reqlet;
 typedef std::vector <reqlet *> reqlet_vector_t;
 
+struct total_stat_agg_struct;
+typedef total_stat_agg_struct total_stat_agg_t;
+typedef std::map <std::string, total_stat_agg_t> tag_stat_map_t;
+
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Types
@@ -102,6 +106,14 @@ typedef enum {
         PART_BODY = 1 << 4
 } output_part_t;
 
+typedef enum {
+
+        REQUEST_MODE_SEQUENTIAL = 0,
+        REQUEST_MODE_RANDOM,
+        REQUEST_MODE_ROUND_ROBIN
+
+} request_mode_t;
+
 //: ----------------------------------------------------------------------------
 //: hlx_client
 //: ----------------------------------------------------------------------------
@@ -132,10 +144,18 @@ public:
 
         // url
         void set_url(const std::string &a_url);
+        void set_wildcarding(bool a_val);
 
         // Host list
         int set_host_list(host_list_t &a_host_list);
         int set_server_list(server_list_t &a_server_list);
+
+        // Specifying urls instead of hosts
+        int32_t add_url(std::string &a_url);
+        int32_t add_url_file(std::string &a_url_file);
+
+        // Split requests
+        void set_split_requests_by_thread(bool a_val);
 
         // Run options
         void set_connect_only(bool a_val);
@@ -145,6 +165,14 @@ public:
         void set_num_threads(uint32_t a_num_threads);
         void set_num_parallel(uint32_t a_num_parallel);
         void set_show_summary(bool a_val);
+
+        void set_run_time_s(int32_t a_val);
+        void set_end_fetches(int32_t a_val);
+        void set_num_reqs_per_conn(int32_t a_val);
+        void set_rate(int32_t a_val);
+        void set_request_mode(request_mode_t a_mode);
+        void set_save_response(bool a_val);
+        void set_collect_stats(bool a_val);
 
         // Socket options
         void set_sock_opt_no_delay(bool a_val);
@@ -175,11 +203,22 @@ public:
                                        output_type_t a_output_type,
                                        int a_part_map);
 
-        // Support
-        int32_t append_summary(reqlet *a_reqlet);
-        void up_done(bool a_error);
-        bool done(void);
-        reqlet *try_get_resolved(void);
+        // ---------------------------------------
+        // Legacy Display/status
+        // ---------------------------------------
+        //int32_t add_stat(const std::string &a_tag, const req_stat_t &a_req_stat);
+        void display_results(double a_elapsed_time,
+                             bool a_show_breakdown_flag = false);
+        void display_results_http_load_style(double a_elapsed_time,
+                                             bool a_show_breakdown_flag = false,
+                                             bool a_one_line_flag = false);
+        void display_results_line_desc(void);
+        void display_results_line(void);
+
+        void get_stats(total_stat_agg_t &ao_all_stats, bool a_get_breakdown, tag_stat_map_t &ao_breakdown_stats);
+        int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
+        void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
+
 
 private:
 
@@ -193,14 +232,6 @@ private:
         // -------------------------------------------------
         HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(hlx_client)
 
-        // reqlets
-        reqlet *get_reqlet(void);
-        int32_t add_reqlet(reqlet *a_reqlet);
-        uint32_t get_num_reqlets(void) {return m_num_reqlets;};
-        uint32_t get_num_get(void) {return m_num_get;};
-        bool empty(void) {return m_reqlet_vector.empty();};
-        void up_resolved(bool a_error) {if(a_error)++m_num_error; else ++m_num_resolved;};
-
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
@@ -211,6 +242,9 @@ private:
 
         // Run Settings
         std::string m_url;
+        std::string m_url_file;
+        bool m_wildcarding;
+
         header_map_t m_header_map;
         bool m_use_ai_cache;
         std::string m_ai_cache;
@@ -219,6 +253,20 @@ private:
         uint32_t m_timeout_s;
         bool m_connect_only;
         bool m_show_summary;
+        bool m_save_response;
+        bool m_collect_stats;
+
+        int32_t m_rate;
+        int32_t m_num_end_fetches;
+        int64_t m_num_reqs_per_conn;
+        int32_t m_run_time_s;
+        request_mode_t m_request_mode;
+        bool m_split_requests_by_thread;
+
+        // Stats
+        uint64_t m_start_time_ms;
+        uint64_t m_last_display_time_ms;
+        total_stat_agg_t *m_last_stat;
 
         // Socket options
         uint32_t m_sock_opt_recv_buf_size;
@@ -241,36 +289,11 @@ private:
 
         // Reqlets
         reqlet_vector_t m_reqlet_vector;
-        uint32_t m_reqlet_vector_idx;
-        pthread_mutex_t m_mutex;
-        uint32_t m_num_reqlets;
-        uint32_t m_num_get;
-        uint32_t m_num_done;
-        uint32_t m_num_resolved;
-        uint32_t m_num_error;
-
-        // -----------------------------
-        // Summary info
-        // -----------------------------
-        // Connectivity
-        uint32_t m_summary_success;
-        uint32_t m_summary_error_addr;
-        uint32_t m_summary_error_conn;
-        uint32_t m_summary_error_unknown;
-
-        // SSL info
-        uint32_t m_summary_ssl_error_self_signed;
-        uint32_t m_summary_ssl_error_expired;
-        uint32_t m_summary_ssl_error_other;
-
-        summary_map_t m_summary_ssl_protocols;
-        summary_map_t m_summary_ssl_ciphers;
 
         // -----------------------------
         // State
         // -----------------------------
         bool m_is_initd;
-
 
         // -------------------------------------------------
         // Class members

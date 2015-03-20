@@ -54,22 +54,22 @@ hlo "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 Usage: hlo [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help         Display this help and exit.
-  -v, --version      Display the version number and exit.
+  -r, --version      Display the version number and exit.
   
 Input Options:
   -u, --url_file     URL file.
-  -w, --no_wildcards Dont wildcard the url.
+  -w, --no_wildcards Don't wildcard the url.
   
 Settings:
   -y, --cipher       Cipher --see "openssl ciphers" for list.
-  -p, --parallel     Num parallel.
+  -p, --parallel     Num parallel Default: 64.
   -f, --fetches      Num fetches.
   -N, --num_calls    Number of requests per connection
   -k, --keep_alive   Re-use connections for all requests
   -t, --threads      Number of parallel threads.
   -H, --header       Request headers -can add multiple ie -H<> -H<>...
   -l, --seconds      Run for <N> seconds .
-  -r, --rate         Max Request Rate.
+  -A, --rate         Max Request Rate.
   -M, --mode         Requests mode [roundrobin|sequential|random].
   -R, --recv_buffer  Socket receive buffer size.
   -S, --send_buffer  Socket send buffer size.
@@ -77,7 +77,7 @@ Settings:
   -T, --timeout      Timeout (seconds).
   
 Print Options:
-  -x, --verbose      Verbose logging
+  -v, --verbose      Verbose logging
   -c, --color        Color
   -q, --quiet        Suppress progress output
   
@@ -103,10 +103,10 @@ printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | hle -p2 -t3 -u"https:
 
 ####Options
 ```bash
-Usage: hle [http[s]://]hostname[:port]/path [options]
+Usage: hle -u [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help           Display this help and exit.
-  -v, --version        Display the version number and exit.
+  -r, --version        Display the version number and exit.
   
 URL Options -or without parameter
   -u, --url            URL -REQUIRED.
@@ -116,7 +116,6 @@ Hostname Input Options -also STDIN:
   -x, --execute        Script to execute to get host names.
   
 Settings:
-  -y, --cipher         Cipher --see "openssl ciphers" for list.
   -p, --parallel       Num parallel.
   -t, --threads        Number of parallel threads.
   -H, --header         Request headers -can add multiple ie -H<> -H<>...
@@ -125,14 +124,25 @@ Settings:
   -S, --send_buffer    Socket send buffer size.
   -D, --no_delay       Socket TCP no-delay.
   -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).
+  -C, --connect_only   Only connect -do not send request.
+  
+SSL Settings:
+  -y, --cipher         Cipher --see "openssl ciphers" for list.
+  -O, --ssl_options    SSL Options string.
+  -V, --ssl_verify     Verify server certificate.
+  -N, --ssl_sni        Use SSL SNI.
+  -F, --ssl_ca_file    SSL CA File.
+  -L, --ssl_ca_path    SSL CA Path.
   
 Print Options:
-  -r, --verbose        Verbose logging
+  -v, --verbose        Verbose logging
   -c, --color          Color
   -q, --quiet          Suppress output
   -s, --show_progress  Show progress
+  -m, --show_summary   Show summary output
   
 Output Options: -defaults to line delimited
+  -o, --output         File to write output to. Defaults to stdout
   -l, --line_delimited Output <HOST> <RESPONSE BODY> per line
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
@@ -142,7 +152,9 @@ Debug Options:
   
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+
 ```
+
 
 ## *hlp* HTTP Playback
 *hlp* plays back requests from a playback file -see [here](https://github.com/EdgeCast/hlo/blob/master/tests/hlp/data/sample.txt) for example of playback format.
@@ -158,14 +170,14 @@ Usage: hlp [options]
 Options are:
   -h, --help         Display this help and exit.
   -v, --version      Display the version number and exit.
-  
+
 Playback Options:
   -a, --playback     Playback file.
   -I, --pb_dest_addr Hard coded destination address for playback.
   -o, --pb_dest_port Hard coded destination port for playback.
   -s, --scale        Time scaling (float).
   -t, --threads      Number of threads.
-  
+
 Settings:
   -y, --cipher       Cipher --see "openssl ciphers" for list.
   -H, --header       Request headers -can add multiple ie -H<> -H<>...
@@ -173,31 +185,31 @@ Settings:
   -S, --send_buffer  Socket send buffer size.
   -D, --no_delay     Socket TCP no-delay.
   -T, --timeout      Timeout (seconds).
-  
+
 Print Options:
   -x, --verbose      Verbose logging
   -c, --color        Color
   -q, --quiet        Suppress progress output
   -e, --extra_info   Extra Info output
-  
+
 Stat Options:
   -B, --breakdown    Show breakdown
-  
+
 Example:
   hlp -a sample.txt -I 127.0.0.1 -c
-  
+
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
+
 
 ## Building
 
 ###Install dependecies:
 Library requirements:
+* libssl/libcrypto (OpenSSL)
 * libgoogle-perftools
 * libmicrohttpd
-* libleveldb
-* libjsoncpp
 
 ###Building the tools
 ```bash

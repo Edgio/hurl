@@ -26,13 +26,10 @@
 //: ----------------------------------------------------------------------------
 //#include "ndebug.h"
 #include "resolver.h"
+#include "base64.h"
 
-#pragma GCC diagnostic push
-// ignore pedantic warnings
-#pragma GCC diagnostic ignored "-Weffc++"
-#include "../../leveldb/db.h"
-// back to default behaviour
-#pragma GCC diagnostic pop
+// json support
+#include "rapidjson/document.h"
 
 // For getaddrinfo
 #include <sys/types.h>
@@ -42,6 +39,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
 
 //: ----------------------------------------------------------------------------
 //: Macros
@@ -80,7 +80,6 @@ int32_t resolver::cached_resolve(std::string &a_host,
         // ---------------------------------------
         std::string l_ai_result;
         std::string l_cache_key;
-        leveldb::Status l_ldb_status;
         if(m_use_cache)
         {
                 // Create a cache key
@@ -88,24 +87,17 @@ int32_t resolver::cached_resolve(std::string &a_host,
                 snprintf(l_port_str, 8, "%d", a_port);
                 l_cache_key = a_host + ":" + l_port_str;
 
-                //NDBG_PRINT("CACHE_KEY: %s\n", l_cache_key.c_str());
-
-                l_ldb_status = m_ai_db->Get(leveldb::ReadOptions(), l_cache_key, &l_ai_result);
-                // If we found it...
-                if(l_ldb_status.ok())
+                // Lookup in map
+                pthread_mutex_lock(&m_cache_mutex);
+                if(m_ai_cache_map.find(l_cache_key) != m_ai_cache_map.end())
                 {
-                        // Copy the data into host info
-                        //NDBG_PRINT("FOUND CACHE_KEY: %s\n", l_cache_key.c_str());
+                        l_ai_result = m_ai_cache_map[l_cache_key];
                         memcpy(&a_host_info, l_ai_result.data(),l_ai_result.length());
+                        pthread_mutex_unlock(&m_cache_mutex);
                         return STATUS_OK;
                 }
+                pthread_mutex_unlock(&m_cache_mutex);
 
-                // Check for errors
-                if (!l_ldb_status.IsNotFound())
-                {
-                        RESOLVER_ERROR("Error: performing get on address info db\n");
-                        return STATUS_ERROR;
-                }
         }
 
         // Else proceed with slow resolution
@@ -113,8 +105,6 @@ int32_t resolver::cached_resolve(std::string &a_host,
         // Initialize...
         a_host_info.m_sa_len = sizeof(a_host_info.m_sa);
         memset((void*) &a_host_info.m_sa, 0, a_host_info.m_sa_len);
-
-        //NDBG_PRINT("RESOLVE:\n");
 
         // ---------------------------------------
         // get address...
@@ -218,17 +208,69 @@ int32_t resolver::cached_resolve(std::string &a_host,
                 // Add the host info to the database
                 l_ai_result.clear();
                 l_ai_result.append((char *)&a_host_info, sizeof(a_host_info));
-                l_ldb_status = m_ai_db->Put(leveldb::WriteOptions(), l_cache_key, l_ai_result);
-                // If we found it...
-                if(l_ldb_status.ok())
-                {
-                        // Copy the data into host info
-                        memcpy(&a_host_info, l_ai_result.data(),l_ai_result.length());
-                        return STATUS_OK;
-                }
+
+                // Add to map
+                pthread_mutex_lock(&m_cache_mutex);
+                m_ai_cache_map[l_cache_key] = l_ai_result;
+                pthread_mutex_unlock(&m_cache_mutex);
+
         }
 
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t resolver::sync_ai_cache(void)
+{
+
+        int32_t l_status = 0;
+        // Open
+        FILE *l_file_ptr = fopen(m_ai_cache_file.c_str(), "w+");
+        if(l_file_ptr == NULL)
+        {
+                NDBG_PRINT("Error performing fopen. Reason: %s\n", strerror(errno));
+                return STATUS_ERROR;
+        }
+
+        // Write
+
+        fprintf(l_file_ptr, "[");
+
+        uint32_t l_len = m_ai_cache_map.size();
+        uint32_t i_len = 0;
+        for(ai_cache_map_t::const_iterator i_entry = m_ai_cache_map.begin();
+            i_entry != m_ai_cache_map.end();
+            ++i_entry)
+        {
+                std::string l_ai_val64 = base64_encode((const unsigned char *)i_entry->second.c_str(), i_entry->second.length());
+
+                fprintf(l_file_ptr, "{");
+                fprintf(l_file_ptr, "\"host\": \"%s\",", i_entry->first.c_str());
+                fprintf(l_file_ptr, "\"ai\": \"%s\"", l_ai_val64.c_str());
+
+                ++i_len;
+                if(i_len == l_len)
+                fprintf(l_file_ptr, "}");
+                else
+                fprintf(l_file_ptr, "},");
+        }
+
+        fprintf(l_file_ptr, "]");
+
+        // Close
+        l_status = fclose(l_file_ptr);
+        if(l_status != 0)
+        {
+                NDBG_PRINT("Error performing fclose. Reason: %s\n", strerror(errno));
+                return STATUS_ERROR;
+        }
+
+        return STATUS_OK;
+
 }
 
 
@@ -237,38 +279,143 @@ int32_t resolver::cached_resolve(std::string &a_host,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t resolver::init(std::string addr_info_cache_db, bool a_use_cache)
+int32_t resolver::read_ai_cache(const std::string &a_ai_cache_file)
+{
+        // ---------------------------------------
+        // Check is a file
+        // TODO
+        // ---------------------------------------
+        struct stat l_stat;
+        int32_t l_status = STATUS_OK;
+        l_status = stat(a_ai_cache_file.c_str(), &l_stat);
+        if(l_status != 0)
+        {
+                //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", a_ai_cache_file.c_str(), strerror(errno));
+                return STATUS_OK;
+        }
+
+        // Check if is regular file
+        if(!(l_stat.st_mode & S_IFREG))
+        {
+                //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", a_ai_cache_file.c_str());
+                return STATUS_OK;
+        }
+
+        // ---------------------------------------
+        // Open file...
+        // ---------------------------------------
+        FILE * l_file;
+        l_file = fopen(a_ai_cache_file.c_str(),"r");
+        if (NULL == l_file)
+        {
+                //NDBG_PRINT("Error opening file: %s.  Reason: %s\n", a_ai_cache_file.c_str(), strerror(errno));
+                return STATUS_OK;
+        }
+
+        // ---------------------------------------
+        // Read in file...
+        // ---------------------------------------
+        int32_t l_size = l_stat.st_size;
+        int32_t l_read_size;
+        char *l_buf = (char *)malloc(sizeof(char)*l_size);
+        l_read_size = fread(l_buf, 1, l_size, l_file);
+        if(l_read_size != l_size)
+        {
+                //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
+                //                strerror(errno), l_read_size, l_size);
+                return STATUS_OK;
+        }
+        std::string l_buf_str;
+        l_buf_str.assign(l_buf, l_size);
+
+
+        // NOTE: rapidjson assert's on errors -interestingly
+        rapidjson::Document l_doc;
+        l_doc.Parse(l_buf_str.c_str());
+        if(!l_doc.IsArray())
+        {
+                //NDBG_PRINT("Error reading json from file: %s.  Reason: data is not an array\n",
+                //                a_ai_cache_file.c_str());
+                return STATUS_OK;
+        }
+
+        // rapidjson uses SizeType instead of size_t.
+        for(rapidjson::SizeType i_record = 0; i_record < l_doc.Size(); ++i_record)
+        {
+                if(!l_doc[i_record].IsObject())
+                {
+                        //NDBG_PRINT("Error reading json from file: %s.  Reason: array membe not an object\n",
+                        //                a_ai_cache_file.c_str());
+                        return STATUS_OK;
+                }
+
+                std::string l_host;
+                std::string l_ai;
+                if(l_doc[i_record].HasMember("host"))
+                {
+                        l_host = l_doc[i_record]["host"].GetString();
+
+                        if(l_doc[i_record].HasMember("ai"))
+                        {
+                                l_ai = l_doc[i_record]["ai"].GetString();
+
+                                std::string l_ai_decoded;
+                                l_ai_decoded = base64_decode(l_ai);
+
+                                m_ai_cache_map[l_host] = l_ai_decoded;
+                        }
+                }
+        }
+
+        // ---------------------------------------
+        // Close file...
+        // ---------------------------------------
+        l_status = fclose(l_file);
+        if (STATUS_OK != l_status)
+        {
+                NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t resolver::init(std::string addr_info_cache_file, bool a_use_cache)
 {
         // Check if already is initd
         if(m_is_initd)
+        {
                 return STATUS_OK;
+        }
+        // Mark as initialized
+        m_is_initd = true;
 
         m_use_cache = a_use_cache;
         if(m_use_cache)
         {
                 // Init with cache file if exists
-                std::string l_db_name = addr_info_cache_db;
-                if(l_db_name.empty())
+                m_ai_cache_file = addr_info_cache_file;
+                if(m_ai_cache_file.empty())
                 {
                         //NDBG_PRINT("Using: %s\n", l_db_name.c_str());
-                        l_db_name = RESOLVER_DEFAULT_LDB_PATH;
+                        m_ai_cache_file = RESOLVER_DEFAULT_AI_CACHE_FILE;
                 }
 
-                // TODO Options???
-                leveldb::Options l_ldb_options;
-                l_ldb_options.create_if_missing = true;
-
-                leveldb::Status l_ldb_status;
-                l_ldb_status = leveldb::DB::Open(l_ldb_options, l_db_name.c_str(), &m_ai_db);
-                if (false == l_ldb_status.ok())
+                // TODO Read from json file into map
+                int32_t l_status = read_ai_cache(m_ai_cache_file);
+                if(l_status != STATUS_OK)
                 {
-                        printf("Error: Unable to open/create test database: %s\n", l_db_name.c_str());
                         return STATUS_ERROR;
                 }
+                // Base64 decode the entries
+
         }
 
-        // Mark as initialized
-        m_is_initd = true;
+
         return STATUS_OK;
 }
 
@@ -283,9 +430,12 @@ resolver::resolver(void):
         m_color(false),
         m_timeout_s(5),
         m_use_cache(false),
-        m_ai_db(NULL)
+        m_cache_mutex(),
+        m_ai_cache_map(),
+        m_ai_cache_file(RESOLVER_DEFAULT_AI_CACHE_FILE)
 {
-
+        // Init mutex
+        pthread_mutex_init(&m_cache_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -295,6 +445,11 @@ resolver::resolver(void):
 //: ----------------------------------------------------------------------------
 resolver::~resolver()
 {
+        // Sync back to disk
+        sync_ai_cache();
+
+        // Init mutex
+        pthread_mutex_destroy(&m_cache_mutex);
 
 }
 
@@ -304,14 +459,16 @@ resolver::~resolver()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+pthread_mutex_t g_singleton_mutex = PTHREAD_MUTEX_INITIALIZER;
 resolver *resolver::get(void)
 {
         if (m_singleton_ptr == NULL) {
+                pthread_mutex_lock(&g_singleton_mutex);
                 //If not yet created, create the singleton instance
-                m_singleton_ptr = new resolver();
-
-                // Initialize
-
+                if (m_singleton_ptr == NULL) {
+                        m_singleton_ptr = new resolver();
+                }
+                pthread_mutex_unlock(&g_singleton_mutex);
         }
         return m_singleton_ptr;
 }

@@ -22,10 +22,8 @@
 
 # ------------------------------------------------------------------------------
 # Requirements:
-#   libgoogle-perftools-dev
 #   libssl-dev
-#   libsnappy-dev
-#   libleveldb-dev (>=1.15.0-2)
+#   libgoogle-perftools-dev
 #   libmicrohttpd-dev
 # ------------------------------------------------------------------------------
 BUILD_DEPENDS="$(grep BUILDS_DEPENDS CMakeLists.txt | sed -e 's/.*"\(.*\)".*/\1/')"

@@ -57,14 +57,14 @@
 #endif
 #include <inttypes.h>
 
-// Json parser
-#include <jsoncpp/json/json.h>
-
 // Profiler
 #define ENABLE_PROFILER 1
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
 #endif
+
+// json support
+#include "rapidjson/document.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -321,7 +321,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Usage: hle -u [http[s]://]hostname[:port]/path [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help           Display this help and exit.\n");
-        fprintf(a_stream, "  -v, --version        Display the version number and exit.\n");
+        fprintf(a_stream, "  -r, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "URL Options -or without parameter\n");
@@ -355,7 +355,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Print Options:\n");
-        fprintf(a_stream, "  -r, --verbose        Verbose logging\n");
+        fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --color          Color\n");
         fprintf(a_stream, "  -q, --quiet          Suppress output\n");
         fprintf(a_stream, "  -s, --show_progress  Show progress\n");
@@ -389,13 +389,19 @@ void print_usage(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-
         settings_struct_t l_settings;
         ns_hlx::hlx_client *l_hlx_client = new ns_hlx::hlx_client();
         l_settings.m_hlx_client = l_hlx_client;
 
         // For sighandler
         g_settings = &l_settings;
+
+        // Turn on wildcarding by default
+        l_hlx_client->set_wildcarding(false);
+        l_hlx_client->set_split_requests_by_thread(true);
+        l_hlx_client->set_collect_stats(false);
+        l_hlx_client->set_save_response(true);
+        l_hlx_client->set_use_ai_cache(true);
 
         // -------------------------------------------
         // Setup default headers before the user
@@ -421,7 +427,7 @@ int main(int argc, char** argv)
         struct option l_long_options[] =
                 {
                 { "help",           0, 0, 'h' },
-                { "version",        0, 0, 'v' },
+                { "version",        0, 0, 'r' },
                 { "url",            1, 0, 'u' },
                 { "host_file",      1, 0, 'f' },
                 { "host_file_json", 1, 0, 'J' },
@@ -441,7 +447,7 @@ int main(int argc, char** argv)
                 { "ssl_sni",        0, 0, 'N' },
                 { "ssl_ca_file",    1, 0, 'F' },
                 { "ssl_ca_path",    1, 0, 'L' },
-                { "verbose",        0, 0, 'r' },
+                { "verbose",        0, 0, 'v' },
                 { "color",          0, 0, 'c' },
                 { "quiet",          0, 0, 'q' },
                 { "show_progress",  0, 0, 's' },
@@ -531,7 +537,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // Version
                 // ---------------------------------------
-                case 'v':
+                case 'r':
                 {
                         print_version(stdout, 0);
                         break;
@@ -747,7 +753,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // verbose
                 // ---------------------------------------
-                case 'r':
+                case 'v':
                 {
                         l_settings.m_verbose = true;
                         l_hlx_client->set_verbose(true);
@@ -963,44 +969,54 @@ int main(int argc, char** argv)
                 l_read_size = fread(l_buf, 1, l_size, l_file);
                 if(l_read_size != l_size)
                 {
-                        NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n", strerror(errno), l_read_size, l_size);
+                        NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
+                                        strerror(errno), l_read_size, l_size);
                         return STATUS_ERROR;
                 }
                 std::string l_buf_str;
                 l_buf_str.assign(l_buf, l_size);
-                Json::Value l_json_value(Json::objectValue);
-                Json::Reader l_json_reader;
-                bool l_result = l_json_reader.parse(l_buf_str, l_json_value);
-                if (!l_result)
+
+
+                // NOTE: rapidjson assert's on errors -interestingly
+                rapidjson::Document l_doc;
+                l_doc.Parse(l_buf_str.c_str());
+                if(!l_doc.IsArray())
                 {
-                        NDBG_PRINT("Failed to parse JSON document: %s. Reason: %s\n", l_host_file_json_str.c_str(), l_json_reader.getFormattedErrorMessages().c_str());
-                        fclose(l_file);
-                        // Best effort -not checking return cuz we outtie
+                        NDBG_PRINT("Error reading json from file: %s.  Reason: data is not an array\n",
+                                        l_host_file_json_str.c_str());
                         return STATUS_ERROR;
                 }
 
-                // For each line add
-                for( Json::ValueIterator itr = l_json_value.begin() ; itr != l_json_value.end() ; itr++ )
+                // rapidjson uses SizeType instead of size_t.
+                for(rapidjson::SizeType i_record = 0; i_record < l_doc.Size(); ++i_record)
                 {
-                        const Json::Value &l_value = (*itr);
-                        if(l_value.isObject())
+                        if(!l_doc[i_record].IsObject())
                         {
-                                ns_hlx::host_t l_host;
-
-                                //
-                                // "host" : "irobdownload.blob.core.windows.net:443",
-                                // "hostname" : "irobdownload.blob.core.windows.net",
-                                // "id" : "DE4D",
-                                // "where" : "edge"
-
-                                l_host.m_host = l_value.get("host", "NO_HOST").asString();
-                                l_host.m_hostname = l_value.get("hostname", "NO_HOSTNAME").asString();
-                                l_host.m_id = l_value.get("id", "NO_ID").asString();
-                                l_host.m_where = l_value.get("where", "NO_WHERE").asString();
-                                // TODO Check exist...
-                                l_host_list.push_back(l_host);
+                                NDBG_PRINT("Error reading json from file: %s.  Reason: array membe not an object\n",
+                                                l_host_file_json_str.c_str());
+                                return STATUS_ERROR;
                         }
 
+                        ns_hlx::host_t l_host;
+
+                        // "host" : "irobdownload.blob.core.windows.net:443",
+                        // "hostname" : "irobdownload.blob.core.windows.net",
+                        // "id" : "DE4D",
+                        // "where" : "edge"
+
+                        if(l_doc[i_record].HasMember("host")) l_host.m_host = l_doc[i_record]["host"].GetString();
+                        else l_host.m_host = "NO_HOST";
+
+                        if(l_doc[i_record].HasMember("hostname")) l_host.m_hostname = l_doc[i_record]["hostname"].GetString();
+                        else l_host.m_hostname = "NO_HOSTNAME";
+
+                        if(l_doc[i_record].HasMember("id")) l_host.m_id = l_doc[i_record]["id"].GetString();
+                        else l_host.m_id = "NO_ID";
+
+                        if(l_doc[i_record].HasMember("where")) l_host.m_hostname = l_doc[i_record]["where"].GetString();
+                        else l_host.m_where = "NO_WHERE";
+
+                        l_host_list.push_back(l_host);
                 }
 
                 // ---------------------------------------

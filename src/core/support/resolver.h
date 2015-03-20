@@ -29,17 +29,26 @@
 #include "ndebug.h"
 #include "host_info.h"
 
+#include <pthread.h>
+
+#include <string>
+#include <map>
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define RESOLVER_DEFAULT_LDB_PATH "/tmp/addr_info_cache.db"
+#define RESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
+
+
+//: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+// TODO Create struct with TTL for storing ai cache
+typedef std::map <std::string, std::string> ai_cache_map_t;
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-namespace leveldb {
-        class DB;
-}
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -54,7 +63,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        int32_t init(std::string addr_info_cache_db = "", bool a_use_cache = false);
+        int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
 
         ~resolver();
 
@@ -62,7 +71,12 @@ public:
         void set_verbose(bool a_val) { m_verbose = a_val;}
         void set_color(bool a_val) { m_color = a_val;}
         void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
-        int32_t cached_resolve(std::string &a_host, uint16_t a_port, host_info_t &a_host_info, std::string &ao_error);
+        int32_t cached_resolve(std::string &a_host,
+                               uint16_t a_port,
+                               host_info_t &a_host_info,
+                               std::string &ao_error);
+        int32_t sync_ai_cache(void);
+        int32_t read_ai_cache(const std::string &a_ai_cache_file);
 
         // -------------------------------------------------
         // Class methods
@@ -94,7 +108,9 @@ private:
         uint32_t m_timeout_s;
         uint32_t m_use_cache;
 
-        leveldb::DB* m_ai_db;
+        pthread_mutex_t m_cache_mutex;
+        ai_cache_map_t m_ai_cache_map;
+        std::string m_ai_cache_file;
 
         // -------------------------------------------------
         // Class members
