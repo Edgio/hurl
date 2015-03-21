@@ -29,6 +29,7 @@ LIST(APPEND INST_HDRS ${HDRS})
 # include paths
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 #${CMAKE_CURRENT_BINARY_DIR}
+    ../core/http_parser
     ../core/support
     ../core/ndebug
     ../core/hlx_client    
@@ -39,6 +40,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 # Source files
 SET(SRCS
   main.cc
+  api_server.cc
 )
 
 # Headers
@@ -85,7 +87,6 @@ tcmalloc
 profiler
 #asan
 #efence
-microhttpd
 )
 
 install(TARGETS hlo_cmd

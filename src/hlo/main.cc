@@ -54,14 +54,13 @@
 #endif
 #include <inttypes.h>
 
-
 // Profiler
 #define ENABLE_PROFILER 1
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
 #endif
 
-#include <microhttpd.h>
+#include "api_server.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -71,8 +70,6 @@
 #define HLO_VERSION_MINOR 0
 #define HLO_VERSION_MACRO 1
 #define HLO_VERSION_PATCH "alpha"
-
-#define RESP_BUFFER_SIZE (1024*1024)
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -103,84 +100,7 @@ typedef struct settings_struct
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
-struct MHD_Daemon *g_daemon;
-static char g_char_buf[RESP_BUFFER_SIZE];
 static ns_hlx::hlx_client *g_hlx_client = NULL;
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static int
-answer_to_connection (void *cls,
-                struct MHD_Connection *connection,
-                const char *url,
-                const char *method,
-                const char *version,
-                const char *upload_data,
-                size_t *upload_data_size,
-                void **con_cls)
-{
-
-        g_hlx_client->get_stats_json(g_char_buf, RESP_BUFFER_SIZE);
-
-        struct MHD_Response *response;
-        int ret;
-
-        response = MHD_create_response_from_data(strlen(g_char_buf),
-                (void *) g_char_buf,
-                0,
-                0);
-
-        ret = MHD_add_response_header(response, "Content-Type", "application/json");
-        ret = MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
-        ret = MHD_add_response_header(response, "Access-Control-Allow-Credentials", "true");
-        ret = MHD_add_response_header(response, "Access-Control-Max-Age", "86400");
-
-        ret = MHD_queue_response(connection, 200, response);
-
-        MHD_destroy_response(response);
-
-        return ret;
-}
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t start_microhttpd(int32_t a_port)
-{
-
-        g_daemon = MHD_start_daemon (MHD_USE_SELECT_INTERNALLY,
-                        a_port,
-                        NULL,
-                        NULL,
-                        &answer_to_connection,
-                        NULL,
-                        MHD_OPTION_END);
-        if (NULL == g_daemon)
-                return -1;
-
-        return 0;
-
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t stop_microhttpd(void)
-{
-
-        MHD_stop_daemon (g_daemon);
-
-        return 0;
-}
-
 
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
@@ -430,6 +350,7 @@ int main(int argc, char** argv)
         ns_hlx::hlx_client *l_hlx_client = new ns_hlx::hlx_client();
         l_settings.m_hlx_client = l_hlx_client;
         g_hlx_client = l_hlx_client;
+        api_server l_api_server;
 
         // For sighandler
         g_settings = &l_settings;
@@ -951,10 +872,11 @@ int main(int argc, char** argv)
 
         uint64_t l_start_time_ms = get_time_ms();
 
-        // Start microhttpd
+        // Start api server
         if(l_http_data_port > 0)
         {
-                start_microhttpd(l_http_data_port);
+                l_api_server.set_hlx_client(l_hlx_client);
+                l_api_server.start(l_http_data_port);
         }
 
         // -------------------------------------------
@@ -997,7 +919,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         if(l_http_data_port > 0)
         {
-                stop_microhttpd();
+                l_api_server.stop();
         }
 
         //if(l_settings.m_verbose)

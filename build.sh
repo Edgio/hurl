@@ -24,7 +24,6 @@
 # Requirements:
 #   libssl-dev
 #   libgoogle-perftools-dev
-#   libmicrohttpd-dev
 # ------------------------------------------------------------------------------
 BUILD_DEPENDS="$(grep BUILDS_DEPENDS CMakeLists.txt | sed -e 's/.*"\(.*\)".*/\1/')"
 echo "Checking build dependencies (manually):"

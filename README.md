@@ -209,7 +209,6 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 Library requirements:
 * libssl/libcrypto (OpenSSL)
 * libgoogle-perftools
-* libmicrohttpd
 
 ###Building the tools
 ```bash
