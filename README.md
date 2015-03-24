@@ -205,6 +205,9 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 ## Building
 
+##OS requirements:
+Linux for now (epoll only -kqueue support coming soon-ish)
+
 ###Install dependecies:
 Library requirements:
 * libssl/libcrypto (OpenSSL)
