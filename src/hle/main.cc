@@ -1107,7 +1107,10 @@ int main(int argc, char** argv)
         l_hlx_client->wait_till_stopped();
 
         // One more status for the lovers
-        l_hlx_client->display_status_line(l_settings.m_color);
+        if(l_settings.m_show_stats)
+        {
+                l_hlx_client->display_status_line(l_settings.m_color);
+        }
 
         if (!l_gprof_file.empty())
         {
