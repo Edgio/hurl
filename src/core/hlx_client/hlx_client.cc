@@ -67,6 +67,11 @@
 #include <errno.h>
 #include <string.h>
 
+// json support
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/prettywriter.h"
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -1010,6 +1015,39 @@ hlx_client::~hlx_client(void)
 std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_type_t a_output_type, int a_part_map)
 {
         std::string l_responses_str = "";
+        switch(a_output_type)
+        {
+        case OUTPUT_LINE_DELIMITED:
+        {
+                l_responses_str = dump_all_responses_line_dl(a_color, a_pretty, a_part_map);
+                break;
+        }
+        case OUTPUT_JSON:
+        {
+                l_responses_str = dump_all_responses_json(a_part_map);
+                break;
+        }
+        default:
+        {
+                break;
+        }
+        }
+
+        return l_responses_str;
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+std::string hlx_client::dump_all_responses_line_dl(bool a_color,
+                                                   bool a_pretty,
+                                                   int a_part_map)
+{
+
+        std::string l_responses_str = "";
         std::string l_host_color = "";
         std::string l_server_color = "";
         std::string l_id_color = "";
@@ -1029,18 +1067,12 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                 l_off_color = ANSI_COLOR_OFF;
         }
 
-        if(a_output_type == OUTPUT_JSON)
-        {
-                ARESP("[\n");
-        }
-
         for(t_client_list_t::const_iterator i_client = m_t_client_list.begin();
            i_client != m_t_client_list.end();)
         {
                 const reqlet_vector_t &l_reqlet_vector = (*i_client)->get_reqlet_vector();
 
                 int l_cur_reqlet = 0;
-                int l_reqlet_num = l_reqlet_vector.size();
                 for(reqlet_vector_t::const_iterator i_reqlet = l_reqlet_vector.begin();
                     i_reqlet != l_reqlet_vector.end();
                     ++i_reqlet, ++l_cur_reqlet)
@@ -1048,17 +1080,9 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
 
 
                         bool l_fbf = false;
-                        if(a_output_type == OUTPUT_JSON)
-                        {
-                                if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("  ");
-                                ARESP("{");
-                                if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("\n");
-                        }
-
                         // Host
                         if(a_part_map & PART_HOST)
                         {
-                                if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("    ");
                                 sprintf(l_buf, "\"%shost%s\": \"%s\"",
                                                 l_host_color.c_str(), l_off_color.c_str(),
                                                 (*i_reqlet)->m_url.m_host.c_str());
@@ -1071,7 +1095,6 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                         {
 
                                 if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("    ");
                                 sprintf(l_buf, "\"%sserver%s\": \"%s:%d\"",
                                                 l_server_color.c_str(), l_server_color.c_str(),
                                                 (*i_reqlet)->m_url.m_host.c_str(),
@@ -1083,7 +1106,6 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                                 if(!(*i_reqlet)->m_url.m_id.empty())
                                 {
                                         if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                        if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("    ");
                                         sprintf(l_buf, "\"%sid%s\": \"%s\"",
                                                         l_id_color.c_str(), l_id_color.c_str(),
                                                         (*i_reqlet)->m_url.m_id.c_str()
@@ -1095,7 +1117,6 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                                 if(!(*i_reqlet)->m_url.m_where.empty())
                                 {
                                         if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                        if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("    ");
                                         sprintf(l_buf, "\"%swhere%s\": \"%s\"",
                                                         l_id_color.c_str(), l_id_color.c_str(),
                                                         (*i_reqlet)->m_url.m_where.c_str()
@@ -1112,7 +1133,6 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                         if(a_part_map & PART_STATUS_CODE)
                         {
                                 if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("\n    ");
                                 const char *l_status_val_color = "";
                                 if(a_color)
                                 {
@@ -1128,49 +1148,15 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
 
                         // Headers
                         // TODO -only in json mode for now
-                        if(a_output_type == OUTPUT_JSON)
                         if(a_part_map & PART_HEADERS)
                         {
-                                for(header_map_t::iterator i_header = (*i_reqlet)->m_response_headers.begin();
-                                                i_header != (*i_reqlet)->m_response_headers.end();
-                                    ++i_header)
-                                {
-                                        if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("\n    ");
-                                        sprintf(l_buf, "\"%s%s%s\": \"%s\"",
-                                                        l_header_color.c_str(), i_header->first.c_str(), l_off_color.c_str(),
-                                                        i_header->second.c_str());
-                                        ARESP(l_buf);
-                                        l_fbf = true;
-                                }
-                        }
-
-                        // Headers
-                        // TODO -only in json mode for now
-                        //if(a_output_type == OUTPUT_JSON)
-                        //if(a_part_map & PART_HEADERS)
-                        if(1)
-                        {
-                                for(header_map_t::iterator i_header = (*i_reqlet)->m_conn_info.begin();
-                                                i_header != (*i_reqlet)->m_conn_info.end();
-                                    ++i_header)
-                                {
-                                        if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                        if(a_pretty) if(a_output_type == OUTPUT_JSON) NDBG_OUTPUT("\n    ");
-                                        sprintf(l_buf, "\"%s%s%s\": \"%s\"",
-                                                        l_header_color.c_str(), i_header->first.c_str(), l_off_color.c_str(),
-                                                        i_header->second.c_str());
-                                        ARESP(l_buf);
-                                        l_fbf = true;
-                                }
+                                // nuthin
                         }
 
                         // Body
                         if(a_part_map & PART_BODY)
                         {
                                 if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                if(a_pretty) if(a_output_type == OUTPUT_JSON) ARESP("\n    ");
-
                                 //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_reqlet)->m_response_body.length());
                                 if(!(*i_reqlet)->m_response_body.empty())
                                 {
@@ -1186,34 +1172,151 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                                 ARESP(l_buf);
                                 l_fbf = true;
                         }
-
-                        if(a_output_type == OUTPUT_JSON)
-                        {
-                                if(a_pretty) ARESP("\n  ");
-                                ARESP("}");
-                                if(l_cur_reqlet < (l_reqlet_num - 1)) ARESP(", ");
-                        }
                         ARESP("\n");
                 }
-
                 ++i_client;
-                if(a_output_type == OUTPUT_JSON)
-                {
-                        if(i_client != m_t_client_list.end())
-                        {
-                                ARESP(",");
-                        }
-
-                }
-        }
-
-        if(a_output_type == OUTPUT_JSON)
-        {
-                ARESP("]\n");
         }
 
         return l_responses_str;
+}
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#define JS_ADD_MEMBER(_key, _val)\
+l_obj.AddMember(_key,\
+                rapidjson::Value(_val, l_js_allocator).Move(),\
+                l_js_allocator)\
+
+std::string hlx_client::dump_all_responses_json(int a_part_map)
+{
+        rapidjson::Document l_js_doc;
+        l_js_doc.SetObject();
+        rapidjson::Value l_js_array(rapidjson::kArrayType);
+        rapidjson::Document::AllocatorType& l_js_allocator = l_js_doc.GetAllocator();
+
+        for(t_client_list_t::const_iterator i_client = m_t_client_list.begin();
+           i_client != m_t_client_list.end();
+           ++i_client)
+        {
+                const reqlet_vector_t &l_reqlet_vector = (*i_client)->get_reqlet_vector();
+                for(reqlet_vector_t::const_iterator i_reqlet = l_reqlet_vector.begin();
+                    i_reqlet != l_reqlet_vector.end();
+                    ++i_reqlet)
+                {
+                        rapidjson::Value l_obj;
+                        l_obj.SetObject();
+                        bool l_content_type_json = false;
+
+                        // Search for json
+                        header_map_t::const_iterator i_h = (*i_reqlet)->m_response_headers.find("Content-type");
+                        if(i_h != (*i_reqlet)->m_response_headers.end() && i_h->second == "application/json")
+                        {
+                                l_content_type_json = true;
+                        }
+
+                        // Host
+                        if(a_part_map & PART_HOST)
+                        {
+                                JS_ADD_MEMBER("host", (*i_reqlet)->m_url.m_host.c_str());
+                        }
+
+                        // Server
+                        if(a_part_map & PART_SERVER)
+                        {
+                                char l_server_buf[1024];
+                                sprintf(l_server_buf, "%s:%d",
+                                                (*i_reqlet)->m_url.m_host.c_str(),
+                                                (*i_reqlet)->m_url.m_port);
+                                JS_ADD_MEMBER("server", l_server_buf);
+
+                                if(!(*i_reqlet)->m_url.m_id.empty())
+                                {
+                                        JS_ADD_MEMBER("id", (*i_reqlet)->m_url.m_id.c_str());
+                                }
+
+                                if(!(*i_reqlet)->m_url.m_where.empty())
+                                {
+                                        JS_ADD_MEMBER("where", (*i_reqlet)->m_url.m_where.c_str());
+                                }
+                        }
+
+                        // Status Code
+                        if(a_part_map & PART_STATUS_CODE)
+                        {
+                                char l_status_buf[16];
+                                sprintf(l_status_buf, "%d", (*i_reqlet)->m_response_status);
+                                JS_ADD_MEMBER("status-code", l_status_buf);
+                        }
+
+                        // Headers
+                        if(a_part_map & PART_HEADERS)
+                        {
+                                for(header_map_t::iterator i_header = (*i_reqlet)->m_response_headers.begin();
+                                                i_header != (*i_reqlet)->m_response_headers.end();
+                                    ++i_header)
+                                {
+                                        l_obj.AddMember(rapidjson::Value(i_header->first.c_str(), l_js_allocator).Move(),
+                                                        rapidjson::Value(i_header->second.c_str(), l_js_allocator).Move(),
+                                                        l_js_allocator);
+                                }
+                        }
+
+                        // Connection info
+                        //if(a_part_map & PART_HEADERS)
+                        for(header_map_t::iterator i_header = (*i_reqlet)->m_conn_info.begin();
+                                        i_header != (*i_reqlet)->m_conn_info.end();
+                            ++i_header)
+                        {
+                                l_obj.AddMember(rapidjson::Value(i_header->first.c_str(), l_js_allocator).Move(),
+                                                rapidjson::Value(i_header->second.c_str(), l_js_allocator).Move(),
+                                                l_js_allocator);
+                        }
+
+                        // Body
+                        if(a_part_map & PART_BODY)
+                        {
+
+                                //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_reqlet)->m_response_body.length());
+                                if(!(*i_reqlet)->m_response_body.empty())
+                                {
+                                        // Append json
+                                        if(l_content_type_json)
+                                        {
+                                                rapidjson::Document l_doc_body;
+                                                l_doc_body.Parse((*i_reqlet)->m_response_body.c_str());
+                                                l_obj.AddMember("body",
+                                                                rapidjson::Value(l_doc_body, l_js_allocator).Move(),
+                                                                l_js_allocator);
+
+                                        }
+                                        else
+                                        {
+                                                JS_ADD_MEMBER("body", (*i_reqlet)->m_response_body.c_str());
+                                        }
+                                }
+                                else
+                                {
+                                        JS_ADD_MEMBER("body", "NO_RESPONSE");
+                                }
+                        }
+
+                        l_js_array.PushBack(l_obj, l_js_allocator);
+
+                }
+        }
+
+        // TODO -Can I just create an array -do I have to stick in a document?
+        l_js_doc.AddMember("array", l_js_array, l_js_allocator);
+        rapidjson::StringBuffer l_strbuf;
+        rapidjson::Writer<rapidjson::StringBuffer> l_js_writer(l_strbuf);
+        l_js_doc["array"].Accept(l_js_writer);
+
+        //NDBG_PRINT("Document: \n%s\n", l_strbuf.GetString());
+        std::string l_responses_str = l_strbuf.GetString();
+        return l_responses_str;
 }
 
 //: ----------------------------------------------------------------------------

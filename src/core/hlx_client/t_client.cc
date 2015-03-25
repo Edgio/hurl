@@ -180,7 +180,6 @@ t_client::t_client(const settings_struct_t &a_settings,
                 m_reqlet_vector.push_back(l_reqlet);
         }
         m_num_reqlets = m_reqlet_vector.size();
-
 }
 
 
@@ -191,6 +190,17 @@ t_client::t_client(const settings_struct_t &a_settings,
 //: ----------------------------------------------------------------------------
 t_client::~t_client()
 {
+        for(reqlet_vector_t::const_iterator i_reqlet = m_reqlet_vector.begin();
+            i_reqlet != m_reqlet_vector.end();
+            ++i_reqlet)
+        {
+                if(*i_reqlet)
+                {
+                        delete *i_reqlet;
+                }
+        }
+        m_reqlet_vector.clear();
+
         for(uint32_t i_conn = 0; i_conn < m_nconn_vector.size(); ++i_conn)
         {
                 if(m_nconn_vector[i_conn])

@@ -232,6 +232,12 @@ private:
         // -------------------------------------------------
         HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(hlx_client)
 
+        std::string dump_all_responses_line_dl(bool a_color,
+                                               bool a_pretty,
+                                               int a_part_map);
+
+        std::string dump_all_responses_json(int a_part_map);
+
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
