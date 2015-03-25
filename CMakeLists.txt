@@ -48,7 +48,7 @@ add_subdirectory(src)
 # Debian Package Support
 # ------------------------------------------------
 SET(CPACK_GENERATOR "DEB")
-SET(CPACK_DEBIAN_PACKAGE_VERSION "1.1.2")
+SET(CPACK_DEBIAN_PACKAGE_VERSION "1.2.1")
 SET(CPACK_PACKAGE_FILE_NAME "hlo-${CPACK_DEBIAN_PACKAGE_VERSION}-Linux")
 SET(CPACK_DEBIAN_PACKAGE_NAME "hlo")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
