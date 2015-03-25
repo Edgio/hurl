@@ -1034,8 +1034,7 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
         }
 
         for(t_client_list_t::const_iterator i_client = m_t_client_list.begin();
-           i_client != m_t_client_list.end();
-           ++i_client)
+           i_client != m_t_client_list.end();)
         {
                 const reqlet_vector_t &l_reqlet_vector = (*i_client)->get_reqlet_vector();
 
@@ -1194,6 +1193,16 @@ std::string hlx_client::dump_all_responses(bool a_color, bool a_pretty, output_t
                                 if(l_cur_reqlet < (l_reqlet_num - 1)) ARESP(", ");
                         }
                         ARESP("\n");
+                }
+
+                ++i_client;
+                if(a_output_type == OUTPUT_JSON)
+                {
+                        if(i_client != m_t_client_list.end())
+                        {
+                                ARESP(",");
+                        }
+
                 }
         }
 
