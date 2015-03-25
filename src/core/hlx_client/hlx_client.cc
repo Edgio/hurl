@@ -24,6 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include <stdint.h>
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+#include <inttypes.h>
+
 #include "hlx_client.h"
 #include "reqlet.h"
 #include "util.h"
@@ -60,11 +66,6 @@
 #include <termios.h>
 #include <errno.h>
 #include <string.h>
-#include <stdint.h>
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#include <inttypes.h>
 
 //: ----------------------------------------------------------------------------
 //: Constants
