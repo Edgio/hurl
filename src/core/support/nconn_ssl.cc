@@ -172,7 +172,7 @@ int32_t nconn_ssl::ssl_connect(const host_info_t &a_host_info)
         if(m_collect_stats_flag)
         {
                 m_stat.m_tt_ssl_connect_us = get_delta_time_us(m_connect_start_time_us);
-                NDBG_PRINT("m_stat.m_tt_ssl_connect_us: %lud\n", m_stat.m_tt_ssl_connect_us);
+                //NDBG_PRINT("m_stat.m_tt_ssl_connect_us: %lud\n", m_stat.m_tt_ssl_connect_us);
         }
 
 #if 0
