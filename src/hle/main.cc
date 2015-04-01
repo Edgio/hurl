@@ -326,6 +326,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
 
         fprintf(a_stream, "URL Options -or without parameter\n");
         fprintf(a_stream, "  -u, --url            URL -REQUIRED.\n");
+        fprintf(a_stream, "  -d, --data         HTTP body data -supports bodies up to 8k.\n");
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Hostname Input Options -also STDIN:\n");
@@ -337,6 +338,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -p, --parallel       Num parallel.\n");
         fprintf(a_stream, "  -t, --threads        Number of parallel threads.\n");
         fprintf(a_stream, "  -H, --header         Request headers -can add multiple ie -H<> -H<>...\n");
+        fprintf(a_stream, "  -X, --verb           Request command -HTTP verb to use -GET/PUT/etc\n");
         fprintf(a_stream, "  -T, --timeout        Timeout (seconds).\n");
         fprintf(a_stream, "  -R, --recv_buffer    Socket receive buffer size.\n");
         fprintf(a_stream, "  -S, --send_buffer    Socket send buffer size.\n");
@@ -429,12 +431,14 @@ int main(int argc, char** argv)
                 { "help",           0, 0, 'h' },
                 { "version",        0, 0, 'r' },
                 { "url",            1, 0, 'u' },
+                { "data",           1, 0, 'd' },
                 { "host_file",      1, 0, 'f' },
                 { "host_file_json", 1, 0, 'J' },
                 { "execute",        1, 0, 'x' },
                 { "parallel",       1, 0, 'p' },
                 { "threads",        1, 0, 't' },
                 { "header",         1, 0, 'H' },
+                { "verb",           1, 0, 'X' },
                 { "timeout",        1, 0, 'T' },
                 { "recv_buffer",    1, 0, 'R' },
                 { "send_buffer",    1, 0, 'S' },
@@ -510,7 +514,7 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
-        char l_short_arg_list[] = "hvu:f:J:x:y:O:VNF:L:p:t:H:T:R:S:DA:Crcqsmo:ljPG:";
+        char l_short_arg_list[] = "hvu:d:f:J:x:y:O:VNF:L:p:t:H:X:T:R:S:DA:Crcqsmo:ljPG:";
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -548,6 +552,21 @@ int main(int argc, char** argv)
                 case 'u':
                 {
                         l_url = l_argument;
+                        break;
+                }
+                // ---------------------------------------
+                // Data
+                // ---------------------------------------
+                case 'd':
+                {
+                        int32_t l_status;
+                        l_status = l_hlx_client->set_data(l_argument.c_str(), l_argument.length());
+                        if(l_status != HLX_CLIENT_STATUS_OK)
+                        {
+                                printf("Error setting HTTP body data with: %s\n", l_argument.c_str());
+                                //print_usage(stdout, -1);
+                                return -1;
+                        }
                         break;
                 }
                 // ---------------------------------------
@@ -688,6 +707,20 @@ int main(int argc, char** argv)
                                 printf("Error header string[%s] is malformed\n", l_argument.c_str());
                                 print_usage(stdout, -1);
                         }
+                        break;
+                }
+                // ---------------------------------------
+                // Verb
+                // ---------------------------------------
+                case 'X':
+                {
+                        if(l_argument.length() > 64)
+                        {
+                                printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
+                                //print_usage(stdout, -1);
+                                return -1;
+                        }
+                        l_hlx_client->set_verb(l_argument);
                         break;
                 }
                 // ---------------------------------------
