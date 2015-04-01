@@ -145,6 +145,9 @@ int hlx_client::run(void)
         l_settings.m_show_summary = m_show_summary;
         l_settings.m_url = m_url;
         l_settings.m_header_map = m_header_map;
+        l_settings.m_verb = m_verb;
+        l_settings.m_req_body = m_req_body;
+        l_settings.m_req_body_len = m_req_body_len;
         l_settings.m_evr_loop_type = (evr_loop_type_t)m_evr_loop_type;
         l_settings.m_num_parallel = m_num_parallel;
         l_settings.m_num_threads = m_num_threads;
@@ -371,6 +374,105 @@ void hlx_client::set_url(const std::string &a_url)
 void hlx_client::set_wildcarding(bool a_val)
 {
         m_wildcarding = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int hlx_client::set_data(const char *a_data, uint32_t a_len)
+{
+
+        // If a_data starts with @ assume file
+        if(a_data[0] == '@')
+        {
+                std::string l_file_str = a_data + 1;
+
+                // ---------------------------------------
+                // Check is a file
+                // TODO
+                // ---------------------------------------
+                struct stat l_stat;
+                int32_t l_status = STATUS_OK;
+                l_status = stat(l_file_str.c_str(), &l_stat);
+                if(l_status != 0)
+                {
+                        //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", a_ai_cache_file.c_str(), strerror(errno));
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+
+                // Check if is regular file
+                if(!(l_stat.st_mode & S_IFREG))
+                {
+                        //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", a_ai_cache_file.c_str());
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+
+                // ---------------------------------------
+                // Open file...
+                // ---------------------------------------
+                FILE * l_file;
+                l_file = fopen(l_file_str.c_str(),"r");
+                if (NULL == l_file)
+                {
+                        //NDBG_PRINT("Error opening file: %s.  Reason: %s\n", a_ai_cache_file.c_str(), strerror(errno));
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+
+                // ---------------------------------------
+                // Read in file...
+                // ---------------------------------------
+                int32_t l_size = l_stat.st_size;
+
+                // Bounds check -remove later
+                if(l_size > 8*1024)
+                {
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+
+                m_req_body = (char *)malloc(sizeof(char)*l_size);
+                m_req_body_len = l_size;
+
+                int32_t l_read_size;
+                l_read_size = fread(m_req_body, 1, l_size, l_file);
+                if(l_read_size != l_size)
+                {
+                        //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
+                        //                strerror(errno), l_read_size, l_size);
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+
+                // ---------------------------------------
+                // Close file...
+                // ---------------------------------------
+                l_status = fclose(l_file);
+                if (STATUS_OK != l_status)
+                {
+                        //NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+        }
+        else
+        {
+                // Bounds check -remove later
+                if(a_len > 8*1024)
+                {
+                        return HLX_CLIENT_STATUS_ERROR;
+                }
+
+                m_req_body = (char *)malloc(sizeof(char)*a_len);
+                memcpy(m_req_body, a_data, a_len);
+                m_req_body_len = a_len;
+
+        }
+
+        // Add content length
+        char l_len_str[64];
+        sprintf(l_len_str, "%u", m_req_body_len);
+        set_header("Content-Length", l_len_str);
+
+        return HLX_CLIENT_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -809,6 +911,15 @@ void hlx_client::clear_headers(void)
         m_header_map.clear();
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_client::set_verb(const std::string &a_verb)
+{
+        m_verb = a_verb;
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -905,15 +1016,26 @@ hlx_client::hlx_client(void):
         m_url_file(),
         m_wildcarding(false),
 
+        m_req_body(NULL),
+        m_req_body_len(0),
+
         m_header_map(),
+
+        // TODO Make define
+        m_verb("GET"),
+
         m_use_ai_cache(true),
         m_ai_cache(),
+
         // TODO Make define
         m_num_parallel(128),
+
         // TODO Make define
         m_num_threads(4),
+
         // TODO Make define
         m_timeout_s(10),
+
         m_connect_only(false),
         m_show_summary(false),
         m_save_response(false),
@@ -923,6 +1045,8 @@ hlx_client::hlx_client(void):
         m_num_end_fetches(-1),
         m_num_reqs_per_conn(1),
         m_run_time_s(-1),
+
+        // TODO Make define
         m_request_mode(REQUEST_MODE_ROUND_ROBIN),
         m_split_requests_by_thread(true),
 
@@ -947,6 +1071,8 @@ hlx_client::hlx_client(void):
 
         // t_client
         m_t_client_list(),
+
+        // TODO Make define
         m_evr_loop_type(EVR_LOOP_EPOLL),
 
         m_reqlet_vector(),
@@ -1003,6 +1129,13 @@ hlx_client::~hlx_client(void)
 
         // Delete resolver
         delete resolver::get();
+
+        if(m_req_body)
+        {
+                free(m_req_body);
+                m_req_body = NULL;
+                m_req_body_len = 0;
+        }
 
 }
 

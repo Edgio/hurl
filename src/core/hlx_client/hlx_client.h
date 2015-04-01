@@ -146,6 +146,9 @@ public:
         void set_url(const std::string &a_url);
         void set_wildcarding(bool a_val);
 
+        // data
+        int set_data(const char *a_data, uint32_t a_len);
+
         // Host list
         int set_host_list(host_list_t &a_host_list);
         int set_server_list(server_list_t &a_server_list);
@@ -183,6 +186,9 @@ public:
         int set_header(const std::string &a_header);
         int set_header(const std::string &a_key, const std::string &a_val);
         void clear_headers(void);
+
+        // Verb
+        void set_verb(const std::string &a_verb);
 
         // SSL
         void set_ssl_cipher_list(const std::string &a_cipher_list);
@@ -250,8 +256,12 @@ private:
         std::string m_url;
         std::string m_url_file;
         bool m_wildcarding;
+        char *m_req_body;
+        uint32_t m_req_body_len;
 
         header_map_t m_header_map;
+        std::string m_verb;
+
         bool m_use_ai_cache;
         std::string m_ai_cache;
         int32_t m_num_parallel;

@@ -64,7 +64,6 @@ reqlet::reqlet(const reqlet &a_reqlet):
         m_repeat_path_flag(a_reqlet.m_repeat_path_flag),
         m_path_vector(a_reqlet.m_path_vector),
         m_path_order(a_reqlet.m_path_order),
-        m_extra_headers(a_reqlet.m_extra_headers),
         m_path_vector_last_idx(a_reqlet.m_path_vector_last_idx),
         m_tag(a_reqlet.m_tag)
 {
@@ -235,22 +234,6 @@ int32_t reqlet::add_option(const char *a_key, const char *a_val)
                         NDBG_PRINT("STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
                         return STATUS_ERROR;
                 }
-        }
-        //: ------------------------------------------------
-        //:
-        //: ------------------------------------------------
-        else if (l_key == "header")
-        {
-                // Split by ":"
-                std::size_t l_pos = l_val.find(":");
-                if(l_pos == std::string::npos)
-                {
-                        NDBG_PRINT("STATUS_ERROR: Bad header string[%s]\n", l_val.c_str());
-                        return STATUS_ERROR;
-                }
-
-                //NDBG_PRINT("HEADER: %s: %s\n", l_val.substr(0,l_pos).c_str(), l_val.substr(l_pos+1,l_val.length()).c_str());
-                m_extra_headers[l_val.substr(0,l_pos)] = l_val.substr(l_pos+1,l_val.length());
         }
         //: ------------------------------------------------
         //:

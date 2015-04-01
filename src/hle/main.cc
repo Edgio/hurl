@@ -700,7 +700,7 @@ int main(int argc, char** argv)
                         l_timeout_s = atoi(optarg);
                         if (l_timeout_s < 1)
                         {
-                                printf("connection timeout must be at least 1\n");
+                                printf("connection timeout must be > 0\n");
                                 print_usage(stdout, -1);
                         }
                         l_hlx_client->set_timeout_s(l_timeout_s);

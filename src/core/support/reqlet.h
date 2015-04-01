@@ -141,7 +141,6 @@ public:
                 m_repeat_path_flag(false),
                 m_path_vector(),
                 m_path_order(EXPLODED_PATH_ORDER_SEQUENTIAL),
-                m_extra_headers(),
                 m_path_vector_last_idx(0),
                 m_tag("UNDEFINED")
         {};
@@ -161,7 +160,6 @@ public:
         }
         void bump_num_requested(void) {++m_num_reqd;}
         const std::string &get_path(void *a_rand);
-        const header_map_t &get_extra_headers(void) { return m_extra_headers; }
         const std::string &get_label(void);
         void set_host(const std::string &a_host) { m_url.m_host = a_host;}
         void set_port(uint16_t &a_port) { m_url.m_port = a_port;}
@@ -213,7 +211,7 @@ private:
         // -------------------------------------------
         // Special effects...
         // Supports urls like:
-        // http://127.0.0.1:80/[0X000001-0X00000A]/100K/[1-1000]/[1-100].gif;order=random;header=Accept-Encoding:deflate
+        // http://127.0.0.1:80/[0X000001-0X00000A]/100K/[1-1000]/[1-100].gif;order=random
         // -------------------------------------------
         // Wildcards
         bool m_repeat_path_flag;
@@ -223,9 +221,6 @@ private:
         // order=random
         path_order_t m_path_order;
 
-        // Extra Headers
-        // header=Accept-Encoding:deflate
-        header_map_t m_extra_headers;
         uint32_t m_path_vector_last_idx;
 
         std::string m_tag;

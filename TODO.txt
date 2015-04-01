@@ -1,3 +1,4 @@
 TODO:
+0. Fix stdev/var -very busted atm.
 1. Make perf-tools/tcmalloc optional
 2. Make api_server with evr

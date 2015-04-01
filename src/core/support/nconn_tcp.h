@@ -128,7 +128,7 @@ public:
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static const uint32_t m_max_req_buf = 2048;
+        static const uint32_t m_max_req_buf = 16*1024;
         static const uint32_t m_max_read_buf = 16*1024;
 
         // -------------------------------------------------

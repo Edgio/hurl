@@ -131,6 +131,9 @@ t_client::t_client(const settings_struct_t &a_settings,
         COPY_SETTINGS(m_show_summary);
         COPY_SETTINGS(m_url);
         COPY_SETTINGS(m_header_map);
+        COPY_SETTINGS(m_verb);
+        COPY_SETTINGS(m_req_body);
+        COPY_SETTINGS(m_req_body_len);
         COPY_SETTINGS(m_t_client_list);
         COPY_SETTINGS(m_evr_loop_type);
         COPY_SETTINGS(m_num_parallel);
@@ -951,10 +954,10 @@ int32_t t_client::create_request(nconn &ao_conn,
         if(l_path_ref.length())
         {
                 l_req_buf_len = snprintf(l_req_buf, l_max_buf_len,
-                                "GET %.500s HTTP/1.1\r\n", l_path_ref.c_str());
+                                "%s %.500s HTTP/1.1\r\n", m_settings.m_verb.c_str(), l_path_ref.c_str());
         } else {
                 l_req_buf_len = snprintf(l_req_buf, l_max_buf_len,
-                                "GET / HTTP/1.1\r\n");
+                                "%s / HTTP/1.1\r\n", m_settings.m_verb.c_str());
         }
 
         // -------------------------------------------
@@ -993,6 +996,15 @@ int32_t t_client::create_request(nconn &ao_conn,
         // End of request terminator...
         // -------------------------------------------
         l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len, "\r\n");
+
+        // -------------------------------------------
+        // body
+        // -------------------------------------------
+        if(m_settings.m_req_body)
+        {
+                memcpy(l_req_buf + l_req_buf_len, m_settings.m_req_body, m_settings.m_req_body_len);
+                l_req_buf_len += m_settings.m_req_body_len;
+        }
 
         // Set len
         SET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF_LEN, NULL, l_req_buf_len);
