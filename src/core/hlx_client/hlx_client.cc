@@ -1379,9 +1379,7 @@ std::string hlx_client::dump_all_responses_json(int a_part_map)
                         // Status Code
                         if(a_part_map & PART_STATUS_CODE)
                         {
-                                char l_status_buf[16];
-                                sprintf(l_status_buf, "%d", (*i_reqlet)->m_response_status);
-                                JS_ADD_MEMBER("status-code", l_status_buf);
+                                l_obj.AddMember("status-code", (*i_reqlet)->m_response_status, l_js_allocator);
                         }
 
                         // Headers
@@ -1961,5 +1959,3 @@ void hlx_client::display_status_line(bool a_color)
 }
 
 } //namespace ns_hlx {
-
-
