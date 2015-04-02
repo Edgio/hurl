@@ -30,6 +30,7 @@
 #include "util.h"
 #include "nconn_ssl.h"
 #include "nconn_tcp.h"
+#include "resolver.h"
 
 #include "ndebug.h"
 
@@ -791,7 +792,10 @@ reqlet *t_client::evoke_reqlet(const pb_cmd_t &a_cmd)
         std::string l_url_str = l_url;
         l_reqlet->init_with_url(l_url_str);
 
-        l_reqlet->resolve();
+        resolver l_resolver;
+        l_resolver.init();
+
+        l_reqlet->resolve(l_resolver);
 
         // Add to map
         m_reqlet_map[l_hash] = l_reqlet;
@@ -1139,4 +1143,3 @@ void t_client::add_pb_cmd(const pb_cmd_t &a_cmd)
         ++m_num_cmds;
         m_evr_cmd_loop->add_timer(l_ms, evr_loop_timer_cb, l_client_pb_cmd, &l_unused);
 }
-

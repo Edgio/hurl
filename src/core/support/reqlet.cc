@@ -121,7 +121,7 @@ int32_t reqlet::init_with_url(const std::string &a_url, bool a_wildcarding)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t reqlet::resolve(void)
+int32_t reqlet::resolve(resolver &a_resolver)
 {
 
         int32_t l_status = STATUS_OK;
@@ -131,7 +131,7 @@ int32_t reqlet::resolve(void)
         //NDBG_PRINT("m_url.m_host: %s\n", m_url.m_host.c_str());
         //NDBG_PRINT("m_url.m_port: %d\n", m_url.m_port);
 
-        l_status = resolver::get()->cached_resolve(m_url.m_host, m_url.m_port, m_host_info, l_error);
+        l_status = a_resolver.cached_resolve(m_url.m_host, m_url.m_port, m_host_info, l_error);
         if(l_status != STATUS_OK)
         {
                 set_response(900, "Address resolution failed.");
@@ -328,10 +328,10 @@ int32_t reqlet::special_effects_parse(void)
                 //NDBG_OUTPUT(" -- Displaying Paths --\n");
                 //uint32_t i_path_cnt = 0;
                 //for(path_vector_t::iterator i_path = m_path_vector.begin();
-                //		i_path != m_path_vector.end();
-                //		++i_path, ++i_path_cnt)
+                //              i_path != m_path_vector.end();
+                //              ++i_path, ++i_path_cnt)
                 //{
-                //	NDBG_OUTPUT(": [%6d]: %s\n", i_path_cnt, i_path->c_str());
+                //      NDBG_OUTPUT(": [%6d]: %s\n", i_path_cnt, i_path->c_str());
                 //}
         } else {
 
@@ -666,15 +666,15 @@ void add_to_total_stat_agg(total_stat_agg_t &ao_stat_agg, const total_stat_agg_t
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 url_factory::url_factory(const url_options& config, t_client_batch_stats* peer):
-	                m_stats			(peer),
-	                m_config		(config),
-	                m_nickname		(config.m_str),
-	                m_weight		(1.0),
-	                m_urls			(),
-	                m_do_sequential		(false),
-	                m_do_oneshot		(false),
-	                m_next_url_num		(0),
-	                m_headers			(new Headers)
+                        m_stats                 (peer),
+                        m_config                (config),
+                        m_nickname              (config.m_str),
+                        m_weight                (1.0),
+                        m_urls                  (),
+                        m_do_sequential         (false),
+                        m_do_oneshot            (false),
+                        m_next_url_num          (0),
+                        m_headers                       (new Headers)
 {
         std::string servername;
         protocol_t protocol = PROTO_HTTP;
@@ -989,5 +989,3 @@ const Url & url_factory::pick_url()
         return result;
 }
 #endif
-
-

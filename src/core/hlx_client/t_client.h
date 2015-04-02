@@ -30,6 +30,7 @@
 #include "nconn_ssl.h"
 #include "nconn_tcp.h"
 #include "hlx_client.h"
+#include "ndebug.h"
 
 // signal
 #include <signal.h>
@@ -107,10 +108,14 @@ typedef struct settings_struct
         std::string m_ssl_ca_file;
         std::string m_ssl_ca_path;
 
+        // resolver
+        resolver *m_resolver;
+
+
         // ---------------------------------
         // Defaults...
         // ---------------------------------
-        settings_struct(void) :
+        settings_struct() :
                 m_verbose(false),
                 m_color(false),
                 m_quiet(false),
@@ -143,7 +148,8 @@ typedef struct settings_struct
                 m_ssl_verify(false),
                 m_ssl_sni(false),
                 m_ssl_ca_file(""),
-                m_ssl_ca_path("")
+                m_ssl_ca_path(""),
+                m_resolver(NULL)
         {}
 
 private:
@@ -288,4 +294,3 @@ private:
 } //namespace ns_hlx {
 
 #endif // #ifndef _HLX_CLIENT_H
-

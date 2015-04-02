@@ -1095,12 +1095,6 @@ int main(int argc, char** argv)
 
         // Initializer hlx_client
         int l_status = 0;
-        l_status = l_hlx_client->init();
-        if(HLX_CLIENT_STATUS_OK != l_status)
-        {
-                printf("Error: initializing hlx_client.\n");
-                return -1;
-        }
 
         // Start Profiler
         if (!l_gprof_file.empty())
@@ -1221,4 +1215,3 @@ int main(int argc, char** argv)
         return 0;
 
 }
-

@@ -124,40 +124,43 @@ t_client::t_client(const settings_struct_t &a_settings,
                 m_conn_free_list.push_back(i_conn);
         }
 
-        // Friggin effc++
-        COPY_SETTINGS(m_verbose);
-        COPY_SETTINGS(m_color);
-        COPY_SETTINGS(m_quiet);
-        COPY_SETTINGS(m_show_summary);
-        COPY_SETTINGS(m_url);
-        COPY_SETTINGS(m_header_map);
-        COPY_SETTINGS(m_verb);
-        COPY_SETTINGS(m_req_body);
-        COPY_SETTINGS(m_req_body_len);
-        COPY_SETTINGS(m_t_client_list);
-        COPY_SETTINGS(m_evr_loop_type);
-        COPY_SETTINGS(m_num_parallel);
-        COPY_SETTINGS(m_num_threads);
-        COPY_SETTINGS(m_timeout_s);
-        COPY_SETTINGS(m_rate);
-        COPY_SETTINGS(m_request_mode);
-        COPY_SETTINGS(m_num_end_fetches);
-        COPY_SETTINGS(m_run_time_s);
-        COPY_SETTINGS(m_connect_only);
-        COPY_SETTINGS(m_save_response);
-        COPY_SETTINGS(m_collect_stats);
-        COPY_SETTINGS(m_num_reqs_per_conn);
-        COPY_SETTINGS(m_sock_opt_recv_buf_size);
-        COPY_SETTINGS(m_sock_opt_send_buf_size);
-        COPY_SETTINGS(m_sock_opt_no_delay);
-        COPY_SETTINGS(m_ssl_ctx);
-        COPY_SETTINGS(m_ssl_cipher_list);
-        COPY_SETTINGS(m_ssl_options_str);
-        COPY_SETTINGS(m_ssl_options);
-        COPY_SETTINGS(m_ssl_verify);
-        COPY_SETTINGS(m_ssl_sni);
-        COPY_SETTINGS(m_ssl_ca_file);
-        COPY_SETTINGS(m_ssl_ca_path);
+        memcpy(&m_settings, &a_settings, sizeof(settings_struct_t));
+
+        // // Friggin effc++
+        // COPY_SETTINGS(m_verbose);
+        // COPY_SETTINGS(m_color);
+        // COPY_SETTINGS(m_quiet);
+        // COPY_SETTINGS(m_show_summary);
+        // COPY_SETTINGS(m_url);
+        // COPY_SETTINGS(m_header_map);
+        // COPY_SETTINGS(m_verb);
+        // COPY_SETTINGS(m_req_body);
+        // COPY_SETTINGS(m_req_body_len);
+        // COPY_SETTINGS(m_t_client_list);
+        // COPY_SETTINGS(m_evr_loop_type);
+        // COPY_SETTINGS(m_num_parallel);
+        // COPY_SETTINGS(m_num_threads);
+        // COPY_SETTINGS(m_timeout_s);
+        // COPY_SETTINGS(m_rate);
+        // COPY_SETTINGS(m_request_mode);
+        // COPY_SETTINGS(m_num_end_fetches);
+        // COPY_SETTINGS(m_run_time_s);
+        // COPY_SETTINGS(m_connect_only);
+        // COPY_SETTINGS(m_save_response);
+        // COPY_SETTINGS(m_collect_stats);
+        // COPY_SETTINGS(m_num_reqs_per_conn);
+        // COPY_SETTINGS(m_sock_opt_recv_buf_size);
+        // COPY_SETTINGS(m_sock_opt_send_buf_size);
+        // COPY_SETTINGS(m_sock_opt_no_delay);
+        // COPY_SETTINGS(m_ssl_ctx);
+        // COPY_SETTINGS(m_ssl_cipher_list);
+        // COPY_SETTINGS(m_ssl_options_str);
+        // COPY_SETTINGS(m_ssl_options);
+        // COPY_SETTINGS(m_ssl_verify);
+        // COPY_SETTINGS(m_ssl_sni);
+        // COPY_SETTINGS(m_ssl_ca_file);
+        // COPY_SETTINGS(m_ssl_ca_path);
+        // COPY_SETTINGS(m_resolver);
 
         // Set rate
         if(m_settings.m_rate != -1)
@@ -358,7 +361,7 @@ void t_client::stop(void)
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
+//: \details: Get the next reqlet to process depending on request mode
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
@@ -447,8 +450,9 @@ reqlet *t_client::try_get_resolved(void)
         }
 
         // Try resolve
-        l_status = l_reqlet->resolve();
-        if(l_status != STATUS_OK)
+        if(NULL == m_settings.m_resolver ||
+           (l_status =
+            l_reqlet->resolve(*m_settings.m_resolver))!= STATUS_OK)
         {
                 // TODO Set response and error
                 ++m_num_resolved;
@@ -1075,5 +1079,3 @@ void t_client::get_stats_copy(tag_stat_map_t &ao_tag_stat_map)
 }
 
 } //namespace ns_hlx {
-
-
