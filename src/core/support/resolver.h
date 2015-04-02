@@ -65,6 +65,7 @@ public:
         // -------------------------------------------------
         int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
 
+        resolver();
         ~resolver();
 
         // Settings...
@@ -79,12 +80,6 @@ public:
         int32_t read_ai_cache(const std::string &a_ai_cache_file);
 
         // -------------------------------------------------
-        // Class methods
-        // -------------------------------------------------
-        // Get the singleton instance
-        static resolver *get(void);
-
-        // -------------------------------------------------
         // Public members
         // -------------------------------------------------
 
@@ -93,7 +88,6 @@ private:
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(resolver)
-        resolver();
 
         // -------------------------------------------------
         // Private members
@@ -112,19 +106,7 @@ private:
         ai_cache_map_t m_ai_cache_map;
         std::string m_ai_cache_file;
 
-        // -------------------------------------------------
-        // Class members
-        // -------------------------------------------------
-        // the pointer to the singleton for the instance 
-        static resolver *m_singleton_ptr;
-
 };
 
 
 #endif
-
-
-
-
-
-

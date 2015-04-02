@@ -158,6 +158,7 @@ t_client::t_client(const settings_struct_t &a_settings,
         COPY_SETTINGS(m_ssl_sni);
         COPY_SETTINGS(m_ssl_ca_file);
         COPY_SETTINGS(m_ssl_ca_path);
+        COPY_SETTINGS(m_resolver);
 
         // Set rate
         if(m_settings.m_rate != -1)
@@ -358,7 +359,7 @@ void t_client::stop(void)
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
+//: \details: Get the next reqlet to process depending on request mode
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
@@ -447,8 +448,9 @@ reqlet *t_client::try_get_resolved(void)
         }
 
         // Try resolve
-        l_status = l_reqlet->resolve();
-        if(l_status != STATUS_OK)
+        if(NULL == m_settings.m_resolver ||
+           (l_status =
+            l_reqlet->resolve(*m_settings.m_resolver))!= STATUS_OK)
         {
                 // TODO Set response and error
                 ++m_num_resolved;
@@ -1075,5 +1077,3 @@ void t_client::get_stats_copy(tag_stat_map_t &ao_tag_stat_map)
 }
 
 } //namespace ns_hlx {
-
-

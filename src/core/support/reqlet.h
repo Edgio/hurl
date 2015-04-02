@@ -45,6 +45,7 @@
 //: Fwd' Decls
 //: ----------------------------------------------------------------------------
 class conn;
+class resolver;
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -149,7 +150,7 @@ public:
         int32_t init_with_url(const std::string &a_url, bool a_wildcarding=false);
         uint64_t get_id(void) {return m_id;}
         bool is_resolved(void) {return m_is_resolved_flag;}
-        int32_t resolve(void);
+        int32_t resolve(resolver &a_resolver);
         void show_host_info(void);
         bool is_done(void) {
                 if((m_num_to_req == -1)|| m_num_reqd < (uint64_t)m_num_to_req) return false;
@@ -240,6 +241,3 @@ void add_to_total_stat_agg(total_stat_agg_t &ao_stat_agg, const total_stat_agg_t
 
 
 #endif
-
-
-

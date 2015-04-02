@@ -87,42 +87,6 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::init(void)
-{
-
-        // -------------------------------------------
-        // Init resolver with cache
-        // -------------------------------------------
-        int32_t l_ldb_init_status;
-        l_ldb_init_status = resolver::get()->init(m_ai_cache, m_use_ai_cache);
-        if(STATUS_OK != l_ldb_init_status)
-        {
-                return HLX_CLIENT_STATUS_ERROR;
-        }
-
-        // -------------------------------------------
-        // SSL init...
-        // -------------------------------------------
-        m_ssl_ctx = ssl_init(m_ssl_cipher_list, // ctx cipher list str
-                             m_ssl_options,     // ctx options
-                             m_ssl_ca_file,     // ctx ca file
-                             m_ssl_ca_path);    // ctx ca path
-        if(NULL == m_ssl_ctx)
-        {
-                NDBG_PRINT("Error: performing ssl_init with cipher_list: %s\n", m_ssl_cipher_list.c_str());
-                return HLX_CLIENT_STATUS_ERROR;
-        }
-
-        m_is_initd = true;
-        return HLX_CLIENT_STATUS_OK;
-
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int hlx_client::run(void)
 {
         int l_status = 0;
@@ -134,6 +98,7 @@ int hlx_client::run(void)
                         return HLX_CLIENT_STATUS_ERROR;
                 }
         }
+        // at this point m_resolver is a resolver instance
 
         // -------------------------------------------
         // Bury the config into a settings struct
@@ -170,6 +135,7 @@ int hlx_client::run(void)
         l_settings.m_ssl_sni = m_ssl_sni;
         l_settings.m_ssl_ca_file = m_ssl_ca_file;
         l_settings.m_ssl_ca_path = m_ssl_ca_path;
+        l_settings.m_resolver = m_resolver;
 
         // -------------------------------------------
         // Create t_client list...
@@ -1076,6 +1042,9 @@ hlx_client::hlx_client(void):
         m_evr_loop_type(EVR_LOOP_EPOLL),
 
         m_reqlet_vector(),
+
+        m_resolver(NULL),
+
         m_is_initd(false)
 {
         m_last_stat = new total_stat_agg_struct();
@@ -1127,15 +1096,15 @@ hlx_client::~hlx_client(void)
                 m_last_stat = NULL;
         }
 
-        // Delete resolver
-        delete resolver::get();
-
         if(m_req_body)
         {
                 free(m_req_body);
                 m_req_body = NULL;
                 m_req_body_len = 0;
         }
+
+        delete m_resolver;
+        m_resolver = NULL;
 
 }
 
@@ -1449,6 +1418,50 @@ std::string hlx_client::dump_all_responses_json(int a_part_map)
         std::string l_responses_str = l_strbuf.GetString();
         return l_responses_str;
 }
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  client status indicating success or failure
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int hlx_client::init(void)
+{
+
+        if(true == m_is_initd)
+                return HLX_CLIENT_STATUS_OK;
+        // not initialized yet
+
+        m_resolver = new resolver();
+
+        // -------------------------------------------
+        // Init resolver with cache
+        // -------------------------------------------
+        int32_t l_ldb_init_status;
+        l_ldb_init_status = m_resolver->init(m_ai_cache, m_use_ai_cache);
+        if(STATUS_OK != l_ldb_init_status)
+        {
+                return HLX_CLIENT_STATUS_ERROR;
+        }
+
+        // -------------------------------------------
+        // SSL init...
+        // -------------------------------------------
+        m_ssl_ctx = ssl_init(m_ssl_cipher_list, // ctx cipher list str
+                             m_ssl_options,     // ctx options
+                             m_ssl_ca_file,     // ctx ca file
+                             m_ssl_ca_path);    // ctx ca path
+        if(NULL == m_ssl_ctx)
+        {
+                NDBG_PRINT("Error: performing ssl_init with cipher_list: %s\n", m_ssl_cipher_list.c_str());
+                return HLX_CLIENT_STATUS_ERROR;
+        }
+
+        m_is_initd = true;
+        return HLX_CLIENT_STATUS_OK;
+
+}
+
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

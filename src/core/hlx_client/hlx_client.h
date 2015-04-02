@@ -30,6 +30,7 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <stdint.h>
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -61,6 +62,8 @@ typedef std::vector <reqlet *> reqlet_vector_t;
 struct total_stat_agg_struct;
 typedef total_stat_agg_struct total_stat_agg_t;
 typedef std::map <std::string, total_stat_agg_t> tag_stat_map_t;
+class resolver;
+
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
@@ -128,7 +131,6 @@ public:
         ~hlx_client(void);
 
         // Running
-        int init(void);
         int run(void);
         int stop(void);
         void wait_till_stopped(void);
@@ -244,6 +246,8 @@ private:
 
         std::string dump_all_responses_json(int a_part_map);
 
+        int init(void);
+
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
@@ -306,6 +310,9 @@ private:
         // Reqlets
         reqlet_vector_t m_reqlet_vector;
 
+        // resolver
+        resolver *m_resolver;
+
         // -----------------------------
         // State
         // -----------------------------
@@ -321,4 +328,3 @@ private:
 } //namespace ns_hlx {
 
 #endif // #ifndef _HLX_CLIENT_H
-

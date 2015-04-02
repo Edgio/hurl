@@ -59,6 +59,26 @@
                 }\
         }while(0)
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+resolver::resolver(void):
+        m_is_initd(false),
+        m_verbose(false),
+        m_color(false),
+        m_timeout_s(5),
+        m_use_cache(false),
+        m_cache_mutex(),
+        m_ai_cache_map(),
+        m_ai_cache_file(RESOLVER_DEFAULT_AI_CACHE_FILE)
+{
+        // Init mutex
+        pthread_mutex_init(&m_cache_mutex, NULL);
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -391,8 +411,6 @@ int32_t resolver::init(std::string addr_info_cache_file, bool a_use_cache)
         {
                 return STATUS_OK;
         }
-        // Mark as initialized
-        m_is_initd = true;
 
         m_use_cache = a_use_cache;
         if(m_use_cache)
@@ -415,27 +433,10 @@ int32_t resolver::init(std::string addr_info_cache_file, bool a_use_cache)
 
         }
 
+        // Mark as initialized
+        m_is_initd = true;
 
         return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-resolver::resolver(void):
-        m_is_initd(false),
-        m_verbose(false),
-        m_color(false),
-        m_timeout_s(5),
-        m_use_cache(false),
-        m_cache_mutex(),
-        m_ai_cache_map(),
-        m_ai_cache_file(RESOLVER_DEFAULT_AI_CACHE_FILE)
-{
-        // Init mutex
-        pthread_mutex_init(&m_cache_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -452,33 +453,3 @@ resolver::~resolver()
         pthread_mutex_destroy(&m_cache_mutex);
 
 }
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-pthread_mutex_t g_singleton_mutex = PTHREAD_MUTEX_INITIALIZER;
-resolver *resolver::get(void)
-{
-        if (m_singleton_ptr == NULL) {
-                pthread_mutex_lock(&g_singleton_mutex);
-                //If not yet created, create the singleton instance
-                if (m_singleton_ptr == NULL) {
-                        m_singleton_ptr = new resolver();
-                }
-                pthread_mutex_unlock(&g_singleton_mutex);
-        }
-        return m_singleton_ptr;
-}
-
-//: ----------------------------------------------------------------------------
-//: Class variables
-//: ----------------------------------------------------------------------------
-// the pointer to the singleton for the instance 
-resolver *resolver::m_singleton_ptr;
-
-
-
-
