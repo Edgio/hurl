@@ -1487,6 +1487,8 @@ static void show_total_agg_stat(std::string &a_tag,
         printf("| fetches/sec:         %f\n", ((double)a_stat.m_total_reqs)/(a_time_elapsed_s));
         printf("| bytes/sec:           %e\n", ((double)a_stat.m_total_bytes)/a_time_elapsed_s);
 
+        // TODO Fix stdev/var calcs
+#if 0
 #define SHOW_XSTAT_LINE(_tag, stat)\
         do {\
         printf("| %-16s %12.6f mean, %12.6f max, %12.6f min, %12.6f stdev, %12.6f var\n",\
@@ -1497,10 +1499,20 @@ static void show_total_agg_stat(std::string &a_tag,
                stat.stdev()/1000.0,                                     \
                stat.var()/1000.0);                                      \
         } while(0)
+#else
+#define SHOW_XSTAT_LINE(_tag, stat)\
+        do {\
+        printf("| %-16s %12.6f mean, %12.6f max, %12.6f min\n",\
+               _tag,\
+               stat.mean()/1000.0,\
+               stat.max()/1000.0,\
+               stat.min()/1000.0);\
+        } while(0)
+#endif
 
         SHOW_XSTAT_LINE("ms/connect:", a_stat.m_stat_us_connect);
         SHOW_XSTAT_LINE("ms/1st-response:", a_stat.m_stat_us_first_response);
-        SHOW_XSTAT_LINE("ms/download:", a_stat.m_stat_us_download);
+        //SHOW_XSTAT_LINE("ms/download:", a_stat.m_stat_us_download);
         SHOW_XSTAT_LINE("ms/end2end:", a_stat.m_stat_us_end_to_end);
 
         if(a_color)
@@ -1593,7 +1605,7 @@ static void show_total_agg_stat_legacy(std::string &a_tag,
 
         SHOW_XSTAT_LINE_LEGACY("msecs/connect:", a_stat.m_stat_us_connect);
         SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", a_stat.m_stat_us_first_response);
-        SHOW_XSTAT_LINE_LEGACY("msecs/download:", a_stat.m_stat_us_download);
+        //SHOW_XSTAT_LINE_LEGACY("msecs/download:", a_stat.m_stat_us_download);
         SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", a_stat.m_stat_us_end_to_end);
 
         printf("HTTP response codes: ");
