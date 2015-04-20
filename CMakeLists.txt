@@ -1,7 +1,7 @@
 # ----------------------------------------------------------------------------
 # Copyright (C) 2014 Verizon.  All Rights Reserved.
 # All Rights Reserved
-# 
+#
 #   Author: Reed P Morrison
 #   Date:   02/07/2014
 #
@@ -47,8 +47,9 @@ add_subdirectory(src)
 # ------------------------------------------------
 # Debian Package Support
 # ------------------------------------------------
+EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
 SET(CPACK_GENERATOR "DEB")
-SET(CPACK_DEBIAN_PACKAGE_VERSION "1.2.2")
+SET(CPACK_DEBIAN_PACKAGE_VERSION "1.2.2-${DISTRIBUTION}")
 SET(CPACK_PACKAGE_FILE_NAME "hlo-${CPACK_DEBIAN_PACKAGE_VERSION}-Linux")
 SET(CPACK_DEBIAN_PACKAGE_NAME "hlo")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
@@ -61,4 +62,3 @@ SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libgoogle-perftools-dev, libssl-dev")
 
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 INCLUDE(CPack)
-
