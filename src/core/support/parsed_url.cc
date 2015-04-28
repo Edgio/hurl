@@ -97,7 +97,7 @@ int32_t parsed_url::parse(const std::string &a_url)
 	std::string l_uri_str;
 	std::string l_host_str;
 	// Get up to end of string or /
-	l_uri_str = a_url.substr(l_prefix_pos + strlen(""), a_url.length());
+	l_uri_str = a_url.substr(l_prefix_pos);
 	//NDBG_PRINT("PATH: uri: %s\n", l_uri_str.c_str());
 
 	size_t l_host_slash_pos = 0;
@@ -111,9 +111,16 @@ int32_t parsed_url::parse(const std::string &a_url)
 	}
 	else
 	{
-		l_host_str = l_uri_str;
+        // A quick hack for situation that option is followed by a URL
+        // which doesn't have a path component here
+        std::size_t ret = l_uri_str.find(";",0);
+        if( ret != std::string::npos ) {
+            m_path = l_uri_str.substr(ret);
+            l_host_str = l_uri_str.substr(0,ret);
+        } else {
+            l_host_str = l_uri_str;
+        }
 	}
-
 
 	// -----------------------------------------------------
 	// port
