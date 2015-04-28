@@ -298,30 +298,33 @@ int32_t reqlet::special_effects_parse(void)
         char *l_save_ptr;
         strncpy(l_path, m_url.m_path.c_str(), 2048);
         char *l_p = strtok_r(l_path, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
-        //printf("Path: %s\n", l_p);
-        m_url.m_path = l_p;
 
-        int32_t l_status;
-        path_substr_vector_t l_path_substr_vector;
-        range_vector_t l_range_vector;
-        if(l_p)
-        {
+        if( m_url.m_path.front() != *SPECIAL_EFX_OPT_SEPARATOR ) {
+            // Rule out special cases that m_path only contains options
+            //
+            m_url.m_path = l_p;
+
+            int32_t l_status;
+            path_substr_vector_t l_path_substr_vector;
+            range_vector_t l_range_vector;
+            if(l_p)
+            {
                 l_status = parse_path(l_p, l_path_substr_vector, l_range_vector);
                 if(l_status != STATUS_OK)
                 {
-                        NDBG_PRINT("STATUS_ERROR: Performing parse_path(%s)\n", l_p);
-                        return STATUS_ERROR;
+                    NDBG_PRINT("STATUS_ERROR: Performing parse_path(%s)\n", l_p);
+                    return STATUS_ERROR;
                 }
-        }
+            }
 
-        // If empty path explode
-        if(l_range_vector.size())
-        {
+            // If empty path explode
+            if(l_range_vector.size())
+            {
                 l_status = path_exploder(std::string(""), l_path_substr_vector, 0, l_range_vector, 0);
                 if(l_status != STATUS_OK)
                 {
-                        NDBG_PRINT("STATUS_ERROR: Performing explode_path(%s)\n", l_p);
-                        return STATUS_ERROR;
+                    NDBG_PRINT("STATUS_ERROR: Performing explode_path(%s)\n", l_p);
+                    return STATUS_ERROR;
                 }
 
                 // DEBUG show paths
@@ -333,16 +336,17 @@ int32_t reqlet::special_effects_parse(void)
                 //{
                 //      NDBG_OUTPUT(": [%6d]: %s\n", i_path_cnt, i_path->c_str());
                 //}
-        } else {
-
+            } else {
                 m_path_vector.push_back(m_url.m_path);
-
+            }
+            l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
+        } else {
+            m_url.m_path.clear();
         }
 
         // Options...
         while (l_p)
         {
-                l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
                 if(l_p)
                 {
                         char l_options[1024];
@@ -367,6 +371,7 @@ int32_t reqlet::special_effects_parse(void)
                         //printf("Val: %s\n", l_v);
 
                 }
+                l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         }
 
 
