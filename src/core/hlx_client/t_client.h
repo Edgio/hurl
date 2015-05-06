@@ -84,10 +84,10 @@ typedef struct settings_struct
         int32_t m_num_parallel;
         uint32_t m_num_threads;
         uint32_t m_timeout_s;
+        int32_t m_run_time_s;
         int32_t m_rate;
         request_mode_t m_request_mode;
         int32_t m_num_end_fetches;
-        int32_t m_run_time_s;
         bool m_connect_only;
         int32_t m_num_reqs_per_conn;
         bool m_save_response;
@@ -130,10 +130,10 @@ typedef struct settings_struct
                 m_num_parallel(64),
                 m_num_threads(8),
                 m_timeout_s(10),
+                m_run_time_s(-1),
                 m_rate(-1),
                 m_request_mode(REQUEST_MODE_ROUND_ROBIN),
                 m_num_end_fetches(-1),
-                m_run_time_s(-1),
                 m_connect_only(false),
                 m_num_reqs_per_conn(-1),
                 m_save_response(false),
@@ -270,7 +270,6 @@ private:
         int64_t m_num_fetched;
         int64_t m_num_pending;
 
-        int32_t m_run_time_s;
         int32_t m_start_time_s;
 
         //uint64_t m_unresolved_count;
