@@ -143,6 +143,7 @@ t_client::t_client(const settings_struct_t &a_settings,
         COPY_SETTINGS(m_request_mode);
         COPY_SETTINGS(m_num_end_fetches);
         COPY_SETTINGS(m_run_time_s);
+        m_run_time_s = a_settings.m_run_time_s;
         COPY_SETTINGS(m_connect_only);
         COPY_SETTINGS(m_save_response);
         COPY_SETTINGS(m_collect_stats);
@@ -855,10 +856,16 @@ int32_t t_client::start_connections(void)
         {
 
                 //NDBG_PRINT("STARTING i_conn: %u\n", *i_conn);
+                if( (m_run_time_s != -1) && (m_run_time_s < static_cast<int32_t>(get_time_s() - m_start_time_s)) )
+                    return STATUS_OK;
 
                 // Loop trying to get reqlet
                 l_reqlet = NULL;
-                while(((l_reqlet = try_get_resolved()) == NULL) && (!is_pending_done()));
+                while(((l_reqlet = try_get_resolved()) == NULL) && (!is_pending_done())) {
+                    // checking the current time
+                    if( (m_run_time_s != -1) && (m_run_time_s < static_cast<int32_t>(get_time_s() - m_start_time_s)) )
+                        return STATUS_OK;
+                }
 
                 if((l_reqlet == NULL) &&
                    is_pending_done())

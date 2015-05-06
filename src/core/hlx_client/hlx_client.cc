@@ -117,6 +117,7 @@ int hlx_client::run(void)
         l_settings.m_num_parallel = m_num_parallel;
         l_settings.m_num_threads = m_num_threads;
         l_settings.m_timeout_s = m_timeout_s;
+        l_settings.m_run_time_s = m_run_time_s;
         l_settings.m_rate = m_rate;
         l_settings.m_request_mode = m_request_mode;
         l_settings.m_num_end_fetches = m_num_end_fetches;
