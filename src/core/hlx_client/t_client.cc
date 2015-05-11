@@ -366,9 +366,11 @@ reqlet *t_client::get_reqlet(void)
 {
         reqlet *l_reqlet = NULL;
 
-        //NDBG_PRINT("%sREQLST%s[%lu]: .\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_reqlet_list.size());
-        //NDBG_PRINT("m_rate_limit = %d m_rate_delta_us = %lu\n", m_rate_limit, m_rate_delta_us);
-        //NDBG_PRINT("m_reqlet_avail_list.size(): %d\n", (int)m_reqlet_avail_list.size());
+        //NDBG_PRINT("%sREQLST%s[%lu]: MODE: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_reqlet_vector.size(), m_settings.m_request_mode);
+        //NDBG_PRINT("m_rate:                     %d\n",  m_settings.m_rate);
+        //NDBG_PRINT("m_rate_delta_us:            %lu\n", m_rate_delta_us);
+        //NDBG_PRINT("m_reqlet_vector_idx:        %u\n",  m_reqlet_vector_idx);
+        //NDBG_PRINT("m_reqlet_avail_list.size(): %d\n",  (int)m_reqlet_vector.size());
 
         if(0 == m_reqlet_vector.size())
         {
@@ -382,8 +384,13 @@ reqlet *t_client::get_reqlet(void)
         {
         case REQUEST_MODE_ROUND_ROBIN:
         {
-                uint32_t l_next_index = ((m_reqlet_vector_idx + 1) >= m_reqlet_vector.size()) ? 0 : m_reqlet_vector_idx + 1;
-                //NDBG_PRINT("m_last_reqlet_index: %d\n", m_last_reqlet_index);
+                uint32_t l_next_index = 0;
+                l_next_index = m_reqlet_vector_idx + 1;
+                if(l_next_index >= m_reqlet_vector.size())
+                {
+                        l_next_index = 0;
+                }
+                //NDBG_PRINT("m_next:                     %u\n", l_next_index);
                 m_reqlet_vector_idx = l_next_index;
                 l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
                 break;
@@ -414,6 +421,7 @@ reqlet *t_client::get_reqlet(void)
                 uint32_t l_next_index = ((m_reqlet_vector_idx + 1) >= m_reqlet_vector.size()) ? 0 : m_reqlet_vector_idx + 1;
                 m_reqlet_vector_idx = l_next_index;
                 l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
+                break;
         }
         }
 
@@ -425,7 +433,9 @@ reqlet *t_client::get_reqlet(void)
 
         // TODO UPGET LOCALLY
         ++m_num_get;
-        ++m_reqlet_vector_idx;
+
+        //NDBG_PRINT("m_reqlet_vector_idx:        %u\n",  m_reqlet_vector_idx);
+        //NDBG_PRINT("host:                       %s\n", l_reqlet->m_url.m_host.c_str());
 
         return l_reqlet;
 }
