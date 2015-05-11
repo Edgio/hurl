@@ -361,7 +361,7 @@ int main(int argc, char** argv)
         l_hlx_client->set_split_requests_by_thread(false);
         l_hlx_client->set_collect_stats(true);
         l_hlx_client->set_save_response(false);
-        l_hlx_client->set_use_ai_cache(false);
+        l_hlx_client->set_use_ai_cache(true);
 
         // -------------------------------------------
         // Setup default headers before the user
