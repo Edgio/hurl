@@ -731,7 +731,7 @@ void *t_client::t_run(void *a_nothing)
         // -------------------------------------------
         // Main loop.
         // -------------------------------------------
-        //NDBG_PRINT("starting main loop\n");
+        //NDBG_PRINT("starting main loop: run_time_s: %d\n", m_settings.m_run_time_s);
         while(!m_stopped &&
               !is_pending_done() &&
               ((m_settings.m_run_time_s == -1) || (m_settings.m_run_time_s > (int32_t)(get_time_s() - m_start_time_s))))
@@ -760,7 +760,10 @@ void *t_client::t_run(void *a_nothing)
         // Still awaiting responses -wait...
         uint64_t l_cur_time = get_time_s();
         uint64_t l_end_time = l_cur_time + m_settings.m_timeout_s;
-        while(!m_stopped && (m_num_pending > 0) && (l_cur_time < l_end_time))
+        while(!m_stopped &&
+              (m_num_pending > 0) &&
+              (l_cur_time < l_end_time) &&
+              ((m_settings.m_run_time_s == -1) || (m_settings.m_run_time_s > (int32_t)(get_time_s() - m_start_time_s))))
         {
                 // Run loop
                 //NDBG_PRINT("waiting: m_num_pending: %d --time-left: %d\n", (int)m_num_pending, int(l_end_time - l_cur_time));
