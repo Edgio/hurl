@@ -66,6 +66,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <string.h>
+#include <math.h>
 
 // json support
 #include "rapidjson/document.h"
@@ -118,7 +119,6 @@ int hlx_client::run(void)
         l_settings.m_num_threads = m_num_threads;
         l_settings.m_timeout_s = m_timeout_s;
         l_settings.m_run_time_s = m_run_time_s;
-        l_settings.m_rate = m_rate;
         l_settings.m_request_mode = m_request_mode;
         l_settings.m_num_end_fetches = m_num_end_fetches;
         l_settings.m_connect_only = m_connect_only;
@@ -137,6 +137,19 @@ int hlx_client::run(void)
         l_settings.m_ssl_ca_file = m_ssl_ca_file;
         l_settings.m_ssl_ca_path = m_ssl_ca_path;
         l_settings.m_resolver = m_resolver;
+
+        if(m_rate > 0)
+        {
+                l_settings.m_rate = (int32_t)((double)m_rate / (double)m_num_threads);
+                if(l_settings.m_rate == 0)
+                {
+                        l_settings.m_rate = 1;
+                }
+        }
+        else
+        {
+                l_settings.m_rate = m_rate;
+        }
 
         // -------------------------------------------
         // Create t_client list...
