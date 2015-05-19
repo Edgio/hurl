@@ -1781,8 +1781,6 @@ int32_t hlx_client::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len
 
 }
 
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1869,6 +1867,118 @@ void hlx_client::display_results_line(void)
         m_last_display_time_ms = get_time_ms();
         *m_last_stat = l_total;
 
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_client::display_responses_line_desc(void)
+{
+        printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
+        if(m_color)
+        {
+        printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                        ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_GREEN, "200s", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_CYAN, "300s", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_MAGENTA, "400s", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_RED, "500s", ANSI_COLOR_OFF);
+        }
+        else
+        {
+                printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
+                                "Elapsed",
+                                "Req/s",
+                                "Cmpltd",
+                                "Errors",
+                                "200s",
+                                "300s",
+                                "400s",
+                                "500s");
+        }
+        printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_client::display_responses_line(void)
+{
+
+        total_stat_agg_t l_total;
+        tag_stat_map_t l_unused;
+        uint64_t l_cur_time_ms = get_time_ms();
+
+        // Get stats
+        get_stats(l_total, false, l_unused);
+
+        double l_reqs_per_s = ((double)(l_total.m_num_conn_completed - m_last_stat->m_num_conn_completed)*1000.0) /
+                              ((double)(l_cur_time_ms - m_last_display_time_ms));
+
+        // Aggregate over status code map
+        status_code_count_map_t m_status_code_count_map;
+
+        uint32_t l_200s = 0;
+        uint32_t l_300s = 0;
+        uint32_t l_400s = 0;
+        uint32_t l_500s = 0;
+        for(status_code_count_map_t::iterator i_code = l_total.m_status_code_count_map.begin();
+            i_code != l_total.m_status_code_count_map.end();
+            ++i_code)
+        {
+                if(i_code->first >= 200 && i_code->first <= 299)
+                {
+                        l_200s += i_code->second;
+                }
+                else if(i_code->first >= 300 && i_code->first <= 399)
+                {
+                        l_300s += i_code->second;
+                }
+                else if(i_code->first >= 400 && i_code->first <= 499)
+                {
+                        l_400s += i_code->second;
+                }
+                else if(i_code->first >= 500 && i_code->first <= 599)
+                {
+                        l_500s += i_code->second;
+                }
+        }
+        status_code_count_map_t::iterator i_code;
+
+        if(m_color)
+        {
+                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
+                                        ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
+                                        l_reqs_per_s,
+                                        l_total.m_num_conn_completed,
+                                        l_total.m_num_errors,
+                                        ANSI_COLOR_FG_GREEN, l_200s, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_CYAN, l_300s, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_MAGENTA, l_400s, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_RED, l_500s, ANSI_COLOR_OFF);
+        }
+        else
+        {
+                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
+                                ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
+                                l_reqs_per_s,
+                                l_total.m_num_conn_completed,
+                                l_total.m_num_errors,
+                                l_200s,
+                                l_300s,
+                                l_400s,
+                                l_500s);
+        }
+
+        m_last_display_time_ms = get_time_ms();
+        *m_last_stat = l_total;
 }
 
 //: ----------------------------------------------------------------------------

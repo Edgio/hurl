@@ -223,6 +223,9 @@ public:
         void display_results_line_desc(void);
         void display_results_line(void);
 
+        void display_responses_line_desc(void);
+        void display_responses_line(void);
+
         void get_stats(total_stat_agg_t &ao_all_stats, bool a_get_breakdown, tag_stat_map_t &ao_breakdown_stats);
         int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
         void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
