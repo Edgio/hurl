@@ -84,6 +84,7 @@ typedef struct settings_struct
         bool m_color;
         bool m_quiet;
         bool m_show_response_codes;
+        bool m_show_per_interval;
 
         ns_hlx::hlx_client *m_hlx_client;
 
@@ -95,6 +96,7 @@ typedef struct settings_struct
                 m_color(false),
                 m_quiet(false),
                 m_show_response_codes(false),
+                m_show_per_interval(false),
                 m_hlx_client(NULL)
         {}
 
@@ -239,10 +241,10 @@ void command_exec(settings_struct_t &a_settings)
                         {
                                 if(l_first_time)
                                 {
-                                        l_hlx_client->display_responses_line_desc();
+                                        l_hlx_client->display_responses_line_desc(a_settings.m_show_per_interval);
                                         l_first_time = false;
                                 }
-                                l_hlx_client->display_responses_line();
+                                l_hlx_client->display_responses_line(a_settings.m_show_per_interval);
                         }
                         else
                         {
@@ -303,46 +305,47 @@ void print_usage(FILE* a_stream, int a_exit_code)
 {
         fprintf(a_stream, "Usage: hlo [http[s]://]hostname[:port]/path [options]\n");
         fprintf(a_stream, "Options are:\n");
-        fprintf(a_stream, "  -h, --help         Display this help and exit.\n");
-        fprintf(a_stream, "  -r, --version      Display the version number and exit.\n");
+        fprintf(a_stream, "  -h, --help          Display this help and exit.\n");
+        fprintf(a_stream, "  -r, --version       Display the version number and exit.\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Input Options:\n");
-        fprintf(a_stream, "  -u, --url_file     URL file.\n");
-        fprintf(a_stream, "  -w, --no_wildcards Don't wildcard the url.\n");
-        fprintf(a_stream, "  -d, --data         HTTP body data -supports bodies up to 8k.\n");
+        fprintf(a_stream, "  -u, --url_file      URL file.\n");
+        fprintf(a_stream, "  -w, --no_wildcards  Don't wildcard the url.\n");
+        fprintf(a_stream, "  -d, --data          HTTP body data -supports bodies up to 8k.\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
-        fprintf(a_stream, "  -y, --cipher       Cipher --see \"openssl ciphers\" for list.\n");
-        fprintf(a_stream, "  -p, --parallel     Num parallel Default: 64.\n");
-        fprintf(a_stream, "  -f, --fetches      Num fetches.\n");
-        fprintf(a_stream, "  -N, --num_calls    Number of requests per connection\n");
-        fprintf(a_stream, "  -k, --keep_alive   Re-use connections for all requests\n");
-        fprintf(a_stream, "  -t, --threads      Number of parallel threads.\n");
-        fprintf(a_stream, "  -H, --header       Request headers -can add multiple ie -H<> -H<>...\n");
-        fprintf(a_stream, "  -X, --verb         Request command -HTTP verb to use -GET/PUT/etc\n");
-        fprintf(a_stream, "  -l, --seconds      Run for <N> seconds .\n");
-        fprintf(a_stream, "  -A, --rate         Max Request Rate.\n");
-        fprintf(a_stream, "  -M, --mode         Requests mode [roundrobin|sequential|random].\n");
-        fprintf(a_stream, "  -R, --recv_buffer  Socket receive buffer size.\n");
-        fprintf(a_stream, "  -S, --send_buffer  Socket send buffer size.\n");
-        fprintf(a_stream, "  -D, --no_delay     Socket TCP no-delay.\n");
-        fprintf(a_stream, "  -T, --timeout      Timeout (seconds).\n");
+        fprintf(a_stream, "  -y, --cipher        Cipher --see \"openssl ciphers\" for list.\n");
+        fprintf(a_stream, "  -p, --parallel      Num parallel Default: 64.\n");
+        fprintf(a_stream, "  -f, --fetches       Num fetches.\n");
+        fprintf(a_stream, "  -N, --num_calls     Number of requests per connection\n");
+        fprintf(a_stream, "  -k, --keep_alive    Re-use connections for all requests\n");
+        fprintf(a_stream, "  -t, --threads       Number of parallel threads.\n");
+        fprintf(a_stream, "  -H, --header        Request headers -can add multiple ie -H<> -H<>...\n");
+        fprintf(a_stream, "  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc\n");
+        fprintf(a_stream, "  -l, --seconds       Run for <N> seconds .\n");
+        fprintf(a_stream, "  -A, --rate          Max Request Rate.\n");
+        fprintf(a_stream, "  -M, --mode          Requests mode [roundrobin|sequential|random].\n");
+        fprintf(a_stream, "  -R, --recv_buffer   Socket receive buffer size.\n");
+        fprintf(a_stream, "  -S, --send_buffer   Socket send buffer size.\n");
+        fprintf(a_stream, "  -D, --no_delay      Socket TCP no-delay.\n");
+        fprintf(a_stream, "  -T, --timeout       Timeout (seconds).\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
-        fprintf(a_stream, "  -v, --verbose      Verbose logging\n");
-        fprintf(a_stream, "  -c, --color        Color\n");
-        fprintf(a_stream, "  -q, --quiet        Suppress progress output\n");
-        fprintf(a_stream, "  -C, --responses    Display http(s) response codes instead of request statistics\n");
+        fprintf(a_stream, "  -v, --verbose       Verbose logging\n");
+        fprintf(a_stream, "  -c, --color         Color\n");
+        fprintf(a_stream, "  -q, --quiet         Suppress progress output\n");
+        fprintf(a_stream, "  -C, --responses     Display http(s) response codes instead of request statistics\n");
+        fprintf(a_stream, "  -L, --responses_per Display http(s) response codes per interval instead of request statistics\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Stat Options:\n");
-        fprintf(a_stream, "  -P, --data_port    Start HTTP Stats Daemon on port.\n");
-        fprintf(a_stream, "  -B, --breakdown    Show breakdown\n");
-        fprintf(a_stream, "  -Y, --http_load    Display in http load mode [MODE] -Legacy support\n");
-        fprintf(a_stream, "  -G, --gprofile     Google profiler output file\n");
+        fprintf(a_stream, "  -P, --data_port     Start HTTP Stats Daemon on port.\n");
+        fprintf(a_stream, "  -B, --breakdown     Show breakdown\n");
+        fprintf(a_stream, "  -Y, --http_load     Display in http load mode [MODE] -Legacy support\n");
+        fprintf(a_stream, "  -G, --gprofile      Google profiler output file\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running long jobs consider enabling tcp_tw_reuse -eg:\n");
@@ -401,6 +404,7 @@ int main(int argc, char** argv)
         int l_end_fetches = -1;
         bool l_input_flag = false;
 
+
         // -------------------------------------------
         // Get args...
         // -------------------------------------------
@@ -433,6 +437,7 @@ int main(int argc, char** argv)
                 { "color",        0, 0, 'c' },
                 { "quiet",        0, 0, 'q' },
                 { "responses",    0, 0, 'C' },
+                { "responses_per",0, 0, 'L' },
                 { "http_load",    1, 0, 'Y' },
                 { "breakdown",    0, 0, 'B' },
                 { "data_port",    1, 0, 'P' },
@@ -474,7 +479,7 @@ int main(int argc, char** argv)
 
         }
 
-        while ((l_opt = getopt_long_only(argc, argv, "hrku:wd:y:p:f:N:t:H:X:A:M:l:R:S:DT:vcqCY:BP:G:", l_long_options, &l_option_index)) != -1)
+        while ((l_opt = getopt_long_only(argc, argv, "hrku:wd:y:p:f:N:t:H:X:A:M:l:R:S:DT:vcqCLY:BP:G:", l_long_options, &l_option_index)) != -1)
         {
 
                 if (optarg)
@@ -820,6 +825,15 @@ int main(int argc, char** argv)
                 case 'C':
                 {
                         l_settings.m_show_response_codes = true;
+                        break;
+                }
+                // ---------------------------------------
+                // per_interval
+                // ---------------------------------------
+                case 'L':
+                {
+                        l_settings.m_show_response_codes = true;
+                        l_settings.m_show_per_interval = true;
                         break;
                 }
                 // ---------------------------------------

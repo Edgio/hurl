@@ -1034,6 +1034,9 @@ hlx_client::hlx_client(void):
         m_last_display_time_ms(),
         m_last_stat(NULL),
 
+        // Interval stats
+        m_last_responses_count(),
+
         // Socket options
         m_sock_opt_recv_buf_size(0),
         m_sock_opt_send_buf_size(0),
@@ -1062,6 +1065,9 @@ hlx_client::hlx_client(void):
         m_is_initd(false)
 {
         m_last_stat = new total_stat_agg_struct();
+
+        for(uint32_t i = 0; i < 10; ++i) {m_last_responses_count[i] = 0;}
+
 };
 
 //: ----------------------------------------------------------------------------
@@ -1874,32 +1880,62 @@ void hlx_client::display_results_line(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx_client::display_responses_line_desc(void)
+void hlx_client::display_responses_line_desc(bool a_show_per_interval)
 {
         printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
-        if(m_color)
+        if(a_show_per_interval)
         {
-        printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
-                        ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_GREEN, "200s", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_CYAN, "300s", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_MAGENTA, "400s", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_RED, "500s", ANSI_COLOR_OFF);
+                if(m_color)
+                {
+                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                                ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_GREEN, "200s %%", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_CYAN, "300s %%", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_MAGENTA, "400s %%", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_RED, "500s %%", ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
+                                        "Elapsed",
+                                        "Req/s",
+                                        "Cmpltd",
+                                        "Errors",
+                                        "200s %%",
+                                        "300s %%",
+                                        "400s %%",
+                                        "500s %%");
+                }
         }
         else
         {
-                printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
-                                "Elapsed",
-                                "Req/s",
-                                "Cmpltd",
-                                "Errors",
-                                "200s",
-                                "300s",
-                                "400s",
-                                "500s");
+                if(m_color)
+                {
+                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                                ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_GREEN, "200s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_CYAN, "300s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_MAGENTA, "400s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_RED, "500s", ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
+                                        "Elapsed",
+                                        "Req/s",
+                                        "Cmpltd",
+                                        "Errors",
+                                        "200s",
+                                        "300s",
+                                        "400s",
+                                        "500s");
+                }
         }
         printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
 }
@@ -1909,7 +1945,7 @@ void hlx_client::display_responses_line_desc(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx_client::display_responses_line(void)
+void hlx_client::display_responses_line(bool a_show_per_interval)
 {
 
         total_stat_agg_t l_total;
@@ -1925,60 +1961,116 @@ void hlx_client::display_responses_line(void)
         // Aggregate over status code map
         status_code_count_map_t m_status_code_count_map;
 
-        uint32_t l_200s = 0;
-        uint32_t l_300s = 0;
-        uint32_t l_400s = 0;
-        uint32_t l_500s = 0;
+        uint32_t l_responses[10] = {0};
         for(status_code_count_map_t::iterator i_code = l_total.m_status_code_count_map.begin();
             i_code != l_total.m_status_code_count_map.end();
             ++i_code)
         {
                 if(i_code->first >= 200 && i_code->first <= 299)
                 {
-                        l_200s += i_code->second;
+                        l_responses[2] += i_code->second;
                 }
                 else if(i_code->first >= 300 && i_code->first <= 399)
                 {
-                        l_300s += i_code->second;
+                        l_responses[3] += i_code->second;
                 }
                 else if(i_code->first >= 400 && i_code->first <= 499)
                 {
-                        l_400s += i_code->second;
+                        l_responses[4] += i_code->second;
                 }
                 else if(i_code->first >= 500 && i_code->first <= 599)
                 {
-                        l_500s += i_code->second;
+                        l_responses[5] += i_code->second;
                 }
         }
-        status_code_count_map_t::iterator i_code;
 
-        if(m_color)
+        if(a_show_per_interval)
         {
-                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
+
+                // Calculate rates
+                double l_rate[10] = {0.0};
+                uint32_t l_totals = 0;
+
+                for(uint32_t i = 2; i <= 5; ++i)
+                {
+                        l_totals += l_responses[i] - m_last_responses_count[i];
+                }
+
+                for(uint32_t i = 2; i <= 5; ++i)
+                {
+                        if(l_totals)
+                        {
+                                l_rate[i] = (100.0*((double)(l_responses[i] - m_last_responses_count[i]))) / ((double)(l_totals));
+                        }
+                        else
+                        {
+                                l_rate[i] = 0.0;
+                        }
+                }
+
+                if(m_color)
+                {
+                                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
+                                                ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
+                                                l_reqs_per_s,
+                                                l_total.m_num_conn_completed,
+                                                l_total.m_num_errors,
+                                                ANSI_COLOR_FG_GREEN, l_rate[2], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_CYAN, l_rate[3], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_MAGENTA, l_rate[4], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_RED, l_rate[5], ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
                                         ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
                                         l_total.m_num_conn_completed,
                                         l_total.m_num_errors,
-                                        ANSI_COLOR_FG_GREEN, l_200s, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_CYAN, l_300s, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_MAGENTA, l_400s, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_RED, l_500s, ANSI_COLOR_OFF);
+                                        l_rate[2],
+                                        l_rate[3],
+                                        l_rate[4],
+                                        l_rate[5]);
+                }
+
+                // Update last
+                m_last_responses_count[2] = l_responses[2];
+                m_last_responses_count[3] = l_responses[3];
+                m_last_responses_count[4] = l_responses[4];
+                m_last_responses_count[5] = l_responses[5];
         }
         else
         {
-                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
-                                ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
-                                l_reqs_per_s,
-                                l_total.m_num_conn_completed,
-                                l_total.m_num_errors,
-                                l_200s,
-                                l_300s,
-                                l_400s,
-                                l_500s);
+                if(m_color)
+                {
+                                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
+                                                ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
+                                                l_reqs_per_s,
+                                                l_total.m_num_conn_completed,
+                                                l_total.m_num_errors,
+                                                ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_MAGENTA, l_responses[4], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_RED, l_responses[5], ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
+                                        ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
+                                        l_reqs_per_s,
+                                        l_total.m_num_conn_completed,
+                                        l_total.m_num_errors,
+                                        l_responses[2],
+                                        l_responses[3],
+                                        l_responses[4],
+                                        l_responses[5]);
+                }
         }
 
         m_last_display_time_ms = get_time_ms();
         *m_last_stat = l_total;
+
+
 }
 
 //: ----------------------------------------------------------------------------
