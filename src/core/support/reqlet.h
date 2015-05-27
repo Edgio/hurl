@@ -162,7 +162,7 @@ public:
         void bump_num_requested(void) {++m_num_reqd;}
         const std::string &get_path(void *a_rand);
         const std::string &get_label(void);
-        void set_host(const std::string &a_host) { m_url.m_host = a_host;}
+        void set_host(const std::string &a_host);
         void set_port(uint16_t &a_port) { m_url.m_port = a_port;}
         void set_response(uint16_t a_response_status, const char *a_response);
         void set_id(uint64_t a_id) {m_id = a_id;};

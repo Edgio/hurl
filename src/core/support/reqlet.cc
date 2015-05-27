@@ -569,6 +569,23 @@ const std::string &reqlet::get_label(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void reqlet::set_host(const std::string &a_host)
+{
+        m_url.m_host = a_host;
+
+        // Update tag
+        if(m_url.m_scheme == nconn::SCHEME_TCP) m_tag = "http://";
+        else if(m_url.m_scheme == nconn::SCHEME_SSL) m_tag = "https://";
+        m_tag += a_host;
+        m_tag += m_url.m_path;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void reqlet::set_response(uint16_t a_response_status, const char *a_response)
 {
         // Set reqlet response

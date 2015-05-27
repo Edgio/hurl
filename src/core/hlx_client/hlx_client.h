@@ -49,7 +49,6 @@
     HLX_CLIENT_DISALLOW_COPY(class_name)\
     HLX_CLIENT_DISALLOW_ASSIGN(class_name)
 
-
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
@@ -145,7 +144,7 @@ public:
         void set_color(bool a_val);
 
         // url
-        void set_url(const std::string &a_url);
+        int set_url(const std::string &a_url);
         void set_wildcarding(bool a_val);
 
         // data
@@ -178,6 +177,7 @@ public:
         void set_request_mode(request_mode_t a_mode);
         void set_save_response(bool a_val);
         void set_collect_stats(bool a_val);
+        void set_conn_reuse(bool a_val);
 
         // Socket options
         void set_sock_opt_no_delay(bool a_val);
@@ -250,6 +250,7 @@ private:
         std::string dump_all_responses_json(int a_part_map);
 
         int init(void);
+        int init_client_list(void);
 
         // -------------------------------------------------
         // Private members
@@ -278,6 +279,7 @@ private:
         bool m_show_summary;
         bool m_save_response;
         bool m_collect_stats;
+        bool m_conn_reuse;
 
         int32_t m_rate;
         int32_t m_num_end_fetches;

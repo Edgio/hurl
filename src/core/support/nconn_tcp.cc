@@ -384,8 +384,8 @@ state_top:
                 //NDBG_PRINT("%sCNST_CONNECTING%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
                 int l_connect_status = 0;
                 l_connect_status = connect(m_fd,
-                                (struct sockaddr*) &(a_host_info.m_sa),
-                                (a_host_info.m_sa_len));
+                                           (struct sockaddr*) &(a_host_info.m_sa),
+                                           (a_host_info.m_sa_len));
 
                 // TODO REMOVE
                 //++l_retry;

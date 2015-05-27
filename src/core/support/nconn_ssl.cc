@@ -30,6 +30,7 @@
 #include "hostcheck.h"
 #include "reqlet.h"
 #include "ssl_util.h"
+#include "ndebug.h"
 
 #include <errno.h>
 #include <string.h>
@@ -383,8 +384,6 @@ int32_t nconn_ssl::cleanup(evr_loop *a_evr_loop)
                 SSL_free(m_ssl);
                 m_ssl = NULL;
         }
-
-        //NDBG_PRINT("CLOSE[%lu--%d] %s--CONN--%s\n", m_id, m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
 
         // Reset all the values
         // TODO Make init function...
