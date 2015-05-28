@@ -26,19 +26,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "reqlet.h"
-#include "nconn_ssl.h"
-#include "nconn_tcp.h"
+#include "nconn_pool.h"
 #include "hlx_client.h"
 #include "ndebug.h"
 
 // signal
 #include <signal.h>
-
-#include <list>
-#include <unordered_set>
-#include <unordered_map>
-#include <vector>
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -55,13 +48,6 @@
 
 
 namespace ns_hlx {
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef std::vector<nconn *> nconn_vector_t;
-typedef std::list<uint32_t> conn_id_list_t;
-typedef std::unordered_set<uint32_t> conn_id_set_t;
-typedef std::unordered_map<std::string, conn_id_list_t> active_conn_map_t;
 
 //: ----------------------------------------------------------------------------
 //: Settings
@@ -94,7 +80,7 @@ typedef struct settings_struct
         int32_t m_num_reqs_per_conn;
         bool m_save_response;
         bool m_collect_stats;
-        bool m_conn_reuse;
+        bool m_use_persistent_pool;
 
         // tcp options
         uint32_t m_sock_opt_recv_buf_size;
@@ -141,7 +127,7 @@ typedef struct settings_struct
                 m_num_reqs_per_conn(-1),
                 m_save_response(false),
                 m_collect_stats(false),
-                m_conn_reuse(false),
+                m_use_persistent_pool(false),
                 m_sock_opt_recv_buf_size(0),
                 m_sock_opt_send_buf_size(0),
                 m_sock_opt_no_delay(false),
@@ -253,11 +239,10 @@ private:
                 return reinterpret_cast<t_client *>(a_context)->t_run(NULL);
         }
 
+        int32_t request(reqlet *a_reqlet);
         int32_t start_connections(void);
-        int32_t try_reuse_connections(void);
         int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true, int32_t a_status = 0);
         int32_t create_request(nconn &ao_conn, reqlet &a_reqlet);
-        nconn *create_new_nconn(uint32_t a_id, const reqlet &a_reqlet);
         reqlet *get_reqlet(void);
         reqlet *try_get_resolved(void);
         void limit_rate();
@@ -266,15 +251,9 @@ private:
         // Private members
         // -------------------------------------------------
         // client config
+        nconn_pool m_nconn_pool;
 
         sig_atomic_t m_stopped;
-
-        nconn_vector_t m_nconn_vector;
-        conn_id_list_t m_conn_free_list;
-        conn_id_set_t m_conn_used_set;
-        active_conn_map_t m_active_conn_map;
-        uint32_t m_active_conn_map_size;
-
         int64_t m_num_fetches;
         int64_t m_num_fetched;
         int64_t m_num_pending;

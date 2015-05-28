@@ -376,7 +376,7 @@ int32_t nconn_ssl::receive_response(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_ssl::cleanup(evr_loop *a_evr_loop)
+int32_t nconn_ssl::cleanup(void)
 {
         // Shut down connection
         if(m_ssl)
@@ -391,7 +391,7 @@ int32_t nconn_ssl::cleanup(evr_loop *a_evr_loop)
         m_ssl_state = SSL_STATE_FREE;
 
         // Super
-        nconn_tcp::cleanup(a_evr_loop);
+        nconn_tcp::cleanup();
 
         return STATUS_OK;
 }

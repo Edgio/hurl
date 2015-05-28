@@ -177,7 +177,7 @@ public:
         void set_request_mode(request_mode_t a_mode);
         void set_save_response(bool a_val);
         void set_collect_stats(bool a_val);
-        void set_conn_reuse(bool a_val);
+        void set_use_persistent_pool(bool a_val);
 
         // Socket options
         void set_sock_opt_no_delay(bool a_val);
@@ -279,7 +279,7 @@ private:
         bool m_show_summary;
         bool m_save_response;
         bool m_collect_stats;
-        bool m_conn_reuse;
+        bool m_use_persistent_pool;
 
         int32_t m_rate;
         int32_t m_num_end_fetches;

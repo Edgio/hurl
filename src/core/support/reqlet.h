@@ -135,6 +135,7 @@ public:
                 m_response_body(""),
                 m_response_status(0),
                 m_conn_info(),
+                m_multipath(false),
                 m_id(a_id),
                 m_is_resolved_flag(false),
                 m_num_to_req(a_num_to_req),
@@ -143,7 +144,8 @@ public:
                 m_path_vector(),
                 m_path_order(EXPLODED_PATH_ORDER_SEQUENTIAL),
                 m_path_vector_last_idx(0),
-                m_tag("UNDEFINED")
+                m_label("UNDEFINED"),
+                m_label_hash(0)
         {};
         reqlet(const reqlet &a_reqlet);
         ~reqlet() {};
@@ -162,6 +164,7 @@ public:
         void bump_num_requested(void) {++m_num_reqd;}
         const std::string &get_path(void *a_rand);
         const std::string &get_label(void);
+        uint64_t get_label_hash(void);
         void set_host(const std::string &a_host);
         void set_port(uint16_t &a_port) { m_url.m_port = a_port;}
         void set_response(uint16_t a_response_status, const char *a_response);
@@ -179,6 +182,7 @@ public:
         std::string m_response_body;
         uint16_t m_response_status;
         header_map_t m_conn_info;
+        bool m_multipath;
 
         // -------------------------------------------
         // Class methods
@@ -224,7 +228,8 @@ private:
 
         uint32_t m_path_vector_last_idx;
 
-        std::string m_tag;
+        std::string m_label;
+        uint64_t m_label_hash;
 
         // -------------------------------------------
         // Class members

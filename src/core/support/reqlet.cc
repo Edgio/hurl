@@ -57,6 +57,7 @@ reqlet::reqlet(const reqlet &a_reqlet):
         m_response_body(a_reqlet.m_response_body),
         m_response_status(a_reqlet.m_response_status),
         m_conn_info(a_reqlet.m_conn_info),
+        m_multipath(a_reqlet.m_multipath),
         m_id(a_reqlet.m_id),
         m_is_resolved_flag(a_reqlet.m_is_resolved_flag),
         m_num_to_req(a_reqlet.m_num_to_req),
@@ -65,7 +66,8 @@ reqlet::reqlet(const reqlet &a_reqlet):
         m_path_vector(a_reqlet.m_path_vector),
         m_path_order(a_reqlet.m_path_order),
         m_path_vector_last_idx(a_reqlet.m_path_vector_last_idx),
-        m_tag(a_reqlet.m_tag)
+        m_label(a_reqlet.m_label),
+        m_label_hash(0)
 {
 
 }
@@ -92,6 +94,15 @@ int32_t reqlet::init_with_url(const std::string &a_url, bool a_wildcarding)
                 // TODO Check status...
         }
 
+        if(m_path_vector.size() > 1)
+        {
+                m_multipath = true;
+        }
+        else
+        {
+                m_multipath = false;
+        }
+
         m_num_to_req = m_path_vector.size();
 
         //NDBG_PRINT("Showing parsed url.\n");
@@ -105,11 +116,11 @@ int32_t reqlet::init_with_url(const std::string &a_url, bool a_wildcarding)
         }
 
         // Set default tag if none specified
-        if(m_tag == "UNDEFINED")
+        if(m_label == "UNDEFINED")
         {
                 //char l_buf[256];
                 //snprintf(l_buf, 256, "%s-%" PRIu64 "", m_url.m_host.c_str(), m_id);
-                m_tag = a_url;
+                m_label = a_url;
         }
 
         return STATUS_OK;
@@ -123,6 +134,11 @@ int32_t reqlet::init_with_url(const std::string &a_url, bool a_wildcarding)
 //: ----------------------------------------------------------------------------
 int32_t reqlet::resolve(resolver &a_resolver)
 {
+
+        if(m_is_resolved_flag)
+        {
+                return STATUS_OK;
+        }
 
         int32_t l_status = STATUS_OK;
         std::string l_error;
@@ -242,7 +258,7 @@ int32_t reqlet::add_option(const char *a_key, const char *a_val)
         {
 
                 //NDBG_PRINT("HEADER: %s: %s\n", l_val.substr(0,l_pos).c_str(), l_val.substr(l_pos+1,l_val.length()).c_str());
-                m_tag = l_val;
+                m_label = l_val;
 
         }
 #if 0
@@ -561,7 +577,21 @@ int32_t reqlet::parse_path(const char *a_path,
 //: ----------------------------------------------------------------------------
 const std::string &reqlet::get_label(void)
 {
-        return m_tag;
+        return m_label;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t reqlet::get_label_hash(void)
+{
+        if(!m_label_hash)
+        {
+                m_label_hash = CityHash64(m_label.data(), m_label.length());
+        }
+        return m_label_hash;
 }
 
 //: ----------------------------------------------------------------------------
@@ -574,10 +604,10 @@ void reqlet::set_host(const std::string &a_host)
         m_url.m_host = a_host;
 
         // Update tag
-        if(m_url.m_scheme == nconn::SCHEME_TCP) m_tag = "http://";
-        else if(m_url.m_scheme == nconn::SCHEME_SSL) m_tag = "https://";
-        m_tag += a_host;
-        m_tag += m_url.m_path;
+        if(m_url.m_scheme == nconn::SCHEME_TCP) m_label = "http://";
+        else if(m_url.m_scheme == nconn::SCHEME_SSL) m_label = "https://";
+        m_label += a_host;
+        m_label += m_url.m_path;
 }
 
 

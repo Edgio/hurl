@@ -26,6 +26,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "ndebug.h"
 #include <list>
 #include <unordered_map>
 
@@ -46,19 +47,15 @@ typedef enum
 template<class _Tp>
 class ncache
 {
+public:
 
-private:
         typedef std::pair<uint64_t, _Tp> hash_entry_pair_t;
         typedef std::list<hash_entry_pair_t> cache_list_t;
         typedef std::unordered_map<uint64_t, typename cache_list_t::iterator> cache_map_t;
 
-        cache_list_t m_cache_list;
-        uint32_t m_cache_list_size;
-        cache_map_t m_cache_map;
-        uint32_t m_max_entries;
-        ncache_evict_t m_evict;
+        // delete callback
+        typedef int (*delete_cb_t) (void* o_1, void *a_2);
 
-public:
         // ---------------------------------------
         // Constructor
         // ---------------------------------------
@@ -68,8 +65,41 @@ public:
                         m_cache_list_size(0),
                         m_cache_map(),
                         m_max_entries(a_max_entries),
-                        m_evict(a_evict)
+                        m_evict(a_evict),
+                        m_delete_cb(NULL),
+                        m_o_1(NULL)
         {}
+
+        // ---------------------------------------
+        // Delete callback
+        // ---------------------------------------
+        void set_delete_cb(delete_cb_t a_delete_cb, void *a_o_1)
+        {
+                m_delete_cb = a_delete_cb;
+                m_o_1 = a_o_1;
+        }
+
+        // ---------------------------------------
+        // evict...
+        // ---------------------------------------
+        void evict(void)
+        {
+                if(m_cache_list.empty())
+                {
+                        return;
+                }
+
+                _Tp &l_ref = m_cache_list.back().second;
+                if(m_delete_cb)
+                {
+                        m_delete_cb(m_o_1, &l_ref);
+                }
+
+                m_cache_map.erase(m_cache_list.back().first);
+                m_cache_list.pop_back();
+                --m_cache_list_size;
+        }
+
 
         // ---------------------------------------
         // Insert...
@@ -95,7 +125,7 @@ public:
                 typename cache_map_t::iterator i_cache_map_entry;
                 if ((i_cache_map_entry = m_cache_map.find(a_entry_hash)) != m_cache_map.end())
                 {
-                        evict(i_cache_map_entry);
+                        access_policy(i_cache_map_entry);
                         return true;
                 }
                 else
@@ -112,7 +142,7 @@ public:
                 typename cache_map_t::iterator i_cache_map_entry;
                 if ((i_cache_map_entry = m_cache_map.find(a_entry_hash)) != m_cache_map.end())
                 {
-                        evict(i_cache_map_entry);
+                        access_policy(i_cache_map_entry);
                         return &(i_cache_map_entry->second->second);
                 }
                 else
@@ -144,11 +174,12 @@ public:
                 // TODO --error if not found?
         }
 private:
+        DISALLOW_COPY_AND_ASSIGN(ncache);
 
         // ---------------------------------------
         // run access policy...
         // ---------------------------------------
-        inline void evict(typename cache_map_t::iterator &a_cache_map_entry)
+        inline void access_policy(typename cache_map_t::iterator &a_cache_map_entry)
         {
                 if (m_evict == NCACHE_LRU)
                 {
@@ -160,5 +191,13 @@ private:
                         a_cache_map_entry->second = m_cache_list.begin();
                 }
         }
+
+        cache_list_t m_cache_list;
+        uint32_t m_cache_list_size;
+        cache_map_t m_cache_map;
+        uint32_t m_max_entries;
+        ncache_evict_t m_evict;
+        delete_cb_t m_delete_cb;
+        void *m_o_1;
 };
 #endif //#ifndef _NCACHE_HPP

@@ -105,7 +105,7 @@ public:
 
         int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
         int32_t send_request(bool is_reuse = false);
-        int32_t cleanup(evr_loop *a_evr_loop);
+        int32_t cleanup(void);
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
 

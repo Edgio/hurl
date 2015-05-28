@@ -48,29 +48,9 @@
                 if(a_t_client->m_settings.m_show_summary)\
                         a_t_client->append_summary(a_reqlet);\
                 ++(a_t_client->m_num_done);\
-                if(a_status >= 500) ++(a_t_client->m_num_error); \
+                if(a_status >= 500) {++(a_t_client->m_num_error);}\
                 a_t_client->cleanup_connection(a_conn, true, a_error); \
         }while(0)
-
-#define T_CLIENT_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
-        do { \
-                int _status = 0; \
-                _status = _conn.set_opt((_opt), (_buf), (_len)); \
-                if (_status != STATUS_OK) { \
-                        NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
-                        return NULL;\
-                } \
-        } while(0)
-
-#define HLX_CLIENT_GET_NCONN_OPT(_conn, _opt, _buf, _len) \
-        do { \
-                int _status = 0; \
-                _status = _conn.get_opt((_opt), (_buf), (_len)); \
-                if (_status != STATUS_OK) { \
-                        NDBG_PRINT("STATUS_ERROR: Failed to get_opt %d.  Status: %d.\n", _opt, _status); \
-                        return NULL;\
-                } \
-        } while(0)
 
 namespace ns_hlx {
 
@@ -103,12 +83,8 @@ t_client::t_client(const settings_struct_t &a_settings,
         m_summary_ssl_error_other(0),
         m_summary_ssl_protocols(),
         m_summary_ssl_ciphers(),
+        m_nconn_pool(a_settings.m_num_parallel),
         m_stopped(false),
-        m_nconn_vector(a_settings.m_num_parallel),
-        m_conn_free_list(),
-        m_conn_used_set(),
-        m_active_conn_map(),
-        m_active_conn_map_size(0),
         m_num_fetches(-1),
         m_num_fetched(0),
         m_num_pending(0),
@@ -120,12 +96,6 @@ t_client::t_client(const settings_struct_t &a_settings,
         m_reqlet_vector_idx(0),
         m_rand_ptr(NULL)
 {
-        for(int32_t i_conn = 0; i_conn < a_settings.m_num_parallel; ++i_conn)
-        {
-                m_nconn_vector[i_conn] = NULL;
-                //NDBG_PRINT("ADDING i_conn: %u\n", i_conn);
-                m_conn_free_list.push_back(i_conn);
-        }
 
         // Friggin effc++
         COPY_SETTINGS(m_verbose);
@@ -149,7 +119,7 @@ t_client::t_client(const settings_struct_t &a_settings,
         COPY_SETTINGS(m_connect_only);
         COPY_SETTINGS(m_save_response);
         COPY_SETTINGS(m_collect_stats);
-        COPY_SETTINGS(m_conn_reuse);
+        COPY_SETTINGS(m_use_persistent_pool);
         COPY_SETTINGS(m_num_reqs_per_conn);
         COPY_SETTINGS(m_sock_opt_recv_buf_size);
         COPY_SETTINGS(m_sock_opt_send_buf_size);
@@ -243,15 +213,6 @@ t_client::~t_client()
                 }
         }
         m_reqlet_vector.clear();
-
-        for(uint32_t i_conn = 0; i_conn < m_nconn_vector.size(); ++i_conn)
-        {
-                if(m_nconn_vector[i_conn])
-                {
-                        delete m_nconn_vector[i_conn];
-                        m_nconn_vector[i_conn] = NULL;
-                }
-        }
 
         if(m_evr_loop)
         {
@@ -639,62 +600,44 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
                         // TODO REMOVE
                         //NDBG_PRINT("CONN %sREUSE%s: l_nconn->can_reuse(): %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_nconn->can_reuse());
 
-                        if(!l_t_client->is_pending_done())
-                        {
-                                ++l_reqlet->m_stat_agg.m_num_conn_completed;
-                                ++l_t_client->m_num_fetched;
+                        l_reqlet->set_response(STATUS_OK, "");
+                        if(l_t_client->m_settings.m_show_summary)
+                                l_t_client->append_summary(l_reqlet);
+                        ++(l_t_client->m_num_done);
 
-                                // Send request again...
-                                l_t_client->limit_rate();
-                                l_t_client->create_request(*l_nconn, *l_reqlet);
-                                l_nconn->send_request(true);
+                        // Cancel last timer
+                        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
+                        l_nconn->reset_stats();
 
-                        }
-                        // You complete me...
-                        else
+                        // Reduce num pending
+                        ++(l_t_client->m_num_fetched);
+                        --(l_t_client->m_num_pending);
+
+                        // TODO Use pool
+                        if(!l_t_client->m_settings.m_use_persistent_pool)
                         {
-                                // -------------------------------------------
-                                // Add to reuse map
-                                // TODO
-                                // Make function
-                                // -------------------------------------------
-                                if(l_t_client->m_settings.m_conn_reuse &&
-                                   (l_t_client->m_active_conn_map_size < l_t_client->m_nconn_vector.size()))
+                                if(!l_t_client->is_pending_done())
                                 {
-                                        const std::string &l_label = l_reqlet->get_label();
-                                        active_conn_map_t::iterator i_conn;
-                                        if((i_conn = l_t_client->m_active_conn_map.find(l_label)) != l_t_client->m_active_conn_map.end())
-                                        {
-                                                i_conn->second.push_back((uint32_t)l_nconn->get_id());
-                                        }
-                                        else
-                                        {
-                                                conn_id_list_t l_conn_id_list;
-                                                l_conn_id_list.push_back((uint32_t)l_nconn->get_id());
-                                                l_t_client->m_active_conn_map[l_label] = l_conn_id_list;
-                                        }
-                                        ++(l_t_client->m_active_conn_map_size);
+                                        ++l_reqlet->m_stat_agg.m_num_conn_completed;
+                                        ++l_t_client->m_num_fetched;
 
-                                        l_reqlet->set_response(STATUS_OK, "");
-                                        if(l_t_client->m_settings.m_show_summary)
-                                                l_t_client->append_summary(l_reqlet);
-                                        ++(l_t_client->m_num_done);
-
-                                        // Cancel last timer
-                                        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
-                                        l_nconn->reset_stats();
-
-                                        // Reduce num pending
-                                        ++(l_t_client->m_num_fetched);
-                                        --(l_t_client->m_num_pending);
+                                        // Send request again...
+                                        l_t_client->limit_rate();
+                                        l_t_client->create_request(*l_nconn, *l_reqlet);
+                                        l_nconn->send_request(true);
                                 }
                                 else
                                 {
-                                        //NDBG_PRINT("DONE: l_reqlet: %sHOST%s: %d / %d\n",
-                                        //              ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                                        //              l_can_reuse,
-                                        //              l_can_reuse_conn);
                                         T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 0, "", STATUS_OK);
+                                }
+
+                        }
+                        else
+                        {
+                                l_status = l_t_client->m_nconn_pool.add_idle(l_nconn);
+                                if(STATUS_OK != l_status)
+                                {
+                                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, "Error setting idle", STATUS_ERROR);
                                 }
                         }
                 }
@@ -753,7 +696,6 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
 
         // Add stats
         add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
-        l_nconn->reset_stats();
 
         if(l_t_client->m_settings.m_verbose)
         {
@@ -802,21 +744,6 @@ void *t_client::t_run(void *a_nothing)
 
         // Set start time
         m_start_time_s = get_time_s();
-
-        // -------------------------------------------
-        // Connection reuse
-        // -------------------------------------------
-        if(m_settings.m_conn_reuse)
-        {
-                int32_t l_status;
-                l_status = try_reuse_connections();
-                if(l_status != STATUS_OK)
-                {
-                        //NDBG_PRINT("%sSTART_CONNECTIONS%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
-                        return NULL;
-                }
-        }
-
 
         // -------------------------------------------
         // Main loop.
@@ -875,121 +802,40 @@ void *t_client::t_run(void *a_nothing)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_client::create_new_nconn(uint32_t a_id, const reqlet &a_reqlet)
+int32_t t_client::request(reqlet *a_reqlet)
 {
         nconn *l_nconn = NULL;
+        int32_t l_status;
 
-        //NDBG_PRINT("CREATING NEW CONNECTION: id: %u\n", a_id);
-
-        if(a_reqlet.m_url.m_scheme == nconn::SCHEME_TCP)
+        l_nconn = m_nconn_pool.get(a_reqlet,
+                                   m_settings.m_ssl_cipher_list,
+                                   m_settings.m_verbose,
+                                   m_settings.m_color,
+                                   m_settings.m_num_reqs_per_conn,
+                                   m_settings.m_save_response,
+                                   m_settings.m_collect_stats,
+                                   m_settings.m_connect_only,
+                                   m_settings.m_sock_opt_recv_buf_size,
+                                   m_settings.m_sock_opt_send_buf_size,
+                                   m_settings.m_sock_opt_no_delay,
+                                   m_settings.m_ssl_ctx,
+                                   m_settings.m_ssl_verify);
+        if(!l_nconn)
         {
-                l_nconn = new nconn_tcp(m_settings.m_verbose,
-                                        m_settings.m_color,
-                                        m_settings.m_num_reqs_per_conn,
-                                        m_settings.m_save_response,
-                                        m_settings.m_collect_stats,
-                                        m_settings.m_connect_only);
-        }
-        else if(a_reqlet.m_url.m_scheme == nconn::SCHEME_SSL)
-        {
-                l_nconn = new nconn_ssl(m_settings.m_verbose,
-                                        m_settings.m_color,
-                                        m_settings.m_num_reqs_per_conn,
-                                        m_settings.m_save_response,
-                                        m_settings.m_collect_stats,
-                                        m_settings.m_connect_only);
-        }
-
-        l_nconn->set_id(a_id);
-
-        // -------------------------------------------
-        // Set options
-        // -------------------------------------------
-        // Set generic options
-        T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_settings.m_sock_opt_recv_buf_size);
-        T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_settings.m_sock_opt_send_buf_size);
-        T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_settings.m_sock_opt_no_delay);
-
-        // Set ssl options
-        if(a_reqlet.m_url.m_scheme == nconn::SCHEME_SSL)
-        {
-                T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_CIPHER_STR,
-                                              m_settings.m_ssl_cipher_list.c_str(),
-                                              m_settings.m_ssl_cipher_list.length());
-
-                T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_CTX,
-                                             m_settings.m_ssl_ctx,
-                                             sizeof(m_settings.m_ssl_ctx));
-
-                T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_VERIFY,
-                                              &(m_settings.m_ssl_verify),
-                                              sizeof(m_settings.m_ssl_verify));
-
-                //T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_OPTIONS,
-                //                              &(m_settings.m_ssl_options),
-                //                              sizeof(m_settings.m_ssl_options));
-
+                //NDBG_PRINT("Error l_nconn == NULL\n");
+                // TODO Define
+                return 300;
         }
 
-        return l_nconn;
-
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t t_client::try_reuse_connections(void)
-{
-
-        for(uint32_t l_reuse_attempt = 0;
-           l_reuse_attempt < m_active_conn_map_size &&
-           (!is_pending_done()) &&
-           !m_stopped &&
-           ((m_settings.m_run_time_s == -1) ||
-            (m_settings.m_run_time_s > static_cast<int32_t>(get_time_s() - m_start_time_s)));
-           )
+        // -------------------------------------------------
+        // Check state and reuse if possible
+        // -------------------------------------------------
+        if(!l_nconn->is_free())
         {
-                // Loop trying to get reqlet
-                reqlet *l_reqlet = try_get_resolved();
-                if(!l_reqlet)
-                {
-                        continue;
-                }
-
-                ++l_reuse_attempt;
-
-                // Search for active
-                const std::string &l_label = l_reqlet->get_label();
-
-                //NDBG_PRINT("%sFIND%s: TAG: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_label.c_str());
-
-                active_conn_map_t::iterator i_conn;
-                if((i_conn = m_active_conn_map.find(l_label)) == m_active_conn_map.end())
-                {
-                        continue;
-                }
-
-                uint32_t l_nconn_id = 0;
-                l_nconn_id = i_conn->second.front();
-                i_conn->second.pop_front();
-                if(i_conn->second.empty())
-                {
-                        m_active_conn_map.erase(i_conn);
-                }
-
-                //i_conn->second.push_back((uint32_t)l_nconn->get_id());
-
-                //NDBG_PRINT("%sACTIVE_CONN_MAP%s: REUSE: %s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_label.c_str());
-
-                // Send request again...
-                nconn *l_nconn = m_nconn_vector[l_nconn_id];
-
                 int32_t l_status;
 
                 // Create request
-                l_status = create_request(*l_nconn, *l_reqlet);
+                l_status = create_request(*l_nconn, *a_reqlet);
                 if(STATUS_OK != l_status)
                 {
                         NDBG_PRINT("Error: Performing create_request\n");
@@ -1020,46 +866,40 @@ int32_t t_client::try_reuse_connections(void)
                 // Add to num pending
                 ++m_num_pending;
 
+                return STATUS_OK;
         }
 
+        // Bump stats
+        ++a_reqlet->m_stat_agg.m_num_conn_started;
 
-        if(!m_active_conn_map.empty())
+        // Create request
+        if(!m_settings.m_connect_only)
         {
-                //NDBG_PRINT("%sACTIVE_CONN_MAP%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-
-                // Clean up any remainders
-                for(active_conn_map_t::iterator i_list = m_active_conn_map.begin();
-                    i_list != m_active_conn_map.end();
-                    ++i_list)
+                l_status = create_request(*l_nconn, *a_reqlet);
+                if(STATUS_OK != l_status)
                 {
-                        for(conn_id_list_t::iterator i_conn = i_list->second.begin();
-                            i_conn != i_list->second.end();
-                            ++i_conn)
-                        {
-                                nconn *l_nconn = m_nconn_vector[*i_conn];
-                                //NDBG_PRINT("%sDELETING%s: conn: %d TAG: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, (int)l_nconn->get_id(), i_list->first.c_str());
-
-                                // -----------------------------------
-                                // Cleanup
-                                // -----------------------------------
-                                uint64_t l_conn_id = l_nconn->get_id();
-                                l_nconn->reset_stats();
-
-                                //NDBG_PRINT("%sADDING_BACK%s: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (uint32_t)l_conn_id);
-
-                                // Add back to free list
-                                l_nconn->cleanup(m_evr_loop);
-                                m_conn_free_list.push_back(l_conn_id);
-                                m_conn_used_set.erase(l_conn_id);
-
-                        }
+                        return STATUS_ERROR;
                 }
         }
 
-        m_active_conn_map.clear();
-        m_active_conn_map_size = 0;
+        // TODO Make configurable
+        l_status = m_evr_loop->add_timer(m_settings.m_timeout_s*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
+        if(STATUS_OK != l_status)
+        {
+                return STATUS_ERROR;
+        }
 
-        //NDBG_PRINT("%sFIND%s: OUTTIE\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
+        // Add to num pending
+        ++m_num_pending;
+
+        //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_reqlet->m_url.m_host.c_str());
+        l_status = l_nconn->run_state_machine(m_evr_loop, a_reqlet->m_host_info);
+        if(STATUS_OK != l_status)
+        {
+                NDBG_PRINT("Error: Performing do_connect\n");
+                T_CLIENT_CONN_CLEANUP(this, l_nconn, a_reqlet, 500, "Performing do_connect", STATUS_ERROR);
+                return STATUS_OK;
+        }
 
         return STATUS_OK;
 
@@ -1072,89 +912,29 @@ int32_t t_client::try_reuse_connections(void)
 //: ----------------------------------------------------------------------------
 int32_t t_client::start_connections(void)
 {
-        int32_t l_status;
-
-        // Find an empty client slot.
-        //NDBG_PRINT("m_conn_free_list.size(): %Zu\n", m_conn_free_list.size());
-        for (conn_id_list_t::iterator i_conn = m_conn_free_list.begin();
-               (i_conn != m_conn_free_list.end()) &&
-               (!is_pending_done()) &&
-               !m_stopped &&
-               ((m_settings.m_run_time_s == -1) ||
-                (m_settings.m_run_time_s > static_cast<int32_t>(get_time_s() - m_start_time_s)));
-             )
+        while((m_num_pending < m_settings.m_num_parallel) &&
+                        (!is_pending_done()) &&
+                        ((m_settings.m_run_time_s == -1) ||
+                         (m_settings.m_run_time_s > static_cast<int32_t>(get_time_s() - m_start_time_s))))
         {
-                // Loop trying to get reqlet
                 reqlet *l_reqlet = try_get_resolved();
                 if(!l_reqlet)
                 {
                         continue;
                 }
 
-                // Start client for this reqlet
-                //NDBG_PRINT("i_conn: %d\n", *i_conn);
-                nconn *l_nconn = m_nconn_vector[*i_conn];
-                // TODO Check for NULL
-
-                if(l_nconn &&
-                   (l_nconn->m_scheme != l_reqlet->m_url.m_scheme))
+                int32_t l_status = request(l_reqlet);
+                if(l_status == 300)
                 {
-                        // Destroy nconn and recreate
-                        //NDBG_PRINT("Destroy nconn and recreate: %u -- l_nconn->m_scheme: %d -- l_reqlet->m_url.m_scheme: %d\n",
-                        //                *i_conn,
-                        //                l_nconn->m_scheme,
-                        //                l_reqlet->m_url.m_scheme);
-                        delete l_nconn;
-                        l_nconn = NULL;
+                        break;
+                }
+                else if(STATUS_OK != l_status)
+                {
+                        return STATUS_ERROR;
                 }
 
-
-                if(!l_nconn)
-                {
-                        // Create nconn
-                        l_nconn = create_new_nconn(*i_conn, *l_reqlet);
-                        if(!l_nconn)
-                        {
-                                NDBG_PRINT("Error performing create_new_nconn\n");
-                                return STATUS_ERROR;
-                        }
-                        m_nconn_vector[*i_conn] = l_nconn;
-                }
-
-                // Assign the reqlet for this client
-                l_nconn->set_data1(l_reqlet);
-
-                // Bump stats
-                ++l_reqlet->m_stat_agg.m_num_conn_started;
-
-                // Create request
-                if(!m_settings.m_connect_only)
-                {
-                        create_request(*l_nconn, *l_reqlet);
-                }
-
-                m_conn_used_set.insert(*i_conn);
-                m_conn_free_list.erase(i_conn++);
-
-                // TODO Make configurable
-                m_evr_loop->add_timer(m_settings.m_timeout_s*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
-
-                // Add to num pending
-                ++m_num_pending;
-
-                //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, l_reqlet->m_url.m_host.c_str());
-                l_nconn->set_host(l_reqlet->m_url.m_host);
-                l_status = l_nconn->run_state_machine(m_evr_loop, l_reqlet->m_host_info);
-                if(STATUS_OK != l_status)
-                {
-                        NDBG_PRINT("Error: Performing do_connect\n");
-                        T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Performing do_connect", STATUS_ERROR);
-                        continue;
-                }
         }
-
         return STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -1165,10 +945,24 @@ int32_t t_client::start_connections(void)
 int32_t t_client::create_request(nconn &ao_conn,
                                  reqlet &a_reqlet)
 {
+
+
+
         // Get client
         char *l_req_buf = NULL;
         uint32_t l_req_buf_len = 0;
         uint32_t l_max_buf_len = nconn_tcp::m_max_req_buf;
+
+        if(!a_reqlet.m_multipath)
+        {
+                GET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF_LEN, NULL, &l_req_buf_len);
+                if(l_req_buf_len)
+                {
+                        //NDBG_PRINT("Bailing already set to: %u\n", l_req_buf_len);
+                        return STATUS_OK;
+                }
+        }
+
 
         GET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF, (void **)(&l_req_buf), &l_req_buf_len);
 
@@ -1234,6 +1028,7 @@ int32_t t_client::create_request(nconn &ao_conn,
 
         // Set len
         SET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF_LEN, NULL, l_req_buf_len);
+
         return STATUS_OK;
 }
 
@@ -1247,25 +1042,24 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_
 
         //NDBG_PRINT("%sCLEANUP%s:\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
 
-        uint64_t l_conn_id = a_nconn->get_id();
 
         // Cancel last timer
         if(a_cancel_timer)
         {
                 m_evr_loop->cancel_timer(&(a_nconn->m_timer_obj));
         }
-        a_nconn->reset_stats();
 
         // Reduce num pending
         ++m_num_fetched;
         --m_num_pending;
 
-        //NDBG_PRINT("%sADDING_BACK%s: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (uint32_t)l_conn_id);
+        //NDBG_PRINT("%sADDING_BACK%s: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (uint32_t)a_nconn->get_id());
 
         // Add back to free list
-        a_nconn->cleanup(m_evr_loop);
-        m_conn_free_list.push_back(l_conn_id);
-        m_conn_used_set.erase(l_conn_id);
+        if(STATUS_OK != m_nconn_pool.release(a_nconn))
+        {
+                return STATUS_ERROR;
+        }
 
         return STATUS_OK;
 }

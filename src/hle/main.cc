@@ -304,7 +304,7 @@ int command_exec_cli(settings_struct_t &a_settings)
         // Set to keep-alive -and reuse
         a_settings.m_hlx_client->set_header("Connection","keep-alive");
         a_settings.m_hlx_client->set_num_reqs_per_conn(-1);
-        a_settings.m_hlx_client->set_conn_reuse(true);
+        a_settings.m_hlx_client->set_use_persistent_pool(true);
 
         // -------------------------------------------
         // Interactive mode banner

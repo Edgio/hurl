@@ -972,7 +972,7 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer)
         // stats
         //++m_stat_rconn_deleted;
         //NDBG_PRINT("FD[%d] Cleanup\n", l_fd);
-        a_nconn->cleanup(m_evr_cmd_loop);
+        a_nconn->cleanup();
         a_nconn->set_data1(NULL);
         remove_nconn(a_nconn);
         return STATUS_OK;

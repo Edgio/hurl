@@ -303,7 +303,7 @@ int32_t nconn_tcp::receive_response(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::cleanup(evr_loop *a_evr_loop)
+int32_t nconn_tcp::cleanup(void)
 {
         // Shut down connection
 
@@ -607,6 +607,11 @@ int32_t nconn_tcp::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
         {
                 *a_buf = m_req_buf;
                 *a_len = 0;
+                break;
+        }
+        case OPT_TCP_REQ_BUF_LEN:
+        {
+                *a_len = m_req_buf_len;
                 break;
         }
         default:
