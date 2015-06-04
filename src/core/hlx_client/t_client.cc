@@ -616,7 +616,8 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
                         // TODO Use pool
                         if(!l_t_client->m_settings.m_use_persistent_pool)
                         {
-                                if(!l_t_client->is_pending_done())
+                                if(!l_t_client->is_pending_done() &&
+                                   !l_t_client->m_stopped)
                                 {
                                         ++l_reqlet->m_stat_agg.m_num_conn_completed;
                                         ++l_t_client->m_num_fetched;
@@ -913,6 +914,7 @@ int32_t t_client::request(reqlet *a_reqlet)
 int32_t t_client::start_connections(void)
 {
         while((m_num_pending < m_settings.m_num_parallel) &&
+                        !m_stopped &&
                         (!is_pending_done()) &&
                         ((m_settings.m_run_time_s == -1) ||
                          (m_settings.m_run_time_s > static_cast<int32_t>(get_time_s() - m_start_time_s))))
