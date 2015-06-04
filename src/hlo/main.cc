@@ -234,7 +234,7 @@ void command_exec(settings_struct_t &a_settings)
                 }
 
                 // TODO add define...
-                usleep(200000);
+                usleep(500000);
                 if(!a_settings.m_quiet && !a_settings.m_verbose)
                 {
                         if(a_settings.m_show_response_codes)

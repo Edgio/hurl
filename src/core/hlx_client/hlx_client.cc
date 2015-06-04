@@ -1831,7 +1831,7 @@ int32_t hlx_client::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len
 
                 l_cur_offset += snprintf(l_json_buf + l_cur_offset, l_json_buf_max_len - l_cur_offset,
                                 "{\"%s\": %" PRIu64 ", \"%s\": %" PRIu64 "}",
-                                "count", (uint64_t)(i_agg_stat->second.m_num_conn_completed),
+                                "count", (uint64_t)(i_agg_stat->second.m_total_reqs),
                                 "time", (uint64_t)(l_time_ms));
 
                 l_cur_offset += snprintf(l_json_buf + l_cur_offset, l_json_buf_max_len - l_cur_offset,"}");
@@ -1894,16 +1894,18 @@ void hlx_client::display_results_line(void)
         // Get stats
         get_stats(l_total, false, l_unused);
 
-        double l_reqs_per_s = ((double)(l_total.m_num_conn_completed - m_last_stat->m_num_conn_completed)*1000.0) /
+        double l_reqs_per_s = ((double)(l_total.m_total_reqs - m_last_stat->m_total_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - m_last_display_time_ms));
         double l_kb_per_s = ((double)(l_total.m_num_bytes_read - m_last_stat->m_num_bytes_read)*1000.0/1024) /
                         ((double)(l_cur_time_ms - m_last_display_time_ms));
+        m_last_display_time_ms = get_time_ms();
+        *m_last_stat = l_total;
 
         if(m_color)
         {
                         printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
-                                        ANSI_COLOR_FG_GREEN, l_total.m_num_conn_completed, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLUE, l_total.m_num_conn_completed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_GREEN, l_total.m_total_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_total_reqs, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_MAGENTA, l_total.m_num_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_num_bytes_read))/(1024.0), ANSI_COLOR_OFF,
@@ -1915,8 +1917,8 @@ void hlx_client::display_results_line(void)
         else
         {
                 printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
-                                l_total.m_num_conn_completed,
-                                l_total.m_num_conn_completed,
+                                l_total.m_total_reqs,
+                                l_total.m_total_reqs,
                                 l_total.m_num_idle_killed,
                                 l_total.m_num_errors,
                                 ((double)(l_total.m_num_bytes_read))/(1024.0),
@@ -1926,9 +1928,6 @@ void hlx_client::display_results_line(void)
                                 );
 
         }
-
-        m_last_display_time_ms = get_time_ms();
-        *m_last_stat = l_total;
 
 }
 
@@ -2012,8 +2011,10 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
         // Get stats
         get_stats(l_total, false, l_unused);
 
-        double l_reqs_per_s = ((double)(l_total.m_num_conn_completed - m_last_stat->m_num_conn_completed)*1000.0) /
+        double l_reqs_per_s = ((double)(l_total.m_total_reqs - m_last_stat->m_total_reqs)*1000.0) /
                               ((double)(l_cur_time_ms - m_last_display_time_ms));
+        m_last_display_time_ms = get_time_ms();
+        *m_last_stat = l_total;
 
         // Aggregate over status code map
         status_code_count_map_t m_status_code_count_map;
@@ -2070,7 +2071,7 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
                                                 ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
                                                 l_reqs_per_s,
-                                                l_total.m_num_conn_completed,
+                                                l_total.m_total_reqs,
                                                 l_total.m_num_errors,
                                                 ANSI_COLOR_FG_GREEN, l_rate[2], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_rate[3], ANSI_COLOR_OFF,
@@ -2082,7 +2083,7 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
                                         ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
-                                        l_total.m_num_conn_completed,
+                                        l_total.m_total_reqs,
                                         l_total.m_num_errors,
                                         l_rate[2],
                                         l_rate[3],
@@ -2103,7 +2104,7 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
                                                 ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
                                                 l_reqs_per_s,
-                                                l_total.m_num_conn_completed,
+                                                l_total.m_total_reqs,
                                                 l_total.m_num_errors,
                                                 ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
@@ -2115,7 +2116,7 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
                                         ((double)(get_delta_time_ms(m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
-                                        l_total.m_num_conn_completed,
+                                        l_total.m_total_reqs,
                                         l_total.m_num_errors,
                                         l_responses[2],
                                         l_responses[3],
@@ -2123,11 +2124,6 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
                                         l_responses[5]);
                 }
         }
-
-        m_last_display_time_ms = get_time_ms();
-        *m_last_stat = l_total;
-
-
 }
 
 //: ----------------------------------------------------------------------------
