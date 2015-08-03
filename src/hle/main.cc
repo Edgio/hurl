@@ -499,6 +499,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
 
         fprintf(a_stream, "Command Line Client:\n");
         fprintf(a_stream, "  -I, --cli            Start interactive command line -URL not required.\n");
+        fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");

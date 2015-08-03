@@ -2131,6 +2131,27 @@ void hlx_client::display_responses_line(bool a_show_per_interval)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+static void append_to_map(summary_map_t &ao_sum, const summary_map_t &a_append)
+{
+        for(summary_map_t::const_iterator i_sum = a_append.begin();
+            i_sum != a_append.end();
+           ++i_sum)
+        {
+                summary_map_t::iterator i_obj = ao_sum.find(i_sum->first);
+                if(i_obj != ao_sum.end())
+                {
+                        i_obj->second += i_sum->second;
+                } else {
+                        ao_sum[i_sum->first] = i_sum->second;
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void hlx_client::display_summary(bool a_color)
 {
         std::string l_header_str = "";
@@ -2172,11 +2193,8 @@ void hlx_client::display_summary(bool a_color)
                 l_summary_ssl_error_self_signed += (*i_client)->m_summary_ssl_error_self_signed;
                 l_summary_ssl_error_expired += (*i_client)->m_summary_ssl_error_expired;
                 l_summary_ssl_error_other += (*i_client)->m_summary_ssl_error_other;
-                l_summary_ssl_protocols.insert((*i_client)->m_summary_ssl_protocols.begin(),
-                                               (*i_client)->m_summary_ssl_protocols.end());
-                l_summary_ssl_ciphers.insert((*i_client)->m_summary_ssl_ciphers.begin(),
-                                             (*i_client)->m_summary_ssl_ciphers.end());
-
+                append_to_map(l_summary_ssl_protocols, (*i_client)->m_summary_ssl_protocols);
+                append_to_map(l_summary_ssl_ciphers, (*i_client)->m_summary_ssl_ciphers);
         }
 
 
