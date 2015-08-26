@@ -91,8 +91,6 @@ Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 ```
-
-
 ## *hle* Parallel Curl
 *hle* is a parallel curling utility useful for pulling a single url from many different hosts. *hle* supports reading line delimited hosts from stdin, a shell command string, or a file.  
 
@@ -109,7 +107,8 @@ Options are:
   -r, --version        Display the version number and exit.
   
 URL Options -or without parameter
-  -u, --url            URL -REQUIRED.
+  -u, --url            URL -REQUIRED (unless running cli: see --cli option).
+  -d, --data           HTTP body data -supports bodies up to 8k.
   
 Hostname Input Options -also STDIN:
   -f, --host_file      Host name file.
@@ -119,6 +118,7 @@ Settings:
   -p, --parallel       Num parallel.
   -t, --threads        Number of parallel threads.
   -H, --header         Request headers -can add multiple ie -H<> -H<>...
+  -X, --verb           Request command -HTTP verb to use -GET/PUT/etc
   -T, --timeout        Timeout (seconds).
   -R, --recv_buffer    Socket receive buffer size.
   -S, --send_buffer    Socket send buffer size.
@@ -133,6 +133,9 @@ SSL Settings:
   -N, --ssl_sni        Use SSL SNI.
   -F, --ssl_ca_file    SSL CA File.
   -L, --ssl_ca_path    SSL CA Path.
+  
+Command Line Client:
+  -I, --cli            Start interactive command line -URL not required.
   
 Print Options:
   -v, --verbose        Verbose logging
@@ -152,7 +155,6 @@ Debug Options:
   
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
-
 ```
 
 
