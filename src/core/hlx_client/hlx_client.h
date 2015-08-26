@@ -151,12 +151,12 @@ public:
         int set_data(const char *a_data, uint32_t a_len);
 
         // Host list
-        int set_host_list(host_list_t &a_host_list);
-        int set_server_list(server_list_t &a_server_list);
+        int set_host_list(const host_list_t &a_host_list);
+        int set_server_list(const server_list_t &a_server_list);
 
         // Specifying urls instead of hosts
-        int32_t add_url(std::string &a_url);
-        int32_t add_url_file(std::string &a_url_file);
+        int32_t add_url(const std::string &a_url);
+        int32_t add_url_file(const std::string &a_url_file);
 
         // Split requests
         void set_split_requests_by_thread(bool a_val);

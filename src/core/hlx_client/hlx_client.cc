@@ -506,7 +506,7 @@ int hlx_client::set_data(const char *a_data, uint32_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::set_host_list(host_list_t &a_host_list)
+int hlx_client::set_host_list(const host_list_t &a_host_list)
 {
         // Create the reqlet list
         uint32_t l_reqlet_num = 0;
@@ -564,7 +564,7 @@ int hlx_client::set_host_list(host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::set_server_list(server_list_t &a_server_list)
+int hlx_client::set_server_list(const server_list_t &a_server_list)
 {
         // Create the reqlet list
         uint32_t l_reqlet_num = 0;
@@ -606,7 +606,7 @@ int hlx_client::set_server_list(server_list_t &a_server_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx_client::add_url(std::string &a_url)
+int32_t hlx_client::add_url(const std::string &a_url)
 {
 
         // TODO
@@ -634,7 +634,7 @@ int32_t hlx_client::add_url(std::string &a_url)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx_client::add_url_file(std::string &a_url_file)
+int32_t hlx_client::add_url_file(const std::string &a_url_file)
 {
 
         FILE * l_file;
