@@ -29,6 +29,8 @@
 #include "evr.h"
 #include <vector>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
@@ -54,6 +56,8 @@ private:
         fd_set m_rfdset;
         fd_set m_wfdset;
 };
+
+} //namespace ns_hlx {
 
 #endif
 

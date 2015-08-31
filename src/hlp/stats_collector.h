@@ -41,6 +41,8 @@
 //: ----------------------------------------------------------------------------
 #define STATS_COLLECTOR_DEFAULT_AGG_STATS_SIZE 1024
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: Fwd' Decls
 //: ----------------------------------------------------------------------------
@@ -90,8 +92,8 @@ public:
         // -------------------------------------------------
         // Class methods
         // -------------------------------------------------
-    // Get the singleton instance
-    static stats_collector *get(void);
+        // Get the singleton instance
+        static stats_collector *get(void);
 
 private:
         // -------------------------------------------------
@@ -115,12 +117,8 @@ private:
 
 };
 
+} //namespace ns_hlx {
+
 #endif
-
-
-
-
-
-
 
 

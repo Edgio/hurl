@@ -148,72 +148,8 @@ int hlx_client::init_client_list(void)
         for(uint32_t i_client_idx = 0; i_client_idx < m_num_threads; ++i_client_idx)
         {
                 t_client *l_t_client = NULL;
-                if(m_split_requests_by_thread)
-                {
-                        reqlet_vector_t l_reqlet_vector;
-
-                        // Calculate index
-                        uint32_t l_idx = i_client_idx*(m_reqlet_vector.size()/m_num_threads);
-                        uint32_t l_len = m_reqlet_vector.size()/m_num_threads;
-
-                        if(i_client_idx + 1 == m_num_threads)
-                        {
-                                // Get remainder
-                                l_len = m_reqlet_vector.size() - (i_client_idx * l_len);
-                        }
-                        for(uint32_t i_dx = 0; i_dx < l_len; ++i_dx)
-                        {
-                                l_reqlet_vector.push_back(m_reqlet_vector[l_idx + i_dx]);
-                        }
-
-                        l_t_client = new t_client(l_settings, l_reqlet_vector);
-                }
-                else
-                {
-                        l_t_client = new t_client(l_settings, m_reqlet_vector);
-                }
-
-
-                //if(a_settings.m_verbose)
-                //{
-                //        NDBG_PRINT("Creating...\n");
-                //}
-
-                // Construct with settings...
-                for(header_map_t::iterator i_header = m_header_map.begin();
-                    i_header != m_header_map.end();
-                    ++i_header)
-                {
-                        l_t_client->set_header(i_header->first, i_header->second);
-                }
-
-                // Caculate num parallel per thread
-                if(m_num_end_fetches != -1)
-                {
-                        uint32_t l_num_fetches_per_thread = m_num_end_fetches / m_num_threads;
-                        uint32_t l_remainder_fetches = m_num_end_fetches % m_num_threads;
-                        if (i_client_idx == (m_num_threads - 1))
-                        {
-                                l_num_fetches_per_thread += l_remainder_fetches;
-                        }
-                        l_t_client->set_end_fetches(l_num_fetches_per_thread);
-                }
-
+                l_t_client = new t_client(l_settings);
                 m_t_client_list.push_back(l_t_client);
-        }
-
-        // Delete local copies
-        for(size_t i_reqlet = 0;
-            i_reqlet < m_reqlet_vector.size();
-            ++i_reqlet)
-        {
-                reqlet *i_reqlet_ptr = m_reqlet_vector[i_reqlet];
-                if(i_reqlet_ptr)
-                {
-                        delete i_reqlet_ptr;
-                        i_reqlet_ptr = NULL;
-                }
-                m_reqlet_vector.clear();
         }
 
         return STATUS_OK;
@@ -246,6 +182,174 @@ int hlx_client::run(void)
                         return HLX_CLIENT_STATUS_ERROR;
                 }
         }
+
+        // -------------------------------------------
+        // Reqlets
+        // TODO no copy!
+        // -------------------------------------------
+        reqlet_vector_t l_reqlet_vector_all(m_host_list.size());
+        uint32_t l_reqlet_num = 0;
+        for(host_list_t::iterator i_host = m_host_list.begin();
+                        i_host != m_host_list.end();
+                        ++i_host, ++l_reqlet_num)
+        {
+                // Create a re
+                reqlet *l_reqlet = new reqlet(l_reqlet_num, 1);
+                parsed_url l_url;
+
+                // If host has url use that
+                if(!i_host->m_url.empty())
+                {
+                        l_reqlet->init_with_url(i_host->m_url);
+                        i_host->m_host = l_reqlet->m_url.m_host;
+                        i_host->m_hostname = l_reqlet->m_url.m_hostname;
+                        l_url.parse(i_host->m_url);
+                }
+                else
+                {
+                        l_reqlet->init_with_url(m_url);
+                        l_url.parse(i_host->m_host);
+                }
+
+                // Get host and port if exist
+
+                if(strchr(i_host->m_host.c_str(), (int)':'))
+                {
+                        l_reqlet->set_host(l_url.m_host);
+                        l_reqlet->set_port(l_url.m_port);
+                }
+                else
+                {
+                        // TODO make set host take const
+                        l_reqlet->set_host(i_host->m_host);
+                }
+
+                if(!i_host->m_hostname.empty())
+                {
+                     l_reqlet->m_url.m_hostname = i_host->m_hostname;
+                }
+                if(!i_host->m_id.empty())
+                {
+                     l_reqlet->m_url.m_id = i_host->m_id;
+                }
+                if(!i_host->m_where.empty())
+                {
+                     l_reqlet->m_url.m_where = i_host->m_where;
+                }
+
+                // Overrides if exist
+                if(m_port)
+                {
+                        l_reqlet->set_port(m_port);
+                }
+
+                if(m_scheme != SCHEME_NONE)
+                {
+                        switch(m_scheme)
+                        {
+                        case SCHEME_HTTPS:
+                        {
+                                l_reqlet->m_url.m_scheme = nconn::SCHEME_SSL;
+                                break;
+                        }
+                        case SCHEME_HTTP:
+                        {
+                                l_reqlet->m_url.m_scheme = nconn::SCHEME_TCP;
+                                break;
+                        }
+                        default:
+                        {
+                                l_reqlet->m_url.m_scheme = nconn::SCHEME_TCP;
+                                break;
+                        }
+                        }
+                        l_reqlet->set_port(m_port);
+                }
+
+                // Add to vector
+                l_reqlet_vector_all[l_reqlet_num] = l_reqlet;
+        }
+
+
+        // -------------------------------------------
+        // Setup client requests
+        // -------------------------------------------
+        uint32_t i_client_idx = 0;
+        uint32_t l_reqlet_list_size = l_reqlet_vector_all.size();
+        for(t_client_list_t::iterator i_client = m_t_client_list.begin();
+                        i_client != m_t_client_list.end();
+                        ++i_client, ++i_client_idx)
+        {
+                if(m_split_requests_by_thread)
+                {
+                        reqlet_vector_t l_reqlet_vector;
+
+                        // Calculate index
+                        uint32_t l_idx = i_client_idx*(l_reqlet_list_size/m_num_threads);
+                        uint32_t l_len = l_reqlet_list_size/m_num_threads;
+
+                        if(i_client_idx + 1 == m_num_threads)
+                        {
+                                // Get remainder
+                                l_len = l_reqlet_list_size - (i_client_idx * l_len);
+                        }
+                        for(uint32_t i_dx = 0; i_dx < l_len; ++i_dx)
+                        {
+                                l_reqlet_vector.push_back(l_reqlet_vector_all[l_idx + i_dx]);
+                        }
+
+                        (*i_client)->set_reqlets(l_reqlet_vector);
+                }
+                else
+                {
+                        (*i_client)->set_reqlets(l_reqlet_vector_all);
+                }
+
+
+                //if(a_settings.m_verbose)
+                //{
+                //        NDBG_PRINT("Creating...\n");
+                //}
+
+                // Construct with settings...
+                (*i_client)->clear_headers();
+                for(header_map_t::iterator i_header = m_header_map.begin();
+                    i_header != m_header_map.end();
+                    ++i_header)
+                {
+                        (*i_client)->set_header(i_header->first, i_header->second);
+                }
+
+                // Caculate num parallel per thread
+                if(m_num_end_fetches != -1)
+                {
+                        uint32_t l_num_fetches_per_thread = m_num_end_fetches / m_num_threads;
+                        uint32_t l_remainder_fetches = m_num_end_fetches % m_num_threads;
+                        if (i_client_idx == (m_num_threads - 1))
+                        {
+                                l_num_fetches_per_thread += l_remainder_fetches;
+                        }
+                        (*i_client)->set_end_fetches(l_num_fetches_per_thread);
+                }
+        }
+
+        // -------------------------------------------
+        // Delete local copies
+        // TODO no copy!
+        // -------------------------------------------
+        for(size_t i_reqlet = 0;
+            i_reqlet < l_reqlet_vector_all.size();
+            ++i_reqlet)
+        {
+                reqlet *i_reqlet_ptr = l_reqlet_vector_all[i_reqlet];
+                if(i_reqlet_ptr)
+                {
+                        delete i_reqlet_ptr;
+                        i_reqlet_ptr = NULL;
+                }
+        }
+        l_reqlet_vector_all.clear();
+
 
         set_start_time_ms(get_time_ms());
 
@@ -359,37 +463,9 @@ void hlx_client::set_color(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx_client::set_url(const std::string &a_url)
+void hlx_client::set_url(const std::string &a_url)
 {
         m_url = a_url;
-
-        // If reqlets defined set path
-        parsed_url l_parsed_url;
-        int32_t l_status;
-        l_status = l_parsed_url.parse(a_url);
-        if(l_status != STATUS_OK)
-        {
-                //NDBG_PRINT("Error parsing url: %s\n", a_url.c_str());
-                return HLX_CLIENT_STATUS_ERROR;
-        }
-
-        for(size_t i_reqlet = 0;
-            i_reqlet < m_reqlet_vector.size();
-            ++i_reqlet)
-        {
-                reqlet *i_reqlet_ptr = m_reqlet_vector[i_reqlet];
-                if(i_reqlet_ptr)
-                {
-                        reqlet *l_reqlet = new reqlet(*i_reqlet_ptr);
-                        l_reqlet->init_with_url(a_url, m_wildcarding);
-                        l_reqlet->set_host(i_reqlet_ptr->m_url.m_host);
-
-                        delete i_reqlet_ptr;
-                        m_reqlet_vector[i_reqlet] = l_reqlet;
-                }
-        }
-
-        return HLX_CLIENT_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -508,54 +584,9 @@ int hlx_client::set_data(const char *a_data, uint32_t a_len)
 //: ----------------------------------------------------------------------------
 int hlx_client::set_host_list(const host_list_t &a_host_list)
 {
-        // Create the reqlet list
-        uint32_t l_reqlet_num = 0;
-        for(host_list_t::const_iterator i_host = a_host_list.begin();
-                        i_host != a_host_list.end();
-                        ++i_host, ++l_reqlet_num)
-        {
-                // Create a re
-                reqlet *l_reqlet = new reqlet(l_reqlet_num, 1);
-                l_reqlet->init_with_url(m_url);
-
-                // Get host and port if exist
-                parsed_url l_url;
-
-                //TODO REMOVE!!!
-                //NDBG_PRINT("HOST: %s\n", i_host->m_host.c_str());
-
-                l_url.parse(i_host->m_host);
-
-                if(strchr(i_host->m_host.c_str(), (int)':'))
-                {
-                        l_reqlet->set_host(l_url.m_host);
-                        l_reqlet->set_port(l_url.m_port);
-                }
-                else
-                {
-                        // TODO make set host take const
-                        l_reqlet->set_host(i_host->m_host);
-                }
-
-                if(!i_host->m_hostname.empty())
-                {
-                     l_reqlet->m_url.m_hostname = i_host->m_hostname;
-                }
-                if(!i_host->m_id.empty())
-                {
-                     l_reqlet->m_url.m_id = i_host->m_id;
-                }
-                if(!i_host->m_where.empty())
-                {
-                     l_reqlet->m_url.m_where = i_host->m_where;
-                }
-
-                // Add to list
-                m_reqlet_vector.push_back(l_reqlet);
-        }
-
-        m_num_end_fetches = m_reqlet_vector.size();
-
+        m_host_list.clear();
+        m_host_list = a_host_list;
+        m_num_end_fetches = m_host_list.size();
         return HLX_CLIENT_STATUS_OK;
 }
 
@@ -566,39 +597,25 @@ int hlx_client::set_host_list(const host_list_t &a_host_list)
 //: ----------------------------------------------------------------------------
 int hlx_client::set_server_list(const server_list_t &a_server_list)
 {
+        m_host_list.clear();
+
         // Create the reqlet list
-        uint32_t l_reqlet_num = 0;
         for(server_list_t::const_iterator i_server = a_server_list.begin();
             i_server != a_server_list.end();
-            ++i_server, ++l_reqlet_num)
+            ++i_server)
         {
-                // Create a re
-                reqlet *l_reqlet = new reqlet(l_reqlet_num, 1);
-                l_reqlet->init_with_url(m_url);
+                // Create host_t
+                host_t l_host;
 
-                // Get host and port if exist
-                parsed_url l_url;
-                l_url.parse(*i_server);
+                l_host.m_host = (*i_server);
+                l_host.m_hostname = (*i_server);
+                l_host.m_id = "";
+                l_host.m_where = "";
+                m_host_list.push_back(l_host);
 
-                if(strchr(i_server->c_str(), (int)':'))
-                {
-                        l_reqlet->set_host(l_url.m_host);
-                        l_reqlet->set_port(l_url.m_port);
-                }
-                else
-                {
-                        // TODO make set host take const
-                        l_reqlet->set_host(*i_server);
-                }
-
-                // Add to list
-                m_reqlet_vector.push_back(l_reqlet);
         }
-
-        m_num_end_fetches = m_reqlet_vector.size();
-
+        m_num_end_fetches = m_host_list.size();
         return HLX_CLIENT_STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -608,24 +625,9 @@ int hlx_client::set_server_list(const server_list_t &a_server_list)
 //: ----------------------------------------------------------------------------
 int32_t hlx_client::add_url(const std::string &a_url)
 {
-
-        // TODO
-        // Make threadsafe...
-
-        reqlet *l_reqlet = new reqlet((uint64_t)(m_reqlet_vector.size()));
-
-        // Initialize
-        int32_t l_status = HLX_CLIENT_STATUS_OK;
-        l_status = l_reqlet->init_with_url(a_url, m_wildcarding);
-        if(STATUS_OK != l_status)
-        {
-                NDBG_PRINT("Error performing init_with_url: %s\n", a_url.c_str());
-                return HLX_CLIENT_STATUS_ERROR;
-        }
-
-        // Add to list
-        m_reqlet_vector.push_back(l_reqlet);
-
+        host_t l_host;
+        l_host.m_url = a_url;
+        m_host_list.push_back(l_host);
         return HLX_CLIENT_STATUS_OK;
 }
 
@@ -962,6 +964,27 @@ void hlx_client::set_verb(const std::string &a_verb)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void hlx_client::set_port(uint16_t a_port)
+{
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_client::set_scheme(scheme_type_t a_scheme)
+{
+
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void hlx_client::set_ssl_cipher_list(const std::string &a_cipher_list)
 {
         m_ssl_cipher_list = a_cipher_list;
@@ -1060,6 +1083,9 @@ hlx_client::hlx_client(void):
         // TODO Make define
         m_verb("GET"),
 
+        m_port(0),
+        m_scheme(SCHEME_NONE),
+
         m_use_ai_cache(true),
         m_ai_cache(),
 
@@ -1115,7 +1141,10 @@ hlx_client::hlx_client(void):
         // TODO Make define
         m_evr_loop_type(EVR_LOOP_EPOLL),
 
-        m_reqlet_vector(),
+        // TODO REMOVE!!!
+        //m_reqlet_vector(),
+
+        m_host_list(),
 
         m_resolver(NULL),
 
@@ -1134,6 +1163,9 @@ hlx_client::hlx_client(void):
 //: ----------------------------------------------------------------------------
 hlx_client::~hlx_client(void)
 {
+
+        // TODO REMOVE!!!
+#if 0
         // Delete reqlets
         for(size_t i_reqlet = 0;
             i_reqlet < m_reqlet_vector.size();
@@ -1147,6 +1179,7 @@ hlx_client::~hlx_client(void)
                 }
                 m_reqlet_vector.clear();
         }
+#endif
 
         // Delete t_client list...
         for(t_client_list_t::iterator i_client_hle = m_t_client_list.begin();

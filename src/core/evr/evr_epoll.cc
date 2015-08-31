@@ -30,6 +30,9 @@
 #include <string.h>
 #include <errno.h>
 
+
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -136,3 +139,6 @@ int evr_epoll::del(int a_fd)
         }
         return STATUS_OK;
 }
+
+} //namespace ns_hlx {
+

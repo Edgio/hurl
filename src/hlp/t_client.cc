@@ -76,6 +76,8 @@
                 } \
         } while(0)
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
@@ -1143,3 +1145,6 @@ void t_client::add_pb_cmd(const pb_cmd_t &a_cmd)
         ++m_num_cmds;
         m_evr_cmd_loop->add_timer(l_ms, evr_loop_timer_cb, l_client_pb_cmd, &l_unused);
 }
+
+} //namespace ns_hlx {
+

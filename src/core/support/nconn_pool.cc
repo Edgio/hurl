@@ -49,6 +49,8 @@
                 } \
         } while(0)
 
+namespace ns_hlx {
+
 #if 0
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -486,4 +488,6 @@ nconn_pool::~nconn_pool(void)
         }
 
 }
+
+} //namespace ns_hlx {
 

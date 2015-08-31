@@ -65,8 +65,7 @@ __thread t_client *g_t_client = NULL;
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #define COPY_SETTINGS(_field) m_settings._field = a_settings._field
-t_client::t_client(const settings_struct_t &a_settings,
-                   reqlet_vector_t a_reqlet_vector):
+t_client::t_client(const settings_struct_t &a_settings):
         m_t_run_thread(),
         m_settings(),
         m_num_reqlets(0),
@@ -145,20 +144,6 @@ t_client::t_client(const settings_struct_t &a_settings,
         tinymt64_t *l_rand_ptr = (tinymt64_t*)m_rand_ptr;
         tinymt64_init(l_rand_ptr, get_time_us());
 
-        // Copy in requests
-        uint64_t i_id = 0;
-        for(reqlet_vector_t::const_iterator i_reqlet = a_reqlet_vector.begin();
-            i_reqlet != a_reqlet_vector.end();
-            ++i_reqlet)
-        {
-                // Will it blend!?!?
-                reqlet *l_reqlet = new reqlet(**i_reqlet);
-                //*l_reqlet = *i_reqlet;
-                l_reqlet->set_id(i_id++);
-                m_reqlet_vector.push_back(l_reqlet);
-        }
-        m_num_reqlets = m_reqlet_vector.size();
-
         // Create loop
         m_evr_loop = new evr_loop(evr_loop_file_readable_cb,
                                   evr_loop_file_writeable_cb,
@@ -167,6 +152,7 @@ t_client::t_client(const settings_struct_t &a_settings,
                                   m_settings.m_num_parallel);
 
 }
+
 
 
 //: ----------------------------------------------------------------------------
@@ -1062,6 +1048,43 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_
         {
                 return STATUS_ERROR;
         }
+
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_client::set_reqlets(reqlet_vector_t a_reqlet_vector)
+{
+
+        // Remove any existing...
+        for(reqlet_vector_t::iterator i_reqlet = m_reqlet_vector.begin();
+            i_reqlet != m_reqlet_vector.end();
+            ++i_reqlet)
+        {
+                if(*i_reqlet)
+                {
+                        delete *i_reqlet;
+                        *i_reqlet = NULL;
+                }
+        }
+        m_reqlet_vector.clear();
+
+        uint64_t i_id = 0;
+        for(reqlet_vector_t::iterator i_reqlet = a_reqlet_vector.begin();
+            i_reqlet != a_reqlet_vector.end();
+            ++i_reqlet)
+        {
+                // Will it blend!?!?
+                reqlet *l_reqlet = new reqlet(**i_reqlet);
+                //*l_reqlet = *i_reqlet;
+                l_reqlet->set_id(i_id++);
+                m_reqlet_vector.push_back(l_reqlet);
+        }
+        m_num_reqlets = m_reqlet_vector.size();
 
         return STATUS_OK;
 }

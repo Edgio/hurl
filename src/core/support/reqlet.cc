@@ -43,6 +43,9 @@
 #include "tinymt64.h"
 #include "city.h"
 
+
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: \details: Copy constructor
 //: \return:  TODO
@@ -1041,3 +1044,8 @@ const Url & url_factory::pick_url()
         return result;
 }
 #endif
+
+
+} //namespace ns_hlx {
+
+

@@ -31,6 +31,8 @@
 #include <errno.h>
 #include <assert.h>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -158,5 +160,5 @@ int evr_select::del(int a_fd)
         return STATUS_OK;
 }
 
-
+} //namespace ns_hlx {
 

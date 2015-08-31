@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <sys/eventfd.h>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -359,3 +361,6 @@ int32_t evr_loop::stop(void)
 
         return STATUS_OK;
 }
+
+} //namespace ns_hlx {
+

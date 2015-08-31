@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <strings.h>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
@@ -60,6 +62,8 @@ inline void stat_init(req_stat_t&a_stat)
 {
         bzero(&a_stat, sizeof(req_stat_t));
 }
+
+} //namespace ns_hlx {
 
 #endif
 

@@ -41,6 +41,8 @@
 // Sockets...
 #include <netinet/in.h>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: Fwd' Decls
 //: ----------------------------------------------------------------------------
@@ -244,5 +246,6 @@ private:
 void add_stat_to_agg(total_stat_agg_t &ao_stat_agg, const req_stat_t &a_req_stat);
 void add_to_total_stat_agg(total_stat_agg_t &ao_stat_agg, const total_stat_agg_t &a_add_total_stat);
 
+} //namespace ns_hlx {
 
 #endif

@@ -34,6 +34,7 @@
 #endif
 #include <inttypes.h>
 
+namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -483,4 +484,6 @@ test_time_stop = timer_now ();
 getrusage (RUSAGE_SELF, &test_rusage_stop);
 #endif
 
+
+} //namespace ns_hlx {
 

@@ -49,6 +49,9 @@
 
 namespace ns_hlx {
 
+class reqlet;
+typedef std::vector <reqlet *> reqlet_vector_t;
+
 //: ----------------------------------------------------------------------------
 //: Settings
 //: ----------------------------------------------------------------------------
@@ -156,16 +159,17 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_client(const settings_struct_t &a_settings,
-                 reqlet_vector_t a_reqlet_vector);
+        t_client(const settings_struct_t &a_settings);
 
         ~t_client();
 
         int run(void);
         void *t_run(void *a_nothing);
         void stop(void);
-        bool is_running(void) { return !m_stopped; }
+        bool is_running(void) { return !m_stopped; };
+        int32_t set_reqlets(reqlet_vector_t a_reqlet_vector);
         int32_t set_header(const std::string &a_header_key, const std::string &a_header_val);
+        void clear_headers(void) { m_settings.m_header_map.clear(); };
         void set_ssl_ctx(SSL_CTX * a_ssl_ctx) { m_settings.m_ssl_ctx = a_ssl_ctx;};
         uint32_t get_timeout_s(void) { return m_settings.m_timeout_s;};
         void get_stats_copy(tag_stat_map_t &ao_tag_stat_map);

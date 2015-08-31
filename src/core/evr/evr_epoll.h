@@ -28,6 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include "evr.h"
 
+namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -51,6 +52,8 @@ private:
         DISALLOW_COPY_AND_ASSIGN(evr_epoll);
         int m_epoll_fd;
 };
+
+} //namespace ns_hlx {
 
 #endif
 

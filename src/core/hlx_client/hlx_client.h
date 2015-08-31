@@ -55,20 +55,17 @@
 struct ssl_ctx_st;
 typedef ssl_ctx_st SSL_CTX;
 
-class reqlet;
-typedef std::vector <reqlet *> reqlet_vector_t;
+namespace ns_hlx {
 
 struct total_stat_agg_struct;
-typedef total_stat_agg_struct total_stat_agg_t;
-typedef std::map <std::string, total_stat_agg_t> tag_stat_map_t;
 class resolver;
+class t_client;
 
-
-namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-class t_client;
+typedef total_stat_agg_struct total_stat_agg_t;
+typedef std::map <std::string, total_stat_agg_t> tag_stat_map_t;
 typedef std::list <t_client *> t_client_list_t;
 
 // -----------------------------------------------
@@ -79,18 +76,29 @@ typedef struct host_struct {
         std::string m_hostname;
         std::string m_id;
         std::string m_where;
+        std::string m_url;
 
         host_struct():
                 m_host(),
                 m_hostname(),
                 m_id(),
-                m_where()
+                m_where(),
+                m_url()
         {};
 } host_t;
 
 typedef std::list <host_t> host_list_t;
 typedef std::list <std::string> server_list_t;
 typedef std::map <std::string, uint32_t> summary_map_t;
+
+// -----------------------------------------------
+// Scheme
+// -----------------------------------------------
+typedef enum {
+        SCHEME_NONE = 0,
+        SCHEME_HTTP,
+        SCHEME_HTTPS
+} scheme_type_t;
 
 // -----------------------------------------------
 // Output formats
@@ -109,11 +117,9 @@ typedef enum {
 } output_part_t;
 
 typedef enum {
-
         REQUEST_MODE_SEQUENTIAL = 0,
         REQUEST_MODE_RANDOM,
         REQUEST_MODE_ROUND_ROBIN
-
 } request_mode_t;
 
 //: ----------------------------------------------------------------------------
@@ -144,7 +150,7 @@ public:
         void set_color(bool a_val);
 
         // url
-        int set_url(const std::string &a_url);
+        void set_url(const std::string &a_url);
         void set_wildcarding(bool a_val);
 
         // data
@@ -191,6 +197,12 @@ public:
 
         // Verb
         void set_verb(const std::string &a_verb);
+
+        // Port
+        void set_port(uint16_t a_port);
+
+        // Scheme
+        void set_scheme(scheme_type_t a_scheme);
 
         // SSL
         void set_ssl_cipher_list(const std::string &a_cipher_list);
@@ -270,6 +282,9 @@ private:
         header_map_t m_header_map;
         std::string m_verb;
 
+        uint16_t m_port;
+        scheme_type_t m_scheme;
+
         bool m_use_ai_cache;
         std::string m_ai_cache;
         int32_t m_num_parallel;
@@ -315,8 +330,12 @@ private:
         t_client_list_t m_t_client_list;
         int m_evr_loop_type;
 
+        // TODO REMOVE!!!
         // Reqlets
-        reqlet_vector_t m_reqlet_vector;
+        //reqlet_vector_t m_reqlet_vector;
+
+        // Host list
+        host_list_t m_host_list;
 
         // resolver
         resolver *m_resolver;

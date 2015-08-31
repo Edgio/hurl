@@ -212,7 +212,7 @@ int main(int argc, char** argv)
 {
 
         // Get hlp instance
-        hlp *l_hlp = hlp::get();
+        ns_hlx::hlp *l_hlp = ns_hlx::hlp::get();
 
         settings_struct_t l_settings;
         thread_args_struct_t l_thread_args;
@@ -644,7 +644,7 @@ void command_exec(thread_args_struct_t &a_thread_args)
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
-        hlp *l_hlp = hlp::get();
+        ns_hlx::hlp *l_hlp = ns_hlx::hlp::get();
         bool l_first_time = true;
 
         nonblock(NB_ENABLE);

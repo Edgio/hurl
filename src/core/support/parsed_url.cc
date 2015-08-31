@@ -28,6 +28,8 @@
 #include "ndebug.h"
 #include <string.h>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -184,5 +186,7 @@ void parsed_url::show(void)
 	printf("port:   %d\n", m_port);
 	printf("path:   %s\n", m_path.c_str());
 }
+
+} //namespace ns_hlx {
 
 
