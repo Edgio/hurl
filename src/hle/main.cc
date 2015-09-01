@@ -1283,34 +1283,11 @@ int main(int argc, char** argv)
         }
         else
         {
-#if 0
                 l_status = command_exec(l_settings);
                 if(l_status != 0)
                 {
                         return -1;
                 }
-#endif
-                l_hlx_client->set_save_response(true);
-                l_hlx_client->set_verbose(true);
-                l_hlx_client->run();
-                l_hlx_client->wait_till_stopped();
-                std::string l_responses_str;
-                l_responses_str = l_hlx_client->dump_all_responses(true, true, l_output_mode, l_output_part);
-                printf("RESPONSES: %s\n", l_responses_str.c_str());
-                l_hlx_client->set_save_response(true);
-                l_hlx_client->set_verbose(true);
-                l_hlx_client->run();
-                l_hlx_client->wait_till_stopped();
-                l_responses_str = l_hlx_client->dump_all_responses(true, true, l_output_mode, l_output_part);
-                printf("RESPONSES: %s\n", l_responses_str.c_str());
-                l_hlx_client->set_save_response(true);
-                l_hlx_client->set_verbose(true);
-                l_hlx_client->run();
-                l_hlx_client->wait_till_stopped();
-                l_responses_str = l_hlx_client->dump_all_responses(true, true, l_output_mode, l_output_part);
-                printf("RESPONSES: %s\n", l_responses_str.c_str());
-
-
         }
 
         if (!l_gprof_file.empty())
