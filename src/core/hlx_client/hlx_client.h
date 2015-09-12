@@ -31,6 +31,7 @@
 #include <vector>
 #include <map>
 #include <stdint.h>
+#include <math.h>
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -57,16 +58,14 @@ typedef ssl_ctx_st SSL_CTX;
 
 namespace ns_hlx {
 
-struct total_stat_agg_struct;
 class resolver;
 class t_client;
 
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-typedef total_stat_agg_struct total_stat_agg_t;
-typedef std::map <std::string, total_stat_agg_t> tag_stat_map_t;
 typedef std::list <t_client *> t_client_list_t;
+typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
 
 // -----------------------------------------------
 // Host info
@@ -87,9 +86,108 @@ typedef struct host_struct {
         {};
 } host_t;
 
+// -----------------------------------------------
+// xstat
+// -----------------------------------------------
+typedef struct xstat_struct
+{
+        double m_sum_x;
+        double m_sum_x2;
+        double m_min;
+        double m_max;
+        uint64_t m_num;
+
+        double min() const { return m_min; }
+        double max() const { return m_max; }
+        double mean() const { return (m_num > 0) ? m_sum_x / m_num : 0.0; }
+        double var() const { return (m_num > 0) ? (m_sum_x2 - m_sum_x) / m_num : 0.0; }
+        double stdev() const { return sqrt(var()); }
+
+        xstat_struct():
+                m_sum_x(0.0),
+                m_sum_x2(0.0),
+                m_min(1000000000.0),
+                m_max(0.0),
+                m_num(0)
+        {}
+
+        void clear()
+        {
+                m_sum_x = 0.0;
+                m_sum_x2 = 0.0;
+                m_min = 1000000000.0;
+                m_max = 0.0;
+                m_num = 0;
+        };
+} xstat_t;
+
+// -----------------------------------------------
+// All Stat Aggregation..
+// -----------------------------------------------
+typedef struct t_stat_struct
+{
+
+        // Stats
+        xstat_t m_stat_us_connect;
+        xstat_t m_stat_us_first_response;
+        xstat_t m_stat_us_end_to_end;
+
+        // Totals
+        uint64_t m_total_bytes;
+        uint64_t m_total_reqs;
+
+        // Client stats
+        uint64_t m_num_resolved;
+        uint64_t m_num_conn_started;
+        uint64_t m_num_conn_completed;
+        uint64_t m_num_idle_killed;
+        uint64_t m_num_errors;
+        uint64_t m_num_bytes_read;
+
+        status_code_count_map_t m_status_code_count_map;
+
+        t_stat_struct():
+                m_stat_us_connect(),
+                m_stat_us_first_response(),
+                m_stat_us_end_to_end(),
+                m_total_bytes(0),
+                m_total_reqs(0),
+                m_num_resolved(0),
+                m_num_conn_started(0),
+                m_num_conn_completed(0),
+                m_num_idle_killed(0),
+                m_num_errors(0),
+                m_num_bytes_read(0),
+                m_status_code_count_map()
+        {}
+
+        void clear();
+
+} t_stat_t;
+
+
+// -----------------------------------------------
+// Summary info
+// -----------------------------------------------
+typedef std::map <std::string, uint32_t> summary_map_t;
+typedef struct summary_info_struct {
+        uint32_t m_success;
+        uint32_t m_error_addr;
+        uint32_t m_error_conn;
+        uint32_t m_error_unknown;
+        uint32_t m_ssl_error_self_signed;
+        uint32_t m_ssl_error_expired;
+        uint32_t m_ssl_error_other;
+        summary_map_t m_ssl_protocols;
+        summary_map_t m_ssl_ciphers;
+
+        summary_info_struct();
+
+} summary_info_t;
+
+typedef std::map <std::string, t_stat_t> tag_stat_map_t;
 typedef std::list <host_t> host_list_t;
 typedef std::list <std::string> server_list_t;
-typedef std::map <std::string, uint32_t> summary_map_t;
 
 // -----------------------------------------------
 // Scheme
@@ -148,6 +246,7 @@ public:
         void set_quiet(bool a_val);
         void set_verbose(bool a_val);
         void set_color(bool a_val);
+        void set_start_time_ms(uint64_t a_start_time_ms);
 
         // url
         void set_url(const std::string &a_url);
@@ -176,12 +275,12 @@ public:
         void set_num_parallel(uint32_t a_num_parallel);
         void set_show_summary(bool a_val);
 
-        void set_run_time_s(int32_t a_val);
         void set_end_fetches(int32_t a_val);
         void set_num_reqs_per_conn(int32_t a_val);
         void set_rate(int32_t a_val);
         void set_request_mode(request_mode_t a_mode);
         void set_save_response(bool a_val);
+
         void set_collect_stats(bool a_val);
         void set_use_persistent_pool(bool a_val);
 
@@ -214,34 +313,18 @@ public:
         int set_ssl_options(long a_ssl_options);
 
         // ---------------------------------------
-        // Display/status
+        // responses/status
         // ---------------------------------------
-        void display_status_line(bool a_color);
-        void display_summary(bool a_color);
         std::string dump_all_responses(bool a_color,
                                        bool a_pretty,
                                        output_type_t a_output_type,
                                        int a_part_map);
 
-        // ---------------------------------------
-        // Legacy Display/status
-        // ---------------------------------------
-        //int32_t add_stat(const std::string &a_tag, const req_stat_t &a_req_stat);
-        void display_results(double a_elapsed_time,
-                             bool a_show_breakdown_flag = false);
-        void display_results_http_load_style(double a_elapsed_time,
-                                             bool a_show_breakdown_flag = false,
-                                             bool a_one_line_flag = false);
-        void display_results_line_desc(void);
-        void display_results_line(void);
-
-        void display_responses_line_desc(bool a_show_per_interval = false);
-        void display_responses_line(bool a_show_per_interval = false);
-
-        void get_stats(total_stat_agg_t &ao_all_stats, bool a_get_breakdown, tag_stat_map_t &ao_breakdown_stats);
+        void get_stats(t_stat_t &ao_all_stats,
+                       bool a_get_breakdown,
+                       tag_stat_map_t &ao_breakdown_stats) const;
         int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
-        void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
-
+        void get_summary_info(summary_info_t &ao_summary_info);
 
 private:
 
@@ -275,7 +358,9 @@ private:
         // Run Settings
         std::string m_url;
         std::string m_url_file;
+
         bool m_wildcarding;
+
         char *m_req_body;
         uint32_t m_req_body_len;
 
@@ -299,17 +384,12 @@ private:
         int32_t m_rate;
         int32_t m_num_end_fetches;
         int64_t m_num_reqs_per_conn;
-        int32_t m_run_time_s;
         request_mode_t m_request_mode;
         bool m_split_requests_by_thread;
 
         // Stats
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
-        total_stat_agg_t *m_last_stat;
-
-        // Used for displaying interval stats
-        uint32_t m_last_responses_count[10];
 
         // Socket options
         uint32_t m_sock_opt_recv_buf_size;
@@ -330,10 +410,6 @@ private:
         t_client_list_t m_t_client_list;
         int m_evr_loop_type;
 
-        // TODO REMOVE!!!
-        // Reqlets
-        //reqlet_vector_t m_reqlet_vector;
-
         // Host list
         host_list_t m_host_list;
 
@@ -351,6 +427,84 @@ private:
 
 };
 
+
+//: ----------------------------------------------------------------------------
+//: \details: Update stat with new value
+//: \return:  n/a
+//: \param:   ao_stat stat to be updated
+//: \param:   a_val value to update stat with
+//: ----------------------------------------------------------------------------
+inline void update_stat(xstat_t &ao_stat, double a_val)
+{
+        ao_stat.m_num++;
+        ao_stat.m_sum_x += a_val;
+        ao_stat.m_sum_x2 += a_val*a_val;
+        if(a_val > ao_stat.m_max) ao_stat.m_max = a_val;
+        if(a_val < ao_stat.m_min) ao_stat.m_min = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Add stats
+//: \return:  n/a
+//: \param:   ao_stat stat to be updated
+//: \param:   a_from_stat stat to add
+//: ----------------------------------------------------------------------------
+inline void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
+{
+        ao_stat.m_num += a_from_stat.m_num;
+        ao_stat.m_sum_x += a_from_stat.m_sum_x;
+        ao_stat.m_sum_x2 += a_from_stat.m_sum_x2;
+        if(a_from_stat.m_min < ao_stat.m_min)
+                ao_stat.m_min = a_from_stat.m_min;
+        if(a_from_stat.m_max > ao_stat.m_max)
+                ao_stat.m_max = a_from_stat.m_max;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Clear stat
+//: \return:  n/a
+//: \param:   ao_stat stat to be cleared
+//: ----------------------------------------------------------------------------
+inline void clear_stat(xstat_t &ao_stat)
+{
+        ao_stat.m_sum_x = 0.0;
+        ao_stat.m_sum_x2 = 0.0;
+        ao_stat.m_min = 0.0;
+        ao_stat.m_max = 0.0;
+        ao_stat.m_num = 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Show stat
+//: \return:  n/a
+//: \param:   ao_stat stat display
+//: ----------------------------------------------------------------------------
+inline void show_stat(const xstat_t &ao_stat)
+{
+        printf("Stat: Mean: %4.2f, StdDev: %4.2f, Min: %4.2f, Max: %4.2f Num: %lu\n",
+               ao_stat.mean(),
+               ao_stat.stdev(),
+               ao_stat.m_min,
+               ao_stat.m_max,
+               ao_stat.m_num);
+}
+
+//: ----------------------------------------------------------------------------
+//: Example...
+//: ----------------------------------------------------------------------------
+#if 0
+int main(void)
+{
+    xstat_t l_s;
+    update_stat(l_s, 30.0);
+    update_stat(l_s, 15.0);
+    update_stat(l_s, 22.0);
+    update_stat(l_s, 10.0);
+    update_stat(l_s, 24.0);
+    show_stat(l_s);
+    return 0;
+}
+#endif
 
 } //namespace ns_hlx {
 

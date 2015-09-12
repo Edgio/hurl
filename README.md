@@ -53,43 +53,46 @@ hlo "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 ```bash
 Usage: hlo [http[s]://]hostname[:port]/path [options]
 Options are:
-  -h, --help         Display this help and exit.
-  -r, --version      Display the version number and exit.
+  -h, --help          Display this help and exit.
+  -r, --version       Display the version number and exit.
   
 Input Options:
-  -u, --url_file     URL file.
-  -w, --no_wildcards Don't wildcard the url.
+  -u, --url_file      URL file.
+  -w, --no_wildcards  Don't wildcard the url.
+  -d, --data          HTTP body data -supports bodies up to 8k.
   
 Settings:
-  -y, --cipher       Cipher --see "openssl ciphers" for list.
-  -p, --parallel     Num parallel Default: 64.
-  -f, --fetches      Num fetches.
-  -N, --num_calls    Number of requests per connection
-  -k, --keep_alive   Re-use connections for all requests
-  -t, --threads      Number of parallel threads.
-  -H, --header       Request headers -can add multiple ie -H<> -H<>...
-  -l, --seconds      Run for <N> seconds .
-  -A, --rate         Max Request Rate.
-  -M, --mode         Requests mode [roundrobin|sequential|random].
-  -R, --recv_buffer  Socket receive buffer size.
-  -S, --send_buffer  Socket send buffer size.
-  -D, --no_delay     Socket TCP no-delay.
-  -T, --timeout      Timeout (seconds).
+  -y, --cipher        Cipher --see "openssl ciphers" for list.
+  -p, --parallel      Num parallel Default: 64.
+  -f, --fetches       Num fetches.
+  -N, --num_calls     Number of requests per connection
+  -k, --keep_alive    Re-use connections for all requests
+  -t, --threads       Number of parallel threads.
+  -H, --header        Request headers -can add multiple ie -H<> -H<>...
+  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc
+  -l, --seconds       Run for <N> seconds .
+  -A, --rate          Max Request Rate.
+  -M, --mode          Requests mode [roundrobin|sequential|random].
+  -R, --recv_buffer   Socket receive buffer size.
+  -S, --send_buffer   Socket send buffer size.
+  -D, --no_delay      Socket TCP no-delay.
+  -T, --timeout       Timeout (seconds).
   
 Print Options:
-  -v, --verbose      Verbose logging
-  -c, --color        Color
-  -q, --quiet        Suppress progress output
+  -v, --verbose       Verbose logging
+  -c, --color         Color
+  -q, --quiet         Suppress progress output
+  -C, --responses     Display http(s) response codes instead of request statistics
+  -L, --responses_per Display http(s) response codes per interval instead of request statistics
   
 Stat Options:
-  -P, --data_port    Start HTTP Stats Daemon on port.
-  -B, --breakdown    Show breakdown
-  -X, --http_load    Display in http load mode [MODE] -Legacy support
-  -G, --gprofile     Google profiler output file
+  -P, --data_port     Start HTTP Stats Daemon on port.
+  -B, --breakdown     Show breakdown
+  -Y, --http_load     Display in http load mode [MODE] -Legacy support
+  -G, --gprofile      Google profiler output file
   
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
-
 ```
 ## *hle* Parallel Curl
 *hle* is a parallel curling utility useful for pulling a single url from many different hosts. *hle* supports reading line delimited hosts from stdin, a shell command string, or a file.  
@@ -150,60 +153,10 @@ Output Options: -defaults to line delimited
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
   
-Debug Options:
-  -G, --gprofile       Google profiler output file
   
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
-
-
-## *hlp* HTTP Playback
-*hlp* plays back requests from a playback file -see [here](https://github.com/EdgeCast/hlo/blob/master/tests/hlp/data/sample.txt) for example of playback format.
-
-####An example
-```bash
-hlp -a sample.txt -I 127.0.0.1 -c
-```
-
-####Options
-```bash
-Usage: hlp [options]
-Options are:
-  -h, --help         Display this help and exit.
-  -v, --version      Display the version number and exit.
-
-Playback Options:
-  -a, --playback     Playback file.
-  -I, --pb_dest_addr Hard coded destination address for playback.
-  -o, --pb_dest_port Hard coded destination port for playback.
-  -s, --scale        Time scaling (float).
-  -t, --threads      Number of threads.
-
-Settings:
-  -y, --cipher       Cipher --see "openssl ciphers" for list.
-  -H, --header       Request headers -can add multiple ie -H<> -H<>...
-  -R, --recv_buffer  Socket receive buffer size.
-  -S, --send_buffer  Socket send buffer size.
-  -D, --no_delay     Socket TCP no-delay.
-  -T, --timeout      Timeout (seconds).
-
-Print Options:
-  -x, --verbose      Verbose logging
-  -c, --color        Color
-  -q, --quiet        Suppress progress output
-  -e, --extra_info   Extra Info output
-
-Stat Options:
-  -B, --breakdown    Show breakdown
-
-Example:
-  hlp -a sample.txt -I 127.0.0.1 -c
-
-Note: If running long jobs consider enabling tcp_tw_reuse -eg:
-echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
-```
-
 
 ## Building
 

@@ -37,15 +37,7 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 
-//: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
-bool ns_hlo::g_trip_print_flag = true;
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decls
-//: ----------------------------------------------------------------------------
-
+namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -110,7 +102,7 @@ static int get_stack_string(char* ao_stack_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void ns_hlo::print_bt(const char* a_file, const char* a_func, const int a_line)
+void print_bt(const char* a_file, const char* a_func, const int a_line)
 {
         //char tag[MAX_BACKTRACE_TAG_SIZE];
         char func_str[NDBG_MAX_BACKTRACE_TAG_SIZE] = "";
@@ -129,7 +121,7 @@ void ns_hlo::print_bt(const char* a_file, const char* a_func, const int a_line)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void ns_hlo::mem_display(const uint8_t* a_mem_buf, uint32_t a_length)
+void mem_display(const uint8_t* a_mem_buf, uint32_t a_length)
 {
 
         char l_display_line[256] = "";
@@ -206,4 +198,4 @@ test_time_stop = timer_now ();
 getrusage (RUSAGE_SELF, &test_rusage_stop);
 #endif
 
-
+}

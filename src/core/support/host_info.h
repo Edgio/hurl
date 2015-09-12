@@ -50,6 +50,18 @@ typedef struct host_info_struct {
                 m_sa.sin_family = AF_INET;
         };
 
+        void show(void)
+        {
+                printf("+-----------+\n");
+                printf("| Host Info |\n");
+                printf("+-----------+-------------------------\n");
+                printf(": m_sock_family:   %d\n", m_sock_family);
+                printf(": m_sock_type:     %d\n", m_sock_type);
+                printf(": m_sock_protocol: %d\n", m_sock_protocol);
+                printf(": m_sa_len:        %d\n", m_sa_len);
+                printf("+-------------------------------------\n");
+        };
+
 } host_info_t;
 
 

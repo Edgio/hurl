@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    nconn.h
+//: \file:    nbq.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    07/20/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,31 +20,17 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _NCONN_POOL_H
-#define _NCONN_POOL_H
+#ifndef _NBQ_H
+#define _NBQ_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "nconn_ssl.h"
-#include "nconn_tcp.h"
-#include "reqlet.h"
-#include "ncache.h"
-
 #include <list>
-#include <unordered_set>
-#include <unordered_map>
-#include <vector>
 
 //: ----------------------------------------------------------------------------
 //: Constants
-//: ----------------------------------------------------------------------------
-
-namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
 //: ----------------------------------------------------------------------------
 
 //: ----------------------------------------------------------------------------
@@ -52,77 +38,101 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 
 //: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef std::vector<nconn *> nconn_vector_t;
-typedef std::list<uint32_t> conn_id_list_t;
-typedef std::unordered_set<uint32_t> conn_id_set_t;
-typedef ncache <nconn *> idle_conn_ncache_t;
-
-//: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
+namespace ns_hlx {
+
+//: ----------------------------------------------------------------------------
+//: Fwd Decl's
+//: ----------------------------------------------------------------------------
+
+//: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+typedef struct nb_struct {
+
+        // ptr to alloc'd block
+        char *m_data;
+
+        // len of block
+        uint32_t m_len;
+
+        nb_struct(uint32_t a_len);
+        void init(uint32_t a_len);
+        ~nb_struct(void);
+
+private:
+        DISALLOW_COPY_AND_ASSIGN(nb_struct)
+
+} nb_t;
+
+typedef std::list <nb_t *> nb_list_t;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
-class nconn_pool
+class nbq
 {
 public:
+
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint32_t a_size);
-        ~nconn_pool();
-        nconn *get(reqlet *a_reqlet,
-                   std::string &a_ssl_cipher_list,
-                   bool a_verbose = false,
-                   bool a_color = false,
-                   int64_t a_num_reqs_per_conn = -1,
-                   bool a_save_response = false,
-                   bool a_collect_stats = false,
-                   bool a_connect_only = false,
-                   int32_t a_sock_opt_recv_buf_size = -1,
-                   int32_t a_sock_opt_send_buf_size = -1,
-                   bool a_sock_opt_no_delay = false,
-                   SSL_CTX *a_ssl_ctx = NULL,
-                   bool a_ssl_verify = false);
-        int32_t add_idle(nconn *a_nconn);
-        int32_t release(nconn *a_nconn);
-
-        // -------------------------------------------------
-        // Public static methods
-        // -------------------------------------------------
-        static int delete_cb(void* o_1, void *a_2);
+        nbq(uint32_t a_bsize);
+        ~nbq();
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
+        // Writing...
+        int32_t write(const char *a_buf, uint32_t a_len);
+        uint32_t write_avail(void);
+        char *write_ptr(void);
+        void write_incr(uint32_t a_size);
+
+        // Reading...
+        uint32_t read_avail(void);
+        char *read_ptr(void);
+        void read_incr(uint32_t a_size);
+
+        uint32_t add_avail(void);
+
+        // Reset...
+        void reset_read(void);
+        void reset_write(void);
+        void reset(void);
 
 private:
 
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(nconn_pool);
-        void init(void);
+        DISALLOW_COPY_AND_ASSIGN(nbq)
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        nconn_vector_t m_nconn_vector;
-        conn_id_list_t m_conn_free_list;
-        conn_id_set_t m_conn_used_set;
-        idle_conn_ncache_t m_idle_conn_ncache;
-        bool m_initd;
 
-protected:
-        // -------------------------------------------------
-        // Protected members
-        // -------------------------------------------------
+        char *m_write_ptr;
+        uint32_t m_write_avail;
+        uint32_t m_write_num;
+        nb_list_t::iterator m_write_block;
+
+        char *m_read_ptr;
+        uint32_t m_read_avail;
+        nb_list_t::iterator m_read_block;
+
+        // block size
+        uint32_t m_bsize;
+
+        // The data...
+        nb_list_t m_q;
 
 };
 
-} //namespace ns_hlx {
+} // ns_hlx
 
 #endif
+
+
+

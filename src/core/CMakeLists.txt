@@ -27,11 +27,16 @@ cmake_minimum_required(VERSION 2.6.0)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     #${CMAKE_CURRENT_BINARY_DIR}
     ./ndebug
+    ./url_router
+    ./http
     ./http_parser
     ./tinymt
     ./evr
     ./cityhash
     ./support
+    ./nconn
+    ./hlx_client
+    ./hlk_server
 )
 
 # Source files
@@ -46,22 +51,29 @@ SET(SRCS
     ./support/util.cc
     ./support/ssl_util.cc
     ./support/hostcheck.cc
-    ./support/http_cb.cc
-    ./support/parsed_url.cc
-    ./support/reqlet.cc
-    ./support/nconn.cc
-    ./support/nconn_tcp.cc
-    ./support/nconn_ssl.cc
-    ./support/nconn_pool.cc
+    ./nconn/nconn.cc
+    ./nconn/nconn_tcp.cc
+    ./nconn/nconn_ssl.cc
+    ./nconn/nconn_pool.cc
     ./support/base64.cc
     ./support/resolver.cc
+    ./support/uri.cc
+    ./support/nbq.cc
+    ./http/http.cc
     ./hlx_client/hlx_client.cc
     ./hlx_client/t_client.cc
+    ./hlx_client/http_rx.cc
+    ./hlx_server/hlx_server.cc
+    ./hlx_server/t_server.cc
+    ./hlx_server/http_request_handler.cc
+    ./url_router/url_router.cc
 )
 
 # Headers
 SET(HDRS
     ./hlx_client/hlx_client.h
+    ./hlx_server/hlx_server.h
+    ./hlx_server/http_request_handler.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

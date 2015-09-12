@@ -80,8 +80,8 @@ public:
         virtual ~evr() {};
 
         virtual int wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec) = 0;
-        virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
-        virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
+        virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered) = 0;
+        virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered) = 0;
         virtual int del(int a_fd) = 0;
 
 private:
@@ -96,10 +96,10 @@ private:
 // Callback Types
 // -----------------------------------------------
 // File callback
-typedef void *(*evr_file_cb_t)(void *);
+typedef int32_t (*evr_file_cb_t)(void *);
 
 // Timer callback
-typedef void *(*evr_timer_cb_t)(void *);
+typedef int32_t (*evr_timer_cb_t)(void *);
 
 
 // -----------------------------------------------
@@ -162,7 +162,8 @@ public:
                  evr_file_cb_t a_error_cb = NULL,
                  evr_loop_type_t a_type = EVR_LOOP_EPOLL,
                  uint32_t a_max_conn = 1,
-                 bool a_use_lock = false);
+                 bool a_use_lock = false,
+                 bool a_edge_triggered = false);
         ~evr_loop();
         int32_t run(void);
 
@@ -201,6 +202,7 @@ private:
 
         // Control fd -used primarily for cancelling an existing epooll_wait
         int m_control_fd;
+        bool m_edge_triggered;
 
         // -------------------------------------------
         // TODO Reevaluate Using class member instead

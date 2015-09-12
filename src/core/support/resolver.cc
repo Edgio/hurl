@@ -59,7 +59,6 @@
                 }\
         }while(0)
 
-
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -91,6 +90,8 @@ int32_t resolver::cached_resolve(std::string &a_host,
                                  host_info_t &a_host_info,
                                  std::string &ao_error)
 {
+
+        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_host.c_str(), a_port);
 
         if(!m_is_initd)
         {
@@ -147,6 +148,8 @@ int32_t resolver::cached_resolve(std::string &a_host,
                 return STATUS_ERROR;
         }
 
+        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_host.c_str(), a_port);
+
         // Find the first IPv4 and IPv6 entries.
         struct addrinfo* l_addrinfo_v4 = NULL;
         struct addrinfo* l_addrinfo_v6 = NULL;
@@ -186,7 +189,7 @@ int32_t resolver::cached_resolve(std::string &a_host,
                 a_host_info.m_sa_len = l_addrinfo_v4->ai_addrlen;
 
                 //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v4->ai_addrlen);
-                //ns_hlo::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr, l_addrinfo_v4->ai_addrlen);
+                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr, l_addrinfo_v4->ai_addrlen);
                 //show_host_info();
 
                 memmove(&a_host_info.m_sa, l_addrinfo_v4->ai_addr, l_addrinfo_v4->ai_addrlen);
@@ -207,7 +210,7 @@ int32_t resolver::cached_resolve(std::string &a_host,
                 a_host_info.m_sa_len = l_addrinfo_v6->ai_addrlen;
 
                 //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v6->ai_addrlen);
-                //ns_hlo::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr, l_addrinfo_v6->ai_addrlen);
+                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr, l_addrinfo_v6->ai_addrlen);
                 //show_host_info();
 
                 memmove(&a_host_info.m_sa, l_addrinfo_v6->ai_addr, l_addrinfo_v6->ai_addrlen);
@@ -457,4 +460,3 @@ resolver::~resolver()
 }
 
 } //namespace ns_hlx {
-

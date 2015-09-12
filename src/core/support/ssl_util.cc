@@ -41,7 +41,6 @@
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 
-
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
@@ -152,27 +151,6 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void ssl_kill_locks(void)
-{
-        CRYPTO_set_id_callback(NULL);
-        CRYPTO_set_locking_callback(NULL);
-        if(g_lock_cs)
-        {
-                for (int i=0; i<CRYPTO_num_locks(); ++i)
-                {
-                        pthread_mutex_destroy(&(g_lock_cs[i]));
-                }
-        }
-
-        OPENSSL_free(g_lock_cs);
-        g_lock_cs = NULL;
-}
-
-//: ----------------------------------------------------------------------------
 //: \details: OpenSSL can safely be used in multi-threaded applications provided
 //:           that at least two callback functions are set, locking_function and
 //:           threadid_func this function sets those two callbacks.
@@ -197,6 +175,8 @@ static void init_ssl_locking(void)
         CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
 
 }
+
+namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: \details: Initialize OpenSSL
@@ -316,6 +296,27 @@ SSL_CTX* ssl_init(const std::string &a_cipher_list,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void ssl_kill_locks(void)
+{
+        CRYPTO_set_id_callback(NULL);
+        CRYPTO_set_locking_callback(NULL);
+        if(g_lock_cs)
+        {
+                for (int i=0; i<CRYPTO_num_locks(); ++i)
+                {
+                        pthread_mutex_destroy(&(g_lock_cs[i]));
+                }
+        }
+
+        OPENSSL_free(g_lock_cs);
+        g_lock_cs = NULL;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 typedef std::map <std::string, long>ssl_options_map_t;
 ssl_options_map_t g_ssl_options_map;
 int32_t get_ssl_options_str_val(const std::string a_options_str, long &ao_val)
@@ -378,6 +379,13 @@ int32_t get_ssl_options_str_val(const std::string a_options_str, long &ao_val)
 //: ----------------------------------------------------------------------------
 int32_t get_ssl_session_info(SSL *a_ssl, std::string &ao_protocol, std::string &ao_cipher)
 {
+
+        // TODO Alternative???
+#if 0
+        const char* cipher_name = SSL_get_cipher_name(a_ssl);
+        const char* cipher_version = SSL_get_cipher_version(a_ssl);
+        NDBG_PRINT("got ssl m_cipher %s %s\n", cipher_name, cipher_version);
+#endif
 
         SSL_SESSION *m_ssl_session = SSL_get_session(a_ssl);
         if(!m_ssl_session)
@@ -443,4 +451,5 @@ int32_t get_ssl_session_info(SSL *a_ssl, std::string &ao_protocol, std::string &
         return STATUS_OK;
 }
 
+} //namespace ns_hlx {
 

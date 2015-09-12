@@ -35,7 +35,6 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
@@ -45,8 +44,8 @@ public:
         evr_select(int a_max_connections);
 
         int wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec);
-        int add(int a_fd, uint32_t a_attr_mask, void* a_data);
-        int mod(int a_fd, uint32_t a_attr_mask, void* a_data);
+        int add(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered);
+        int mod(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered);
         int del(int a_fd);
 
 private:
@@ -60,5 +59,4 @@ private:
 } //namespace ns_hlx {
 
 #endif
-
 

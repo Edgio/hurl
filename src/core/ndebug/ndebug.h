@@ -83,31 +83,25 @@
                 fflush(stdout); \
         } while(0)
 
-#define NDBG_PRINT_SET(_state) do {ns_hlo::g_trip_print_flag = _state;}while(0)
-
 #define NDBG_PRINT(...) \
         do { \
-                if(ns_hlo::g_trip_print_flag) { \
-                        fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
-                        fprintf(stdout, __VA_ARGS__);               \
-                        fflush(stdout); \
-                } \
+                fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
+                fprintf(stdout, __VA_ARGS__);               \
+                fflush(stdout); \
         } while(0)
 
 #define NDBG_HEXDUMP(buffer, len) \
-    do { \
-        if(ns_hlo::g_trip_print_flag) { \
-            ns_hlo::mem_display(buffer, len); \
-            fflush(stdout); \
-        } \
-    } while(0)
+        do { \
+                mem_display(buffer, len); \
+                fflush(stdout); \
+        } while(0)
 
-#define NDBG_PRINT_BT() ns_hlo::print_bt(__FILE__,__FUNCTION__,__LINE__)
+#define NDBG_PRINT_BT() print_bt(__FILE__,__FUNCTION__,__LINE__)
 
 #define CHECK_FOR_POD(_class) \
     if(0){ \
         _class var; \
-        ns_hlo::check_for_pod(1, var); \
+        check_for_pod(1, var); \
     }
 
 //: ----------------------------------------------------------------------------
@@ -140,9 +134,8 @@
         } while(0)
 #endif
 
-// Namespace ns_hlo
-namespace ns_hlo
-{
+// Namespace ns_hlx
+namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: Forward Decls
@@ -188,12 +181,7 @@ inline int check_for_pod(int count, ...)
 void print_bt(const char * a_file, const char *a_func, const int a_line);
 void mem_display(const uint8_t *a_mem_buf, uint32_t a_length);
 
-//: ----------------------------------------------------------------------------
-//: Global externs
-//: ----------------------------------------------------------------------------
-extern bool g_trip_print_flag;
-
-} // namespace ns_hlo {
+} // namespace ns_hlx {
 
 #endif // NDEBUG_H_
 

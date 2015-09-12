@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    resolver.h
+//: \file:    http_request_handler.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    08/28/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,66 +20,54 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _RESOLVER_H
-#define _RESOLVER_H
+#ifndef _HTTP_REQUEST_HANDLER_H
+#define _HTTP_REQUEST_HANDLER_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
-#include "host_info.h"
-
-#include <pthread.h>
-
-#include <string>
-#include <map>
+#include <stdint.h>
+#include "http.h"
+#include "url_router.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define RESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
 
 
 //: ----------------------------------------------------------------------------
-//: Types
+//: Fwd decl's
 //: ----------------------------------------------------------------------------
+
+
 namespace ns_hlx {
 
-// TODO Create struct with TTL for storing ai cache
-typedef std::map <std::string, std::string> ai_cache_map_t;
+//: ----------------------------------------------------------------------------
+//: types
+//: ----------------------------------------------------------------------------
+typedef int16_t http_response_code_t;
 
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
+//: http_request_handler
 //: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
-class resolver
+class http_request_handler
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
+        http_request_handler(void) {};
+        virtual ~http_request_handler(){};
 
-        resolver();
-        ~resolver();
-
-        // Settings...
-        void set_verbose(bool a_val) { m_verbose = a_val;}
-        void set_color(bool a_val) { m_color = a_val;}
-        void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
-        int32_t cached_resolve(std::string &a_host,
-                               uint16_t a_port,
-                               host_info_t &a_host_info,
-                               std::string &ao_error);
-        int32_t sync_ai_cache(void);
-        int32_t read_ai_cache(const std::string &a_ai_cache_file);
+        virtual int32_t do_get(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_post(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_put(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_delete(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_default(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
 
         // -------------------------------------------------
         // Public members
@@ -89,27 +77,55 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(resolver)
+        DISALLOW_COPY_AND_ASSIGN(http_request_handler)
+
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        bool m_is_initd;
+
+};
+
+//: ----------------------------------------------------------------------------
+//: http_request_handler
+//: ----------------------------------------------------------------------------
+class default_http_request_handler: public http_request_handler
+{
+public:
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
+        default_http_request_handler(void);
+        ~default_http_request_handler();
+
+        int32_t do_get(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
+        int32_t do_post(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
+        int32_t do_put(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
+        int32_t do_delete(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
+        int32_t do_default(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
 
         // -------------------------------------------------
-        // Settings
+        // Public members
         // -------------------------------------------------
-        bool m_verbose;
-        bool m_color;
-        uint32_t m_timeout_s;
-        uint32_t m_use_cache;
 
-        pthread_mutex_t m_cache_mutex;
-        ai_cache_map_t m_ai_cache_map;
-        std::string m_ai_cache_file;
+private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        DISALLOW_COPY_AND_ASSIGN(default_http_request_handler)
+
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
 
 };
 
 } //namespace ns_hlx {
 
-#endif
+#endif // #ifndef _HLX_CLIENT_H
+
+
+
+
+

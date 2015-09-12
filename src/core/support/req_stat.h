@@ -42,9 +42,7 @@ typedef struct req_stat_struct
         uint32_t m_total_bytes;
 
         uint64_t m_tt_connect_us;
-        uint64_t m_tt_ssl_connect_us;
         uint64_t m_tt_first_read_us;
-        uint64_t m_tt_header_completion_us;
         uint64_t m_tt_completion_us;
 
         uint16_t m_status_code;

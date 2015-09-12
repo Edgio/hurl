@@ -100,6 +100,7 @@ typedef struct settings_struct
         bool m_show_summary;
         bool m_cli;
         ns_hlx::hlx_client *m_hlx_client;
+        uint32_t m_total_reqs;
 
         // ---------------------------------
         // Defaults...
@@ -111,13 +112,20 @@ typedef struct settings_struct
                 m_show_stats(false),
                 m_show_summary(false),
                 m_cli(false),
-                m_hlx_client(NULL)
+                m_hlx_client(NULL),
+                m_total_reqs(0)
         {}
 
 private:
         HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(settings_struct);
 
 } settings_struct_t;
+
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+void display_status_line(settings_struct_t &a_settings);
+void display_summary(settings_struct_t &a_settings);
 
 //: ----------------------------------------------------------------------------
 //: \details: Signal handler
@@ -137,7 +145,6 @@ void sig_handler(int signo)
                 g_settings->m_hlx_client->stop();
         }
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -190,12 +197,17 @@ void nonblock(int state)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int command_exec(settings_struct_t &a_settings)
+int command_exec(settings_struct_t &a_settings, bool a_send_stop)
 {
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
         //bool l_first_time = true;
+
+        // Set to keep-alive -and reuse
+        a_settings.m_hlx_client->set_header("Connection","keep-alive");
+        a_settings.m_hlx_client->set_num_reqs_per_conn(-1);
+        a_settings.m_hlx_client->set_use_persistent_pool(true);
 
         nonblock(NB_ENABLE);
 
@@ -250,7 +262,7 @@ int command_exec(settings_struct_t &a_settings)
 
                 if(a_settings.m_show_stats)
                 {
-                        a_settings.m_hlx_client->display_status_line(a_settings.m_color);
+                        display_status_line(a_settings);
                 }
 
                 if (!a_settings.m_hlx_client->is_running())
@@ -262,7 +274,7 @@ int command_exec(settings_struct_t &a_settings)
         }
 
         // Send stop -if unsent
-        if(!l_sent_stop)
+        if(!l_sent_stop && a_send_stop)
         {
                 a_settings.m_hlx_client->stop();
                 l_sent_stop = true;
@@ -274,7 +286,7 @@ int command_exec(settings_struct_t &a_settings)
         // One more status for the lovers
         if(a_settings.m_show_stats)
         {
-                a_settings.m_hlx_client->display_status_line(a_settings.m_color);
+                display_status_line(a_settings);
         }
 
         nonblock(NB_DISABLE);
@@ -365,7 +377,7 @@ int command_exec_cli(settings_struct_t &a_settings)
                 case 'r':
                 {
                         int l_status;
-                        l_status = command_exec(a_settings);
+                        l_status = command_exec(a_settings, false);
                         if(l_status != 0)
                         {
                                 return -1;
@@ -516,8 +528,10 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -P, --pretty         Pretty output\n");
         fprintf(a_stream, "  \n");
 
+#ifdef ENABLE_PROFILER
         fprintf(a_stream, "Debug Options:\n");
         fprintf(a_stream, "  -G, --gprofile       Google profiler output file\n");
+#endif
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running large jobs consider enabling tcp_tw_reuse -eg:\n");
@@ -606,13 +620,15 @@ int main(int argc, char** argv)
                 { "line_delimited", 0, 0, 'l' },
                 { "json",           0, 0, 'j' },
                 { "pretty",         0, 0, 'P' },
+#ifdef ENABLE_PROFILER
                 { "gprofile",       1, 0, 'G' },
-
+#endif
                 // list sentinel
                 { 0, 0, 0, 0 }
         };
-
+#ifdef ENABLE_PROFILER
         std::string l_gprof_file;
+#endif
         std::string l_execute_line;
         std::string l_host_file_str;
         std::string l_host_file_json_str;
@@ -661,7 +677,11 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
+#ifdef ENABLE_PROFILER
         char l_short_arg_list[] = "hvu:d:f:J:x:y:O:VNF:L:Ip:t:H:X:T:R:S:DA:Crcqsmo:ljPG:";
+#else
+        char l_short_arg_list[] = "hvu:d:f:J:x:y:O:VNF:L:Ip:t:H:X:T:R:S:DA:Crcqsmo:ljP";
+#endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -1015,6 +1035,7 @@ int main(int argc, char** argv)
                         l_output_pretty = true;
                         break;
                 }
+#ifdef ENABLE_PROFILER
                 // ---------------------------------------
                 // Google Profiler Output File
                 // ---------------------------------------
@@ -1023,6 +1044,7 @@ int main(int argc, char** argv)
                         l_gprof_file = l_argument;
                         break;
                 }
+#endif
                 // What???
                 case '?':
                 {
@@ -1235,7 +1257,7 @@ int main(int argc, char** argv)
 
         if(l_settings.m_verbose)
         {
-                NDBG_PRINT("Showing hostname list:\n");
+                NDBG_OUTPUT("Showing hostname list:\n");
                 for(ns_hlx::host_list_t::iterator i_host = l_host_list.begin(); i_host != l_host_list.end(); ++i_host)
                 {
                         NDBG_OUTPUT("%s\n", i_host->m_host.c_str());
@@ -1257,6 +1279,7 @@ int main(int argc, char** argv)
         int l_status = 0;
 
         // Set host list
+        l_settings.m_total_reqs = l_host_list.size();
         l_status = l_hlx_client->set_host_list(l_host_list);
         if(HLX_CLIENT_STATUS_OK != l_status)
         {
@@ -1264,11 +1287,13 @@ int main(int argc, char** argv)
                 return -1;
         }
 
+#ifdef ENABLE_PROFILER
         // Start Profiler
         if (!l_gprof_file.empty())
         {
                 ProfilerStart(l_gprof_file.c_str());
         }
+#endif
 
         // -------------------------------------------
         // Run command exec
@@ -1283,17 +1308,19 @@ int main(int argc, char** argv)
         }
         else
         {
-                l_status = command_exec(l_settings);
+                l_status = command_exec(l_settings, true);
                 if(l_status != 0)
                 {
                         return -1;
                 }
         }
 
+#ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
         {
                 ProfilerStop();
         }
+#endif
 
         //uint64_t l_end_time_ms = get_time_ms() - l_start_time_ms;
 
@@ -1346,7 +1373,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         if(l_settings.m_show_summary)
         {
-                l_hlx_client->display_summary(l_settings.m_color);
+                display_summary(l_settings);
         }
 
         // -------------------------------------------
@@ -1365,4 +1392,92 @@ int main(int argc, char** argv)
 
         return 0;
 
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_summary(settings_struct_t &a_settings)
+{
+        std::string l_header_str = "";
+        std::string l_protocol_str = "";
+        std::string l_cipher_str = "";
+        std::string l_off_color = "";
+
+        if(a_settings.m_color)
+        {
+                l_header_str = ANSI_COLOR_FG_CYAN;
+                l_protocol_str = ANSI_COLOR_FG_GREEN;
+                l_cipher_str = ANSI_COLOR_FG_YELLOW;
+                l_off_color = ANSI_COLOR_OFF;
+        }
+
+        uint32_t l_num_rx = 0;
+        ns_hlx::summary_info_t l_summary_info;
+        a_settings.m_hlx_client->get_summary_info(l_summary_info);
+        NDBG_OUTPUT("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
+        NDBG_OUTPUT("| total hosts:                     %u\n",l_num_rx);
+        NDBG_OUTPUT("| success:                         %u\n",l_summary_info.m_success);
+        NDBG_OUTPUT("| error address lookup:            %u\n",l_summary_info.m_error_addr);
+        NDBG_OUTPUT("| error connectivity:              %u\n",l_summary_info.m_error_conn);
+        NDBG_OUTPUT("| error unknown:                   %u\n",l_summary_info.m_error_unknown);
+        NDBG_OUTPUT("| ssl error cert expired           %u\n",l_summary_info.m_ssl_error_expired);
+        NDBG_OUTPUT("| ssl error cert self-signed       %u\n",l_summary_info.m_ssl_error_self_signed);
+        NDBG_OUTPUT("| ssl error other                  %u\n",l_summary_info.m_ssl_error_other);
+
+        // Sort
+        typedef std::map<uint32_t, std::string> _sorted_map_t;
+        _sorted_map_t l_sorted_map;
+        NDBG_OUTPUT("+--------------- %sSSL PROTOCOLS%s -------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
+        l_sorted_map.clear();
+        for(ns_hlx::summary_map_t::iterator i_s = l_summary_info.m_ssl_protocols.begin(); i_s != l_summary_info.m_ssl_protocols.end(); ++i_s)
+        l_sorted_map[i_s->second] = i_s->first;
+        for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
+        NDBG_OUTPUT("| %-32s %u\n", i_s->second.c_str(), i_s->first);
+        NDBG_OUTPUT("+--------------- %sSSL CIPHERS%s ---------------- \n", l_cipher_str.c_str(), l_off_color.c_str());
+        l_sorted_map.clear();
+        for(ns_hlx::summary_map_t::iterator i_s = l_summary_info.m_ssl_ciphers.begin(); i_s != l_summary_info.m_ssl_ciphers.end(); ++i_s)
+        l_sorted_map[i_s->second] = i_s->first;
+        for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
+        NDBG_OUTPUT("| %-32s %u\n", i_s->second.c_str(), i_s->first);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_status_line(settings_struct_t &a_settings)
+{
+        // -------------------------------------------------
+        // Get results from clients
+        // -------------------------------------------------
+
+        // Get stats
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::tag_stat_map_t l_unused;
+        a_settings.m_hlx_client->get_stats(l_total, false, l_unused);
+
+        uint32_t l_num_done = l_total.m_total_reqs;
+        uint32_t l_num_resolved = l_total.m_num_resolved;
+        uint32_t l_num_get = l_total.m_num_conn_started;
+        uint32_t l_num_rx = a_settings.m_total_reqs;
+        uint32_t l_num_error = l_total.m_num_errors;
+
+        if(a_settings.m_color)
+        {
+                printf("Done/Req'd/Resolved/Total/Error %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s\n",
+                                ANSI_COLOR_FG_GREEN, l_num_done, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_YELLOW, l_num_get, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_MAGENTA, l_num_resolved, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_BLUE, l_num_rx, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_RED, l_num_error, ANSI_COLOR_OFF);
+        }
+        else
+        {
+                printf("Done/Req'd/Resolved/Total/Error %8u / %8u / %8u / %8u / %8u\n",
+                                l_num_done, l_num_get, l_num_resolved, l_num_rx, l_num_error);
+        }
 }

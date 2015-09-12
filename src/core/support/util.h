@@ -28,7 +28,10 @@
 //: ----------------------------------------------------------------------------
 #include <string>
 #include <stdint.h>
+#include "req_stat.h"
+#include "hlx_client.h"
 
+namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Fwd' Decls
 //: ----------------------------------------------------------------------------
@@ -58,6 +61,12 @@ std::string get_file_path(std::string &a_filename);
 std::string get_base_filename(std::string &a_filename);
 std::string get_file_ext(std::string &a_filename);
 std::string get_file_wo_ext(std::string &a_filename);
+
+// Add stat to agg
+void add_stat_to_agg(t_stat_t &ao_stat_agg, const req_stat_t &a_req_stat);
+void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
+
+} //namespace ns_hlx {
 
 #endif
 

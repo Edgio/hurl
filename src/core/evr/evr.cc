@@ -45,7 +45,8 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
                    evr_file_cb_t a_error_cb,
                    evr_loop_type_t a_type,
                    uint32_t a_max_conn,
-                   bool a_use_lock):
+                   bool a_use_lock,
+                   bool a_edge_triggered):
         m_timer_pq(),
         m_timer_pq_mutex(),
         m_use_lock(a_use_lock),
@@ -56,6 +57,7 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         m_stopped(false),
         m_evr(NULL),
         m_control_fd(-1),
+        m_edge_triggered(a_edge_triggered),
         m_read_cb(a_read_cb),
         m_write_cb(a_write_cb),
         m_error_cb(a_error_cb)
@@ -96,7 +98,7 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         }
 
         int32_t l_status = 0;
-        l_status = m_evr->add(m_control_fd, EVR_FILE_ATTR_MASK_READ, NULL);
+        l_status = m_evr->add(m_control_fd, EVR_FILE_ATTR_MASK_READ, NULL, m_edge_triggered);
         if(l_status != 0)
         {
                 NDBG_PRINT("l_status: %d\n", l_status);
@@ -206,14 +208,8 @@ int32_t evr_loop::run(void)
         // -------------------------------------------
         // Service them
         // -------------------------------------------
-        for (int i_event = 0;
-                        (i_event < l_num_events) &&
-                        (!m_stopped)
-                        //&&
-                        //((m_run_time_s == -1) || (m_run_time_s > (get_time_s() - m_start_time_s)))
-                        ; ++i_event)
+        for (int i_event = 0; (i_event < l_num_events) && (!m_stopped); ++i_event)
         {
-
                 // -------------------------------------------
                 // TODO:
                 // EPOLL specific for now
@@ -227,12 +223,26 @@ int32_t evr_loop::run(void)
                 if(l_events & EPOLLIN)
                 {
                         if(m_read_cb)
-                                m_read_cb(l_data);
+                        {
+                                int32_t l_status;
+                                l_status = m_read_cb(l_data);
+                                if(l_status != STATUS_OK)
+                                {
+                                        return STATUS_ERROR;
+                                }
+                        }
                 }
                 if(l_events & EPOLLOUT)
                 {
                         if(m_write_cb)
-                                m_write_cb(l_data);
+                        {
+                                int32_t l_status;
+                                l_status = m_write_cb(l_data);
+                                if(l_status != STATUS_OK)
+                                {
+                                        return STATUS_ERROR;
+                                }
+                        }
                 }
                 // TODO More errors...
                 uint32_t l_other_events = l_events & (~(EPOLLIN | EPOLLOUT));
@@ -240,9 +250,15 @@ int32_t evr_loop::run(void)
                 //if(l_events & EPOLLERR)
                 {
                         if(m_error_cb)
-                                m_error_cb(l_data);
+                        {
+                                int32_t l_status;
+                                l_status = m_error_cb(l_data);
+                                if(l_status != STATUS_OK)
+                                {
+                                        return STATUS_ERROR;
+                                }
+                        }
                 }
-
         }
 
         m_is_running = false;
@@ -257,7 +273,7 @@ int32_t evr_loop::run(void)
 int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
 {
         int l_status;
-        l_status = m_evr->add(a_fd, a_attr_mask, a_data);
+        l_status = m_evr->add(a_fd, a_attr_mask, a_data, m_edge_triggered);
         return l_status;
 }
 
@@ -269,7 +285,7 @@ int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
 int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
 {
         int l_status;
-        l_status = m_evr->mod(a_fd, a_attr_mask, a_data);
+        l_status = m_evr->mod(a_fd, a_attr_mask, a_data, m_edge_triggered);
         return l_status;
 }
 
@@ -301,6 +317,7 @@ int32_t evr_loop::add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void 
         l_timer_event->m_timer_cb = a_timer_cb;
 
         //NDBG_PRINT("%sADDING__%s TIMER: %p at %lu ms --> %lu\n",ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,l_timer_event,a_time_ms, l_timer_event->m_time_ms);
+        //NDBG_PRINT_BT();
 
         // Add to pq
         if(m_use_lock)

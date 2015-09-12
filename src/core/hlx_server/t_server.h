@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    resolver.h
+//: \file:    t_server.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,96 +20,112 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _RESOLVER_H
-#define _RESOLVER_H
+#ifndef _T_SERVER_H
+#define _T_SERVER_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx_server.h"
+#include "nconn_pool.h"
+#include "settings.h"
 #include "ndebug.h"
-#include "host_info.h"
+#include "evr.h"
 
-#include <pthread.h>
-
-#include <string>
-#include <map>
+// signal
+#include <signal.h>
 
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define RESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
 
 
 //: ----------------------------------------------------------------------------
-//: Types
+//: Fwd decl's
 //: ----------------------------------------------------------------------------
+
+
 namespace ns_hlx {
 
-// TODO Create struct with TTL for storing ai cache
-typedef std::map <std::string, std::string> ai_cache_map_t;
-
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
+//: t_server
 //: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
-class resolver
+class t_server
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
+        t_server(const settings_struct_t &a_settings,
+                 url_router *a_url_router);
+        ~t_server();
 
-        resolver();
-        ~resolver();
+        int run(void);
+        void *t_run(void *a_nothing);
+        void stop(void);
+        bool is_running(void) { return !m_stopped; }
 
-        // Settings...
-        void set_verbose(bool a_val) { m_verbose = a_val;}
-        void set_color(bool a_val) { m_color = a_val;}
-        void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
-        int32_t cached_resolve(std::string &a_host,
-                               uint16_t a_port,
-                               host_info_t &a_host_info,
-                               std::string &ao_error);
-        int32_t sync_ai_cache(void);
-        int32_t read_ai_cache(const std::string &a_ai_cache_file);
+        // -------------------------------------------------
+        // Public members
+        // -------------------------------------------------
+        // Needs to be public for now -to join externally
+        pthread_t m_t_run_thread;
+        settings_struct_t m_settings;
+        url_router *m_url_router;
+
+        // -----------------------------
+        // Summary info
+        // -----------------------------
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
 
+        // -------------------------------------------------
+        // Public Static (class) methods
+        // -------------------------------------------------
+        static int32_t evr_loop_file_writeable_cb(void *a_data);
+        static int32_t evr_loop_file_readable_cb(void *a_data);
+        static int32_t evr_loop_file_error_cb(void *a_data);
+        static int32_t evr_loop_file_timeout_cb(void *a_data);
+        static int32_t evr_loop_timer_cb(void *a_data);
+        static int32_t evr_loop_timer_completion_cb(void *a_data);
+
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(resolver)
+        DISALLOW_COPY_AND_ASSIGN(t_server)
+
+        //Helper for pthreads
+        static void *t_run_static(void *a_context)
+        {
+                return reinterpret_cast<t_server *>(a_context)->t_run(NULL);
+        }
+
+        int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true, int32_t a_status = 0);
+
+        int32_t get_response(nconn &ao_conn);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        bool m_is_initd;
-
-        // -------------------------------------------------
-        // Settings
-        // -------------------------------------------------
-        bool m_verbose;
-        bool m_color;
-        uint32_t m_timeout_s;
-        uint32_t m_use_cache;
-
-        pthread_mutex_t m_cache_mutex;
-        ai_cache_map_t m_ai_cache_map;
-        std::string m_ai_cache_file;
+        nconn_pool m_nconn_pool;
+        sig_atomic_t m_stopped;
+        int32_t m_start_time_s;
+        evr_loop *m_evr_loop;
+        nconn::scheme_t m_scheme;
+        nconn *m_nconn;
 
 };
 
+
 } //namespace ns_hlx {
 
-#endif
+#endif // #ifndef _HLX_CLIENT_H
+
+

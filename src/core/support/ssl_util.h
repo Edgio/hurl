@@ -29,6 +29,8 @@
 #include <string>
 #include <openssl/ssl.h>
 
+namespace ns_hlx {
+
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
@@ -39,4 +41,7 @@ SSL_CTX* ssl_init(const std::string &a_cipher_list,
 void ssl_kill_locks(void);
 int32_t get_ssl_options_str_val(const std::string a_options_str, long &ao_val);
 int32_t get_ssl_session_info(SSL *a_ssl, std::string &ao_protocol, std::string &ao_cipher);
+
+} //namespace ns_hlx {
+
 #endif

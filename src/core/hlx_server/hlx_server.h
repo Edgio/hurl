@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    stats_collector.h
+//: \file:    hlx_server.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,102 +20,134 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STATS_COLLECTOR_H
-#define _STATS_COLLECTOR_H
+#ifndef _HLX_SERVER_H
+#define _HLX_SERVER_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
-#include "reqlet.h"
-
 #include <pthread.h>
-#include <strings.h>
-#include <math.h>
+#include <signal.h>
 
-#include <map>
+#include <string>
+#include <list>
 #include <vector>
+#include <map>
+#include <stdint.h>
+#include "http_request_handler.h"
+#include "nbq.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define STATS_COLLECTOR_DEFAULT_AGG_STATS_SIZE 1024
+#define HLX_SERVER_STATUS_OK 0
+#define HLX_SERVER_STATUS_ERROR -1
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
+#define HLX_SERVER_DISALLOW_ASSIGN(class_name)\
+    class_name& operator=(const class_name &);
+#define HLX_SERVER_DISALLOW_COPY(class_name)\
+    class_name(const class_name &);
+#define HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(class_name)\
+    HLX_SERVER_DISALLOW_COPY(class_name)\
+    HLX_SERVER_DISALLOW_ASSIGN(class_name)
+
+//: ----------------------------------------------------------------------------
+//: Fwd decl's
+//: ----------------------------------------------------------------------------
 
 namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: Fwd' Decls
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
-
-
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-
+class t_server;
+typedef std::list <t_server *> t_server_list_t;
 
 //: ----------------------------------------------------------------------------
-//: \details: reqlet_repo
+//: hlx_server
 //: ----------------------------------------------------------------------------
-class stats_collector
+class hlx_server
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        //int32_t add_stat(const std::string &a_tag, const req_stat_t &a_req_stat);
-        void display_results(double a_elapsed_time,
-                        uint32_t a_max_parallel,
-                        bool a_show_breakdown_flag = false,
-                        bool a_color = false);
-        void display_results_http_load_style(double a_elapsed_time,
-                        uint32_t a_max_parallel,
-                        bool a_show_breakdown_flag = false,
-                        bool a_one_line_flag = false);
+        hlx_server();
+        ~hlx_server();
 
-        void display_results_line_desc(bool a_color_flag);
-        void display_results_line(bool a_color_flag);
+        // General
+        void set_stats(bool a_val);
+        void set_verbose(bool a_val);
+        void set_color(bool a_val);
 
-        void get_stats(total_stat_agg_t &ao_all_stats, bool a_get_breakdown, tag_stat_map_t &ao_breakdown_stats);
-        int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
+        // Settings
+        void set_port(uint16_t a_port);
+        void set_num_threads(uint32_t a_num_threads);
+        void set_num_parallel(uint32_t a_num_parallel);
+
         void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
 
-
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
+        // Running...
+        int32_t run(void);
+        int32_t stop(void);
+        int32_t wait_till_stopped(void);
+        bool is_running(void);
+        int32_t add_endpoint(const std::string &a_endpoint, const http_request_handler *a_handler);
 
         // -------------------------------------------------
         // Class methods
         // -------------------------------------------------
-        // Get the singleton instance
-        static stats_collector *get(void);
 
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(stats_collector)
-        stats_collector();
+        HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(hlx_server)
+
+
+        int init(void);
+        int init_server_list(void);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
+
+        // -------------------------------------------------
+        // Settings
+        // -------------------------------------------------
+        bool m_verbose;
+        bool m_color;
+        bool m_stats;
+
+        // Run Settings
+        uint16_t m_port;
+        uint32_t m_num_threads;
+        int32_t m_num_parallel;
+
+        // Stats
         uint64_t m_start_time_ms;
-        uint64_t m_last_display_time_ms;
-        total_stat_agg_t m_last_stat;
+
+        // t_client
+        t_server_list_t m_t_server_list;
+        int m_evr_loop_type;
+
+        // router
+        url_router m_url_router;
+
+        // -------------------------------------------------
+        // State
+        // -------------------------------------------------
+        int32_t m_fd;
+        bool m_is_initd;
+
 
         // -------------------------------------------------
         // Class members
         // -------------------------------------------------
-        // the pointer to the singleton for the instance 
-        static stats_collector *m_singleton_ptr;
-
 };
+
 
 } //namespace ns_hlx {
 

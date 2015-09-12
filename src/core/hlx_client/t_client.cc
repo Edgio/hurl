@@ -26,7 +26,6 @@
 //: ----------------------------------------------------------------------------
 #include "t_client.h"
 #include "ndebug.h"
-#include "reqlet.h"
 #include "util.h"
 #include "ssl_util.h"
 #include "resolver.h"
@@ -35,18 +34,14 @@
 #include <unistd.h>
 
 //: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
-#define T_CLIENT_CONN_CLEANUP(a_t_client, a_conn, a_reqlet, a_status, a_response, a_error) \
+#define T_CLIENT_CONN_CLEANUP(a_t_client, a_conn, a_http_rx, a_status, a_response, a_error) \
         do { \
-                if(a_reqlet)\
-                        a_reqlet->set_response(a_status, a_response); \
+                if(a_http_rx)\
+                        a_http_rx->set_response(a_status, a_response); \
                 if(a_t_client->m_settings.m_show_summary)\
-                        a_t_client->append_summary(a_reqlet);\
+                        a_t_client->append_summary(a_http_rx);\
                 ++(a_t_client->m_num_done);\
                 if(a_status >= 500) {++(a_t_client->m_num_error);}\
                 a_t_client->cleanup_connection(a_conn, true, a_error); \
@@ -68,20 +63,10 @@ __thread t_client *g_t_client = NULL;
 t_client::t_client(const settings_struct_t &a_settings):
         m_t_run_thread(),
         m_settings(),
-        m_num_reqlets(0),
-        m_num_get(0),
-        m_num_done(0),
         m_num_resolved(0),
+        m_num_done(0),
         m_num_error(0),
-        m_summary_success(0),
-        m_summary_error_addr(0),
-        m_summary_error_conn(0),
-        m_summary_error_unknown(0),
-        m_summary_ssl_error_self_signed(0),
-        m_summary_ssl_error_expired(0),
-        m_summary_ssl_error_other(0),
-        m_summary_ssl_protocols(),
-        m_summary_ssl_ciphers(),
+        m_summary_info(),
         m_nconn_pool(a_settings.m_num_parallel),
         m_stopped(false),
         m_num_fetches(-1),
@@ -91,11 +76,10 @@ t_client::t_client(const settings_struct_t &a_settings):
         m_evr_loop(NULL),
         m_rate_delta_us(0),
         m_last_get_req_us(0),
-        m_reqlet_vector(),
-        m_reqlet_vector_idx(0),
+        m_http_rx_vector(),
+        m_http_rx_vector_idx(0),
         m_rand_ptr(NULL)
 {
-
         // Friggin effc++
         COPY_SETTINGS(m_verbose);
         COPY_SETTINGS(m_color);
@@ -106,15 +90,12 @@ t_client::t_client(const settings_struct_t &a_settings):
         COPY_SETTINGS(m_verb);
         COPY_SETTINGS(m_req_body);
         COPY_SETTINGS(m_req_body_len);
-        COPY_SETTINGS(m_t_client_list);
         COPY_SETTINGS(m_evr_loop_type);
         COPY_SETTINGS(m_num_parallel);
-        COPY_SETTINGS(m_num_threads);
         COPY_SETTINGS(m_timeout_s);
         COPY_SETTINGS(m_rate);
         COPY_SETTINGS(m_request_mode);
         COPY_SETTINGS(m_num_end_fetches);
-        COPY_SETTINGS(m_run_time_s);
         COPY_SETTINGS(m_connect_only);
         COPY_SETTINGS(m_save_response);
         COPY_SETTINGS(m_collect_stats);
@@ -162,24 +143,32 @@ t_client::t_client(const settings_struct_t &a_settings):
 //: ----------------------------------------------------------------------------
 void t_client::reset(void)
 {
-        m_num_get = 0;
-        m_num_done = 0;
         m_num_resolved = 0;
+        m_num_done = 0;
         m_num_error = 0;
-        m_summary_success = 0;
-        m_summary_error_addr = 0;
-        m_summary_error_conn = 0;
-        m_summary_error_unknown = 0;
-        m_summary_ssl_error_self_signed = 0;
-        m_summary_ssl_error_expired = 0;
-        m_summary_ssl_error_other = 0;
-        m_summary_ssl_protocols.clear();
-        m_summary_ssl_ciphers.clear();
         m_num_fetched = 0;
         m_num_pending = 0;
         m_start_time_s = 0;
         m_last_get_req_us = 0;
-        m_reqlet_vector_idx = 0;
+        m_http_rx_vector_idx = 0;
+
+        m_summary_info.m_success = 0;
+        m_summary_info.m_error_addr = 0;
+        m_summary_info.m_error_conn = 0;
+        m_summary_info.m_error_unknown = 0;
+        m_summary_info.m_ssl_error_self_signed = 0;
+        m_summary_info.m_ssl_error_expired = 0;
+        m_summary_info.m_ssl_error_other = 0;
+        m_summary_info.m_ssl_protocols.clear();
+        m_summary_info.m_ssl_ciphers.clear();
+
+        for(http_rx_vector_t::const_iterator i_rx = m_http_rx_vector.begin();
+            i_rx != m_http_rx_vector.end();
+            ++i_rx)
+        {
+                (*i_rx)->m_stat_agg.clear();
+        }
+
 }
 
 //: ----------------------------------------------------------------------------
@@ -189,16 +178,16 @@ void t_client::reset(void)
 //: ----------------------------------------------------------------------------
 t_client::~t_client()
 {
-        for(reqlet_vector_t::const_iterator i_reqlet = m_reqlet_vector.begin();
-            i_reqlet != m_reqlet_vector.end();
-            ++i_reqlet)
+        for(http_rx_vector_t::const_iterator i_req = m_http_rx_vector.begin();
+            i_req != m_http_rx_vector.end();
+            ++i_req)
         {
-                if(*i_reqlet)
+                if(*i_req)
                 {
-                        delete *i_reqlet;
+                        delete *i_req;
                 }
         }
-        m_reqlet_vector.clear();
+        m_http_rx_vector.clear();
 
         if(m_evr_loop)
         {
@@ -211,7 +200,7 @@ t_client::~t_client()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::append_summary(reqlet *a_reqlet)
+int32_t t_client::append_summary(http_rx *a_http_rx)
 {
         // Examples:
         //
@@ -233,55 +222,67 @@ int32_t t_client::append_summary(reqlet *a_reqlet)
         //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077410:SSL routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure."}
         //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077438:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 alert internal error."
         //{"status-code": 901, "body": "SSL_ERROR_SSL 0: error:14077458:SSL routines:SSL23_GET_SERVER_HELLO:tlsv1 unrecognized name."
-        if(!a_reqlet)
-                return STATUS_ERROR;
-
-        if(a_reqlet->m_response_status == 900)
+        if(!a_http_rx)
         {
-                ++m_summary_error_addr;
+                return STATUS_ERROR;
         }
-        else if((a_reqlet->m_response_status == 0) ||
-                (a_reqlet->m_response_status == 901) ||
-                (a_reqlet->m_response_status == 902))
+
+        // Get resp
+        http_resp *l_resp = a_http_rx->get_http_resp();
+        if(!l_resp)
+        {
+                return STATUS_ERROR;
+        }
+
+        uint16_t l_status = l_resp->get_status();
+        const std::string &l_body = l_resp->get_body();
+
+        //NDBG_PRINT("TID[%lu]: status: %u\n", pthread_self(), l_status);
+
+        if(l_status == 900)
+        {
+                ++m_summary_info.m_error_addr;
+        }
+        else if((l_status == 0) ||
+                (l_status == 901) ||
+                (l_status == 902))
         {
                 // Missing ca
-                if(a_reqlet->m_response_body.find("unable to get local issuer certificate") != std::string::npos)
+                if(l_body.find("unable to get local issuer certificate") != std::string::npos)
                 {
-                        ++m_summary_ssl_error_other;
+                        ++m_summary_info.m_ssl_error_other;
                 }
                 // expired
-                if(a_reqlet->m_response_body.find("certificate has expired") != std::string::npos)
+                if(l_body.find("certificate has expired") != std::string::npos)
                 {
-                        ++m_summary_ssl_error_expired;
+                        ++m_summary_info.m_ssl_error_expired;
                 }
                 // expired
-                if(a_reqlet->m_response_body.find("self signed certificate") != std::string::npos)
+                if(l_body.find("self signed certificate") != std::string::npos)
                 {
-                        ++m_summary_ssl_error_self_signed;
+                        ++m_summary_info.m_ssl_error_self_signed;
                 }
 
-                ++m_summary_error_conn;
+                ++m_summary_info.m_error_conn;
         }
-        else if(a_reqlet->m_response_status == 200)
+        else if(l_status == 200)
         {
-                ++m_summary_success;
+                ++m_summary_info.m_success;
 
                 header_map_t::iterator i_h;
-                if((i_h = a_reqlet->m_conn_info.find("Protocol")) != a_reqlet->m_conn_info.end())
+                if((i_h = l_resp->m_conn_info.find("Protocol")) != l_resp->m_conn_info.end())
                 {
-                        ++m_summary_ssl_protocols[i_h->second];
+                        ++m_summary_info.m_ssl_protocols[i_h->second];
                 }
-                if((i_h = a_reqlet->m_conn_info.find("Cipher")) != a_reqlet->m_conn_info.end())
+                if((i_h = l_resp->m_conn_info.find("Cipher")) != l_resp->m_conn_info.end())
                 {
-                        ++m_summary_ssl_ciphers[i_h->second];
+                        ++m_summary_info.m_ssl_ciphers[i_h->second];
                 }
         }
         else
         {
-                ++m_summary_error_unknown;
+                ++m_summary_info.m_error_unknown;
         }
-
-        // TODO
         return STATUS_OK;
 }
 
@@ -337,6 +338,7 @@ int t_client::run(void)
 //: ----------------------------------------------------------------------------
 void t_client::stop(void)
 {
+        //NDBG_PRINT("%sSTOP%s:\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         m_stopped = true;
         int32_t l_status;
         l_status = m_evr_loop->stop();
@@ -351,22 +353,20 @@ void t_client::stop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-reqlet *t_client::get_reqlet(void)
+http_rx *t_client::get_rx(void)
 {
-        reqlet *l_reqlet = NULL;
+        http_rx *l_rx = NULL;
 
-        //NDBG_PRINT("%sREQLST%s[%lu]: MODE: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_reqlet_vector.size(), m_settings.m_request_mode);
+        //NDBG_PRINT("%sREQLST%s[%lu]: MODE: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_http_rx_vector.size(), m_settings.m_request_mode);
         //NDBG_PRINT("m_rate:                     %d\n",  m_settings.m_rate);
         //NDBG_PRINT("m_rate_delta_us:            %lu\n", m_rate_delta_us);
-        //NDBG_PRINT("m_reqlet_vector_idx:        %u\n",  m_reqlet_vector_idx);
-        //NDBG_PRINT("m_reqlet_avail_list.size(): %d\n",  (int)m_reqlet_vector.size());
+        //NDBG_PRINT("m_reqlet_vector_idx:        %u\n",  m_http_rx_vector_idx);
+        //NDBG_PRINT("m_reqlet_avail_list.size(): %d\n",  (int)m_http_rx_vector.size());
 
-        if(0 == m_reqlet_vector.size())
+        if(0 == m_http_rx_vector.size())
         {
                 return NULL;
         }
-
-        limit_rate();
 
         // Based on mode
         switch(m_settings.m_request_mode)
@@ -374,59 +374,56 @@ reqlet *t_client::get_reqlet(void)
         case REQUEST_MODE_ROUND_ROBIN:
         {
                 uint32_t l_next_index = 0;
-                l_next_index = m_reqlet_vector_idx + 1;
-                if(l_next_index >= m_reqlet_vector.size())
+                l_next_index = m_http_rx_vector_idx + 1;
+                if(l_next_index >= m_http_rx_vector.size())
                 {
                         l_next_index = 0;
                 }
                 //NDBG_PRINT("m_next:                     %u\n", l_next_index);
-                m_reqlet_vector_idx = l_next_index;
-                l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
+                m_http_rx_vector_idx = l_next_index;
+                l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 break;
         }
         case REQUEST_MODE_SEQUENTIAL:
         {
-                l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
-                if(l_reqlet->is_done())
+                l_rx = m_http_rx_vector[m_http_rx_vector_idx];
+                if(l_rx->is_done())
                 {
-                        uint32_t l_next_index = ((m_reqlet_vector_idx + 1) >= m_reqlet_vector.size()) ? 0 : m_reqlet_vector_idx + 1;
-                        l_reqlet->reset();
-                        m_reqlet_vector_idx = l_next_index;
-                        l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
+                        uint32_t l_next_index = ((m_http_rx_vector_idx + 1) >= m_http_rx_vector.size()) ? 0 : m_http_rx_vector_idx + 1;
+                        l_rx->reset();
+                        m_http_rx_vector_idx = l_next_index;
+                        l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 }
                 break;
         }
         case REQUEST_MODE_RANDOM:
         {
                 tinymt64_t *l_rand_ptr = (tinymt64_t*)m_rand_ptr;
-                uint32_t l_next_index = (uint32_t)(tinymt64_generate_uint64(l_rand_ptr) % m_reqlet_vector.size());
-                m_reqlet_vector_idx = l_next_index;
-                l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
+                uint32_t l_next_index = (uint32_t)(tinymt64_generate_uint64(l_rand_ptr) % m_http_rx_vector.size());
+                m_http_rx_vector_idx = l_next_index;
+                l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 break;
         }
         default:
         {
                 // Default to round robin
-                uint32_t l_next_index = ((m_reqlet_vector_idx + 1) >= m_reqlet_vector.size()) ? 0 : m_reqlet_vector_idx + 1;
-                m_reqlet_vector_idx = l_next_index;
-                l_reqlet = m_reqlet_vector[m_reqlet_vector_idx];
+                uint32_t l_next_index = ((m_http_rx_vector_idx + 1) >= m_http_rx_vector.size()) ? 0 : m_http_rx_vector_idx + 1;
+                m_http_rx_vector_idx = l_next_index;
+                l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 break;
         }
         }
 
 
-        if(l_reqlet)
+        if(l_rx)
         {
-                l_reqlet->bump_num_requested();
+                l_rx->bump_num_requested();
         }
-
-        // TODO UPGET LOCALLY
-        ++m_num_get;
 
         //NDBG_PRINT("m_reqlet_vector_idx:        %u\n",  m_reqlet_vector_idx);
         //NDBG_PRINT("host:                       %s\n", l_reqlet->m_url.m_host.c_str());
 
-        return l_reqlet;
+        return l_rx;
 }
 
 //: ----------------------------------------------------------------------------
@@ -434,53 +431,27 @@ reqlet *t_client::get_reqlet(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-reqlet *t_client::try_get_resolved(void)
-{
-        reqlet *l_reqlet = NULL;
-        int32_t l_status;
-
-        l_reqlet = get_reqlet();
-        if(NULL == l_reqlet)
-        {
-                return NULL;
-        }
-
-        // Try resolve
-        if(NULL == m_settings.m_resolver ||
-           (l_status =
-            l_reqlet->resolve(*m_settings.m_resolver))!= STATUS_OK)
-        {
-                // TODO Set response and error
-                ++m_num_resolved;
-                ++m_num_error;
-                append_summary(l_reqlet);
-                return NULL;
-        }
-
-        ++m_num_resolved;
-        return l_reqlet;
-
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void *t_client::evr_loop_file_writeable_cb(void *a_data)
+int32_t t_client::evr_loop_file_writeable_cb(void *a_data)
 {
         //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, a_data);
         if(!a_data)
         {
-                return NULL;
+                //NDBG_PRINT("Error a_data == null\n");
+                return STATUS_ERROR;
         }
 
         nconn* l_nconn = static_cast<nconn*>(a_data);
-        reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
         t_client *l_t_client = g_t_client;
 
         // Cancel last timer
         l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
+
+        http_rx *l_http_rx = static_cast<http_rx*>(l_nconn->get_data2());
+        if(!l_http_rx)
+        {
+                NDBG_PRINT("Error no http_rx associated with connection\n");
+                return STATUS_ERROR;
+        }
 
 #if 0
         if (false == l_t_client->has_available_fetches())
@@ -488,35 +459,41 @@ void *t_client::evr_loop_file_writeable_cb(void *a_data)
 #endif
 
         int32_t l_status = STATUS_OK;
-        l_status = l_nconn->run_state_machine(l_t_client->m_evr_loop, l_reqlet->m_host_info);
+        l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, nconn::NC_MODE_WRITE);
         if(STATUS_ERROR == l_status)
         {
                 if(l_nconn->m_verbose)
                 {
                         NDBG_PRINT("Error: performing run_state_machine\n");
                 }
-                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
-                return NULL;
+                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
+                return STATUS_ERROR;
+        }
+
+        // Get request time
+        if(!l_nconn->m_request_start_time_us && l_nconn->m_collect_stats_flag)
+        {
+                l_nconn->m_request_start_time_us = get_time_us();
         }
 
         if(l_nconn->is_done())
         {
                 if(l_t_client->m_settings.m_connect_only)
                 {
-                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 200, "Connected Successfully", STATUS_OK);
+                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 200, "Connected Successfully", STATUS_OK);
                 }
                 else
                 {
-                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 0, "", STATUS_ERROR);
+                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 0, "", STATUS_ERROR);
                 }
-                return NULL;
+                return STATUS_OK;
         }
 
 
         // Add idle timeout
         l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
 
-        return NULL;
+        return STATUS_OK;
 
 }
 
@@ -525,97 +502,162 @@ void *t_client::evr_loop_file_writeable_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *t_client::evr_loop_file_readable_cb(void *a_data)
+int32_t t_client::evr_loop_file_readable_cb(void *a_data)
 {
-        //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, a_data);
+        //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_data);
         if(!a_data)
         {
-                //NDBG_PRINT("a_data == NULL\n");
-                return NULL;
+                //NDBG_PRINT("Error a_data == null\n");
+                return STATUS_ERROR;
         }
 
         nconn* l_nconn = static_cast<nconn*>(a_data);
-        reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
         t_client *l_t_client = g_t_client;
 
         // Cancel last timer
         l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
+        http_rx *l_http_rx = static_cast<http_rx*>(l_nconn->get_data2());
+        if(!l_http_rx)
+        {
+                NDBG_PRINT("Error no http_rx associated with connection\n");
+                return STATUS_ERROR;
+        }
 
+        // TODO REMOVE
+        //NDBG_PRINT("%sREADABLE%s HOST[%s]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->m_host.c_str());
+
+        http_resp *l_http_resp = static_cast<http_resp*>(l_nconn->get_data1());
+        if(!l_http_rx)
+        {
+                NDBG_PRINT("Error no http_resp associated with connection\n");
+                return STATUS_ERROR;
+        }
+
+        bool l_done = l_http_resp->m_complete;
         int32_t l_status = STATUS_OK;
-        l_status = l_nconn->run_state_machine(l_t_client->m_evr_loop, l_reqlet->m_host_info);
+        nconn::mode_t l_mode = nconn::NC_MODE_READ;
+        nbq *l_out_q = l_nconn->get_out_q();
+        if(l_out_q->read_avail())
+        {
+                l_mode = nconn::NC_MODE_WRITE;
+        }
+        l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, l_mode);
         if((STATUS_ERROR == l_status) &&
            l_nconn->m_verbose)
         {
                 NDBG_PRINT("Error: performing run_state_machine\n");
+                return STATUS_ERROR;
         }
 
         if(l_status >= 0)
         {
-                l_reqlet->m_stat_agg.m_num_bytes_read += l_status;
+                l_http_rx->m_stat_agg.m_num_bytes_read += l_status;
+        }
+
+        //NDBG_PRINT("%sREADABLE%s HOST[%s] l_http_resp->m_complete: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->m_host.c_str(), l_http_resp->m_complete);
+        //NDBG_PRINT("%sREADABLE%s HOST[%s] l_nconn->is_done():      %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->m_host.c_str(), l_nconn->is_done());
+        //NDBG_PRINT("%sREADABLE%s HOST[%s] l_status:                %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->m_host.c_str(), l_status);
+
+        // Mark as complete
+        if(!l_done && l_http_resp->m_complete)
+        {
+                l_done = true;
+        }
+        else
+        {
+                l_done = false;
         }
 
         // Check for done...
-        if((l_nconn->is_done()) ||
+        if((l_done) ||
            (l_status == STATUS_ERROR))
         {
+                // Get request time
+                if(l_nconn->m_collect_stats_flag)
+                {
+                        l_nconn->m_stat.m_tt_completion_us = get_delta_time_us(l_nconn->m_request_start_time_us);
+                }
+
                 // Add stats
-                add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
+                add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats());
                 l_nconn->reset_stats();
 
                 // Bump stats
                 if(l_status == STATUS_ERROR)
                 {
-                        ++(l_reqlet->m_stat_agg.m_num_errors);
-                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
+                        ++(l_http_rx->m_stat_agg.m_num_errors);
+                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
                 }
                 else
                 {
-
+                        l_nconn->bump_num_requested();
                         if(l_t_client->m_settings.m_connect_only)
                         {
-                                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 200, "Connected Successfully", STATUS_OK);
-                                return NULL;
+                                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 200, "Connected Successfully", STATUS_OK);
+                                return STATUS_OK;
                         }
-
-                        if(!l_nconn->can_reuse())
-                        {
-                                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 0, "", STATUS_OK);
-                                return NULL;
-                        }
-
                         // TODO REMOVE
                         //NDBG_PRINT("CONN %sREUSE%s: l_nconn->can_reuse(): %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_nconn->can_reuse());
+                        //NDBG_PRINT("CONN %sREUSE%s: l_http_rx->is_done(): %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->is_done());
+                        if(!l_nconn->can_reuse() ||
+                           l_http_rx->is_done())
+                        {
+                                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, l_http_resp->get_status(), "", STATUS_OK);
+                                return STATUS_OK;
+                        }
 
-                        l_reqlet->set_response(STATUS_OK, "");
                         if(l_t_client->m_settings.m_show_summary)
-                                l_t_client->append_summary(l_reqlet);
+                        {
+                                l_t_client->append_summary(l_http_rx);
+                        }
                         ++(l_t_client->m_num_done);
 
                         // Cancel last timer
                         l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
+                        uint64_t l_last_connect_us = l_nconn->m_stat.m_tt_connect_us;
                         l_nconn->reset_stats();
+                        l_nconn->m_stat.m_tt_connect_us = l_last_connect_us;
 
                         // Reduce num pending
                         ++(l_t_client->m_num_fetched);
                         --(l_t_client->m_num_pending);
 
-                        // TODO Use pool
+                        // -------------------------------------------
+                        // If not using pool try resend on same
+                        // connection.
+                        //
+                        // NOTE:
+                        // This is an optimization meant for load
+                        // testing -whereas pool is used if hlx_client
+                        // used as client proxy.
+                        // -------------------------------------------
                         if(!l_t_client->m_settings.m_use_persistent_pool)
                         {
                                 if(!l_t_client->is_pending_done() &&
                                    !l_t_client->m_stopped)
                                 {
-                                        ++l_reqlet->m_stat_agg.m_num_conn_completed;
-                                        ++l_t_client->m_num_fetched;
+                                        ++l_http_rx->m_stat_agg.m_num_conn_completed;
+
+                                        l_t_client->limit_rate();
+
+                                        // Get request time
+                                        if(l_nconn->m_collect_stats_flag)
+                                        {
+                                                l_nconn->m_request_start_time_us = get_time_us();
+                                        }
 
                                         // Send request again...
-                                        l_t_client->limit_rate();
-                                        l_t_client->create_request(*l_nconn, *l_reqlet);
-                                        l_nconn->send_request(true);
+                                        l_status = l_t_client->request(l_http_rx, l_nconn);
+                                        if(l_status != STATUS_OK)
+                                        {
+                                                NDBG_PRINT("Error: performing request\n");
+                                                T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 901, "Error performing request", STATUS_ERROR);
+                                                return STATUS_ERROR;
+                                        }
                                 }
                                 else
                                 {
-                                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 0, "", STATUS_OK);
+                                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 0, "", STATUS_OK);
                                 }
 
                         }
@@ -624,17 +666,18 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
                                 l_status = l_t_client->m_nconn_pool.add_idle(l_nconn);
                                 if(STATUS_OK != l_status)
                                 {
-                                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 901, "Error setting idle", STATUS_ERROR);
+                                        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 901, "Error setting idle", STATUS_ERROR);
+                                        return STATUS_ERROR;
                                 }
                         }
                 }
-                return NULL;
+                return STATUS_OK;
         }
 
         // Add idle timeout
         l_t_client->m_evr_loop->add_timer( l_t_client->get_timeout_s()*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
 
-        return NULL;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -643,9 +686,9 @@ void *t_client::evr_loop_file_readable_cb(void *a_data)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 void *g_completion_timer;
-void *t_client::evr_loop_timer_completion_cb(void *a_data)
+int32_t t_client::evr_loop_timer_completion_cb(void *a_data)
 {
-        return NULL;
+        return STATUS_OK;
 }
 
 
@@ -654,10 +697,18 @@ void *t_client::evr_loop_timer_completion_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *t_client::evr_loop_file_error_cb(void *a_data)
+int32_t t_client::evr_loop_file_error_cb(void *a_data)
 {
         //NDBG_PRINT("%sSTATUS_ERRORS%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
-        return NULL;
+        if(!a_data)
+        {
+                //NDBG_PRINT("Error a_data == null\n");
+                return STATUS_ERROR;
+        }
+
+         // TODO cleanup???
+
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -665,42 +716,47 @@ void *t_client::evr_loop_file_error_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *t_client::evr_loop_file_timeout_cb(void *a_data)
+int32_t t_client::evr_loop_file_timeout_cb(void *a_data)
 {
-        //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
+        //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_data);
         if(!a_data)
         {
-                //NDBG_PRINT("a_data == NULL\n");
-                return NULL;
+                //NDBG_PRINT("Error a_data == null\n");
+                return STATUS_ERROR;
         }
 
         nconn* l_nconn = static_cast<nconn*>(a_data);
-        reqlet *l_reqlet = static_cast<reqlet *>(l_nconn->get_data1());
         t_client *l_t_client = g_t_client;
+        http_rx *l_http_rx = static_cast<http_rx*>(l_nconn->get_data2());
+        if(!l_http_rx)
+        {
+                NDBG_PRINT("Error no http_rx associated with connection\n");
+                return STATUS_ERROR;
+        }
 
         //printf("%sT_O%s: %p\n",ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
         //                l_rconn->m_timer_obj);
 
-        // Add stats
-        add_stat_to_agg(l_reqlet->m_stat_agg, l_nconn->get_stats());
+        add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats());
 
         if(l_t_client->m_settings.m_verbose)
         {
-                NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %lu HOST: %s THIS: %p\n",
-                                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                                l_nconn->get_id(),
-                                l_reqlet->m_url.m_host.c_str(),
-                                l_t_client);
+                // TODO FIX!!!
+                //NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %lu HOST: %s THIS: %p\n",
+                //                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+                //                l_nconn->get_id(),
+                //                l_reqlet->m_url.m_host.c_str(),
+                //                l_t_client);
         }
 
         // Stats
         ++l_t_client->m_num_fetched;
-        ++l_reqlet->m_stat_agg.m_num_idle_killed;
+        --l_t_client->m_num_pending;
+        ++l_http_rx->m_stat_agg.m_num_idle_killed;
 
         // Cleanup
-        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_reqlet, 902, "Connection timed out", STATUS_ERROR);
-
-        return NULL;
+        T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 902, "Connection timed out", STATUS_ERROR);
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -708,10 +764,10 @@ void *t_client::evr_loop_file_timeout_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *t_client::evr_loop_timer_cb(void *a_data)
+int32_t t_client::evr_loop_timer_cb(void *a_data)
 {
         //NDBG_PRINT("%sTIMER%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
-        return NULL;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -733,12 +789,45 @@ void *t_client::t_run(void *a_nothing)
         m_start_time_s = get_time_s();
 
         // -------------------------------------------
+        // Resolve hostnames...
+        // -------------------------------------------
+        if(m_settings.m_verbose)
+        {
+                NDBG_OUTPUT("thread[%lu] resolving hostnames...\n", pthread_self());
+        }
+        for(http_rx_vector_t::iterator i_rx = m_http_rx_vector.begin();
+            i_rx != m_http_rx_vector.end() && !m_stopped;
+            ++i_rx)
+        {
+                int32_t l_status;
+                if(m_settings.m_verbose)
+                {
+                        NDBG_OUTPUT("Resolving host: %s\n", (*i_rx)->m_host.c_str());
+                }
+                if(NULL == m_settings.m_resolver ||
+                   (l_status = (*i_rx)->resolve(*m_settings.m_resolver))!= STATUS_OK)
+                {
+                        NDBG_PRINT("Error resolving http_rx host: %s\n", (*i_rx)->m_host.c_str());
+                        // TODO Set response and error
+                        //++m_num_error;
+                        append_summary((*i_rx));
+                        return NULL;
+                }
+
+                ++m_num_resolved;
+                ++((*i_rx)->m_stat_agg.m_num_resolved);
+
+        }
+        if(m_settings.m_verbose)
+        {
+                NDBG_OUTPUT("thread[%lu] Done resolving hostnames...\n", pthread_self());
+        }
+
+        // -------------------------------------------
         // Main loop.
         // -------------------------------------------
-        //NDBG_PRINT("starting main loop: run_time_s: %d\n", m_settings.m_run_time_s);
         while(!m_stopped &&
-              !is_pending_done() &&
-              ((m_settings.m_run_time_s == -1) || (m_settings.m_run_time_s > (int32_t)(get_time_s() - m_start_time_s))))
+              !is_pending_done())
         {
                 // -------------------------------------------
                 // Start Connections
@@ -753,7 +842,12 @@ void *t_client::t_run(void *a_nothing)
                 }
 
                 // Run loop
-                m_evr_loop->run();
+                l_status = m_evr_loop->run();
+                if(l_status != STATUS_OK)
+                {
+                        // TODO Log error and continue???
+                        //return NULL;
+                }
 
         }
         //NDBG_PRINT("%sFINISHING_CONNECTIONS%s -done: %d -- m_stopped: %d m_num_fetched: %d + pending: %d/ m_num_fetches: %d\n",
@@ -766,8 +860,7 @@ void *t_client::t_run(void *a_nothing)
         uint64_t l_end_time = l_cur_time + m_settings.m_timeout_s;
         while(!m_stopped &&
               (m_num_pending > 0) &&
-              (l_cur_time < l_end_time) &&
-              ((m_settings.m_run_time_s == -1) || (m_settings.m_run_time_s > (int32_t)(get_time_s() - m_start_time_s))))
+              (l_cur_time < l_end_time))
         {
                 // Run loop
                 //NDBG_PRINT("waiting: m_num_pending: %d --time-left: %d\n", (int)m_num_pending, int(l_end_time - l_cur_time));
@@ -789,83 +882,113 @@ void *t_client::t_run(void *a_nothing)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::request(reqlet *a_reqlet)
+int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
 {
-        nconn *l_nconn = NULL;
+        nconn *l_nconn = a_nconn;
         int32_t l_status;
 
-        l_nconn = m_nconn_pool.get(a_reqlet,
-                                   m_settings.m_ssl_cipher_list,
-                                   m_settings.m_verbose,
-                                   m_settings.m_color,
-                                   m_settings.m_num_reqs_per_conn,
-                                   m_settings.m_save_response,
-                                   m_settings.m_collect_stats,
-                                   m_settings.m_connect_only,
-                                   m_settings.m_sock_opt_recv_buf_size,
-                                   m_settings.m_sock_opt_send_buf_size,
-                                   m_settings.m_sock_opt_no_delay,
-                                   m_settings.m_ssl_ctx,
-                                   m_settings.m_ssl_verify);
+        //NDBG_PRINT("TID[%lu]: Making request: Host: %s\n", pthread_self(), a_http_rx->m_host.c_str());
+
         if(!l_nconn)
         {
-                //NDBG_PRINT("Error l_nconn == NULL\n");
-                // TODO Define
-                return 300;
+                l_status = m_nconn_pool.get(a_http_rx->m_host,
+                                            a_http_rx->m_scheme,
+                                            a_http_rx->m_host_info,
+                                            m_settings,
+                                            nconn::TYPE_CLIENT,
+                                            &l_nconn);
+                if(l_status == nconn::NC_STATUS_AGAIN)
+                {
+                        // Out of connections -try again later...
+                        return STATUS_OK;
+                }
+                else if(l_status != nconn::NC_STATUS_OK)
+                {
+                        NDBG_PRINT("Error l_nconn == NULL\n");
+                        return STATUS_ERROR;
+                }
         }
 
-        // -------------------------------------------------
-        // Check state and reuse if possible
-        // -------------------------------------------------
-        if(!l_nconn->is_free())
+        //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: Host: %s l_nconn: %p\n",
+        //                pthread_self(),
+        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+        //                a_http_rx->m_host.c_str(),
+        //                l_nconn);
+
+        http_resp *l_resp = static_cast<http_resp *>(l_nconn->get_data1());
+        if(!l_nconn->get_data1())
         {
-                int32_t l_status;
-
-                // Create request
-                l_status = create_request(*l_nconn, *a_reqlet);
-                if(STATUS_OK != l_status)
-                {
-                        NDBG_PRINT("Error: Performing create_request\n");
-                        //T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Performing do_connect", STATUS_ERROR);
-                        return STATUS_ERROR;
-                }
-
-
-                l_nconn->send_request(true);
-                if(STATUS_OK != l_status)
-                {
-                        NDBG_PRINT("Error: Performing send_request\n");
-                        //T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Performing do_connect", STATUS_ERROR);
-                        return STATUS_ERROR;
-                }
-
-                // TODO Make configurable
-                m_evr_loop->add_timer(m_settings.m_timeout_s*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
-
-                //l_status = l_nconn->run_state_machine(m_evr_loop, l_reqlet->m_host_info);
-                //if(STATUS_OK != l_status)
-                //{
-                //        NDBG_PRINT("Error: Performing run_state_machine\n");
-                //        //T_CLIENT_CONN_CLEANUP(this, l_nconn, l_reqlet, 500, "Performing do_connect", STATUS_ERROR);
-                //        return STATUS_ERROR;
-                //}
-
-                // Add to num pending
-                ++m_num_pending;
-
-                return STATUS_OK;
+                l_resp = new http_resp();
+                l_nconn->set_data1(l_resp);
+        }
+        else
+        {
+                l_resp->clear();
         }
 
-        // Bump stats
-        ++a_reqlet->m_stat_agg.m_num_conn_started;
+        // Set resp object
+        a_http_rx->set_http_resp(l_resp);
+
+        l_resp->m_complete = false;
+
+        l_nconn->set_data2(a_http_rx);
+
+        // Assign the request for connection
+        l_nconn->set_host(a_http_rx->m_host);
+
+        ++a_http_rx->m_stat_agg.m_num_conn_started;
 
         // Create request
         if(!m_settings.m_connect_only)
         {
-                l_status = create_request(*l_nconn, *a_reqlet);
-                if(STATUS_OK != l_status)
+
+                // -----------------------------------------------------------
+                // TODO create q pool... -this is gonna leak...
+                // -----------------------------------------------------------
+                nbq *l_out_q = l_nconn->get_out_q();
+
+                bool l_changed = false;
+                if(a_http_rx->m_multipath || !l_out_q)
                 {
-                        return STATUS_ERROR;
+                        l_changed = true;
+                }
+
+                nbq *l_in_q = l_nconn->get_in_q();
+                // In queue???
+                if(!l_in_q)
+                {
+                        l_in_q = new nbq(16384);
+                        l_nconn->set_in_q(l_in_q);
+                }
+                else
+                {
+                        // Reset in data
+                        l_in_q->reset_write();
+                }
+
+                if(!l_changed && l_out_q)
+                {
+                        //NDBG_PRINT("Bailing already set to: %u\n", l_req_buf_len);
+                        l_nconn->get_out_q()->reset_read();
+                }
+
+                if(!l_out_q)
+                {
+                        l_out_q = new nbq(16384);
+                        l_nconn->set_out_q(l_out_q);
+                }
+                if(l_changed)
+                {
+
+                        // Reset in data
+                        l_out_q->reset_write();
+                        //NDBG_PRINT("%sCREATE_REQUEST%s: l_nconn[%p] l_out_q[%p] \n",
+                        //                ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, l_nconn, l_out_q);
+                        l_status = create_request(*l_out_q, *a_http_rx);
+                        if(STATUS_OK != l_status)
+                        {
+                                return STATUS_ERROR;
+                        }
                 }
         }
 
@@ -873,18 +996,19 @@ int32_t t_client::request(reqlet *a_reqlet)
         l_status = m_evr_loop->add_timer(m_settings.m_timeout_s*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
         if(STATUS_OK != l_status)
         {
+                NDBG_PRINT("Error: Performing add_timer\n");
                 return STATUS_ERROR;
         }
 
         // Add to num pending
         ++m_num_pending;
 
-        //NDBG_PRINT("%sCONNECT%s: %s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_reqlet->m_url.m_host.c_str());
-        l_status = l_nconn->run_state_machine(m_evr_loop, a_reqlet->m_host_info);
+        //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_http_rx->m_host.c_str(), l_nconn->get_data1());
+        l_status = l_nconn->nc_run_state_machine(m_evr_loop, nconn::NC_MODE_WRITE);
         if(STATUS_OK != l_status)
         {
                 NDBG_PRINT("Error: Performing do_connect\n");
-                T_CLIENT_CONN_CLEANUP(this, l_nconn, a_reqlet, 500, "Performing do_connect", STATUS_ERROR);
+                T_CLIENT_CONN_CLEANUP(this, l_nconn, a_http_rx, 500, "Performing do_connect", STATUS_ERROR);
                 return STATUS_OK;
         }
 
@@ -899,27 +1023,31 @@ int32_t t_client::request(reqlet *a_reqlet)
 //: ----------------------------------------------------------------------------
 int32_t t_client::start_connections(void)
 {
+
+        //NDBG_PRINT("start_connections\n");
+        //NDBG_PRINT("m_num_done:                %d\n", (int)m_num_done);
+        //NDBG_PRINT("m_num_pending:             %d\n", (int)m_num_pending);
+        //NDBG_PRINT("m_settings.m_num_parallel: %d\n", (int)m_settings.m_num_parallel);
+        //NDBG_PRINT("m_stopped:                 %d\n", (int)m_stopped);
+        //NDBG_PRINT("is_pending_done():         %d\n", (int)is_pending_done());
         while((m_num_pending < m_settings.m_num_parallel) &&
-                        !m_stopped &&
-                        (!is_pending_done()) &&
-                        ((m_settings.m_run_time_s == -1) ||
-                         (m_settings.m_run_time_s > static_cast<int32_t>(get_time_s() - m_start_time_s))))
+              !m_stopped &&
+              (!is_pending_done()))
         {
-                reqlet *l_reqlet = try_get_resolved();
-                if(!l_reqlet)
+                //NDBG_PRINT("try_get_resolved\n");
+                http_rx *l_rx = get_rx();
+                if(!l_rx)
                 {
                         continue;
                 }
 
-                int32_t l_status = request(l_reqlet);
-                if(l_status == 300)
-                {
-                        break;
-                }
-                else if(STATUS_OK != l_status)
+                int32_t l_status = request(l_rx);
+                if(STATUS_OK != l_status)
                 {
                         return STATUS_ERROR;
                 }
+
+                limit_rate();
 
         }
         return STATUS_OK;
@@ -930,43 +1058,29 @@ int32_t t_client::start_connections(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::create_request(nconn &ao_conn,
-                                 reqlet &a_reqlet)
+int32_t t_client::create_request(nbq &a_q, http_rx &a_http_rx)
 {
-
-
-
-        // Get client
-        char *l_req_buf = NULL;
-        uint32_t l_req_buf_len = 0;
-        uint32_t l_max_buf_len = nconn_tcp::m_max_req_buf;
-
-        if(!a_reqlet.m_multipath)
-        {
-                GET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF_LEN, NULL, &l_req_buf_len);
-                if(l_req_buf_len)
-                {
-                        //NDBG_PRINT("Bailing already set to: %u\n", l_req_buf_len);
-                        return STATUS_OK;
-                }
-        }
-
-
-        GET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF, (void **)(&l_req_buf), &l_req_buf_len);
-
         // -------------------------------------------
         // Request.
         // -------------------------------------------
-        const std::string &l_path_ref = a_reqlet.get_path(NULL);
-        //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
-        if(l_path_ref.length())
+        std::string l_path_ref = a_http_rx.get_path(m_rand_ptr);
+        char l_buf[2048];
+        int32_t l_len = 0;
+        if(l_path_ref.empty())
         {
-                l_req_buf_len = snprintf(l_req_buf, l_max_buf_len,
-                                "%s %.500s HTTP/1.1\r\n", m_settings.m_verb.c_str(), l_path_ref.c_str());
-        } else {
-                l_req_buf_len = snprintf(l_req_buf, l_max_buf_len,
-                                "%s / HTTP/1.1\r\n", m_settings.m_verb.c_str());
+                l_path_ref = "/";
         }
+        if(!(a_http_rx.m_query.empty()))
+        {
+                l_path_ref += "?";
+                l_path_ref += a_http_rx.m_query;
+        }
+        //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
+        l_len = snprintf(l_buf, sizeof(l_buf),
+                        "%s %.500s HTTP/1.1\r\n", m_settings.m_verb.c_str(), l_path_ref.c_str());
+
+        //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
+        a_q.write(l_buf, l_len);
 
         // -------------------------------------------
         // Add repo headers
@@ -981,9 +1095,11 @@ int32_t t_client::create_request(nconn &ao_conn,
                 if(!i_header->first.empty() && !i_header->second.empty())
                 {
                         //printf("Adding HEADER: %s: %s\n", i_header->first.c_str(), i_header->second.c_str());
-                        l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len,
-                                        "%s: %s\r\n", i_header->first.c_str(), i_header->second.c_str());
-
+                        l_len = snprintf(l_buf, sizeof(l_buf),
+                                         "%s: %s\r\n",
+                                         i_header->first.c_str(), i_header->second.c_str());
+                        //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
+                        a_q.write(l_buf, l_len);
                         if (strcasecmp(i_header->first.c_str(), "host") == 0)
                         {
                                 l_specd_host = true;
@@ -996,26 +1112,27 @@ int32_t t_client::create_request(nconn &ao_conn,
         // -------------------------------------------
         if (!l_specd_host)
         {
-                l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len,
-                                "Host: %s\r\n", a_reqlet.m_url.m_host.c_str());
+                l_len = snprintf(l_buf, sizeof(l_buf),
+                                 "Host: %s\r\n", a_http_rx.m_host.c_str());
+                //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
+                a_q.write(l_buf, l_len);
         }
 
         // -------------------------------------------
         // End of request terminator...
         // -------------------------------------------
-        l_req_buf_len += snprintf(l_req_buf + l_req_buf_len, l_max_buf_len - l_req_buf_len, "\r\n");
+        l_len = snprintf(l_buf, sizeof(l_buf), "\r\n");
+        //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
+        a_q.write(l_buf, l_len);
 
         // -------------------------------------------
         // body
         // -------------------------------------------
         if(m_settings.m_req_body)
         {
-                memcpy(l_req_buf + l_req_buf_len, m_settings.m_req_body, m_settings.m_req_body_len);
-                l_req_buf_len += m_settings.m_req_body_len;
+                //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
+                a_q.write(m_settings.m_req_body, m_settings.m_req_body_len);
         }
-
-        // Set len
-        SET_NCONN_OPT(ao_conn, nconn_tcp::OPT_TCP_REQ_BUF_LEN, NULL, l_req_buf_len);
 
         return STATUS_OK;
 }
@@ -1028,9 +1145,7 @@ int32_t t_client::create_request(nconn &ao_conn,
 int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_t a_status)
 {
 
-        //NDBG_PRINT("%sCLEANUP%s:\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
-
-
+        //NDBG_PRINT("%sCLEANUP%s: PTR: %p\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_nconn);
         // Cancel last timer
         if(a_cancel_timer)
         {
@@ -1041,7 +1156,8 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_
         ++m_num_fetched;
         --m_num_pending;
 
-        //NDBG_PRINT("%sADDING_BACK%s: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (uint32_t)a_nconn->get_id());
+        //NDBG_PRINT("%sCLEANUP%s: m_num_fetched: %d m_num_pending: %d\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, (int)m_num_fetched, (int)m_num_pending);
+        //NDBG_PRINT("%sADDING_BACK%s: PTR: %p %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_nconn, (uint32_t)a_nconn->get_id());
 
         // Add back to free list
         if(STATUS_OK != m_nconn_pool.release(a_nconn))
@@ -1057,34 +1173,31 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::set_reqlets(reqlet_vector_t a_reqlet_vector)
+int32_t t_client::set_http_requests(http_rx_vector_t a_http_rx_vector)
 {
 
         // Remove any existing...
-        for(reqlet_vector_t::iterator i_reqlet = m_reqlet_vector.begin();
-            i_reqlet != m_reqlet_vector.end();
-            ++i_reqlet)
+        for(http_rx_vector_t::iterator i_req = m_http_rx_vector.begin();
+            i_req != m_http_rx_vector.end();
+            ++i_req)
         {
-                if(*i_reqlet)
+                if(*i_req)
                 {
-                        delete *i_reqlet;
-                        *i_reqlet = NULL;
+                        delete *i_req;
+                        *i_req = NULL;
                 }
         }
-        m_reqlet_vector.clear();
+        m_http_rx_vector.clear();
 
-        uint64_t i_id = 0;
-        for(reqlet_vector_t::iterator i_reqlet = a_reqlet_vector.begin();
-            i_reqlet != a_reqlet_vector.end();
-            ++i_reqlet)
+        uint32_t i_id = 0;
+        for(http_rx_vector_t::iterator i_req = a_http_rx_vector.begin();
+            i_req != a_http_rx_vector.end();
+            ++i_req)
         {
-                // Will it blend!?!?
-                reqlet *l_reqlet = new reqlet(**i_reqlet);
-                //*l_reqlet = *i_reqlet;
-                l_reqlet->set_id(i_id++);
-                m_reqlet_vector.push_back(l_reqlet);
+                http_rx *l_rx = new http_rx(**i_req);
+                l_rx->m_idx = i_id++;
+                m_http_rx_vector.push_back(l_rx);
         }
-        m_num_reqlets = m_reqlet_vector.size();
 
         return STATUS_OK;
 }
@@ -1108,15 +1221,11 @@ int32_t t_client::set_header(const std::string &a_header_key, const std::string 
 //: ----------------------------------------------------------------------------
 void t_client::get_stats_copy(tag_stat_map_t &ao_tag_stat_map)
 {
-        // TODO FIX
-        // Do we need this function if have a reqlet-repo
-#if 0
-        // TODO Need to make this threadsafe -spinlock perhaps...
-        for(reqlet_list_t::iterator i_reqlet = m_reqlet_avail_list.begin(); i_reqlet != m_reqlet_avail_list.end(); ++i_reqlet)
+        // TODO Make threadsafe...
+        for(http_rx_vector_t::iterator i_rx = m_http_rx_vector.begin(); i_rx != m_http_rx_vector.end(); ++i_rx)
         {
-                ao_tag_stat_map[(*i_reqlet)->get_label()] = (*i_reqlet)->m_stat_agg;
+                ao_tag_stat_map[(*i_rx)->get_label()] = (*i_rx)->m_stat_agg;
         }
-#endif
 }
 
 } //namespace ns_hlx {

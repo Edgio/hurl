@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    reqlet.cc
+//: \file:    t_client.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -24,14 +24,14 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "reqlet.h"
-#include "resolver.h"
+#include "http_rx.h"
 #include "ndebug.h"
+#include "http_parser/http_parser.h"
+#include "resolver.h"
 
 #include <errno.h>
 #include <string.h>
 #include <string>
-
 
 #include <stdint.h>
 #ifndef __STDC_FORMAT_MACROS
@@ -43,7 +43,6 @@
 #include "tinymt64.h"
 #include "city.h"
 
-
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -51,136 +50,84 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-reqlet::reqlet(const reqlet &a_reqlet):
-        m_url(a_reqlet.m_url),
-        m_host_info(a_reqlet.m_host_info),
-        m_stat_agg(a_reqlet.m_stat_agg),
-        m_response_headers(a_reqlet.m_response_headers),
-        m_next_response_value(a_reqlet.m_next_response_value),
-        m_response_body(a_reqlet.m_response_body),
-        m_response_status(a_reqlet.m_response_status),
-        m_conn_info(a_reqlet.m_conn_info),
-        m_multipath(a_reqlet.m_multipath),
-        m_id(a_reqlet.m_id),
-        m_is_resolved_flag(a_reqlet.m_is_resolved_flag),
-        m_num_to_req(a_reqlet.m_num_to_req),
-        m_num_reqd(a_reqlet.m_num_reqd),
-        m_repeat_path_flag(a_reqlet.m_repeat_path_flag),
-        m_path_vector(a_reqlet.m_path_vector),
-        m_path_order(a_reqlet.m_path_order),
-        m_path_vector_last_idx(a_reqlet.m_path_vector_last_idx),
-        m_label(a_reqlet.m_label),
-        m_label_hash(0)
+http_rx::http_rx(const http_rx &a_http_rx):
+        m_id(a_http_rx.m_id),
+        m_label(a_http_rx.m_label),
+        m_host(a_http_rx.m_host),
+
+        m_path(a_http_rx.m_path),
+        m_query(a_http_rx.m_query),
+        m_fragment(a_http_rx.m_fragment),
+        m_userinfo(a_http_rx.m_userinfo),
+
+        m_hostname(a_http_rx.m_hostname),
+        m_port(a_http_rx.m_port),
+        m_where(a_http_rx.m_where),
+        m_scheme(a_http_rx.m_scheme),
+        m_host_info(a_http_rx.m_host_info),
+        m_idx(a_http_rx.m_idx),
+
+        m_stat_agg(a_http_rx.m_stat_agg),
+        m_multipath(a_http_rx.m_multipath),
+
+        m_is_resolved_flag(a_http_rx.m_is_resolved_flag),
+        m_num_to_req(a_http_rx.m_num_to_req),
+        m_num_reqd(a_http_rx.m_num_reqd),
+        m_repeat_path_flag(a_http_rx.m_repeat_path_flag),
+        m_path_vector(a_http_rx.m_path_vector),
+        m_path_order(a_http_rx.m_path_order),
+        m_path_vector_last_idx(a_http_rx.m_path_vector_last_idx),
+        m_label_hash(a_http_rx.m_label_hash),
+        m_resp(a_http_rx.m_resp)
 {
 
 }
 
-
 //: ----------------------------------------------------------------------------
-//: \details: TODO
+//: \details: Copy constructor
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t reqlet::init_with_url(const std::string &a_url, bool a_wildcarding)
+http_rx &http_rx::operator=(const http_rx &a_http_rx)
 {
 
-        int32_t l_status;
-
-        l_status = m_url.parse(a_url);
-
-        // -----------------------------------------------------
-        // SPECIAL path processing for Wildcards and meta...
-        // -----------------------------------------------------
-        if(a_wildcarding)
+        // check for self-assignment by comparing the address of the
+        // implicit object and the parameter
+        if (this == &a_http_rx)
         {
-                special_effects_parse();
-                // TODO Check status...
+            return *this;
         }
 
-        if(m_path_vector.size() > 1)
-        {
-                m_multipath = true;
-        }
-        else
-        {
-                m_multipath = false;
-        }
+        m_id = a_http_rx.m_id;
+        m_label = a_http_rx.m_label;
+        m_host = a_http_rx.m_host;
 
-        m_num_to_req = m_path_vector.size();
+        m_path = a_http_rx.m_path;
+        m_query = a_http_rx.m_query;
+        m_fragment = a_http_rx.m_fragment;
+        m_userinfo = a_http_rx.m_userinfo;
 
-        //NDBG_PRINT("Showing parsed url.\n");
-        //m_url.show();
+        m_hostname = a_http_rx.m_hostname;
+        m_port = a_http_rx.m_port;
+        m_where = a_http_rx.m_where;
+        m_scheme = a_http_rx.m_scheme;
+        m_host_info = a_http_rx.m_host_info;
+        m_idx = a_http_rx.m_idx;
 
-        if (STATUS_OK != l_status)
-        {
-                // Failure
-                NDBG_PRINT("Error parsing url: %s.\n", a_url.c_str());
-                return STATUS_ERROR;
-        }
+        m_stat_agg = a_http_rx.m_stat_agg;
+        m_multipath = a_http_rx.m_multipath;
 
-        // Set default tag if none specified
-        if(m_label == "UNDEFINED")
-        {
-                //char l_buf[256];
-                //snprintf(l_buf, 256, "%s-%" PRIu64 "", m_url.m_host.c_str(), m_id);
-                m_label = a_url;
-        }
+        m_is_resolved_flag = a_http_rx.m_is_resolved_flag;
+        m_num_to_req = a_http_rx.m_num_to_req;
+        m_num_reqd = a_http_rx.m_num_reqd;
+        m_repeat_path_flag = a_http_rx.m_repeat_path_flag;
+        m_path_vector = a_http_rx.m_path_vector;
+        m_path_order = a_http_rx.m_path_order;
+        m_path_vector_last_idx = a_http_rx.m_path_vector_last_idx;
+        m_label_hash = a_http_rx.m_label_hash;
+        m_resp = a_http_rx.m_resp;
 
-        return STATUS_OK;
-
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t reqlet::resolve(resolver &a_resolver)
-{
-
-        if(m_is_resolved_flag)
-        {
-                return STATUS_OK;
-        }
-
-        int32_t l_status = STATUS_OK;
-        std::string l_error;
-
-        // TODO REMOVE!!!
-        //NDBG_PRINT("m_url.m_host: %s\n", m_url.m_host.c_str());
-        //NDBG_PRINT("m_url.m_port: %d\n", m_url.m_port);
-
-        l_status = a_resolver.cached_resolve(m_url.m_host, m_url.m_port, m_host_info, l_error);
-        if(l_status != STATUS_OK)
-        {
-                set_response(900, "Address resolution failed.");
-                return STATUS_ERROR;
-        }
-
-        //show_host_info();
-
-        m_is_resolved_flag = true;
-        return STATUS_OK;
-
-}
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void reqlet::show_host_info(void)
-{
-        printf("+-----------+\n");
-        printf("| Host Info |\n");
-        printf("+-----------+-------------------------\n");
-        printf(": m_sock_family:   %d\n", m_host_info.m_sock_family);
-        printf(": m_sock_type:     %d\n", m_host_info.m_sock_type);
-        printf(": m_sock_protocol: %d\n", m_host_info.m_sock_protocol);
-        printf(": m_sa_len:        %d\n", m_host_info.m_sa_len);
-        printf("+-------------------------------------\n");
-
+        return *this;
 }
 
 //: ----------------------------------------------------------------------------
@@ -188,7 +135,7 @@ void reqlet::show_host_info(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &reqlet::get_path(void *a_rand)
+const std::string &http_rx::get_path(void *a_rand)
 {
 
         // TODO -make this threadsafe -mutex per???
@@ -221,9 +168,8 @@ const std::string &reqlet::get_path(void *a_rand)
         }
         else
         {
-                return m_url.m_path;
+                return m_path;
         }
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -231,7 +177,7 @@ const std::string &reqlet::get_path(void *a_rand)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t reqlet::add_option(const char *a_key, const char *a_val)
+int32_t http_rx::add_option(const char *a_key, const char *a_val)
 {
 
         std::string l_key(a_key);
@@ -295,10 +241,10 @@ int32_t reqlet::add_option(const char *a_key, const char *a_val)
 //: ----------------------------------------------------------------------------
 #define SPECIAL_EFX_OPT_SEPARATOR ";"
 #define SPECIAL_EFX_KV_SEPARATOR "="
-
-int32_t reqlet::special_effects_parse(void)
+int32_t http_rx::special_effects_parse(void)
 {
 
+        //NDBG_PRINT("SPECIAL_FX_PARSE: path: %s\n", m_path.c_str());
         // -------------------------------------------
         // 1. Break by separator ";"
         // 2. Check for exploded path
@@ -306,7 +252,7 @@ int32_t reqlet::special_effects_parse(void)
         //        Split by Key "=" Value
         // -------------------------------------------
         // Bail out if no path
-        if(m_url.m_path.empty())
+        if(m_path.empty())
                 return STATUS_OK;
 
         // -------------------------------------------
@@ -315,13 +261,13 @@ int32_t reqlet::special_effects_parse(void)
         // strtok is NOT thread-safe but not sure it matters here...
         char l_path[2048];
         char *l_save_ptr;
-        strncpy(l_path, m_url.m_path.c_str(), 2048);
+        strncpy(l_path, m_path.c_str(), 2048);
         char *l_p = strtok_r(l_path, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
 
-        if( m_url.m_path.front() != *SPECIAL_EFX_OPT_SEPARATOR ) {
+        if( m_path.front() != *SPECIAL_EFX_OPT_SEPARATOR ) {
             // Rule out special cases that m_path only contains options
             //
-            m_url.m_path = l_p;
+            m_path = l_p;
 
             int32_t l_status;
             path_substr_vector_t l_path_substr_vector;
@@ -355,12 +301,14 @@ int32_t reqlet::special_effects_parse(void)
                 //{
                 //      NDBG_OUTPUT(": [%6d]: %s\n", i_path_cnt, i_path->c_str());
                 //}
-            } else {
-                m_path_vector.push_back(m_url.m_path);
+            }
+            else
+            {
+                m_path_vector.push_back(m_path);
             }
             l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         } else {
-            m_url.m_path.clear();
+            m_path.clear();
         }
 
         // Options...
@@ -429,8 +377,7 @@ static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_
 
         return STATUS_ERROR;
 
-        success:
-
+success:
         // Check range...
         if(l_start > l_end)
         {
@@ -442,7 +389,6 @@ static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_
         ao_range.m_start = l_start;
         ao_range.m_end = l_end;
         return STATUS_OK;
-
 }
 
 
@@ -451,7 +397,7 @@ static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t reqlet::path_exploder(std::string a_path_part,
+int32_t http_rx::path_exploder(std::string a_path_part,
                 const path_substr_vector_t &a_substr_vector, uint32_t a_substr_idx,
                 const range_vector_t &a_range_vector, uint32_t a_range_idx)
 {
@@ -493,7 +439,7 @@ int32_t reqlet::path_exploder(std::string a_path_part,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t reqlet::parse_path(const char *a_path,
+int32_t http_rx::parse_path(const char *a_path,
                 path_substr_vector_t &ao_substr_vector,
                 range_vector_t &ao_range_vector)
 {
@@ -578,7 +524,7 @@ int32_t reqlet::parse_path(const char *a_path,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &reqlet::get_label(void)
+const std::string &http_rx::get_label(void)
 {
         return m_label;
 }
@@ -588,7 +534,7 @@ const std::string &reqlet::get_label(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t reqlet::get_label_hash(void)
+uint64_t http_rx::get_label_hash(void)
 {
         if(!m_label_hash)
         {
@@ -602,15 +548,15 @@ uint64_t reqlet::get_label_hash(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void reqlet::set_host(const std::string &a_host)
+void http_rx::set_host(const std::string &a_host)
 {
-        m_url.m_host = a_host;
+        m_host = a_host;
 
         // Update tag
-        if(m_url.m_scheme == nconn::SCHEME_TCP) m_label = "http://";
-        else if(m_url.m_scheme == nconn::SCHEME_SSL) m_label = "https://";
+        if(m_scheme == nconn::SCHEME_TCP) m_label = "http://";
+        else if(m_scheme == nconn::SCHEME_SSL) m_label = "https://";
         m_label += a_host;
-        m_label += m_url.m_path;
+        m_label += m_path;
 }
 
 
@@ -619,25 +565,24 @@ void reqlet::set_host(const std::string &a_host)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void reqlet::set_response(uint16_t a_response_status, const char *a_response)
+void http_rx::set_response(uint16_t a_response_status, const char *a_response)
 {
-        // Set reqlet response
-        if(a_response_status)
-        {
-                m_response_status = a_response_status;
-        }
-
+        // Set response
         std::string l_response(a_response);
-        if(!l_response.empty())
+        if(m_resp)
         {
-                m_response_body = "\"" + l_response + "\"";
+                if(!l_response.empty())
+                {
+                        m_resp->set_body("\"" + l_response + "\"");
+                }
+                m_resp->set_status(a_response_status);
         }
 
-        if(m_response_status == 502)
+        if(a_response_status == 502)
         {
                 ++m_stat_agg.m_num_idle_killed;
         }
-        if(m_response_status >= 500)
+        if(a_response_status >= 500)
         {
                 ++m_stat_agg.m_num_errors;
         }
@@ -650,22 +595,31 @@ void reqlet::set_response(uint16_t a_response_status, const char *a_response)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void add_stat_to_agg(total_stat_agg_t &ao_stat_agg, const req_stat_t &a_req_stat)
+int32_t http_rx::resolve(resolver &a_resolver)
 {
-        update_stat(ao_stat_agg.m_stat_us_connect, a_req_stat.m_tt_connect_us);
-        update_stat(ao_stat_agg.m_stat_us_ssl_connect, a_req_stat.m_tt_ssl_connect_us);
-        update_stat(ao_stat_agg.m_stat_us_first_response, a_req_stat.m_tt_first_read_us);
-        update_stat(ao_stat_agg.m_stat_us_download, a_req_stat.m_tt_completion_us - a_req_stat.m_tt_header_completion_us);
-        update_stat(ao_stat_agg.m_stat_us_end_to_end, a_req_stat.m_tt_completion_us);
+        if(m_is_resolved_flag)
+        {
+                return STATUS_OK;
+        }
 
-        // Totals
-        ++ao_stat_agg.m_total_reqs;
-        ao_stat_agg.m_total_bytes += a_req_stat.m_total_bytes;
+        int32_t l_status = STATUS_OK;
+        std::string l_error;
 
-        // Status code
-        //NDBG_PRINT("%sSTATUS_CODE%s: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);
-        ++ao_stat_agg.m_status_code_count_map[a_req_stat.m_status_code];
+        // TODO REMOVE!!!
+        //NDBG_PRINT("m_url.m_host: %s\n", m_url.m_host.c_str());
+        //NDBG_PRINT("m_url.m_port: %d\n", m_url.m_port);
 
+        l_status = a_resolver.cached_resolve(m_host, m_port, m_host_info, l_error);
+        if(l_status != STATUS_OK)
+        {
+                //set_response(900, "Address resolution failed.");
+                return STATUS_ERROR;
+        }
+
+        //show_host_info();
+
+        m_is_resolved_flag = true;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -673,53 +627,366 @@ void add_stat_to_agg(total_stat_agg_t &ao_stat_agg, const req_stat_t &a_req_stat
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void add_to_total_stat_agg(total_stat_agg_t &ao_stat_agg, const total_stat_agg_t &a_add_total_stat)
+int32_t http_rx::init_with_url(const std::string &a_url, bool a_wildcarding)
 {
 
-        // Stats
-        add_stat(ao_stat_agg.m_stat_us_connect , a_add_total_stat.m_stat_us_connect);
-        add_stat(ao_stat_agg.m_stat_us_ssl_connect , a_add_total_stat.m_stat_us_ssl_connect);
-        add_stat(ao_stat_agg.m_stat_us_first_response , a_add_total_stat.m_stat_us_first_response);
-        add_stat(ao_stat_agg.m_stat_us_download , a_add_total_stat.m_stat_us_download);
-        add_stat(ao_stat_agg.m_stat_us_end_to_end , a_add_total_stat.m_stat_us_end_to_end);
-
-        ao_stat_agg.m_total_bytes += a_add_total_stat.m_total_bytes;
-        ao_stat_agg.m_total_reqs += a_add_total_stat.m_total_reqs;
-
-        ao_stat_agg.m_num_conn_started += a_add_total_stat.m_num_conn_started;
-        ao_stat_agg.m_num_conn_completed += a_add_total_stat.m_num_conn_completed;
-        ao_stat_agg.m_num_idle_killed += a_add_total_stat.m_num_idle_killed;
-        ao_stat_agg.m_num_errors += a_add_total_stat.m_num_errors;
-        ao_stat_agg.m_num_bytes_read += a_add_total_stat.m_num_bytes_read;
-
-        for(status_code_count_map_t::const_iterator i_code = a_add_total_stat.m_status_code_count_map.begin();
-                        i_code != a_add_total_stat.m_status_code_count_map.end();
-                        ++i_code)
+        std::string l_url_fixed = a_url;
+        // Find scheme prefix "://"
+        if(a_url.find("://", 0) == std::string::npos)
         {
-                status_code_count_map_t::iterator i_code2;
-                if((i_code2 = ao_stat_agg.m_status_code_count_map.find(i_code->first)) == ao_stat_agg.m_status_code_count_map.end())
+                l_url_fixed = "http://" + a_url;
+        }
+
+        //NDBG_PRINT("Parse url:           %s\n", a_url.c_str());
+        //NDBG_PRINT("Parse a_wildcarding: %d\n", a_wildcarding);
+        http_parser_url l_url;
+        int l_status;
+        l_status = http_parser_parse_url(l_url_fixed.c_str(), l_url_fixed.length(), 0, &l_url);
+        if(l_status != 0)
+        {
+                NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
+                // TODO get error msg from http_parser
+                return STATUS_ERROR;
+        }
+
+        // Set no port
+        m_port = 0;
+
+        for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
+        {
+                //NDBG_PRINT("i_part: %d offset: %d len: %d\n", i_part, l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                //NDBG_PRINT("len+off: %d\n",       l_url.field_data[i_part].len + l_url.field_data[i_part].off);
+                //NDBG_PRINT("a_url.length(): %d\n", (int)a_url.length());
+                if(l_url.field_data[i_part].len &&
+                  // TODO Some bug with parser -parsing urls like "http://127.0.0.1" sans paths
+                  ((l_url.field_data[i_part].len + l_url.field_data[i_part].off) <= l_url_fixed.length()))
                 {
-                        ao_stat_agg.m_status_code_count_map[i_code->first] = i_code->second;
+                        switch(i_part)
+                        {
+                        case UF_SCHEMA:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part: %s\n", l_part.c_str());
+                                if(l_part == "http")
+                                {
+                                        m_scheme = nconn::SCHEME_TCP;
+                                }
+                                else if(l_part == "https")
+                                {
+                                        m_scheme = nconn::SCHEME_SSL;
+                                }
+                                else
+                                {
+                                        NDBG_PRINT("Error schema[%s] is unsupported\n", l_part.c_str());
+                                        return STATUS_ERROR;
+                                }
+                                break;
+                        }
+                        case UF_HOST:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_HOST]: %s\n", l_part.c_str());
+                                m_host = l_part;
+                                break;
+                        }
+                        case UF_PORT:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_PORT]: %s\n", l_part.c_str());
+                                m_port = (uint16_t)strtoul(l_part.c_str(), NULL, 10);
+                                break;
+                        }
+                        case UF_PATH:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_PATH]: %s\n", l_part.c_str());
+                                m_path = l_part;
+                                break;
+                        }
+                        case UF_QUERY:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_QUERY]: %s\n", l_part.c_str());
+                                m_query = l_part;
+                                break;
+                        }
+                        case UF_FRAGMENT:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_FRAGMENT]: %s\n", l_part.c_str());
+                                m_fragment = l_part;
+                                break;
+                        }
+                        case UF_USERINFO:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //sNDBG_PRINT("l_part[UF_USERINFO]: %s\n", l_part.c_str());
+                                m_userinfo = l_part;
+                                break;
+                        }
+                        default:
+                        {
+                                break;
+                        }
+                        }
                 }
-                else
+        }
+
+        // Default ports
+        if(!m_port)
+        {
+                switch(m_scheme)
                 {
-                        i_code2->second += i_code->second;
+                case nconn::SCHEME_TCP:
+                {
+                        m_port = 80;
+                        break;
+                }
+                case nconn::SCHEME_SSL:
+                {
+                        m_port = 443;
+                        break;
+                }
+                default:
+                {
+                        m_port = 80;
+                        break;
+                }
+                }
+        }
+
+        // -----------------------------------------------------
+        // SPECIAL path processing for Wildcards and meta...
+        // -----------------------------------------------------
+        if(a_wildcarding)
+        {
+                special_effects_parse();
+                // TODO Check status...
+        }
+
+        if(m_path_vector.size() > 1)
+        {
+                m_multipath = true;
+        }
+        else
+        {
+                m_multipath = false;
+        }
+
+        //m_num_to_req = m_path_vector.size();
+
+        //NDBG_PRINT("Showing parsed url.\n");
+        //m_url.show();
+
+        if (STATUS_OK != l_status)
+        {
+                // Failure
+                NDBG_PRINT("Error parsing url: %s.\n", l_url_fixed.c_str());
+                return STATUS_ERROR;
+        }
+
+        // Set default tag if none specified
+        if(m_label == "UNDEFINED")
+        {
+                //char l_buf[256];
+                //snprintf(l_buf, 256, "%s-%" PRIu64 "", m_url.m_host.c_str(), m_id);
+                m_label = l_url_fixed;
+        }
+
+        return STATUS_OK;
+
+        //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
+
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#if 0
+void http_rx::set_uri(const std::string &a_uri)
+{
+        m_uri = a_uri;
+
+        // -------------------------------------------------
+        // TODO Zero copy with something like substring...
+        // This is pretty awful performance wise
+        // -------------------------------------------------
+        // Read uri up to first '?'
+        size_t l_query_pos = 0;
+        if((l_query_pos = m_uri.find('?', 0)) == std::string::npos)
+        {
+                // No query string -path == uri
+                m_path = m_uri;
+                return;
+        }
+
+        m_path = m_uri.substr(0, l_query_pos);
+
+        // TODO Url decode???
+
+        std::string l_query = m_uri.substr(l_query_pos + 1, m_uri.length() - l_query_pos + 1);
+
+        // Split the query by '&'
+        if(!l_query.empty())
+        {
+
+                //NDBG_PRINT("%s__QUERY__%s: l_query: %s\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, l_query.c_str());
+
+                size_t l_qi_begin = 0;
+                size_t l_qi_end = 0;
+                bool l_last = false;
+                while (!l_last)
+                {
+                        l_qi_end = l_query.find('&', l_qi_begin);
+                        if(l_qi_end == std::string::npos)
+                        {
+                                l_last = true;
+                                l_qi_end = l_query.length();
+                        }
+
+                        std::string l_query_item = l_query.substr(l_qi_begin, l_qi_end - l_qi_begin);
+
+                        // Search for '='
+                        size_t l_qi_val_pos = 0;
+                        l_qi_val_pos = l_query_item.find('=', 0);
+                        std::string l_q_k;
+                        std::string l_q_v;
+                        if(l_qi_val_pos != std::string::npos)
+                        {
+                                l_q_k = l_query_item.substr(0, l_qi_val_pos);
+                                l_q_v = l_query_item.substr(l_qi_val_pos + 1, l_query_item.length());
+                        }
+                        else
+                        {
+                                l_q_k = l_query_item;
+                        }
+
+                        //NDBG_PRINT("%s__QUERY__%s: k[%s]: %s\n",
+                        //                ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, l_q_k.c_str(), l_q_v.c_str());
+
+                        // Add to list
+                        kv_list_map_t::iterator i_key = m_query.find(l_q_k);
+                        if(i_key == m_query.end())
+                        {
+                                value_list_t l_list;
+                                l_list.push_back(l_q_v);
+                                m_query[l_q_k] = l_list;
+                        }
+                        else
+                        {
+                                i_key->second.push_back(l_q_v);
+                        }
+
+                        // Move fwd
+                        l_qi_begin = l_qi_end + 1;
+
                 }
         }
 
 }
+#endif
 
-
-
-//: ----------------------------------------------------------------------------
-//: TODO REMOVE TODO REMOVE TODO REMOVE TODO REMOVE TODO REMOVE TODO REMOVE
-//: ----------------------------------------------------------------------------
-#if 0
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if 0
+const kv_list_map_t &http_rx::get_uri_decoded_query(void)
+{
+
+        if(m_query_uri_decoded.empty() && !m_query.empty())
+        {
+
+                // Decode the arguments for now
+                for(kv_list_map_t::const_iterator i_kv = m_query.begin();
+                    i_kv != m_query.end();
+                    ++i_kv)
+                {
+                        value_list_t l_value_list;
+                        for(value_list_t::const_iterator i_v = i_kv->second.begin();
+                            i_v != i_kv->second.end();
+                            ++i_v)
+                        {
+                                std::string l_v = uri_decode(*i_v);
+                                l_value_list.push_back(l_v);
+                        }
+
+                        std::string l_k = uri_decode(i_kv->first);
+                        m_query_uri_decoded[l_k] = l_value_list;
+                }
+        }
+
+        return m_query_uri_decoded;
+
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#if 0
+void http_rx::show(bool a_color)
+{
+        std::string l_host_color = "";
+        std::string l_query_color = "";
+        std::string l_header_color = "";
+        std::string l_body_color = "";
+        std::string l_off_color = "";
+        if(a_color)
+        {
+                l_host_color = ANSI_COLOR_FG_BLUE;
+                l_query_color = ANSI_COLOR_FG_MAGENTA;
+                l_header_color = ANSI_COLOR_FG_GREEN;
+                l_body_color = ANSI_COLOR_FG_YELLOW;
+                l_off_color = ANSI_COLOR_OFF;
+        }
+
+        // Host
+        NDBG_OUTPUT("%sUri%s:  %s\n", l_host_color.c_str(), l_off_color.c_str(), m_uri.c_str());
+        NDBG_OUTPUT("%sPath%s: %s\n", l_host_color.c_str(), l_off_color.c_str(), m_path.c_str());
+
+        // Query
+        for(kv_list_map_t::iterator i_key = m_query.begin();
+                        i_key != m_query.end();
+            ++i_key)
+        {
+                NDBG_OUTPUT("%s%s%s: %s\n",
+                                l_query_color.c_str(), i_key->first.c_str(), l_off_color.c_str(),
+                                i_key->second.begin()->c_str());
+        }
+
+
+        // Headers
+        for(kv_list_map_t::iterator i_key = m_headers.begin();
+            i_key != m_headers.end();
+            ++i_key)
+        {
+                NDBG_OUTPUT("%s%s%s: %s\n",
+                                l_header_color.c_str(), i_key->first.c_str(), l_off_color.c_str(),
+                                i_key->second.begin()->c_str());
+        }
+
+        // Body
+        NDBG_OUTPUT("%sBody%s: %s\n", l_body_color.c_str(), l_off_color.c_str(), m_body.c_str());
+
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: TODO REMOVE TODO REMOVE TODO REMOVE TODO REMOVE TODO REMOVE TODO REMOVE
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#if 0
 url_factory::url_factory(const url_options& config, t_client_batch_stats* peer):
                         m_stats                 (peer),
                         m_config                (config),
@@ -1009,12 +1276,14 @@ url_factory::url_factory(const url_options& config, t_client_batch_stats* peer):
                 }
         }
 }
+#endif
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if 0
 const Url & url_factory::pick_url()
 {
         if (m_urls.size() == 0)
@@ -1047,5 +1316,3 @@ const Url & url_factory::pick_url()
 
 
 } //namespace ns_hlx {
-
-

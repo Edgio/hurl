@@ -28,12 +28,10 @@
 //: ----------------------------------------------------------------------------
 #include "nconn.h"
 #include "ndebug.h"
-#include "http_cb.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-
 
 namespace ns_hlx {
 
@@ -44,7 +42,6 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -57,13 +54,9 @@ public:
         // ---------------------------------------
         typedef enum tcp_opt_enum
         {
-                OPT_TCP_REQ_BUF = 0,
-                OPT_TCP_REQ_BUF_LEN = 1,
-                OPT_TCP_GLOBAL_REQ_BUF = 2,
-                OPT_TCP_GLOBAL_REQ_BUF_LEN = 3,
-                OPT_TCP_RECV_BUF_SIZE = 4,
-                OPT_TCP_SEND_BUF_SIZE = 5,
-                OPT_TCP_NO_DELAY = 6,
+                OPT_TCP_RECV_BUF_SIZE = 0,
+                OPT_TCP_SEND_BUF_SIZE = 1,
+                OPT_TCP_NO_DELAY = 2,
 
                 OPT_TCP_SENTINEL = 999
         } tcp_opt_t;
@@ -73,44 +66,24 @@ public:
                   int64_t a_max_reqs_per_conn = -1,
                   bool a_save_response_in_reqlet = false,
                   bool a_collect_stats = false,
-                  bool a_connect_only = false):
+                  bool a_connect_only = false,
+                  type_t a_type = TYPE_CLIENT):
                           nconn(a_verbose,
                                 a_color,
                                 a_max_reqs_per_conn,
                                 a_save_response_in_reqlet,
                                 a_collect_stats,
-                                a_connect_only),
+                                a_connect_only,
+                                a_type),
                           m_tcp_state(TCP_STATE_FREE),
                           m_fd(-1),
-                          m_http_parser_settings(),
-                          m_http_parser(),
                           m_sock_opt_recv_buf_size(),
                           m_sock_opt_send_buf_size(),
                           m_sock_opt_no_delay(false),
-                          m_timeout_s(10),
-                          m_req_buf(),
-                          m_req_buf_len(0),
-                          m_read_buf(),
-                          m_read_buf_idx(0),
-                          s_req_buf(),
-                          s_req_buf_len()
+                          m_timeout_s(10)
 
         {
                 m_scheme = SCHEME_TCP;
-
-                // Set up callbacks...
-                m_http_parser_settings.on_status = hp_on_status;
-                m_http_parser_settings.on_message_complete = hp_on_message_complete;
-
-                if(a_save_response_in_reqlet)
-                {
-                        m_http_parser_settings.on_message_begin = hp_on_message_begin;
-                        m_http_parser_settings.on_url = hp_on_url;
-                        m_http_parser_settings.on_header_field = hp_on_header_field;
-                        m_http_parser_settings.on_header_value = hp_on_header_value;
-                        m_http_parser_settings.on_headers_complete = hp_on_headers_complete;
-                        m_http_parser_settings.on_body = hp_on_body;
-                }
         };
 
         // Destructor
@@ -118,25 +91,26 @@ public:
         {
         };
 
+
+        // TODO REMOVE!!!
+#if 0
         int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
         int32_t send_request(bool is_reuse = false);
-        int32_t cleanup(void);
+#endif
+
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
-
-        bool is_done(void) { return (m_tcp_state == TCP_STATE_DONE);}
+        bool is_listening(void) {return (m_tcp_state == TCP_STATE_LISTENING);};
+        bool is_connecting(void) {return (m_tcp_state == TCP_STATE_CONNECTING);};
         bool is_free(void) { return (m_tcp_state == TCP_STATE_FREE);}
-        void set_state_done(void) { m_tcp_state = TCP_STATE_DONE; };
 
-        // -------------------------------------------------
-        // Public static methods
-        // -------------------------------------------------
-        static const uint32_t m_max_req_buf = 16*1024;
-        static const uint32_t m_max_read_buf = 16*1024;
-
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
+        // TODO Experimental refactoring
+        int32_t ncsetup(evr_loop *a_evr_loop);
+        int32_t ncread(char *a_buf, uint32_t a_buf_len);
+        int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
+        int32_t ncaccept(void);
+        int32_t ncconnect(evr_loop *a_evr_loop);
+        int32_t nccleanup(void);
 
 private:
 
@@ -146,9 +120,11 @@ private:
         typedef enum tcp_conn_state
         {
                 TCP_STATE_FREE = 0,
+                TCP_STATE_LISTENING,
                 TCP_STATE_CONNECTING,
                 TCP_STATE_CONNECTED,
                 TCP_STATE_READING,
+                TCP_STATE_WRITING,
                 TCP_STATE_DONE
         } tcp_conn_state_t;
 
@@ -157,44 +133,33 @@ private:
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(nconn_tcp)
 
+        // TODO REMOVE!!!
+#if 0
         int32_t receive_response(void);
+#endif
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
         tcp_conn_state_t m_tcp_state;
 
-        // -------------------------------------------------
-        // Protectected methods
-        // -------------------------------------------------
 protected:
-        int32_t setup_socket(const host_info_t &a_host_info);
+        // -------------------------------------------------
+        // Protected methods
+        // -------------------------------------------------
+        int32_t set_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t set_connected(evr_loop *a_evr_loop, int a_fd);
 
         // -------------------------------------------------
-        // Protectected members
+        // Protected members
         // -------------------------------------------------
-protected:
         int m_fd;
-
-        http_parser_settings m_http_parser_settings;
-        http_parser m_http_parser;
 
         // Socket options
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
         uint32_t m_timeout_s;
-
-        char m_req_buf[m_max_req_buf];
-        uint32_t m_req_buf_len;
-        char m_read_buf[m_max_read_buf];
-        uint32_t m_read_buf_idx;
-
-        // -------------------------------------------------
-        // Private static members
-        // -------------------------------------------------
-        char *s_req_buf;
-        uint32_t s_req_buf_len;
 
 };
 

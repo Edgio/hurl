@@ -85,8 +85,19 @@ typedef struct settings_struct
         bool m_quiet;
         bool m_show_response_codes;
         bool m_show_per_interval;
+        uint32_t m_num_parallel;
 
         ns_hlx::hlx_client *m_hlx_client;
+
+        // Stats
+        uint64_t m_start_time_ms;
+        uint64_t m_last_display_time_ms;
+
+        ns_hlx::t_stat_t *m_last_stat;
+        int32_t m_run_time_ms;
+
+        // Used for displaying interval stats
+        uint32_t m_last_responses_count[10];
 
         // ---------------------------------
         // Defaults...
@@ -97,11 +108,47 @@ typedef struct settings_struct
                 m_quiet(false),
                 m_show_response_codes(false),
                 m_show_per_interval(false),
-                m_hlx_client(NULL)
-        {}
+                m_num_parallel(128),
+                m_hlx_client(NULL),
+                m_start_time_ms(),
+                m_last_display_time_ms(),
+                m_last_stat(NULL),
+                m_run_time_ms(-1),
+                m_last_responses_count()
+        {
+                m_last_stat = new ns_hlx::t_stat_struct();
+                for(uint32_t i = 0; i < 10; ++i) {m_last_responses_count[i] = 0;}
+        }
 
+        ~settings_struct()
+        {
+                if(m_last_stat)
+                {
+                        delete m_last_stat;
+                        m_last_stat = NULL;
+                }
+        }
+private:
+        HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(settings_struct);
 } settings_struct_t;
 
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+uint64_t hlo_get_time_ms(void);
+uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms);
+void display_results_line_desc(settings_struct &a_settings);
+void display_results_line(settings_struct &a_settings);
+void display_responses_line_desc(settings_struct &a_settings);
+void display_responses_line(settings_struct &a_settings);
+
+void display_results(settings_struct &a_settings,
+                     double a_elapsed_time,
+                     bool a_show_breakdown_flag = false);
+void display_results_http_load_style(settings_struct &a_settings,
+                                     double a_elapsed_time,
+                                     bool a_show_breakdown_flag = false,
+                                     bool a_one_line_flag = false);
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
@@ -235,25 +282,38 @@ void command_exec(settings_struct_t &a_settings)
 
                 // TODO add define...
                 usleep(500000);
+
+                // Check for done
+                if(a_settings.m_run_time_ms != -1)
+                {
+                        int32_t l_time_delta_ms = (int32_t)(hlo_get_delta_time_ms(a_settings.m_start_time_ms));
+                        if(l_time_delta_ms >= a_settings.m_run_time_ms)
+                        {
+                                g_test_finished = true;
+                                l_hlx_client->stop();
+                                l_sent_stop = true;
+                        }
+                }
+
                 if(!a_settings.m_quiet && !a_settings.m_verbose)
                 {
                         if(a_settings.m_show_response_codes)
                         {
                                 if(l_first_time)
                                 {
-                                        l_hlx_client->display_responses_line_desc(a_settings.m_show_per_interval);
+                                        display_responses_line_desc(a_settings);
                                         l_first_time = false;
                                 }
-                                l_hlx_client->display_responses_line(a_settings.m_show_per_interval);
+                                display_responses_line(a_settings);
                         }
                         else
                         {
                                 if(l_first_time)
                                 {
-                                        l_hlx_client->display_results_line_desc();
+                                        display_results_line_desc(a_settings);
                                         l_first_time = false;
                                 }
-                                l_hlx_client->display_results_line();
+                                display_results_line(a_settings);
                         }
                 }
 
@@ -331,6 +391,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -S, --send_buffer   Socket send buffer size.\n");
         fprintf(a_stream, "  -D, --no_delay      Socket TCP no-delay.\n");
         fprintf(a_stream, "  -T, --timeout       Timeout (seconds).\n");
+        fprintf(a_stream, "  -x, --no_stats      Don't collect stats -faster.\n");
 
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
@@ -396,7 +457,9 @@ int main(int argc, char** argv)
 
         int32_t l_http_load_display = -1;
         int32_t l_http_data_port = -1;
+
         bool l_show_breakdown = false;
+
         int l_max_threads = 4;
         // TODO Make default definitions
         int l_start_parallel = 128;
@@ -433,6 +496,7 @@ int main(int argc, char** argv)
                 { "send_buffer",  1, 0, 'S' },
                 { "no_delay",     0, 0, 'D' },
                 { "timeout",      1, 0, 'T' },
+                { "no_stats",     0, 0, 'x' },
                 { "verbose",      0, 0, 'v' },
                 { "color",        0, 0, 'c' },
                 { "quiet",        0, 0, 'q' },
@@ -479,7 +543,7 @@ int main(int argc, char** argv)
 
         }
 
-        while ((l_opt = getopt_long_only(argc, argv, "hrku:wd:y:p:f:N:t:H:X:A:M:l:R:S:DT:vcqCLY:BP:G:", l_long_options, &l_option_index)) != -1)
+        while ((l_opt = getopt_long_only(argc, argv, "hrku:wd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:BP:G:", l_long_options, &l_option_index)) != -1)
         {
 
                 if (optarg)
@@ -584,6 +648,7 @@ int main(int argc, char** argv)
                                 return -1;
                         }
                         l_hlx_client->set_num_parallel(l_start_parallel);
+                        l_settings.m_num_parallel = l_start_parallel;
                         break;
                 }
 
@@ -735,7 +800,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return -1;
                         }
-                        l_hlx_client->set_run_time_s(l_run_time_s);
+                        l_settings.m_run_time_ms = l_run_time_s*1000;
 
                         break;
                 }
@@ -762,7 +827,6 @@ int main(int argc, char** argv)
                         l_hlx_client->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
-
                 // ---------------------------------------
                 // No delay
                 // ---------------------------------------
@@ -771,7 +835,6 @@ int main(int argc, char** argv)
                         l_hlx_client->set_sock_opt_no_delay(true);
                         break;
                 }
-
                 // ---------------------------------------
                 // timeout
                 // ---------------------------------------
@@ -789,6 +852,14 @@ int main(int argc, char** argv)
                         }
                         l_hlx_client->set_timeout_s(l_timeout);
 
+                        break;
+                }
+                // ---------------------------------------
+                // No stats
+                // ---------------------------------------
+                case 'x':
+                {
+                        l_hlx_client->set_collect_stats(false);
                         break;
                 }
                 // ---------------------------------------
@@ -963,7 +1034,8 @@ int main(int argc, char** argv)
                 return -1;
         }
 
-        uint64_t l_start_time_ms = get_time_ms();
+        uint64_t l_start_time_ms = hlo_get_time_ms();
+        l_settings.m_start_time_ms = l_start_time_ms;
 
         // Start api server
         if(l_http_data_port > 0)
@@ -990,7 +1062,7 @@ int main(int argc, char** argv)
                 ProfilerStop();
 #endif
 
-        uint64_t l_end_time_ms = get_time_ms() - l_start_time_ms;
+        uint64_t l_end_time_ms = hlo_get_time_ms() - l_start_time_ms;
 
 
         // -------------------------------------------
@@ -998,13 +1070,14 @@ int main(int argc, char** argv)
         // -------------------------------------------
         if(l_http_load_display != -1)
         {
-                l_hlx_client->display_results_http_load_style(((double)l_end_time_ms)/1000.0,
-                                (bool)(l_http_load_display&(0x1)),
-                                (bool)((l_http_load_display&(0x2)) >> 1));
+                display_results_http_load_style(l_settings,
+                                                ((double)l_end_time_ms)/1000.0,
+                                                (bool)(l_http_load_display&(0x1)),
+                                                (bool)((l_http_load_display&(0x2)) >> 1));
         }
         else
         {
-                l_hlx_client->display_results(((double)l_end_time_ms)/1000.0, l_show_breakdown);
+                display_results(l_settings, ((double)l_end_time_ms)/1000.0, l_show_breakdown);
         }
 
         // -------------------------------------------
@@ -1022,5 +1095,516 @@ int main(int argc, char** argv)
 
         return 0;
 
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t hlo_get_time_ms(void)
+{
+        uint64_t l_retval;
+        struct timespec l_timespec;
+
+        clock_gettime(CLOCK_REALTIME, &l_timespec);
+        l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
+
+        return l_retval;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms)
+{
+        uint64_t l_retval;
+        struct timespec l_timespec;
+
+        clock_gettime(CLOCK_REALTIME, &l_timespec);
+        l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
+
+        return l_retval - a_start_time_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_responses_line_desc(settings_struct &a_settings)
+{
+        printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
+        if(a_settings.m_show_per_interval)
+        {
+                if(a_settings.m_color)
+                {
+                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                                ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_GREEN, "200s %%", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_CYAN, "300s %%", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_MAGENTA, "400s %%", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_RED, "500s %%", ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
+                                        "Elapsed",
+                                        "Req/s",
+                                        "Cmpltd",
+                                        "Errors",
+                                        "200s %%",
+                                        "300s %%",
+                                        "400s %%",
+                                        "500s %%");
+                }
+        }
+        else
+        {
+                if(a_settings.m_color)
+                {
+                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                                ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_GREEN, "200s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_CYAN, "300s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_MAGENTA, "400s", ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_RED, "500s", ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
+                                        "Elapsed",
+                                        "Req/s",
+                                        "Cmpltd",
+                                        "Errors",
+                                        "200s",
+                                        "300s",
+                                        "400s",
+                                        "500s");
+                }
+        }
+        printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_responses_line(settings_struct &a_settings)
+{
+
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::tag_stat_map_t l_unused;
+        uint64_t l_cur_time_ms = hlo_get_time_ms();
+
+        // Get stats
+        a_settings.m_hlx_client->get_stats(l_total, false, l_unused);
+
+        double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
+                              ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
+        a_settings.m_last_display_time_ms = hlo_get_time_ms();
+        *(a_settings.m_last_stat) = l_total;
+
+        // Aggregate over status code map
+        ns_hlx::status_code_count_map_t m_status_code_count_map;
+
+        uint32_t l_responses[10] = {0};
+        for(ns_hlx::status_code_count_map_t::iterator i_code = l_total.m_status_code_count_map.begin();
+            i_code != l_total.m_status_code_count_map.end();
+            ++i_code)
+        {
+                if(i_code->first >= 200 && i_code->first <= 299)
+                {
+                        l_responses[2] += i_code->second;
+                }
+                else if(i_code->first >= 300 && i_code->first <= 399)
+                {
+                        l_responses[3] += i_code->second;
+                }
+                else if(i_code->first >= 400 && i_code->first <= 499)
+                {
+                        l_responses[4] += i_code->second;
+                }
+                else if(i_code->first >= 500 && i_code->first <= 599)
+                {
+                        l_responses[5] += i_code->second;
+                }
+        }
+
+        if(a_settings.m_show_per_interval)
+        {
+
+                // Calculate rates
+                double l_rate[10] = {0.0};
+                uint32_t l_totals = 0;
+
+                for(uint32_t i = 2; i <= 5; ++i)
+                {
+                        l_totals += l_responses[i] - a_settings.m_last_responses_count[i];
+                }
+
+                for(uint32_t i = 2; i <= 5; ++i)
+                {
+                        if(l_totals)
+                        {
+                                l_rate[i] = (100.0*((double)(l_responses[i] - a_settings.m_last_responses_count[i]))) / ((double)(l_totals));
+                        }
+                        else
+                        {
+                                l_rate[i] = 0.0;
+                        }
+                }
+
+                if(a_settings.m_color)
+                {
+                                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
+                                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                                l_reqs_per_s,
+                                                l_total.m_total_reqs,
+                                                l_total.m_num_errors,
+                                                ANSI_COLOR_FG_GREEN, l_rate[2], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_CYAN, l_rate[3], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_MAGENTA, l_rate[4], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_RED, l_rate[5], ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        l_reqs_per_s,
+                                        l_total.m_total_reqs,
+                                        l_total.m_num_errors,
+                                        l_rate[2],
+                                        l_rate[3],
+                                        l_rate[4],
+                                        l_rate[5]);
+                }
+
+                // Update last
+                a_settings.m_last_responses_count[2] = l_responses[2];
+                a_settings.m_last_responses_count[3] = l_responses[3];
+                a_settings.m_last_responses_count[4] = l_responses[4];
+                a_settings.m_last_responses_count[5] = l_responses[5];
+        }
+        else
+        {
+                if(a_settings.m_color)
+                {
+                                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
+                                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                                l_reqs_per_s,
+                                                l_total.m_total_reqs,
+                                                l_total.m_num_errors,
+                                                ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_MAGENTA, l_responses[4], ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_RED, l_responses[5], ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        l_reqs_per_s,
+                                        l_total.m_total_reqs,
+                                        l_total.m_num_errors,
+                                        l_responses[2],
+                                        l_responses[3],
+                                        l_responses[4],
+                                        l_responses[5]);
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_results_line_desc(settings_struct &a_settings)
+{
+        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+        if(a_settings.m_color)
+        {
+        printf("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
+                        ANSI_COLOR_FG_GREEN, "Cmpltd", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLUE, "Total", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_MAGENTA, "IdlKil", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_RED, "Errors", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_YELLOW, "kBytes Recvd", ANSI_COLOR_OFF,
+                        "Elapsed",
+                        "Req/s",
+                        "MB/s");
+        }
+        else
+        {
+                printf("| %9s / %9s | %9s | %9s | %12s | %9s | %11s | %9s |\n",
+                                "Cmpltd",
+                                "Total",
+                                "IdlKil",
+                                "Errors",
+                                "kBytes Recvd",
+                                "Elapsed",
+                                "Req/s",
+                                "MB/s");
+        }
+        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_results_line(settings_struct &a_settings)
+{
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::tag_stat_map_t l_unused;
+        uint64_t l_cur_time_ms = hlo_get_time_ms();
+
+        // Get stats
+        a_settings.m_hlx_client->get_stats(l_total, false, l_unused);
+
+        double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
+                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
+        double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
+                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
+        a_settings.m_last_display_time_ms = hlo_get_time_ms();
+        *a_settings.m_last_stat = l_total;
+
+        if(a_settings.m_color)
+        {
+                        printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
+                                        ANSI_COLOR_FG_GREEN, l_total.m_total_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_total_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_MAGENTA, l_total.m_num_idle_killed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_num_bytes_read))/(1024.0), ANSI_COLOR_OFF,
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        l_reqs_per_s,
+                                        l_kb_per_s/1024.0
+                                        );
+        }
+        else
+        {
+                printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
+                                l_total.m_total_reqs,
+                                l_total.m_total_reqs,
+                                l_total.m_num_idle_killed,
+                                l_total.m_num_errors,
+                                ((double)(l_total.m_num_bytes_read))/(1024.0),
+                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
+                                l_reqs_per_s,
+                                l_kb_per_s/1024.0
+                                );
+
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static void show_total_agg_stat(std::string &a_tag,
+        const ns_hlx::t_stat_t &a_stat,
+        double a_time_elapsed_s,
+        uint32_t a_max_parallel,
+        bool a_color)
+{
+        if(a_color)
+        printf("| %sRESULTS%s:             %s%s%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_YELLOW, a_tag.c_str(), ANSI_COLOR_OFF);
+        else
+        printf("| RESULTS:             %s\n", a_tag.c_str());
+
+        printf("| fetches:             %lu\n", a_stat.m_total_reqs);
+        printf("| max parallel:        %u\n", a_max_parallel);
+        printf("| bytes:               %e\n", (double)a_stat.m_total_bytes);
+        printf("| seconds:             %f\n", a_time_elapsed_s);
+        printf("| mean bytes/conn:     %f\n", ((double)a_stat.m_total_bytes)/((double)a_stat.m_total_reqs));
+        printf("| fetches/sec:         %f\n", ((double)a_stat.m_total_reqs)/(a_time_elapsed_s));
+        printf("| bytes/sec:           %e\n", ((double)a_stat.m_total_bytes)/a_time_elapsed_s);
+
+        // TODO Fix stdev/var calcs
+#if 0
+#define SHOW_XSTAT_LINE(_tag, stat)\
+        do {\
+        printf("| %-16s %12.6f mean, %12.6f max, %12.6f min, %12.6f stdev, %12.6f var\n",\
+               _tag,                                                    \
+               stat.mean()/1000.0,                                      \
+               stat.max()/1000.0,                                       \
+               stat.min()/1000.0,                                       \
+               stat.stdev()/1000.0,                                     \
+               stat.var()/1000.0);                                      \
+        } while(0)
+#else
+#define SHOW_XSTAT_LINE(_tag, stat)\
+        do {\
+        printf("| %-16s %12.6f mean, %12.6f max, %12.6f min\n",\
+               _tag,\
+               stat.mean()/1000.0,\
+               stat.max()/1000.0,\
+               stat.min()/1000.0);\
+        } while(0)
+#endif
+
+        SHOW_XSTAT_LINE("ms/connect:", a_stat.m_stat_us_connect);
+        SHOW_XSTAT_LINE("ms/1st-response:", a_stat.m_stat_us_first_response);
+        SHOW_XSTAT_LINE("ms/end2end:", a_stat.m_stat_us_end_to_end);
+
+        if(a_color)
+                printf("| %sHTTP response codes%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        else
+                printf("| HTTP response codes: \n");
+
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
+                        i_status_code != a_stat.m_status_code_count_map.end();
+                ++i_status_code)
+        {
+                if(a_color)
+                printf("| %s%3d%s -- %u\n", ANSI_COLOR_FG_MAGENTA, i_status_code->first, ANSI_COLOR_OFF, i_status_code->second);
+                else
+                printf("| %3d -- %u\n", i_status_code->first, i_status_code->second);
+        }
+
+        // Done flush...
+        printf("\n");
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_results(settings_struct &a_settings,
+                     double a_elapsed_time,
+                     bool a_show_breakdown_flag)
+{
+        ns_hlx::tag_stat_map_t l_tag_stat_map;
+        ns_hlx::t_stat_t l_total;
+
+        // Get stats
+        a_settings.m_hlx_client->get_stats(l_total, a_show_breakdown_flag, l_tag_stat_map);
+
+        std::string l_tag;
+        // TODO Fix elapse and max parallel
+        l_tag = "ALL";
+        show_total_agg_stat(l_tag, l_total, a_elapsed_time, a_settings.m_num_parallel, a_settings.m_color);
+
+        // -------------------------------------------
+        // Optional Breakdown
+        // -------------------------------------------
+        if(a_show_breakdown_flag)
+        {
+                for(ns_hlx::tag_stat_map_t::iterator i_stat = l_tag_stat_map.begin();
+                                i_stat != l_tag_stat_map.end();
+                                ++i_stat)
+                {
+                        l_tag = i_stat->first;
+                        show_total_agg_stat(l_tag, i_stat->second, a_elapsed_time, a_settings.m_num_parallel, a_settings.m_color);
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static void show_total_agg_stat_legacy(std::string &a_tag,
+                                       const ns_hlx::t_stat_t &a_stat,
+                                       std::string &a_sep,
+                                       double a_time_elapsed_s,
+                                       uint32_t a_max_parallel)
+{
+        printf("%s: ", a_tag.c_str());
+        printf("%lu fetches, ", a_stat.m_total_reqs);
+        printf("%u max parallel, ", a_max_parallel);
+        printf("%e bytes, ", (double)a_stat.m_total_bytes);
+        printf("in %f seconds, ", a_time_elapsed_s);
+        printf("%s", a_sep.c_str());
+
+        printf("%f mean bytes/connection, ", ((double)a_stat.m_total_bytes)/((double)a_stat.m_total_reqs));
+        printf("%s", a_sep.c_str());
+
+        printf("%f fetches/sec, %e bytes/sec", ((double)a_stat.m_total_reqs)/(a_time_elapsed_s), ((double)a_stat.m_total_bytes)/a_time_elapsed_s);
+        printf("%s", a_sep.c_str());
+
+#define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
+        printf("%s %.6f mean, %.6f max, %.6f min, %.6f stdev",\
+               _tag,                                          \
+               stat.mean()/1000.0,                            \
+               stat.max()/1000.0,                             \
+               stat.min()/1000.0,                             \
+               stat.stdev()/1000.0);                          \
+        printf("%s", a_sep.c_str())
+
+        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", a_stat.m_stat_us_connect);
+        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", a_stat.m_stat_us_first_response);
+        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", a_stat.m_stat_us_end_to_end);
+
+        printf("HTTP response codes: ");
+        if(a_sep == "\n")
+                printf("%s", a_sep.c_str());
+
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
+                        i_status_code != a_stat.m_status_code_count_map.end();
+                ++i_status_code)
+        {
+                printf("code %d -- %u, ", i_status_code->first, i_status_code->second);
+        }
+
+        // Done flush...
+        printf("\n");
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_results_http_load_style(settings_struct &a_settings,
+                                     double a_elapsed_time,
+                                     bool a_show_breakdown_flag,
+                                     bool a_one_line_flag)
+{
+        ns_hlx::tag_stat_map_t l_tag_stat_map;
+        ns_hlx::t_stat_t l_total;
+
+        // Get stats
+        a_settings.m_hlx_client->get_stats(l_total, a_show_breakdown_flag, l_tag_stat_map);
+
+        std::string l_tag;
+        // Separator
+        std::string l_sep = "\n";
+        if(a_one_line_flag) l_sep = "||";
+
+        // TODO Fix elapse and max parallel
+        l_tag = "State";
+        show_total_agg_stat_legacy(l_tag, l_total, l_sep, a_elapsed_time, a_settings.m_num_parallel);
+
+        // -------------------------------------------
+        // Optional Breakdown
+        // -------------------------------------------
+        if(a_show_breakdown_flag)
+        {
+                for(ns_hlx::tag_stat_map_t::iterator i_stat = l_tag_stat_map.begin();
+                                i_stat != l_tag_stat_map.end();
+                                ++i_stat)
+                {
+                        l_tag = "[";
+                        l_tag += i_stat->first;
+                        l_tag += "]";
+                        show_total_agg_stat_legacy(l_tag, i_stat->second, l_sep, a_elapsed_time, a_settings.m_num_parallel);
+                }
+        }
 }
 

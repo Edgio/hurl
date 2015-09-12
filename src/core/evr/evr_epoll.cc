@@ -38,8 +38,8 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-evr_epoll::evr_epoll(int a_max_connections) :
-m_epoll_fd(-1)
+evr_epoll::evr_epoll(int a_max_connections):
+        m_epoll_fd(-1)
 {
         //NDBG_PRINT("%sCREATE_EPOLL%s: a_max_events = %d\n",  ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_max_connections);
         m_epoll_fd = epoll_create(a_max_connections);
@@ -64,16 +64,18 @@ int evr_epoll::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
         return l_epoll_status;
 }
 
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
+static inline uint32_t get_epoll_attr(uint32_t a_attr_mask, bool a_edge_triggered)
 {
-        // EPOLLET???
         uint32_t l_attr = 0;
+        if(a_edge_triggered)
+        {
+                l_attr += EPOLLET;
+        }
         if(a_attr_mask & EVR_FILE_ATTR_MASK_READ)         l_attr |= EPOLLIN;
         if(a_attr_mask & EVR_FILE_ATTR_MASK_WRITE)        l_attr |= EPOLLOUT;
         if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) l_attr |= EPOLLHUP | EPOLLRDHUP | EPOLLERR;
@@ -85,12 +87,12 @@ static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered)
 {
         //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
         //NDBG_PRINT_BT();
         struct epoll_event ev;
-        ev.events = get_epoll_attr(a_attr_mask);
+        ev.events = get_epoll_attr(a_attr_mask, a_edge_triggered);
         ev.data.ptr = a_data;
         if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, a_fd, &ev))
         {
@@ -105,12 +107,12 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered)
 {
         //NDBG_PRINT("%smod%s: fd: %d --attr: 0x%08X\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_fd, a_attr_mask);
         //NDBG_PRINT_BT();
         struct epoll_event ev;
-        ev.events = get_epoll_attr(a_attr_mask);
+        ev.events = get_epoll_attr(a_attr_mask, a_edge_triggered);
         ev.data.ptr = a_data;
         if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, a_fd, &ev))
         {

@@ -27,128 +27,19 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn_pool.h"
-#include "hlx_client.h"
+#include "settings.h"
 #include "ndebug.h"
+#include "http_rx.h"
 
 // signal
 #include <signal.h>
 
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Macros
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
-//: Fwd decl's
-//: ----------------------------------------------------------------------------
-
-
 namespace ns_hlx {
 
-class reqlet;
-typedef std::vector <reqlet *> reqlet_vector_t;
-
 //: ----------------------------------------------------------------------------
-//: Settings
+//: Types
 //: ----------------------------------------------------------------------------
-typedef struct settings_struct
-{
-        bool m_verbose;
-        bool m_color;
-        bool m_quiet;
-        bool m_show_summary;
-
-        // request options
-        std::string m_url;
-        header_map_t m_header_map;
-        std::string m_verb;
-        char *m_req_body;
-        uint32_t m_req_body_len;
-
-        // run options
-        t_client_list_t m_t_client_list;
-        evr_loop_type_t m_evr_loop_type;
-        int32_t m_num_parallel;
-        uint32_t m_num_threads;
-        uint32_t m_timeout_s;
-        int32_t m_run_time_s;
-        int32_t m_rate;
-        request_mode_t m_request_mode;
-        int32_t m_num_end_fetches;
-        bool m_connect_only;
-        int32_t m_num_reqs_per_conn;
-        bool m_save_response;
-        bool m_collect_stats;
-        bool m_use_persistent_pool;
-
-        // tcp options
-        uint32_t m_sock_opt_recv_buf_size;
-        uint32_t m_sock_opt_send_buf_size;
-        bool m_sock_opt_no_delay;
-
-        // SSL options
-        SSL_CTX* m_ssl_ctx;
-        std::string m_ssl_cipher_list;
-        std::string m_ssl_options_str;
-        long m_ssl_options;
-        bool m_ssl_verify;
-        bool m_ssl_sni;
-        std::string m_ssl_ca_file;
-        std::string m_ssl_ca_path;
-
-        // resolver
-        resolver *m_resolver;
-
-
-        // ---------------------------------
-        // Defaults...
-        // ---------------------------------
-        settings_struct() :
-                m_verbose(false),
-                m_color(false),
-                m_quiet(false),
-                m_show_summary(false),
-                m_url(),
-                m_header_map(),
-                m_verb("GET"),
-                m_req_body(NULL),
-                m_req_body_len(0),
-                m_t_client_list(),
-                m_evr_loop_type(EVR_LOOP_EPOLL),
-                m_num_parallel(64),
-                m_num_threads(8),
-                m_timeout_s(10),
-                m_run_time_s(-1),
-                m_rate(-1),
-                m_request_mode(REQUEST_MODE_ROUND_ROBIN),
-                m_num_end_fetches(-1),
-                m_connect_only(false),
-                m_num_reqs_per_conn(-1),
-                m_save_response(false),
-                m_collect_stats(false),
-                m_use_persistent_pool(false),
-                m_sock_opt_recv_buf_size(0),
-                m_sock_opt_send_buf_size(0),
-                m_sock_opt_no_delay(false),
-                m_ssl_ctx(NULL),
-                m_ssl_cipher_list(""),
-                m_ssl_options_str(""),
-                m_ssl_options(0),
-                m_ssl_verify(false),
-                m_ssl_sni(false),
-                m_ssl_ca_file(""),
-                m_ssl_ca_path(""),
-                m_resolver(NULL)
-        {}
-
-private:
-        DISALLOW_COPY_AND_ASSIGN(settings_struct);
-
-} settings_struct_t;
+typedef std::vector<http_rx *> http_rx_vector_t;
 
 //: ----------------------------------------------------------------------------
 //: t_client
@@ -160,14 +51,15 @@ public:
         // Public methods
         // -------------------------------------------------
         t_client(const settings_struct_t &a_settings);
-
         ~t_client();
 
         int run(void);
         void *t_run(void *a_nothing);
         void stop(void);
         bool is_running(void) { return !m_stopped; };
-        int32_t set_reqlets(reqlet_vector_t a_reqlet_vector);
+
+        int32_t set_http_requests(http_rx_vector_t a_http_rx_vector);
+
         int32_t set_header(const std::string &a_header_key, const std::string &a_header_val);
         void clear_headers(void) { m_settings.m_header_map.clear(); };
         void set_ssl_ctx(SSL_CTX * a_ssl_ctx) { m_settings.m_ssl_ctx = a_ssl_ctx;};
@@ -185,8 +77,8 @@ public:
                 else return false;
         }
 
-        int32_t append_summary(reqlet *a_reqlet);
-        const reqlet_vector_t &get_reqlet_vector(void) {return m_reqlet_vector;};
+        int32_t append_summary(http_rx *a_http_rx);
+        const http_rx_vector_t &get_rx_vector(void) {return m_http_rx_vector;};
 
         void reset(void);
 
@@ -198,38 +90,22 @@ public:
         settings_struct_t m_settings;
 
         // Reqlets
-        uint32_t m_num_reqlets;
-        uint32_t m_num_get;
-        uint32_t m_num_done;
         uint32_t m_num_resolved;
+        uint32_t m_num_done;
         uint32_t m_num_error;
 
-        // -----------------------------
         // Summary info
-        // -----------------------------
-        // Connectivity
-        uint32_t m_summary_success;
-        uint32_t m_summary_error_addr;
-        uint32_t m_summary_error_conn;
-        uint32_t m_summary_error_unknown;
-
-        // SSL info
-        uint32_t m_summary_ssl_error_self_signed;
-        uint32_t m_summary_ssl_error_expired;
-        uint32_t m_summary_ssl_error_other;
-
-        summary_map_t m_summary_ssl_protocols;
-        summary_map_t m_summary_ssl_ciphers;
+        summary_info_t m_summary_info;
 
         // -------------------------------------------------
         // Static (class) methods
         // -------------------------------------------------
-        static void *evr_loop_file_writeable_cb(void *a_data);
-        static void *evr_loop_file_readable_cb(void *a_data);
-        static void *evr_loop_file_error_cb(void *a_data);
-        static void *evr_loop_file_timeout_cb(void *a_data);
-        static void *evr_loop_timer_cb(void *a_data);
-        static void *evr_loop_timer_completion_cb(void *a_data);
+        static int32_t evr_loop_file_writeable_cb(void *a_data);
+        static int32_t evr_loop_file_readable_cb(void *a_data);
+        static int32_t evr_loop_file_error_cb(void *a_data);
+        static int32_t evr_loop_file_timeout_cb(void *a_data);
+        static int32_t evr_loop_timer_cb(void *a_data);
+        static int32_t evr_loop_timer_completion_cb(void *a_data);
 
 private:
         // -------------------------------------------------
@@ -243,12 +119,11 @@ private:
                 return reinterpret_cast<t_client *>(a_context)->t_run(NULL);
         }
 
-        int32_t request(reqlet *a_reqlet);
+        int32_t request(http_rx *a_http_rx, nconn *a_nconn = NULL);
         int32_t start_connections(void);
         int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true, int32_t a_status = 0);
-        int32_t create_request(nconn &ao_conn, reqlet &a_reqlet);
-        reqlet *get_reqlet(void);
-        reqlet *try_get_resolved(void);
+        int32_t create_request(nbq &a_q, http_rx &a_http_rx);
+        http_rx *get_rx(void);
         void limit_rate();
 
         // -------------------------------------------------
@@ -274,8 +149,8 @@ private:
         uint64_t m_last_get_req_us;
 
         // Reqlet vectors
-        reqlet_vector_t m_reqlet_vector;
-        uint32_t m_reqlet_vector_idx;
+        http_rx_vector_t m_http_rx_vector;
+        uint32_t m_http_rx_vector_idx;
 
         void *m_rand_ptr;
 
@@ -284,4 +159,4 @@ private:
 
 } //namespace ns_hlx {
 
-#endif // #ifndef _HLX_CLIENT_H
+#endif // #ifndef _T_CLIENT_H

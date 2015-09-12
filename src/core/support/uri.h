@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    nconn.cc
+//: \file:    uri.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    02/07/2014
@@ -21,21 +21,17 @@
 //:
 //: ----------------------------------------------------------------------------
 
+// Uri encode and decode.
+// RFC1630, RFC1738, RFC2396
+
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nconn.h"
-
-namespace ns_hlx {
+#include <string>
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
+//: Prototypes
 //: ----------------------------------------------------------------------------
-nconn::~nconn(void)
-{
-        // oh c++...
-}
+std::string uri_decode(const std::string & a_src);
+std::string uri_encode(const std::string & a_src);
 
-} //namespace ns_hlx {

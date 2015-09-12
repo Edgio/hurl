@@ -34,7 +34,6 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 
-
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -80,13 +79,15 @@ public:
                   int64_t a_max_reqs_per_conn = -1,
                   bool a_save_response_in_reqlet = false,
                   bool a_collect_stats = false,
-                  bool a_connect_only = false):
+                  bool a_connect_only = false,
+                  type_t a_type = TYPE_CLIENT):
                           nconn_tcp(a_verbose,
                         	    a_color,
                         	    a_max_reqs_per_conn,
                         	    a_save_response_in_reqlet,
                         	    a_collect_stats,
-                        	    a_connect_only),
+                        	    a_connect_only,
+                        	    a_type),
                           m_ssl_ctx(NULL),
                           m_ssl(NULL),
                           m_ssl_opt_verify(false),
@@ -106,15 +107,30 @@ public:
         {
         };
 
+
+        // TODO REMOVE!!!
+#if 0
         int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
         int32_t send_request(bool is_reuse = false);
-        int32_t cleanup(void);
+#endif
+
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
+        bool is_listening(void) {return (m_ssl_state == SSL_STATE_LISTENING);};
 
-        bool is_done(void) { return (m_ssl_state == SSL_STATE_DONE);}
+        bool is_connecting(void) {return ((m_ssl_state == SSL_STATE_CONNECTING) ||
+                                          (m_ssl_state == SSL_STATE_SSL_CONNECTING) ||
+                                          (m_ssl_state == SSL_STATE_SSL_CONNECTING_WANT_READ) ||
+                                          (m_ssl_state == SSL_STATE_SSL_CONNECTING_WANT_WRITE));};
         bool is_free(void) { return (m_ssl_state == SSL_STATE_FREE);}
-        void set_state_done(void) { m_ssl_state = SSL_STATE_DONE; };
+
+        // TODO Experimental refactoring
+        int32_t ncsetup(evr_loop *a_evr_loop);
+        int32_t ncread(char *a_buf, uint32_t a_buf_len);
+        int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
+        int32_t ncaccept(void);
+        int32_t ncconnect(evr_loop *a_evr_loop);
+        int32_t nccleanup(void);
 
         // -------------------------------------------------
         // Public static methods
@@ -124,7 +140,6 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-
 private:
 
         // ---------------------------------------
@@ -133,6 +148,7 @@ private:
         typedef enum ssl_state
         {
                 SSL_STATE_FREE = 0,
+                SSL_STATE_LISTENING,
                 SSL_STATE_CONNECTING,
 
                 // SSL
@@ -142,6 +158,7 @@ private:
 
                 SSL_STATE_CONNECTED,
                 SSL_STATE_READING,
+                SSL_STATE_WRITING,
                 SSL_STATE_DONE
         } ssl_state_t;
 
@@ -150,8 +167,13 @@ private:
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(nconn_ssl)
 
-        int32_t ssl_connect(const host_info_t &a_host_info);
+        int32_t ssl_connect(void);
+
+        // TODO REMOVE!!!
+#if 0
         int32_t receive_response(void);
+#endif
+
         int32_t init(void);
         int32_t validate_server_certificate(const char* a_host, bool a_disallow_self_signed);
 
@@ -170,6 +192,13 @@ private:
         std::string m_ssl_opt_cipher_str;
 
         ssl_state_t m_ssl_state;
+
+protected:
+        // -------------------------------------------------
+        // Protected methods
+        // -------------------------------------------------
+        int32_t set_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t set_connected(evr_loop *a_evr_loop, int a_fd);
 
 };
 
