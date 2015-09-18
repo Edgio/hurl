@@ -184,24 +184,11 @@ public:
         // ---------------------------------------
         // has...
         // ---------------------------------------
-        bool has(const label_t &a_label)
-        {
-                // TODO!!!
-#if 0
-                typename cache_map_t::iterator i_cache_map_entry;
-                if ((i_cache_map_entry = m_cache_map.find(a_entry_hash)) != m_cache_map.end())
-                {
-                        access_policy(i_cache_map_entry);
-                        return true;
-                }
-                else
-                {
-                        return false;
-                }
-#else
-                return false;
-#endif
-        }
+        // TODO
+        //bool has(const label_t &a_label)
+        //{
+        //        return false;
+        //}
 
         // ---------------------------------------
         // get...
@@ -330,15 +317,22 @@ public:
         nconn_pool(uint32_t a_size);
         ~nconn_pool();
         // TODO passing settings struct -readonly reference
-        int32_t get(const std::string &a_host,
-                    nconn::scheme_t a_scheme,
-                    host_info_t a_host_info,
+        int32_t get(nconn::scheme_t a_scheme,
                     const settings_struct_t &a_settings,
                     nconn::type_t a_type,
                     nconn **ao_nconn);
+        int32_t get_try_idle(const std::string &a_host,
+                    nconn::scheme_t a_scheme,
+                    const settings_struct_t &a_settings,
+                    nconn::type_t a_type,
+                    nconn **ao_nconn);
+        nconn *create_conn(nconn::scheme_t a_scheme,
+                           const settings_struct_t &a_settings,
+                           nconn::type_t a_type);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
         int32_t cleanup(nconn *a_nconn);
+        uint32_t num_in_use(void) const {return m_conn_idx_used_set.size();}
 
         // -------------------------------------------------
         // Public static methods

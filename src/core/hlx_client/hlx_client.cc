@@ -164,6 +164,13 @@ int hlx_client::init_client_list(void)
                 l_t_client = new t_client(l_settings);
                 m_t_client_list.push_back(l_t_client);
         }
+        // 0 threads -make a single client
+        if(m_num_threads == 0)
+        {
+                t_client *l_t_client = NULL;
+                l_t_client = new t_client(l_settings);
+                m_t_client_list.push_back(l_t_client);
+        }
 
         return STATUS_OK;
 }
@@ -296,6 +303,7 @@ int hlx_client::run(void)
         // Setup client requests
         // -------------------------------------------
         uint32_t i_client_idx = 0;
+        uint32_t l_num_clients = m_t_client_list.size();
         uint32_t l_http_rx_vector_size = l_http_rx_vector_all.size();
         for(t_client_list_t::iterator i_client = m_t_client_list.begin();
                         i_client != m_t_client_list.end();
@@ -306,10 +314,10 @@ int hlx_client::run(void)
                         http_rx_vector_t l_http_rx;
 
                         // Calculate index
-                        uint32_t l_idx = i_client_idx*(l_http_rx_vector_size/m_num_threads);
-                        uint32_t l_len = l_http_rx_vector_size/m_num_threads;
+                        uint32_t l_idx = i_client_idx*(l_http_rx_vector_size/l_num_clients);
+                        uint32_t l_len = l_http_rx_vector_size/l_num_clients;
 
-                        if(i_client_idx + 1 == m_num_threads)
+                        if(i_client_idx + 1 == l_num_clients)
                         {
                                 // Get remainder
                                 l_len = l_http_rx_vector_size - (i_client_idx * l_len);
@@ -344,9 +352,9 @@ int hlx_client::run(void)
                 // Caculate num parallel per thread
                 if(m_num_end_fetches != -1)
                 {
-                        uint32_t l_num_fetches_per_thread = m_num_end_fetches / m_num_threads;
-                        uint32_t l_remainder_fetches = m_num_end_fetches % m_num_threads;
-                        if (i_client_idx == (m_num_threads - 1))
+                        uint32_t l_num_fetches_per_thread = m_num_end_fetches / l_num_clients;
+                        uint32_t l_remainder_fetches = m_num_end_fetches % l_num_clients;
+                        if (i_client_idx == (l_num_clients - 1))
                         {
                                 l_num_fetches_per_thread += l_remainder_fetches;
                         }
@@ -376,11 +384,18 @@ int hlx_client::run(void)
         // -------------------------------------------
         // Run...
         // -------------------------------------------
-        for(t_client_list_t::iterator i_t_client = m_t_client_list.begin();
-                        i_t_client != m_t_client_list.end();
-                        ++i_t_client)
+        if(m_num_threads == 0)
         {
-                (*i_t_client)->run();
+                (*(m_t_client_list.begin()))->t_run(NULL);
+        }
+        else
+        {
+                for(t_client_list_t::iterator i_t_client = m_t_client_list.begin();
+                                i_t_client != m_t_client_list.end();
+                                ++i_t_client)
+                {
+                        (*i_t_client)->run();
+                }
         }
 
         return HLX_CLIENT_STATUS_OK;

@@ -297,17 +297,15 @@ int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length)
                         {
                                 NDBG_OUTPUT("%s: url:    %.*s\n", l_conn->m_host.c_str(), (int)a_length, a_at);
                         }
-
-                        if(l_conn->m_save && l_conn->m_data1)
+                }
+                if(l_conn->m_save && l_conn->m_data1)
+                {
+                        if(l_conn->m_type == nconn::TYPE_SERVER)
                         {
-                                if(l_conn->m_type == nconn::TYPE_SERVER)
-                                {
-                                        http_req *l_req = static_cast<http_req *>(l_conn->m_data1);
-                                        l_req->m_p_url.m_ptr = a_at;
-                                        l_req->m_p_url.m_len = a_length;
-                                }
+                                http_req *l_req = static_cast<http_req *>(l_conn->m_data1);
+                                l_req->m_p_url.m_ptr = a_at;
+                                l_req->m_p_url.m_len = a_length;
                         }
-
                 }
 
         }
@@ -350,7 +348,6 @@ int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length)
 
                 // Set status code
                 l_conn->m_stat.m_status_code = a_parser->status_code;
-
                 if(l_conn->m_data1)
                 {
                         if(l_conn->m_type == nconn::TYPE_CLIENT)

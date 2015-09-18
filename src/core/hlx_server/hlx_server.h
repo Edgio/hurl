@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include "http_request_handler.h"
 #include "nbq.h"
+#include "nconn.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -57,6 +58,8 @@
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
+struct ssl_ctx_st;
+typedef ssl_ctx_st SSL_CTX;
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
@@ -86,8 +89,17 @@ public:
         void set_port(uint16_t a_port);
         void set_num_threads(uint32_t a_num_threads);
         void set_num_parallel(uint32_t a_num_parallel);
-
         void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
+
+        // TLS
+        void set_scheme(nconn::scheme_t a_scheme);
+        void set_ssl_cipher_list(const std::string &a_cipher_list);
+        void set_ssl_ca_path(const std::string &a_ssl_ca_path);
+        void set_ssl_ca_file(const std::string &a_ssl_ca_file);
+        int set_ssl_options(const std::string &a_ssl_options_str);
+        int set_ssl_options(long a_ssl_options);
+        void set_tls_key(const std::string &a_tls_key) {m_tls_key = a_tls_key;}
+        void set_tls_crt(const std::string &a_tls_crt) {m_tls_crt = a_tls_crt;}
 
         // Running...
         int32_t run(void);
@@ -125,6 +137,18 @@ private:
         uint16_t m_port;
         uint32_t m_num_threads;
         int32_t m_num_parallel;
+
+        nconn::scheme_t m_scheme;
+
+        // TLS
+        SSL_CTX* m_ssl_ctx;
+        std::string m_tls_key;
+        std::string m_tls_crt;
+        std::string m_ssl_cipher_list;
+        std::string m_ssl_options_str;
+        long m_ssl_options;
+        std::string m_ssl_ca_file;
+        std::string m_ssl_ca_path;
 
         // Stats
         uint64_t m_start_time_ms;

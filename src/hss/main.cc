@@ -100,7 +100,6 @@ class file_getter: public ns_hlx::default_http_request_handler
                 //l_response.set_response("HELLO GET");
                 //l_response.set_status_code(200);
                 //return l_response;
-
                 ns_hlx::nbq *l_q = ao_response.get_q();
                 l_q->write(G_EXAMPLE_HTTP_RESPONSE, strlen(G_EXAMPLE_HTTP_RESPONSE));
                 return 0;
@@ -335,6 +334,16 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -t, --threads        Number of server threads.\n");
         fprintf(a_stream, "  \n");
 
+        fprintf(a_stream, "TLS Options:\n");
+        fprintf(a_stream, "  -T, --TLS            Use TLS.\n");
+        fprintf(a_stream, "  -K, --tls_key        TLS Private key file (key).\n");
+        fprintf(a_stream, "  -P, --tls_crt        TLS Public certificate file (crt).\n");
+        fprintf(a_stream, "  -y, --tls_cipher     TLS Cipher --see \"openssl ciphers\" for list.\n");
+        fprintf(a_stream, "  -O, --tls_options    TLS Options string.\n");
+        fprintf(a_stream, "  -F, --tls_ca_file    TLS CA File.\n");
+        fprintf(a_stream, "  -L, --tls_ca_path    TLS CA Path.\n");
+        fprintf(a_stream, "  \n");
+
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -r, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --color          Color\n");
@@ -377,6 +386,13 @@ int main(int argc, char** argv)
                 { "version",        0, 0, 'v' },
                 { "port",           1, 0, 'p' },
                 { "threads",        1, 0, 't' },
+                { "TLS",            0, 0, 'T' },
+                { "tls_key",        1, 0, 'K' },
+                { "tls_crt",        1, 0, 'P' },
+                { "tls_cipher",     1, 0, 'y' },
+                { "tls_options",    1, 0, 'O' },
+                { "tls_ca_file",    1, 0, 'F' },
+                { "tls_ca_path",    1, 0, 'L' },
                 { "verbose",        0, 0, 'r' },
                 { "color",          0, 0, 'c' },
                 { "status",         0, 0, 's' },
@@ -389,11 +405,14 @@ int main(int argc, char** argv)
         std::string l_gprof_file;
         bool l_show_status = false;
         uint16_t l_server_port = 23456;
+        ns_hlx::nconn::scheme_t l_scheme = ns_hlx::nconn::SCHEME_TCP;
+        std::string l_tls_key;
+        std::string l_tls_crt;
 
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
-        char l_short_arg_list[] = "hvp:t:rcsG:";
+        char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcsG:";
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -448,6 +467,80 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
+                // Use tls
+                // ---------------------------------------
+                case 'T':
+                {
+                        l_scheme = ns_hlx::nconn::SCHEME_SSL;
+                }
+                // ---------------------------------------
+                // TLS private key
+                // ---------------------------------------
+                case 'K':
+                {
+                        l_tls_key = l_argument;
+                        break;
+                }
+                // ---------------------------------------
+                // TLS public cert
+                // ---------------------------------------
+                case 'P':
+                {
+                        l_tls_crt = l_argument;
+                        break;
+                }
+                // ---------------------------------------
+                // cipher
+                // ---------------------------------------
+                case 'y':
+                {
+                        std::string l_cipher_str = l_argument;
+                        if (strcasecmp(l_cipher_str.c_str(), "fastsec") == 0)
+                        {
+                                l_cipher_str = "RC4-MD5";
+                        }
+                        else if (strcasecmp(l_cipher_str.c_str(), "highsec") == 0)
+                        {
+                                l_cipher_str = "DES-CBC3-SHA";
+                        }
+                        else if (strcasecmp(l_cipher_str.c_str(), "paranoid") == 0)
+                        {
+                                l_cipher_str = "AES256-SHA";
+                        }
+                        l_hlx_server->set_ssl_cipher_list(l_cipher_str);
+                        break;
+                }
+                // ---------------------------------------
+                // ssl options
+                // ---------------------------------------
+                case 'O':
+                {
+                        int32_t l_status;
+                        l_status = l_hlx_server->set_ssl_options(l_argument);
+                        if(l_status != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
+
+                        break;
+                }
+                // ---------------------------------------
+                // ssl ca file
+                // ---------------------------------------
+                case 'F':
+                {
+                        l_hlx_server->set_ssl_ca_file(l_argument);
+                        break;
+                }
+                // ---------------------------------------
+                // ssl ca path
+                // ---------------------------------------
+                case 'L':
+                {
+                        l_hlx_server->set_ssl_ca_path(l_argument);
+                        break;
+                }
+                // ---------------------------------------
                 // verbose
                 // ---------------------------------------
                 case 'r':
@@ -456,7 +549,6 @@ int main(int argc, char** argv)
                         l_hlx_server->set_verbose(true);
                         break;
                 }
-
                 // ---------------------------------------
                 // color
                 // ---------------------------------------
@@ -466,7 +558,6 @@ int main(int argc, char** argv)
                         l_hlx_server->set_color(true);
                         break;
                 }
-
                 // ---------------------------------------
                 // status
                 // ---------------------------------------
@@ -477,7 +568,6 @@ int main(int argc, char** argv)
                         l_hlx_server->set_stats(true);
                         break;
                 }
-
                 // ---------------------------------------
                 // Google Profiler Output File
                 // ---------------------------------------
@@ -486,8 +576,9 @@ int main(int argc, char** argv)
                         l_gprof_file = l_argument;
                         break;
                 }
-
+                // ---------------------------------------
                 // What???
+                // ---------------------------------------
                 case '?':
                 {
                         // Required argument was missing
@@ -497,8 +588,9 @@ int main(int argc, char** argv)
                         print_usage(stdout, -1);
                         break;
                 }
-
+                // ---------------------------------------
                 // Huh???
+                // ---------------------------------------
                 default:
                 {
                         fprintf(stdout, "Unrecognized option.\n");
@@ -511,7 +603,19 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Check for inputs
         // -------------------------------------------
-        // ...
+        // TLS Check
+        if(l_scheme == ns_hlx::nconn::SCHEME_SSL)
+        {
+                if(l_tls_key.empty() || l_tls_crt.empty())
+                {
+                        printf("Error: TLS selected but not private key or public crt provided\n");
+                        return -1;
+                }
+
+                l_hlx_server->set_scheme(l_scheme);
+                l_hlx_server->set_tls_key(l_tls_key);
+                l_hlx_server->set_tls_crt(l_tls_crt);
+        }
 
         //uint64_t l_start_time_ms = get_time_ms();
 

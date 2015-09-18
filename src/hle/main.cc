@@ -125,7 +125,7 @@ private:
 //: Prototypes
 //: ----------------------------------------------------------------------------
 void display_status_line(settings_struct_t &a_settings);
-void display_summary(settings_struct_t &a_settings);
+void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts);
 
 //: ----------------------------------------------------------------------------
 //: \details: Signal handler
@@ -203,11 +203,6 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         char l_cmd = ' ';
         bool l_sent_stop = false;
         //bool l_first_time = true;
-
-        // Set to keep-alive -and reuse
-        a_settings.m_hlx_client->set_header("Connection","keep-alive");
-        a_settings.m_hlx_client->set_num_reqs_per_conn(-1);
-        a_settings.m_hlx_client->set_use_persistent_pool(true);
 
         nonblock(NB_ENABLE);
 
@@ -731,7 +726,6 @@ int main(int argc, char** argv)
                         if(l_status != HLX_CLIENT_STATUS_OK)
                         {
                                 printf("Error setting HTTP body data with: %s\n", l_argument.c_str());
-                                //print_usage(stdout, -1);
                                 return -1;
                         }
                         break;
@@ -848,8 +842,8 @@ int main(int argc, char** argv)
                         l_num_parallel = atoi(optarg);
                         if (l_num_parallel < 1)
                         {
-                                printf("parallel must be at least 1\n");
-                                print_usage(stdout, -1);
+                                printf("Error parallel must be at least 1\n");
+                                return -1;
                         }
 
                         l_hlx_client->set_num_parallel(l_num_parallel);
@@ -863,10 +857,10 @@ int main(int argc, char** argv)
                         int l_max_threads = 1;
                         //NDBG_PRINT("arg: --threads: %s\n", l_argument.c_str());
                         l_max_threads = atoi(optarg);
-                        if (l_max_threads < 1)
+                        if (l_max_threads < 0)
                         {
-                                printf("num-threads must be at least 1\n");
-                                print_usage(stdout, -1);
+                                printf("Error num-threads must be 0 or greater\n");
+                                return -1;
                         }
                         l_hlx_client->set_num_threads(l_max_threads);
                         break;
@@ -881,7 +875,7 @@ int main(int argc, char** argv)
                         if(l_status != HLX_CLIENT_STATUS_OK)
                         {
                                 printf("Error header string[%s] is malformed\n", l_argument.c_str());
-                                print_usage(stdout, -1);
+                                return -1;
                         }
                         break;
                 }
@@ -893,7 +887,6 @@ int main(int argc, char** argv)
                         if(l_argument.length() > 64)
                         {
                                 printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
-                                //print_usage(stdout, -1);
                                 return -1;
                         }
                         l_hlx_client->set_verb(l_argument);
@@ -909,8 +902,8 @@ int main(int argc, char** argv)
                         l_timeout_s = atoi(optarg);
                         if (l_timeout_s < 1)
                         {
-                                printf("connection timeout must be > 0\n");
-                                print_usage(stdout, -1);
+                                printf("Error connection timeout must be > 0\n");
+                                return -1;
                         }
                         l_hlx_client->set_timeout_s(l_timeout_s);
                         break;
@@ -1373,7 +1366,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         if(l_settings.m_show_summary)
         {
-                display_summary(l_settings);
+                display_summary(l_settings, l_host_list.size());
         }
 
         // -------------------------------------------
@@ -1399,7 +1392,7 @@ int main(int argc, char** argv)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void display_summary(settings_struct_t &a_settings)
+void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
 {
         std::string l_header_str = "";
         std::string l_protocol_str = "";
@@ -1414,11 +1407,10 @@ void display_summary(settings_struct_t &a_settings)
                 l_off_color = ANSI_COLOR_OFF;
         }
 
-        uint32_t l_num_rx = 0;
         ns_hlx::summary_info_t l_summary_info;
         a_settings.m_hlx_client->get_summary_info(l_summary_info);
         NDBG_OUTPUT("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
-        NDBG_OUTPUT("| total hosts:                     %u\n",l_num_rx);
+        NDBG_OUTPUT("| total hosts:                     %u\n",a_num_hosts);
         NDBG_OUTPUT("| success:                         %u\n",l_summary_info.m_success);
         NDBG_OUTPUT("| error address lookup:            %u\n",l_summary_info.m_error_addr);
         NDBG_OUTPUT("| error connectivity:              %u\n",l_summary_info.m_error_conn);

@@ -37,7 +37,7 @@
                 _status = _conn.set_opt((_opt), (_buf), (_len)); \
                 if (_status != nconn::NC_STATUS_OK) { \
                         NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
-                        return nconn::NC_STATUS_ERROR;\
+                        return NULL;\
                 } \
         } while(0)
 
@@ -58,46 +58,102 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_pool::get(const std::string &a_host,
-                        nconn::scheme_t a_scheme,
-                        host_info_t a_host_info,
+nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme,
+                               const settings_struct_t &a_settings,
+                               nconn::type_t a_type)
+{
+        nconn *l_nconn = NULL;
+
+        //NDBG_PRINT("CREATING NEW CONNECTION: a_settings.m_num_reqs_per_conn: %d\n", (int)a_settings.m_num_reqs_per_conn);
+        if(a_scheme == nconn::SCHEME_TCP)
+        {
+                l_nconn = new nconn_tcp(a_settings.m_verbose,
+                                        a_settings.m_color,
+                                        a_settings.m_num_reqs_per_conn,
+                                        a_settings.m_save_response,
+                                        a_settings.m_collect_stats,
+                                        a_settings.m_connect_only,
+                                        a_type);
+        }
+        else if(a_scheme == nconn::SCHEME_SSL)
+        {
+                l_nconn = new nconn_ssl(a_settings.m_verbose,
+                                        a_settings.m_color,
+                                        a_settings.m_num_reqs_per_conn,
+                                        a_settings.m_save_response,
+                                        a_settings.m_collect_stats,
+                                        a_settings.m_connect_only,
+                                        a_type);
+        }
+
+        // -------------------------------------------
+        // Set options
+        // -------------------------------------------
+        // Set generic options
+        NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, a_settings.m_sock_opt_recv_buf_size);
+        NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, a_settings.m_sock_opt_send_buf_size);
+        NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, a_settings.m_sock_opt_no_delay);
+
+        // Set ssl options
+        if(a_scheme == nconn::SCHEME_SSL)
+        {
+                NCONN_POOL_SET_NCONN_OPT((*l_nconn),
+                                       nconn_ssl::OPT_SSL_CIPHER_STR,
+                                       a_settings.m_ssl_cipher_list.c_str(),
+                                       a_settings.m_ssl_cipher_list.length());
+
+                NCONN_POOL_SET_NCONN_OPT((*l_nconn),
+                                       nconn_ssl::OPT_SSL_CTX,
+                                       a_settings.m_ssl_ctx,
+                                       sizeof(a_settings.m_ssl_ctx));
+
+                NCONN_POOL_SET_NCONN_OPT((*l_nconn),
+                                       nconn_ssl::OPT_SSL_VERIFY,
+                                       &(a_settings.m_ssl_verify),
+                                       sizeof(a_settings.m_ssl_verify));
+
+                //NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_OPTIONS,
+                //                              &(a_settings.m_ssl_options),
+                //                              sizeof(a_settings.m_ssl_options));
+
+                if(!a_settings.m_tls_crt.empty())
+                {
+                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
+                                               nconn_ssl::OPT_SSL_TLS_CRT,
+                                               a_settings.m_tls_crt.c_str(),
+                                               a_settings.m_tls_crt.length());
+                }
+                if(!a_settings.m_tls_key.empty())
+                {
+                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
+                                               nconn_ssl::OPT_SSL_TLS_KEY,
+                                               a_settings.m_tls_key.c_str(),
+                                               a_settings.m_tls_key.length());
+                }
+        }
+
+        return l_nconn;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_pool::get(nconn::scheme_t a_scheme,
                         const settings_struct_t &a_settings,
                         nconn::type_t a_type,
                         nconn **ao_nconn)
 {
-
-        //NDBG_PRINT("%sGET_CONNECTION%s: a_hash: %lu\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_hash);
         if(!m_initd)
         {
                 init();
         }
 
-        // TODO --fix using label...
-        std::string l_label;
-        if(a_scheme == nconn::SCHEME_TCP)
-        {
-                l_label = "http://";
-        }
-        else if(a_scheme == nconn::SCHEME_SSL)
-        {
-                l_label = "https://";
-        }
-        l_label += a_host;
-
-        // ---------------------------------------
-        // Try grab from conn cache
-        // ---------------------------------------
-        //NDBG_PRINT("%sGET_CONNECTION%s: m_idle_conn_ncache.size(): %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (int)m_idle_conn_ncache.size());
-        // Lookup label
-        nconn* const*l_nconn_lkp = m_idle_conn_ncache.get(l_label);
-        if(l_nconn_lkp)
-        {
-                *ao_nconn = const_cast<nconn *>(*l_nconn_lkp);
-                return nconn::NC_STATUS_OK;
-        }
-
-        //NDBG_PRINT("%sGET_CONNECTION%s: l_nconn: %p m_conn_free_list.size() = %lu\n",
-        //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_nconn_lkp, m_conn_idx_free_list.size());
+        //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: l_nconn: %p m_conn_free_list.size() = %lu\n",
+        //                pthread_self(),
+        //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
+        //                ao_nconn, m_conn_idx_free_list.size());
 
         // Try create new from free-list
         if(m_conn_idx_free_list.empty())
@@ -111,7 +167,10 @@ int32_t nconn_pool::get(const std::string &a_host,
 
         if(m_conn_idx_free_list.empty())
         {
-                NDBG_PRINT("Error no free connections\n");
+                if(a_settings.m_verbose)
+                {
+                        NDBG_PRINT("TID[%lu]: Error no free connections\n", pthread_self());
+                }
                 return nconn::NC_STATUS_AGAIN;
         }
 
@@ -145,85 +204,76 @@ int32_t nconn_pool::get(const std::string &a_host,
 
         if(!l_nconn)
         {
-                //-----------------------------------------------------
-                // Create nconn BEGIN
-                //-----------------------------------------------------
-                // TODO Make function
-                //-----------------------------------------------------
-                //NDBG_PRINT("CREATING NEW CONNECTION: a_settings.m_num_reqs_per_conn: %d\n", (int)a_settings.m_num_reqs_per_conn);
-                if(a_scheme == nconn::SCHEME_TCP)
+                l_nconn = create_conn(a_scheme, a_settings, a_type);
+                if(!l_nconn)
                 {
-                        l_nconn = new nconn_tcp(a_settings.m_verbose,
-                                                a_settings.m_color,
-                                                a_settings.m_num_reqs_per_conn,
-                                                a_settings.m_save_response,
-                                                a_settings.m_collect_stats,
-                                                a_settings.m_connect_only,
-                                                a_type);
+                        NDBG_PRINT("Error performing create_conn\n");
+                        return nconn::NC_STATUS_ERROR;
                 }
-                else if(a_scheme == nconn::SCHEME_SSL)
-                {
-                        l_nconn = new nconn_ssl(a_settings.m_verbose,
-                                                a_settings.m_color,
-                                                a_settings.m_num_reqs_per_conn,
-                                                a_settings.m_save_response,
-                                                a_settings.m_collect_stats,
-                                                a_settings.m_connect_only,
-                                                a_type);
-                }
-
                 l_nconn->set_idx(l_conn_idx);
-
-                // -------------------------------------------
-                // Set options
-                // -------------------------------------------
-                // Set generic options
-                NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, a_settings.m_sock_opt_recv_buf_size);
-                NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, a_settings.m_sock_opt_send_buf_size);
-                NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, a_settings.m_sock_opt_no_delay);
-
-                // Set ssl options
-                if(a_scheme == nconn::SCHEME_SSL)
-                {
-                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                               nconn_ssl::OPT_SSL_CIPHER_STR,
-                                               a_settings.m_ssl_cipher_list.c_str(),
-                                               a_settings.m_ssl_cipher_list.length());
-
-                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                               nconn_ssl::OPT_SSL_CTX,
-                                               a_settings.m_ssl_ctx,
-                                               sizeof(a_settings.m_ssl_ctx));
-
-                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                               nconn_ssl::OPT_SSL_VERIFY,
-                                               &(a_settings.m_ssl_verify),
-                                               sizeof(a_settings.m_ssl_verify));
-
-                        //NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_OPTIONS,
-                        //                              &(m_settings.m_ssl_options),
-                        //                              sizeof(m_settings.m_ssl_options));
-
-                }
-                //-----------------------------------------------------
-                // Create nconn END
-                //-----------------------------------------------------
                 m_nconn_vector[l_conn_idx] = l_nconn;
         }
 
-        // Set host info
-        l_nconn->m_host_info = a_host_info;
-
         // TODO SET ID!!!
         //l_nconn->m_hash = l_hash;
-
         m_conn_idx_used_set.insert(l_conn_idx);
         m_conn_idx_free_list.pop_front();
-
         //NDBG_PRINT("%sGET_CONNECTION%s: ERASED[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
-
         *ao_nconn = l_nconn;
+        return nconn::NC_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_pool::get_try_idle(const std::string &a_host,
+                                 nconn::scheme_t a_scheme,
+                                 const settings_struct_t &a_settings,
+                                 nconn::type_t a_type,
+                                 nconn **ao_nconn)
+{
+
+        //NDBG_PRINT("%sGET_CONNECTION%s: a_host: %s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_host.c_str());
+        if(!m_initd)
+        {
+                init();
+        }
+
+        // TODO --fix using label...
+        std::string l_label;
+        if(a_scheme == nconn::SCHEME_TCP)
+        {
+                l_label = "http://";
+        }
+        else if(a_scheme == nconn::SCHEME_SSL)
+        {
+                l_label = "https://";
+        }
+        l_label += a_host;
+
+        // ---------------------------------------
+        // Try grab from conn cache
+        // ---------------------------------------
+        //NDBG_PRINT("%sGET_CONNECTION%s: m_idle_conn_ncache.size(): %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (int)m_idle_conn_ncache.size());
+        // Lookup label
+        nconn* const*l_nconn_lkp = m_idle_conn_ncache.get(l_label);
+        if(l_nconn_lkp)
+        {
+                *ao_nconn = const_cast<nconn *>(*l_nconn_lkp);
+                m_conn_idx_used_set.insert((*ao_nconn)->get_idx());
+                return nconn::NC_STATUS_OK;
+        }
+
+        int32_t l_status;
+        l_status = get(a_scheme, a_settings, a_type, ao_nconn);
+        if(l_status != nconn::NC_STATUS_OK)
+        {
+                return nconn::NC_STATUS_AGAIN;
+        }
+
         return nconn::NC_STATUS_OK;
 }
 
@@ -264,6 +314,9 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
         //NDBG_PRINT(" ::NCACHE::%sINSERT%s: SET_ID[%d]\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_id);
 
         a_nconn->set_id(l_id);
+
+        // Remove from in use set
+        m_conn_idx_used_set.erase(a_nconn->get_idx());
 
         return STATUS_OK;
 }

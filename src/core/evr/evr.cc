@@ -32,6 +32,8 @@
 
 #include <unistd.h>
 #include <sys/eventfd.h>
+#include <errno.h>
+#include <string.h>
 
 namespace ns_hlx {
 
@@ -90,21 +92,12 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
                 pthread_mutex_init(&m_timer_pq_mutex, NULL);
         }
 
-        // Create eventfd for yanking an existing epoll_wait
-        m_control_fd = eventfd(0, EFD_NONBLOCK);
-        if(m_control_fd == -1)
+        m_control_fd = add_event(NULL);
+        if(m_control_fd == STATUS_ERROR)
         {
-                NDBG_PRINT("m_control_fd: %d\n", m_control_fd);
+                NDBG_PRINT("Error performing add_event.\n");
+                // TODO Error???
         }
-
-        int32_t l_status = 0;
-        l_status = m_evr->add(m_control_fd, EVR_FILE_ATTR_MASK_READ, NULL, m_edge_triggered);
-        if(l_status != 0)
-        {
-                NDBG_PRINT("l_status: %d\n", l_status);
-        }
-        // Check for error???
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -134,11 +127,16 @@ evr_loop::~evr_loop(void)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::run(void)
 {
+
+        //NDBG_PRINT("TID[%lu]: Try Running\n", pthread_self());
+
         if(m_is_running)
         {
                 // is already running
                 return STATUS_OK;
         }
+
+        //NDBG_PRINT("TID[%lu]: Running\n", pthread_self());
 
         m_is_running = true;
 
@@ -228,6 +226,8 @@ int32_t evr_loop::run(void)
                                 l_status = m_read_cb(l_data);
                                 if(l_status != STATUS_OK)
                                 {
+                                        //NDBG_PRINT("Error\n");
+                                        m_is_running = false;
                                         return STATUS_ERROR;
                                 }
                         }
@@ -240,6 +240,8 @@ int32_t evr_loop::run(void)
                                 l_status = m_write_cb(l_data);
                                 if(l_status != STATUS_OK)
                                 {
+                                        //NDBG_PRINT("Error\n");
+                                        m_is_running = false;
                                         return STATUS_ERROR;
                                 }
                         }
@@ -255,6 +257,8 @@ int32_t evr_loop::run(void)
                                 l_status = m_error_cb(l_data);
                                 if(l_status != STATUS_OK)
                                 {
+                                        //NDBG_PRINT("Error\n");
+                                        m_is_running = false;
                                         return STATUS_ERROR;
                                 }
                         }
@@ -316,7 +320,7 @@ int32_t evr_loop::add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void 
         l_timer_event->m_time_ms = get_time_ms() + a_time_ms;
         l_timer_event->m_timer_cb = a_timer_cb;
 
-        //NDBG_PRINT("%sADDING__%s TIMER: %p at %lu ms --> %lu\n",ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,l_timer_event,a_time_ms, l_timer_event->m_time_ms);
+        //NDBG_PRINT("%sADDING__%s[%p] TIMER: %p at %lu ms --> %lu\n",ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,a_data,l_timer_event,a_time_ms, l_timer_event->m_time_ms);
         //NDBG_PRINT_BT();
 
         // Add to pq
@@ -342,12 +346,13 @@ int32_t evr_loop::add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void 
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::cancel_timer(void **a_timer)
 {
+        //NDBG_PRINT("%sCANCEL__%s TIMER: %p deref: %p\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer, *a_timer);
+        //NDBG_PRINT_BT();
         // TODO synchronization???
         if(*a_timer)
         {
                 evr_timer_event_t *l_timer_event = static_cast<evr_timer_event_t *>(*a_timer);
                 //printf("%sXXX%s: %p TIMER AT %24lu ms --> %24lu\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer,0,l_timer_event->m_time_ms);
-                //NDBG_PRINT_BT(0,"__");
                 l_timer_event->m_state = EVR_TIMER_CANCELLED;
                 *a_timer = NULL;
                 return STATUS_OK;
@@ -365,19 +370,63 @@ int32_t evr_loop::cancel_timer(void **a_timer)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::stop(void)
 {
+        int32_t l_status;
+        l_status = signal_event(m_control_fd);
+        if(l_status != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing signal_event: fd: %d\n", m_control_fd);
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_loop::add_event(void *a_data)
+{
+        int32_t l_fd;
+        // Create eventfd for yanking an existing epoll_wait
+        l_fd = eventfd(0, EFD_NONBLOCK);
+        if(l_fd == -1)
+        {
+                NDBG_PRINT("Error performing eventfd.  Status: %d.  Reason: %s\n", l_fd , strerror(errno));
+                return STATUS_ERROR;
+        }
+
+        int32_t l_status = 0;
+        l_status = m_evr->add(l_fd, EVR_FILE_ATTR_MASK_READ, a_data, m_edge_triggered);
+        if(l_status != 0)
+        {
+                NDBG_PRINT("Error performing m_evr->add -fd: %d.\n", l_fd);
+                NDBG_PRINT("l_status: %d\n", l_status);
+        }
+        // Check for error???
+        return l_fd;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_loop::signal_event(int a_fd)
+{
         // Wake up epoll_wait by writing to control fd
         uint64_t l_value = 1;
         ssize_t l_write_status = 0;
         //NDBG_PRINT("WRITING\n");
-        l_write_status = write(m_control_fd, &l_value, sizeof (l_value));
+        l_write_status = write(a_fd, &l_value, sizeof (l_value));
         if(l_write_status == -1)
         {
                 NDBG_PRINT("l_write_status: %ld\n", l_write_status);
+                return STATUS_ERROR;
         }
-
         return STATUS_OK;
 }
+
 
 } //namespace ns_hlx {
 

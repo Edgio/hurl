@@ -29,6 +29,7 @@
 #include "hlx_client.h"
 #include "ndebug.h"
 #include "evr.h"
+#include "nconn.h"
 
 #include <openssl/ssl.h>
 
@@ -89,7 +90,7 @@ typedef struct settings_struct
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
 
-        // SSL options
+        // TLS options
         SSL_CTX* m_ssl_ctx;
         std::string m_ssl_cipher_list;
         std::string m_ssl_options_str;
@@ -98,6 +99,10 @@ typedef struct settings_struct
         bool m_ssl_sni;
         std::string m_ssl_ca_file;
         std::string m_ssl_ca_path;
+
+        nconn::scheme_t m_scheme;
+        std::string m_tls_key;
+        std::string m_tls_crt;
 
         // resolver
         resolver *m_resolver;
@@ -141,6 +146,9 @@ typedef struct settings_struct
                 m_ssl_sni(false),
                 m_ssl_ca_file(""),
                 m_ssl_ca_path(""),
+                m_scheme(nconn::SCHEME_TCP),
+                m_tls_key(""),
+                m_tls_crt(""),
                 m_resolver(NULL),
                 m_fd(-1)
         {}

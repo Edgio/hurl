@@ -114,7 +114,8 @@ public:
                 NC_STATUS_AGAIN = -3,
                 NC_STATUS_ERROR = -4,
                 NC_STATUS_UNSUPPORTED = -5,
-                NC_STATUS_NONE = -6
+                NC_STATUS_EOF = -6,
+                NC_STATUS_NONE = -7
 
         } status_t;
 
@@ -151,8 +152,8 @@ public:
         const req_stat_t &get_stats(void) const { return m_stat;};
         uint64_t get_id(void) {return m_id;}
         void set_id(uint64_t a_id) {m_id = a_id;}
-        uint64_t get_idx(void) {return m_idx;}
-        void set_idx(uint64_t a_id) {m_idx = a_id;}
+        uint32_t get_idx(void) {return m_idx;}
+        void set_idx(uint32_t a_id) {m_idx = a_id;}
         bool can_reuse(void);
 
         // -------------------------------------------------
@@ -162,23 +163,23 @@ public:
         virtual int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len) = 0;
         virtual bool is_listening(void) = 0;
         virtual bool is_connecting(void) = 0;
+        virtual bool is_accepting(void) = 0;
         virtual bool is_free(void) = 0;
 
         void set_in_q(nbq *a_q) { m_in_q = a_q;};
         void set_out_q(nbq *a_q) { m_out_q = a_q;};
         nbq *get_in_q(void) { return m_in_q;};
         nbq *get_out_q(void) { return m_out_q;};
-
         int32_t nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode);
         int32_t nc_read(void);
         int32_t nc_write(void);
         int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t nc_set_connected(evr_loop *a_evr_loop, int a_fd);
+        int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
         void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
-
         void bump_num_requested(void) {++m_num_reqs;}
+        void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;};
 
         // -------------------------------------------------
         // Public static methods
@@ -203,8 +204,6 @@ public:
         void *m_timer_obj;
         std::string m_last_error;
         type_t m_type;
-        host_info_t m_host_info;
-
 private:
 
         // ---------------------------------------
@@ -214,6 +213,7 @@ private:
         {
                 NC_STATE_FREE = 0,
                 NC_STATE_LISTENING,
+                NC_STATE_ACCEPTING,
                 NC_STATE_CONNECTING,
                 NC_STATE_CONNECTED,
                 NC_STATE_DONE
@@ -231,6 +231,8 @@ private:
         uint64_t m_id;
         uint32_t m_idx;
 
+        http_parser_settings m_http_parser_settings;
+        http_parser m_http_parser;
 protected:
         // -------------------------------------------------
         // Protected methods
@@ -238,25 +240,22 @@ protected:
         virtual int32_t ncsetup(evr_loop *a_evr_loop) = 0;
         virtual int32_t ncread(char *a_buf, uint32_t a_buf_len) = 0;
         virtual int32_t ncwrite(char *a_buf, uint32_t a_buf_len) = 0;
-        virtual int32_t ncaccept(void) = 0;
+        virtual int32_t ncaccept(evr_loop *a_evr_loop) = 0;
         virtual int32_t ncconnect(evr_loop *a_evr_loop) = 0;
         virtual int32_t nccleanup(void) = 0;
-        virtual int32_t set_listening(evr_loop *a_evr_loop, int32_t a_val) = 0;
-        virtual int32_t set_connected(evr_loop *a_evr_loop, int a_fd) = 0;
+        virtual int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val) = 0;
+        virtual int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd) = 0;
 
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
-        http_parser_settings m_http_parser_settings;
-        http_parser m_http_parser;
-
+        host_info_t m_host_info;
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;
 
         nbq *m_in_q;
         nbq *m_out_q;
-
 };
 
 } //namespace ns_hlx {

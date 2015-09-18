@@ -613,6 +613,7 @@ int32_t http_rx::resolve(resolver &a_resolver)
         if(l_status != STATUS_OK)
         {
                 //set_response(900, "Address resolution failed.");
+                m_is_resolved_flag = false;
                 return STATUS_ERROR;
         }
 

@@ -120,7 +120,7 @@ int32_t nconn_tcp::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::set_listening(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
 {
         m_fd = a_val;
         m_tcp_state = TCP_STATE_LISTENING;
@@ -142,10 +142,10 @@ int32_t nconn_tcp::set_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::set_connected(evr_loop *a_evr_loop, int a_fd)
+int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 {
         m_fd = a_fd;
-        m_tcp_state = TCP_STATE_CONNECTED;
+        m_tcp_state = TCP_STATE_ACCEPTING;
 
         // Add to event handler
         if (0 != a_evr_loop->add_fd(m_fd,
@@ -155,12 +155,6 @@ int32_t nconn_tcp::set_connected(evr_loop *a_evr_loop, int a_fd)
                 NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                 return NC_STATUS_ERROR;
         }
-
-        // -------------------------------------------
-        // Initalize the http response parser
-        // -------------------------------------------
-        m_http_parser.data = this;
-        http_parser_init(&m_http_parser, HTTP_REQUEST);
 
         return NC_STATUS_OK;
 }
@@ -192,6 +186,10 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
         if(l_status > 0)
         {
                 return l_bytes_read;
+        }
+        else if(l_status == 0)
+        {
+                return NC_STATUS_EOF;
         }
 
         // TODO Translate status...
@@ -314,26 +312,30 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncaccept(void)
+int32_t nconn_tcp::ncaccept(evr_loop *a_evr_loop)
 {
-        int l_client_sock_fd;
-        sockaddr_in l_client_address;
-        uint32_t l_sockaddr_in_length;
-
-        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd);
-
-        //Set the size of the in-out parameter
-        l_sockaddr_in_length = sizeof(sockaddr_in);
-
-        //Wait for a client to connect
-        l_client_sock_fd = accept(m_fd, (struct sockaddr *)&l_client_address, &l_sockaddr_in_length);
-        if (l_client_sock_fd < 0)
+        if(m_tcp_state == TCP_STATE_LISTENING)
         {
-                NDBG_PRINT("Error accept failed. Reason[%d]: %s\n", errno, strerror(errno));
-                return NC_STATUS_ERROR;
-        }
+                int l_client_sock_fd;
+                sockaddr_in l_client_address;
+                uint32_t l_sockaddr_in_length;
 
-        return l_client_sock_fd;
+                //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd);
+
+                //Set the size of the in-out parameter
+                l_sockaddr_in_length = sizeof(sockaddr_in);
+
+                //Wait for a client to connect
+                l_client_sock_fd = accept(m_fd, (struct sockaddr *)&l_client_address, &l_sockaddr_in_length);
+                if (l_client_sock_fd < 0)
+                {
+                        NDBG_PRINT("Error accept failed. Reason[%d]: %s\n", errno, strerror(errno));
+                        return NC_STATUS_ERROR;
+                }
+
+                return l_client_sock_fd;
+        }
+        return nconn::NC_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -390,7 +392,10 @@ state_top:
                 }
                 case ECONNREFUSED:
                 {
-                        NCONN_ERROR("HOST[%s]: Error Connection refused. Reason: %s\n", m_host.c_str(), strerror(errno));
+                        if(m_verbose)
+                        {
+                                NCONN_ERROR("HOST[%s]: Error Connection refused. Reason: %s\n", m_host.c_str(), strerror(errno));
+                        }
                         return NC_STATUS_ERROR;
                 }
                 case EAGAIN:
@@ -466,8 +471,8 @@ state_top:
 int32_t nconn_tcp::nccleanup(void)
 {
         // Shut down connection
-
         //NDBG_PRINT("CLOSE[%d] %s--CONN--%s\n", m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+        //NDBG_PRINT_BT();
         close(m_fd);
         m_fd = -1;
 

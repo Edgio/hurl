@@ -28,6 +28,7 @@
 #include "hlx_server.h"
 #include "t_server.h"
 #include "util.h"
+#include "ssl_util.h"
 
 #include <errno.h>
 #include <string.h>
@@ -109,6 +110,74 @@ void hlx_server::set_port(uint16_t a_port)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void hlx_server::set_scheme(nconn::scheme_t a_scheme)
+{
+        m_scheme = a_scheme;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_server::set_ssl_cipher_list(const std::string &a_cipher_list)
+{
+        m_ssl_cipher_list = a_cipher_list;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int hlx_server::set_ssl_options(const std::string &a_ssl_options_str)
+{
+        int32_t l_status;
+        l_status = get_ssl_options_str_val(a_ssl_options_str, m_ssl_options);
+        if(l_status != HLX_SERVER_STATUS_OK)
+        {
+                return HLX_SERVER_STATUS_ERROR;
+        }
+        return HLX_SERVER_STATUS_OK;
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int hlx_server::set_ssl_options(long a_ssl_options)
+{
+        m_ssl_options = a_ssl_options;
+        return HLX_CLIENT_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_server::set_ssl_ca_path(const std::string &a_ssl_ca_path)
+{
+        m_ssl_ca_path = a_ssl_ca_path;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_server::set_ssl_ca_file(const std::string &a_ssl_ca_file)
+{
+        m_ssl_ca_file = a_ssl_ca_file;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void hlx_server::set_num_threads(uint32_t a_num_threads)
 {
         m_num_threads = a_num_threads;
@@ -157,11 +226,18 @@ int32_t hlx_server::run(void)
         // -------------------------------------------
         // Run...
         // -------------------------------------------
-        for(t_server_list_t::iterator i_t_server = m_t_server_list.begin();
-                        i_t_server != m_t_server_list.end();
-                        ++i_t_server)
+        if(m_num_threads == 0)
         {
-                (*i_t_server)->run();
+                (*(m_t_server_list.begin()))->t_run(NULL);
+        }
+        else
+        {
+                for(t_server_list_t::iterator i_t_server = m_t_server_list.begin();
+                                i_t_server != m_t_server_list.end();
+                                ++i_t_server)
+                {
+                        (*i_t_server)->run();
+                }
         }
 
         return HLX_SERVER_STATUS_OK;
@@ -331,20 +407,21 @@ int hlx_server::init(void)
             return HLX_SERVER_STATUS_ERROR;
         }
 
-#if 0
         // -------------------------------------------
         // SSL init...
         // -------------------------------------------
         m_ssl_ctx = ssl_init(m_ssl_cipher_list, // ctx cipher list str
                              m_ssl_options,     // ctx options
                              m_ssl_ca_file,     // ctx ca file
-                             m_ssl_ca_path);    // ctx ca path
+                             m_ssl_ca_path,     // ctx ca path
+                             true,              // is server?
+                             m_tls_key,         // tls key
+                             m_tls_crt);        // tls crt
         if(NULL == m_ssl_ctx)
         {
                 NDBG_PRINT("Error: performing ssl_init with cipher_list: %s\n", m_ssl_cipher_list.c_str());
                 return HLX_SERVER_STATUS_ERROR;
         }
-#endif
 
         m_is_initd = true;
         return HLX_SERVER_STATUS_OK;
@@ -368,6 +445,15 @@ int hlx_server::init_server_list(void)
         l_settings.m_evr_loop_type = (evr_loop_type_t)m_evr_loop_type;
         l_settings.m_num_parallel = m_num_parallel;
         l_settings.m_fd = m_fd;
+        l_settings.m_scheme = m_scheme;
+        l_settings.m_tls_key = m_tls_key;
+        l_settings.m_tls_crt = m_tls_crt;
+        l_settings.m_ssl_ctx = m_ssl_ctx;
+        l_settings.m_ssl_cipher_list = m_ssl_cipher_list;
+        l_settings.m_ssl_options_str = m_ssl_options_str;
+        l_settings.m_ssl_options = m_ssl_options;
+        l_settings.m_ssl_ca_file = m_ssl_ca_file;
+        l_settings.m_ssl_ca_path = m_ssl_ca_path;
 
         // -------------------------------------------
         // Create t_server list...
@@ -377,7 +463,12 @@ int hlx_server::init_server_list(void)
                 t_server *l_t_server = new t_server(l_settings, &m_url_router);
                 m_t_server_list.push_back(l_t_server);
         }
-
+        // 0 threads -make a single server
+        if(m_num_threads == 0)
+        {
+                t_server *l_t_server = new t_server(l_settings, &m_url_router);
+                m_t_server_list.push_back(l_t_server);
+        }
         return STATUS_OK;
 }
 
@@ -391,23 +482,21 @@ hlx_server::hlx_server(void):
         m_color(false),
         m_stats(false),
         m_port(23456),
-
-        // TODO Make define
         m_num_threads(1),
-
-        // TODO Make define
         m_num_parallel(128),
-
+        m_scheme(nconn::SCHEME_TCP),
+        m_ssl_ctx(NULL),
+        m_tls_key(),
+        m_tls_crt(),
+        m_ssl_cipher_list(),
+        m_ssl_options_str(),
+        m_ssl_options(0),
+        m_ssl_ca_file(),
+        m_ssl_ca_path(),
         m_start_time_ms(0),
-
-        // t_servers
         m_t_server_list(),
-
-        // TODO Make define
         m_evr_loop_type(EVR_LOOP_EPOLL),
-
         m_url_router(),
-
         m_fd(-1),
         m_is_initd(false)
 {

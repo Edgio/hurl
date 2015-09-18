@@ -554,7 +554,6 @@ int main(int argc, char** argv)
 
                 switch (l_opt)
                 {
-
                 // ---------------------------------------
                 // Help
                 // ---------------------------------------
@@ -563,7 +562,6 @@ int main(int argc, char** argv)
                         print_usage(stdout, 0);
                         break;
                 }
-
                 // ---------------------------------------
                 // Version
                 // ---------------------------------------
@@ -572,7 +570,6 @@ int main(int argc, char** argv)
                         print_version(stdout, 0);
                         break;
                 }
-
                 // ---------------------------------------
                 // URL File
                 // ---------------------------------------
@@ -582,7 +579,6 @@ int main(int argc, char** argv)
                         l_input_flag = true;
                         break;
                 }
-
                 // ---------------------------------------
                 // Wildcarding
                 // ---------------------------------------
@@ -591,7 +587,6 @@ int main(int argc, char** argv)
                         l_hlx_client->set_wildcarding(false);
                         break;
                 }
-
                 // ---------------------------------------
                 // Data
                 // ---------------------------------------
@@ -602,12 +597,10 @@ int main(int argc, char** argv)
                         if(l_status != HLX_CLIENT_STATUS_OK)
                         {
                                 printf("Error setting HTTP body data with: %s\n", l_argument.c_str());
-                                //print_usage(stdout, -1);
                                 return -1;
                         }
                         break;
                 }
-
                 // ---------------------------------------
                 // Google Profiler Output File
                 // ---------------------------------------
@@ -616,7 +609,6 @@ int main(int argc, char** argv)
                         l_gprof_file = l_argument;
                         break;
                 }
-
                 // ---------------------------------------
                 // cipher
                 // ---------------------------------------
@@ -632,7 +624,6 @@ int main(int argc, char** argv)
                         l_hlx_client->set_ssl_cipher_list(l_cipher_str);
                         break;
                 }
-
                 // ---------------------------------------
                 // parallel
                 // ---------------------------------------
@@ -643,15 +634,13 @@ int main(int argc, char** argv)
                         l_start_parallel = atoi(optarg);
                         if (l_start_parallel < 1)
                         {
-                                printf("parallel must be at least 1\n");
-                                //print_usage(stdout, -1);
+                                printf("Error parallel must be at least 1\n");
                                 return -1;
                         }
                         l_hlx_client->set_num_parallel(l_start_parallel);
                         l_settings.m_num_parallel = l_start_parallel;
                         break;
                 }
-
                 // ---------------------------------------
                 // fetches
                 // ---------------------------------------
@@ -662,15 +651,13 @@ int main(int argc, char** argv)
                         l_end_fetches = atoi(optarg);
                         if (l_end_fetches < 1)
                         {
-                                printf("fetches must be at least 1\n");
-                                //print_usage(stdout, -1);
+                                printf("Error fetches must be at least 1\n");
                                 return -1;
                         }
                         l_hlx_client->set_end_fetches(l_end_fetches);
 
                         break;
                 }
-
                 // ---------------------------------------
                 // number of calls per connection
                 // ---------------------------------------
@@ -680,14 +667,13 @@ int main(int argc, char** argv)
                         l_max_reqs_per_conn = atoi(optarg);
                         if (l_max_reqs_per_conn < 1)
                         {
-                                printf("num-calls must be at least 1");
-                                print_usage(stdout, -1);
+                                printf("Error num-calls must be at least 1");
+                                return -1;
                         }
 
                         l_hlx_client->set_num_reqs_per_conn(l_max_reqs_per_conn);
                         break;
                 }
-
                 // ---------------------------------------
                 // enable keep alive connections
                 // ---------------------------------------
@@ -696,7 +682,6 @@ int main(int argc, char** argv)
                         l_hlx_client->set_num_reqs_per_conn(-1);
                         break;
                 }
-
                 // ---------------------------------------
                 // num threads
                 // ---------------------------------------
@@ -704,13 +689,11 @@ int main(int argc, char** argv)
                 {
                         //NDBG_PRINT("arg: --threads: %s\n", l_argument.c_str());
                         l_max_threads = atoi(optarg);
-                        if (l_max_threads < 1)
+                        if (l_max_threads < 0)
                         {
-                                printf("num-threads must be at least 1\n");
-                                //print_usage(stdout, -1);
+                                printf("Error num-threads must be 0 or greater\n");
                                 return -1;
                         }
-
                         l_hlx_client->set_num_threads(l_max_threads);
                         break;
                 }
@@ -724,7 +707,6 @@ int main(int argc, char** argv)
                         if(l_status != HLX_CLIENT_STATUS_OK)
                         {
                                 printf("Error header string[%s] is malformed\n", l_argument.c_str());
-                                //print_usage(stdout, -1);
                                 return -1;
                         }
                         break;
@@ -737,7 +719,6 @@ int main(int argc, char** argv)
                         if(l_argument.length() > 64)
                         {
                                 printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
-                                //print_usage(stdout, -1);
                                 return -1;
                         }
                         l_hlx_client->set_verb(l_argument);
@@ -804,7 +785,6 @@ int main(int argc, char** argv)
 
                         break;
                 }
-
                 // ---------------------------------------
                 // sock_opt_recv_buf_size
                 // ---------------------------------------
@@ -816,7 +796,6 @@ int main(int argc, char** argv)
 
                         break;
                 }
-
                 // ---------------------------------------
                 // sock_opt_send_buf_size
                 // ---------------------------------------

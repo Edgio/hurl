@@ -45,16 +45,17 @@ namespace ns_hlx {
 int32_t nconn::nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode)
 {
         // Cancel last timer if was not in free state
-        if(m_nc_state != NC_STATE_FREE)
+        if((m_nc_state != NC_STATE_FREE) &&
+           (m_nc_state != NC_STATE_LISTENING))
         {
                 a_evr_loop->cancel_timer(&(m_timer_obj));
         }
 
-        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: STATE[%d] MODE: %d --START\n",
-        //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, m_nc_state, a_mode);
+        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d --START\n",
+        //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
 state_top:
-        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: STATE[%d] MODE: %d\n",
-        //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, m_nc_state, a_mode);
+        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d\n",
+        //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
         switch (m_nc_state)
         {
 
@@ -71,9 +72,7 @@ state_top:
                         return STATUS_ERROR;
                 }
 
-                // -------------------------------------------
                 // Initalize the http response parser
-                // -------------------------------------------
                 m_http_parser.data = this;
                 http_parser_init(&m_http_parser, HTTP_RESPONSE);
 
@@ -95,7 +94,7 @@ state_top:
         case NC_STATE_LISTENING:
         {
                 int32_t l_status;
-                l_status = ncaccept();
+                l_status = ncaccept(a_evr_loop);
                 if(l_status < 0)
                 {
                         NDBG_PRINT("Error performing ncaccept\n");
@@ -117,7 +116,10 @@ state_top:
                 l_status = ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        NDBG_PRINT("Error performing ncconnect\n");
+                        if(m_verbose)
+                        {
+                                NDBG_PRINT("Error performing ncconnect\n");
+                        }
                         return STATUS_ERROR;
                 }
 
@@ -154,10 +156,34 @@ state_top:
         }
 
         // -------------------------------------------------
+        // STATE: ACCEPTING
+        // -------------------------------------------------
+        case NC_STATE_ACCEPTING:
+        {
+                int32_t l_status;
+                l_status = ncaccept(a_evr_loop);
+                if(l_status == NC_STATUS_ERROR)
+                {
+                        NDBG_PRINT("Error performing ncaccept\n");
+                        return STATUS_ERROR;
+                }
+
+                if(is_accepting())
+                {
+                        //NDBG_PRINT("Still connecting...\n");
+                        return STATUS_OK;
+                }
+                m_nc_state = NC_STATE_CONNECTED;
+                goto state_top;
+        }
+
+        // -------------------------------------------------
         // STATE: CONNECTED
         // -------------------------------------------------
         case NC_STATE_CONNECTED:
         {
+                int32_t l_status = STATUS_OK;
+
                 // -----------------------------------------
                 // Handle q's if any to read/write
                 // -----------------------------------------
@@ -165,13 +191,13 @@ state_top:
                 {
                 case NC_MODE_READ:
                 {
-                        int32_t l_status;
                         l_status = nc_read();
                         if(l_status == NC_STATUS_ERROR)
                         {
                                 NDBG_PRINT("Error performing nc_read\n");
                                 return STATUS_ERROR;
                         }
+                        // TODO other states???
 
                         // Stats
                         if(m_collect_stats_flag && (l_status > 0))
@@ -183,14 +209,10 @@ state_top:
                                 }
 
                         }
-
-                        return l_status;
+                        break;
                 }
                 case NC_MODE_WRITE:
                 {
-                        //NDBG_PRINT("%sTRY_WRITE%s: \n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
-
-                        int32_t l_status;
                         l_status = nc_write();
                         if(l_status == NC_STATUS_ERROR)
                         {
@@ -204,7 +226,7 @@ state_top:
                         break;
                 }
                 }
-
+                return l_status;
         }
         // -------------------------------------------------
         // STATE: DONE
@@ -268,18 +290,28 @@ int32_t nconn::nc_read(void)
                 //                l_read_size);
                 l_bytes_read = ncread(l_buf, l_read_size);
                 //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read);
-                if(l_bytes_read == NC_STATUS_ERROR)
+                switch(l_bytes_read){
+                case NC_STATUS_ERROR:
                 {
                         NDBG_PRINT("Error performing ncread: status: %d\n", l_bytes_read);
                         return NC_STATUS_ERROR;
                 }
-                else if(l_bytes_read == NC_STATUS_AGAIN)
+                case NC_STATUS_AGAIN:
                 {
                         return NC_STATUS_AGAIN;
                 }
-                else if(l_bytes_read == NC_STATUS_OK)
+                case NC_STATUS_OK:
                 {
                         return NC_STATUS_OK;
+                }
+                case NC_STATUS_EOF:
+                {
+                        return NC_STATUS_EOF;
+                }
+                default:
+                {
+                        break;
+                }
                 }
 
                 //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d old_size: %d-error:%d: %s\n",
@@ -296,23 +328,6 @@ int32_t nconn::nc_read(void)
                         l_total_read += l_bytes_read;
                         //ns_hlx::mem_display((uint8_t *)(l_buf), l_bytes_read);
                 }
-
-#if 0
-                NDBG_PRINT("%sHOST%s: %s fd[%3d]\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_host.c_str(), m_fd);
-                ns_hlx::mem_display((uint8_t *)(m_read_buf + m_read_buf_idx), l_bytes_read);
-
-                // TODO Handle EOF -close connection...
-                if ((l_bytes_read <= 0) && (errno != EAGAIN))
-                {
-                        //close_connection(nowP);
-                        return STATUS_ERROR;
-                }
-
-                if((errno == EAGAIN) || (errno == EWOULDBLOCK))
-                {
-                        l_should_give_up = true;
-                }
-#endif
 
                 // -----------------------------------------
                 // Parse result
@@ -361,25 +376,18 @@ int32_t nconn::nc_read(void)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_write(void)
 {
-
         //NDBG_PRINT("%sTRY_WRITE%s: \n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
-
         if(!m_out_q)
         {
                 NDBG_PRINT("Error m_out_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
-
-        int32_t l_write_size;
-        l_write_size = m_out_q->read_avail();
-        if(!l_write_size)
+        if(!m_out_q->read_avail())
         {
-                NDBG_PRINT("Error l_write_size == %d\n", l_write_size);
-                return NC_STATUS_ERROR;
+                //NDBG_PRINT("Error l_write_size == %d\n", m_out_q->read_avail());
+                return 0;
         }
-
-        //NDBG_PRINT("%sTRY_WRITE%s: l_write_size: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_write_size);
-
+        //NDBG_PRINT("%sTRY_WRITE%s: l_write_size: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q->read_avail());
         // -------------------------------------------------
         // while connection is writeable...
         //   wrtie up to next write size
@@ -399,12 +407,9 @@ int32_t nconn::nc_write(void)
                         NDBG_PRINT("Error performing ncwrite: status: %d\n", l_bytes_written);
                         return NC_STATUS_ERROR;
                 }
-
                 // and not error?
                 m_out_q->read_incr(l_bytes_written);
-
         } while(l_bytes_written > 0 && m_out_q->read_avail());
-
         return l_bytes_written;
 }
 
@@ -443,7 +448,7 @@ int32_t nconn::nc_set_listening(evr_loop *a_evr_loop, int32_t a_val)
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
 
         int32_t l_status;
-        l_status = set_listening(a_evr_loop, a_val);
+        l_status = ncset_listening(a_evr_loop, a_val);
         if(l_status != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
@@ -458,16 +463,20 @@ int32_t nconn::nc_set_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_set_connected(evr_loop *a_evr_loop, int a_fd)
+int32_t nconn::nc_set_accepting(evr_loop *a_evr_loop, int a_fd)
 {
         int32_t l_status;
-        l_status = set_connected(a_evr_loop, a_fd);
+        l_status = ncset_accepting(a_evr_loop, a_fd);
         if(l_status != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
         }
 
-        m_nc_state = NC_STATE_CONNECTED;
+        // Initalize the http response parser
+        m_http_parser.data = this;
+        http_parser_init(&m_http_parser, HTTP_REQUEST);
+
+        m_nc_state = NC_STATE_ACCEPTING;
         return STATUS_OK;
 }
 
@@ -518,12 +527,12 @@ nconn::nconn(bool a_verbose,
               m_timer_obj(NULL),
               m_last_error(""),
               m_type(a_type),
-              m_host_info(),
               m_nc_state(NC_STATE_FREE),
               m_id(0),
               m_idx(0),
               m_http_parser_settings(),
               m_http_parser(),
+              m_host_info(),
               m_num_reqs_per_conn(a_max_reqs_per_conn),
               m_num_reqs(0),
               m_connect_only(a_connect_only),

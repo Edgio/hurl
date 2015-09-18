@@ -65,25 +65,82 @@ static bool ssl_x509_get_ids(X509* x509, std::vector<std::string>& ids);
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t nconn_ssl::init(void)
+{
+
+        // Create SSL Context
+        m_ssl = SSL_new(m_ssl_ctx);
+        // TODO Check for NULL
+
+        SSL_set_fd(m_ssl, m_fd);
+        // TODO Check for Errors
+
+        const long l_ssl_options = m_ssl_opt_options;
+
+        //NDBG_PRINT("l_ssl_options: 0x%08lX\n", l_ssl_options);
+
+        if (l_ssl_options)
+        {
+                // clear all options and set specified options
+                SSL_clear_options(m_ssl, 0x11111111L);
+                long l_result = SSL_set_options(m_ssl, l_ssl_options);
+                if (l_ssl_options != l_result)
+                {
+                        //NDBG_PRINT("Failed to set SSL options: 0x%08lX -set to: 0x%08lX \n", l_result, l_ssl_options);
+                        //return NC_STATUS_ERROR;
+                }
+        }
+
+        if (!m_ssl_opt_cipher_str.empty())
+        {
+                if (1 != SSL_set_cipher_list(m_ssl, m_ssl_opt_cipher_str.c_str()))
+                {
+                        NCONN_ERROR("HOST[%s]: Failed to set ssl cipher list: %s\n", m_host.c_str(), m_ssl_opt_cipher_str.c_str());
+                        return NC_STATUS_ERROR;
+                }
+        }
+
+        // Set tls sni extension
+        if (!m_ssl_opt_tlsext_hostname.empty())
+        {
+                // const_cast to work around SSL's use of arg -this call does not change buffer argument
+                if (1 != SSL_set_tlsext_host_name(m_ssl, m_ssl_opt_tlsext_hostname.c_str()))
+                {
+                        NCONN_ERROR("HOST[%s]: Failed to set tls hostname: %s\n", m_host.c_str(), m_ssl_opt_tlsext_hostname.c_str());
+                        return NC_STATUS_ERROR;
+                }
+        }
+
+        // Set SSL Cert verify callback ...
+        if (m_ssl_opt_verify)
+        {
+                if (m_ssl_opt_verify_allow_self_signed)
+                {
+                        SSL_set_verify(m_ssl, SSL_VERIFY_PEER, ssl_cert_verify_callback_allow_self_signed);
+                }
+                else
+                {
+                        SSL_set_verify(m_ssl, SSL_VERIFY_PEER, ssl_cert_verify_callback);
+                }
+        }
+
+        return NC_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t nconn_ssl::ssl_connect(void)
 {
-        // -------------------------------------------
-        // HTTPS
-        // -------------------------------------------
-
         int l_status;
         m_ssl_state = SSL_STATE_SSL_CONNECTING;
-
         l_status = SSL_connect(m_ssl);
-        // TODO REMOVE
-        //NDBG_PRINT("%sSSL_CON%s[%3d]: Status %3d. Reason: %s\n",
-        //                ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd, l_status, strerror(errno));
-        //NDBG_PRINT_BT();
         if (l_status <= 0)
         {
                 //NDBG_PRINT("SSL connection failed - %d\n", l_status);
                 //NDBG_PRINT("Showing error.\n");
-
                 int l_ssl_error = SSL_get_error(m_ssl, l_status);
                 switch(l_ssl_error) {
                 case SSL_ERROR_SSL:
@@ -112,14 +169,14 @@ int32_t nconn_ssl::ssl_connect(void)
                 {
                         //NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_ERROR_WANT_READ\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
                         m_ssl_state = SSL_STATE_SSL_CONNECTING_WANT_READ;
-                        return EAGAIN;
+                        return NC_STATUS_AGAIN;
 
                 }
                 case SSL_ERROR_WANT_WRITE:
                 {
                         //NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_STATE_SSL_CONNECTING_WANT_WRITE\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
                         m_ssl_state = SSL_STATE_SSL_CONNECTING_WANT_WRITE;
-                        return EAGAIN;
+                        return NC_STATUS_AGAIN;
                 }
 
                 case SSL_ERROR_WANT_X509_LOOKUP:
@@ -180,66 +237,105 @@ int32_t nconn_ssl::ssl_connect(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_ssl::init(void)
+int32_t nconn_ssl::ssl_accept(void)
 {
-
-        // Create SSL Context
-        m_ssl = SSL_new(m_ssl_ctx);
-        // TODO Check for NULL
-
-        SSL_set_fd(m_ssl, m_fd);
-        // TODO Check for Errors
-
-        const long l_ssl_options = m_ssl_opt_options;
-
-        //NDBG_PRINT("l_ssl_options: 0x%08lX\n", l_ssl_options);
-
-        if (l_ssl_options)
+        int l_status;
+        m_ssl_state = SSL_STATE_SSL_ACCEPTING;
+        l_status = SSL_accept(m_ssl);
+        if (l_status <= 0)
         {
-                // clear all options and set specified options
-                SSL_clear_options(m_ssl, 0x11111111L);
-                long l_result = SSL_set_options(m_ssl, l_ssl_options);
-                if (l_ssl_options != l_result)
+                //NDBG_PRINT("SSL connection failed - %d\n", l_status);
+                int l_ssl_error = SSL_get_error(m_ssl, l_status);
+                //NDBG_PRINT("Showing error: %d.\n", l_ssl_error);
+                switch(l_ssl_error) {
+                case SSL_ERROR_SSL:
                 {
-                        //NDBG_PRINT("Failed to set SSL options: 0x%08lX -set to: 0x%08lX \n", l_result, l_ssl_options);
-                        //return NC_STATUS_ERROR;
+                        // TODO REMOVE
+                        NDBG_PRINT("HOST[%s]: SSL_ERROR_SSL %lu: %s.\n",
+                                        m_host.c_str(),
+                                        ERR_get_error(),
+                                        ERR_error_string(ERR_get_error(),NULL));
+                        if(gts_last_ssl_error[0] != '\0')
+                        {
+                                NCONN_ERROR("HOST[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s\n",
+                                                m_host.c_str(),
+                                                ERR_get_error(),
+                                                ERR_error_string(ERR_get_error(),NULL),
+                                                gts_last_ssl_error);
+                                // Set back
+                                gts_last_ssl_error[0] = '\0';
+                        }
+                        else
+                        {
+                                NCONN_ERROR("HOST[%s]: SSL_ERROR_SSL %lu: %s.\n",
+                                                m_host.c_str(),
+                                                ERR_get_error(),
+                                                ERR_error_string(ERR_get_error(),NULL));
+                        }
+                        break;
                 }
+                case SSL_ERROR_WANT_READ:
+                {
+                        NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_ERROR_WANT_READ\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
+                        m_ssl_state = SSL_STATE_SSL_ACCEPTING_WANT_READ;
+                        return NC_STATUS_AGAIN;
+                }
+                case SSL_ERROR_WANT_WRITE:
+                {
+                        NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_STATE_SSL_CONNECTING_WANT_WRITE\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
+                        m_ssl_state = SSL_STATE_SSL_ACCEPTING_WANT_WRITE;
+                        return NC_STATUS_AGAIN;
+                }
+
+                case SSL_ERROR_WANT_X509_LOOKUP:
+                {
+                        NCONN_ERROR("HOST[%s]: SSL_ERROR_WANT_X509_LOOKUP", m_host.c_str());
+                        break;
+                }
+
+                // look at error stack/return value/errno
+                case SSL_ERROR_SYSCALL:
+                {
+                        if(l_status == 0) {
+                                NCONN_ERROR("HOST[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol",
+                                                m_host.c_str(),
+                                                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
+                        } else if(l_status == -1) {
+                                NCONN_ERROR("HOST[%s]: SSL_ERROR_SYSCALL %lu: %s. %s",
+                                                m_host.c_str(),
+                                                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL),
+                                                strerror(errno));
+                        }
+                        break;
+                }
+                case SSL_ERROR_ZERO_RETURN:
+                {
+                        NCONN_ERROR("HOST[%s]: SSL_ERROR_ZERO_RETURN", m_host.c_str());
+                        break;
+                }
+                case SSL_ERROR_WANT_CONNECT:
+                {
+                        NCONN_ERROR("HOST[%s]: SSL_ERROR_WANT_CONNECT", m_host.c_str());
+                        break;
+                }
+                case SSL_ERROR_WANT_ACCEPT:
+                {
+                        NCONN_ERROR("HOST[%s]: SSL_ERROR_WANT_ACCEPT", m_host.c_str());
+                        break;
+                }
+                }
+
+                //ERR_print_errors_fp(stderr);
+                return NC_STATUS_ERROR;
+        }
+        else if(1 == l_status)
+        {
+                m_ssl_state = SSL_STATE_CONNECTED;
         }
 
-        if (!m_ssl_opt_cipher_str.empty())
-        {
-                if (1 != SSL_set_cipher_list(m_ssl, m_ssl_opt_cipher_str.c_str()))
-                {
-                        NCONN_ERROR("HOST[%s]: Failed to set ssl cipher list: %s\n", m_host.c_str(), m_ssl_opt_cipher_str.c_str());
-                        return NC_STATUS_ERROR;
-                }
-        }
+        //did_connect = 1;
 
-        // Set tls sni extension
-        if (!m_ssl_opt_tlsext_hostname.empty())
-        {
-                // const_cast to work around SSL's use of arg -this call does not change buffer argument
-                if (1 != SSL_set_tlsext_host_name(m_ssl, m_ssl_opt_tlsext_hostname.c_str()))
-                {
-                        NCONN_ERROR("HOST[%s]: Failed to set tls hostname: %s\n", m_host.c_str(), m_ssl_opt_tlsext_hostname.c_str());
-                        return NC_STATUS_ERROR;
-                }
-        }
-
-        // Set SSL Cert verify callback ...
-        if (m_ssl_opt_verify)
-        {
-                if (m_ssl_opt_verify_allow_self_signed)
-                {
-                        SSL_set_verify(m_ssl, SSL_VERIFY_PEER, ssl_cert_verify_callback_allow_self_signed);
-                }
-                else
-                {
-                        SSL_set_verify(m_ssl, SSL_VERIFY_PEER, ssl_cert_verify_callback);
-                }
-        }
-
-	return NC_STATUS_OK;
+        return NC_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -296,6 +392,16 @@ int32_t nconn_ssl::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 m_ssl_opt_ca_path.assign((char *)a_buf, a_len);
                 break;
         }
+        case OPT_SSL_TLS_KEY:
+        {
+                m_tls_key.assign((char *)a_buf, a_len);
+                break;
+        }
+        case OPT_SSL_TLS_CRT:
+        {
+                m_tls_crt.assign((char *)a_buf, a_len);
+                break;
+        }
         case OPT_SSL_CTX:
         {
                 m_ssl_ctx = (SSL_CTX *)a_buf;
@@ -331,6 +437,14 @@ int32_t nconn_ssl::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 
         switch(a_opt)
         {
+        case OPT_SSL_TLS_KEY:
+        {
+                // TODO
+        }
+        case OPT_SSL_TLS_CRT:
+        {
+                // TODO
+        }
         default:
         {
                 //NDBG_PRINT("Error unsupported option: %d\n", a_opt);
@@ -346,15 +460,15 @@ int32_t nconn_ssl::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_ssl::set_listening(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn_ssl::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
 {
         int32_t l_status;
-        l_status = nconn_tcp::set_listening(a_evr_loop, a_val);
+        l_status = nconn_tcp::ncset_listening(a_evr_loop, a_val);
         if(l_status != NC_STATUS_OK)
         {
+                NDBG_PRINT("Error performing nconn_tcp::ncset_listening.\n");
                 return NC_STATUS_ERROR;
         }
-
         m_ssl_state = SSL_STATE_LISTENING;
         return NC_STATUS_OK;
 }
@@ -364,16 +478,24 @@ int32_t nconn_ssl::set_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_ssl::set_connected(evr_loop *a_evr_loop, int a_fd)
+int32_t nconn_ssl::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 {
         int32_t l_status;
-        l_status = nconn_tcp::set_connected(a_evr_loop, a_fd);
+        l_status = nconn_tcp::ncset_accepting(a_evr_loop, a_fd);
         if(l_status != NC_STATUS_OK)
         {
                 return NC_STATUS_ERROR;
         }
 
-        m_ssl_state = SSL_STATE_READING;
+        // setup ssl
+        init();
+
+        // set connection socket to SSL state
+        SSL_set_fd(m_ssl, a_fd);
+
+        // set to accepting state
+        m_ssl_state = SSL_STATE_ACCEPTING;
+
         return NC_STATUS_OK;
 }
 
@@ -502,8 +624,93 @@ int32_t nconn_ssl::ncsetup(evr_loop *a_evr_loop)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_ssl::ncaccept(void)
+int32_t nconn_ssl::ncaccept(evr_loop *a_evr_loop)
 {
+        //NDBG_PRINT("%sSSL_ACCEPT%s: STATE[%d] --START\n",
+        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_ssl_state);
+ncaccept_state_top:
+        //NDBG_PRINT("%sSSL_ACCEPT%s: STATE[%d]\n",
+        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_ssl_state);
+        switch (m_ssl_state)
+        {
+        // -------------------------------------------------
+        // STATE: LISTENING
+        // -------------------------------------------------
+        case SSL_STATE_LISTENING:
+        {
+                int32_t l_status;
+                l_status = nconn_tcp::ncaccept(a_evr_loop);
+                return l_status;
+        }
+        // -------------------------------------------------
+        // STATE: SSL_ACCEPTING
+        // -------------------------------------------------
+        case SSL_STATE_ACCEPTING:
+        case SSL_STATE_SSL_ACCEPTING:
+        case SSL_STATE_SSL_ACCEPTING_WANT_READ:
+        case SSL_STATE_SSL_ACCEPTING_WANT_WRITE:
+        {
+                int l_status;
+                l_status = ssl_accept();
+                if(l_status == NC_STATUS_AGAIN)
+                {
+                        if(SSL_STATE_SSL_ACCEPTING_WANT_READ == m_ssl_state)
+                        {
+                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            this))
+                                {
+                                        NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
+                                        return NC_STATUS_ERROR;
+                                }
+                        }
+                        else if(SSL_STATE_SSL_ACCEPTING_WANT_WRITE == m_ssl_state)
+                        {
+                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            this))
+                                {
+                                        NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
+                                        return NC_STATUS_ERROR;
+                                }
+                        }
+                        return NC_STATUS_OK;
+                }
+                else if(l_status != NC_STATUS_OK)
+                {
+                        return NC_STATUS_ERROR;
+                }
+
+                // -------------------------------------------
+                // Add to event handler
+                // -------------------------------------------
+                if (0 != a_evr_loop->mod_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                            this))
+                {
+                        NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
+                        return NC_STATUS_ERROR;
+                }
+                goto ncaccept_state_top;
+        }
+        // -------------------------------------------------
+        // STATE: CONNECTED
+        // -------------------------------------------------
+        case SSL_STATE_CONNECTED:
+        {
+                //...
+                break;
+        }
+        // -------------------------------------------------
+        // STATE: ???
+        // -------------------------------------------------
+        default:
+        {
+                NDBG_PRINT("State error: %d\n", m_ssl_state);
+                return NC_STATUS_ERROR;
+        }
+        }
+
         return NC_STATUS_OK;
 }
 
@@ -514,10 +721,9 @@ int32_t nconn_ssl::ncaccept(void)
 //: ----------------------------------------------------------------------------
 int32_t nconn_ssl::ncconnect(evr_loop *a_evr_loop)
 {
-
         //NDBG_PRINT("%sSSL_CONNECT%s: STATE[%d] --START\n",
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_ssl_state);
-state_top:
+ncconnect_state_top:
         //NDBG_PRINT("%sSSL_CONNECT%s: STATE[%d]\n",
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_ssl_state);
 
@@ -532,7 +738,10 @@ state_top:
                 l_status = nconn_tcp::ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        NDBG_PRINT("Error performing ncconnect\n");
+                        if(m_verbose)
+                        {
+                                NDBG_PRINT("Error performing ncconnect\n");
+                        }
                         return NC_STATUS_ERROR;
                 }
 
@@ -543,7 +752,7 @@ state_top:
                 }
 
                 m_ssl_state = SSL_STATE_SSL_CONNECTING;
-                goto state_top;
+                goto ncconnect_state_top;
         }
         // -------------------------------------------------
         // STATE: SSL_CONNECTING
@@ -555,7 +764,7 @@ state_top:
                 int l_status;
                 l_status = ssl_connect();
                 //NDBG_PRINT("%sSSL_CONNECTING%s status = %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status);
-                if(EAGAIN == l_status)
+                if(l_status == NC_STATUS_AGAIN)
                 {
                         if(SSL_STATE_SSL_CONNECTING_WANT_READ == m_ssl_state)
                         {
@@ -602,7 +811,7 @@ state_top:
                 //        m_last_connect_time_us = m_stat.m_tt_connect_us;
                 //}
 
-                goto state_top;
+                goto ncconnect_state_top;
         }
         // -------------------------------------------------
         // STATE: CONNECTED

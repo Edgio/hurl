@@ -70,6 +70,10 @@ public:
                 OPT_SSL_CA_FILE = 1201,
                 OPT_SSL_CA_PATH = 1202,
 
+                // Server config
+                OPT_SSL_TLS_KEY = 1301,
+                OPT_SSL_TLS_CRT = 1302,
+
                 OPT_SSL_SENTINEL = 1999
 
         } ssl_opt_t;
@@ -97,6 +101,8 @@ public:
                           m_ssl_opt_ca_path(""),
                           m_ssl_opt_options(0),
                           m_ssl_opt_cipher_str(""),
+                          m_tls_key(""),
+                          m_tls_crt(""),
                           m_ssl_state(SSL_STATE_FREE)
           {
                 m_scheme = SCHEME_SSL;
@@ -107,28 +113,23 @@ public:
         {
         };
 
-
-        // TODO REMOVE!!!
-#if 0
-        int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
-        int32_t send_request(bool is_reuse = false);
-#endif
-
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
         bool is_listening(void) {return (m_ssl_state == SSL_STATE_LISTENING);};
-
         bool is_connecting(void) {return ((m_ssl_state == SSL_STATE_CONNECTING) ||
                                           (m_ssl_state == SSL_STATE_SSL_CONNECTING) ||
                                           (m_ssl_state == SSL_STATE_SSL_CONNECTING_WANT_READ) ||
                                           (m_ssl_state == SSL_STATE_SSL_CONNECTING_WANT_WRITE));};
+        bool is_accepting(void) {return ((m_ssl_state == SSL_STATE_ACCEPTING) ||
+                                         (m_ssl_state == SSL_STATE_SSL_ACCEPTING) ||
+                                         (m_ssl_state == SSL_STATE_SSL_ACCEPTING_WANT_READ) ||
+                                         (m_ssl_state == SSL_STATE_SSL_ACCEPTING_WANT_WRITE));};
         bool is_free(void) { return (m_ssl_state == SSL_STATE_FREE);}
 
-        // TODO Experimental refactoring
         int32_t ncsetup(evr_loop *a_evr_loop);
         int32_t ncread(char *a_buf, uint32_t a_buf_len);
         int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
-        int32_t ncaccept(void);
+        int32_t ncaccept(evr_loop *a_evr_loop);
         int32_t ncconnect(evr_loop *a_evr_loop);
         int32_t nccleanup(void);
 
@@ -150,11 +151,17 @@ private:
                 SSL_STATE_FREE = 0,
                 SSL_STATE_LISTENING,
                 SSL_STATE_CONNECTING,
+                SSL_STATE_ACCEPTING,
 
-                // SSL
+                // Connecting
                 SSL_STATE_SSL_CONNECTING,
                 SSL_STATE_SSL_CONNECTING_WANT_READ,
                 SSL_STATE_SSL_CONNECTING_WANT_WRITE,
+
+                // Accepting
+                SSL_STATE_SSL_ACCEPTING,
+                SSL_STATE_SSL_ACCEPTING_WANT_READ,
+                SSL_STATE_SSL_ACCEPTING_WANT_WRITE,
 
                 SSL_STATE_CONNECTED,
                 SSL_STATE_READING,
@@ -168,12 +175,7 @@ private:
         DISALLOW_COPY_AND_ASSIGN(nconn_ssl)
 
         int32_t ssl_connect(void);
-
-        // TODO REMOVE!!!
-#if 0
-        int32_t receive_response(void);
-#endif
-
+        int32_t ssl_accept(void);
         int32_t init(void);
         int32_t validate_server_certificate(const char* a_host, bool a_disallow_self_signed);
 
@@ -190,15 +192,16 @@ private:
         std::string m_ssl_opt_ca_path;
         long m_ssl_opt_options;
         std::string m_ssl_opt_cipher_str;
-
+        std::string m_tls_key;
+        std::string m_tls_crt;
         ssl_state_t m_ssl_state;
 
 protected:
         // -------------------------------------------------
         // Protected methods
         // -------------------------------------------------
-        int32_t set_listening(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t set_connected(evr_loop *a_evr_loop, int a_fd);
+        int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
 
 };
 

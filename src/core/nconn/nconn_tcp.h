@@ -91,24 +91,18 @@ public:
         {
         };
 
-
-        // TODO REMOVE!!!
-#if 0
-        int32_t run_state_machine(evr_loop *a_evr_loop, const host_info_t &a_host_info);
-        int32_t send_request(bool is_reuse = false);
-#endif
-
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
         bool is_listening(void) {return (m_tcp_state == TCP_STATE_LISTENING);};
         bool is_connecting(void) {return (m_tcp_state == TCP_STATE_CONNECTING);};
+        bool is_accepting(void) {return (m_tcp_state == TCP_STATE_ACCEPTING);};
         bool is_free(void) { return (m_tcp_state == TCP_STATE_FREE);}
 
         // TODO Experimental refactoring
         int32_t ncsetup(evr_loop *a_evr_loop);
         int32_t ncread(char *a_buf, uint32_t a_buf_len);
         int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
-        int32_t ncaccept(void);
+        int32_t ncaccept(evr_loop *a_evr_loop);
         int32_t ncconnect(evr_loop *a_evr_loop);
         int32_t nccleanup(void);
 
@@ -121,6 +115,7 @@ private:
         {
                 TCP_STATE_FREE = 0,
                 TCP_STATE_LISTENING,
+                TCP_STATE_ACCEPTING,
                 TCP_STATE_CONNECTING,
                 TCP_STATE_CONNECTED,
                 TCP_STATE_READING,
@@ -133,11 +128,6 @@ private:
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(nconn_tcp)
 
-        // TODO REMOVE!!!
-#if 0
-        int32_t receive_response(void);
-#endif
-
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
@@ -147,8 +137,8 @@ protected:
         // -------------------------------------------------
         // Protected methods
         // -------------------------------------------------
-        int32_t set_listening(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t set_connected(evr_loop *a_evr_loop, int a_fd);
+        int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
 
         // -------------------------------------------------
         // Protected members

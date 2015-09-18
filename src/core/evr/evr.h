@@ -183,6 +183,12 @@ public:
         int32_t cancel_timer(void **a_timer);
         int32_t stop(void);
 
+        // -------------------------------------------
+        // Event events... :)
+        // -------------------------------------------
+        int32_t add_event(void *a_data);
+        int32_t signal_event(int a_fd);
+
 private:
         evr_loop(const evr_loop&);
         evr_loop& operator=(const evr_loop&);

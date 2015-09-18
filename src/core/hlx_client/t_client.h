@@ -73,7 +73,7 @@ public:
         }
         bool is_pending_done(void) const
         {
-                if(m_num_fetches != -1) return ((m_num_fetched + m_num_pending) >= m_num_fetches);
+                if(m_num_fetches != -1) return ((m_num_fetched + m_nconn_pool.num_in_use()) >= m_num_fetches);
                 else return false;
         }
 
@@ -135,8 +135,6 @@ private:
         sig_atomic_t m_stopped;
         int64_t m_num_fetches;
         int64_t m_num_fetched;
-        int64_t m_num_pending;
-
         int32_t m_start_time_s;
 
         //uint64_t m_unresolved_count;

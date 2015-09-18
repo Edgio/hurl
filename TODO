@@ -1,2 +1,18 @@
 1. fix hle with edge triggered epoll
-2. hlx_server...
+2. hlx_server.
+  a. Fix this:
+    run as: hss -p12345 -T -K /home/rmorrison/Desktop/server.key -P /home/rmorrison/Desktop/server.crt -L/etc/ssl/certs
+    curl: curl "https://bonkers.derp.net:12345/monkeys/bongo/banana/52"
+    see:
+    /home/rmorrison/gproj/hlo/src/core/nconn/nconn_ssl.cc:ssl_accept.257: HOST[]: SSL_ERROR_SSL 0: error:14094418:SSL routines:SSL3_READ_BYTES:tlsv1 alert unknown ca.
+    /home/rmorrison/gproj/hlo/src/core/nconn/nconn.cc:nc_run_state_machine.164: Error performing ncaccept
+    /home/rmorrison/gproj/hlo/src/core/nconn/nconn.cc:nc_run_state_machine.164: Error performing ncaccept
+    /home/rmorrison/gproj/hlo/src/core/nconn/nconn.cc:nc_run_state_machine.164: Error performing ncaccept
+
+  b. obj management nbq/conn/http_req/http_resp
+  c. stats
+  d. access logs
+  e. http_req splitting -if read overlaps
+  f. thread-safe q's
+  g. SSL
+  h. disallow enqueue'ing multiple requests for the same conn

@@ -71,7 +71,6 @@ t_client::t_client(const settings_struct_t &a_settings):
         m_stopped(false),
         m_num_fetches(-1),
         m_num_fetched(0),
-        m_num_pending(0),
         m_start_time_s(0),
         m_evr_loop(NULL),
         m_rate_delta_us(0),
@@ -147,7 +146,6 @@ void t_client::reset(void)
         m_num_done = 0;
         m_num_error = 0;
         m_num_fetched = 0;
-        m_num_pending = 0;
         m_start_time_s = 0;
         m_last_get_req_us = 0;
         m_http_rx_vector_idx = 0;
@@ -355,6 +353,9 @@ void t_client::stop(void)
 //: ----------------------------------------------------------------------------
 http_rx *t_client::get_rx(void)
 {
+
+        // TODO rename m_http_rx_vector_idx to next index and maybe create cur idx val
+
         http_rx *l_rx = NULL;
 
         //NDBG_PRINT("%sREQLST%s[%lu]: MODE: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, m_http_rx_vector.size(), m_settings.m_request_mode);
@@ -373,15 +374,14 @@ http_rx *t_client::get_rx(void)
         {
         case REQUEST_MODE_ROUND_ROBIN:
         {
-                uint32_t l_next_index = 0;
-                l_next_index = m_http_rx_vector_idx + 1;
+                l_rx = m_http_rx_vector[m_http_rx_vector_idx];
+                uint32_t l_next_index = m_http_rx_vector_idx + 1;
                 if(l_next_index >= m_http_rx_vector.size())
                 {
                         l_next_index = 0;
                 }
                 //NDBG_PRINT("m_next:                     %u\n", l_next_index);
                 m_http_rx_vector_idx = l_next_index;
-                l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 break;
         }
         case REQUEST_MODE_SEQUENTIAL:
@@ -392,7 +392,6 @@ http_rx *t_client::get_rx(void)
                         uint32_t l_next_index = ((m_http_rx_vector_idx + 1) >= m_http_rx_vector.size()) ? 0 : m_http_rx_vector_idx + 1;
                         l_rx->reset();
                         m_http_rx_vector_idx = l_next_index;
-                        l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 }
                 break;
         }
@@ -442,21 +441,12 @@ int32_t t_client::evr_loop_file_writeable_cb(void *a_data)
 
         nconn* l_nconn = static_cast<nconn*>(a_data);
         t_client *l_t_client = g_t_client;
-
-        // Cancel last timer
-        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
-
         http_rx *l_http_rx = static_cast<http_rx*>(l_nconn->get_data2());
         if(!l_http_rx)
         {
                 NDBG_PRINT("Error no http_rx associated with connection\n");
                 return STATUS_ERROR;
         }
-
-#if 0
-        if (false == l_t_client->has_available_fetches())
-                return NULL;
-#endif
 
         int32_t l_status = STATUS_OK;
         l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, nconn::NC_MODE_WRITE);
@@ -513,9 +503,6 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
 
         nconn* l_nconn = static_cast<nconn*>(a_data);
         t_client *l_t_client = g_t_client;
-
-        // Cancel last timer
-        l_t_client->m_evr_loop->cancel_timer(&(l_nconn->m_timer_obj));
         http_rx *l_http_rx = static_cast<http_rx*>(l_nconn->get_data2());
         if(!l_http_rx)
         {
@@ -537,7 +524,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
         int32_t l_status = STATUS_OK;
         nconn::mode_t l_mode = nconn::NC_MODE_READ;
         nbq *l_out_q = l_nconn->get_out_q();
-        if(l_out_q->read_avail())
+        if(l_out_q && l_out_q->read_avail())
         {
                 l_mode = nconn::NC_MODE_WRITE;
         }
@@ -559,7 +546,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
         //NDBG_PRINT("%sREADABLE%s HOST[%s] l_status:                %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->m_host.c_str(), l_status);
 
         // Mark as complete
-        if(!l_done && l_http_resp->m_complete)
+        if(l_nconn->is_done() || (!l_done && l_http_resp->m_complete))
         {
                 l_done = true;
         }
@@ -620,7 +607,6 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
 
                         // Reduce num pending
                         ++(l_t_client->m_num_fetched);
-                        --(l_t_client->m_num_pending);
 
                         // -------------------------------------------
                         // If not using pool try resend on same
@@ -751,7 +737,6 @@ int32_t t_client::evr_loop_file_timeout_cb(void *a_data)
 
         // Stats
         ++l_t_client->m_num_fetched;
-        --l_t_client->m_num_pending;
         ++l_http_rx->m_stat_agg.m_num_idle_killed;
 
         // Cleanup
@@ -804,14 +789,15 @@ void *t_client::t_run(void *a_nothing)
                 {
                         NDBG_OUTPUT("Resolving host: %s\n", (*i_rx)->m_host.c_str());
                 }
-                if(NULL == m_settings.m_resolver ||
+                if((m_settings.m_resolver == NULL) ||
                    (l_status = (*i_rx)->resolve(*m_settings.m_resolver))!= STATUS_OK)
                 {
-                        NDBG_PRINT("Error resolving http_rx host: %s\n", (*i_rx)->m_host.c_str());
-                        // TODO Set response and error
-                        //++m_num_error;
+                        if(m_settings.m_verbose)
+                        {
+                                NDBG_PRINT("Error resolving http_rx host: %s\n", (*i_rx)->m_host.c_str());
+                        }
+                        ++m_num_error;
                         append_summary((*i_rx));
-                        return NULL;
                 }
 
                 ++m_num_resolved;
@@ -822,6 +808,10 @@ void *t_client::t_run(void *a_nothing)
         {
                 NDBG_OUTPUT("thread[%lu] Done resolving hostnames...\n", pthread_self());
         }
+
+        // TODO Make resolve and quit option???
+        //m_stopped = true;
+        //return NULL;
 
         // -------------------------------------------
         // Main loop.
@@ -837,7 +827,7 @@ void *t_client::t_run(void *a_nothing)
                 l_status = start_connections();
                 if(l_status != STATUS_OK)
                 {
-                        //NDBG_PRINT("%sSTART_CONNECTIONS%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                        NDBG_PRINT("%sSTART_CONNECTIONS%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
                         return NULL;
                 }
 
@@ -845,6 +835,7 @@ void *t_client::t_run(void *a_nothing)
                 l_status = m_evr_loop->run();
                 if(l_status != STATUS_OK)
                 {
+                        //NDBG_PRINT("%sm_evr_loop->run%s ERROR!\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
                         // TODO Log error and continue???
                         //return NULL;
                 }
@@ -853,17 +844,17 @@ void *t_client::t_run(void *a_nothing)
         //NDBG_PRINT("%sFINISHING_CONNECTIONS%s -done: %d -- m_stopped: %d m_num_fetched: %d + pending: %d/ m_num_fetches: %d\n",
         //                ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
         //                is_pending_done(), m_stopped,
-        //                (int)m_num_fetched, (int) m_num_pending, (int)m_num_fetches);
+        //                (int)m_num_fetched, (int) m_nconn_pool.num_in_use(), (int)m_num_fetches);
 
         // Still awaiting responses -wait...
         uint64_t l_cur_time = get_time_s();
         uint64_t l_end_time = l_cur_time + m_settings.m_timeout_s;
         while(!m_stopped &&
-              (m_num_pending > 0) &&
+              (m_nconn_pool.num_in_use() > 0) &&
               (l_cur_time < l_end_time))
         {
                 // Run loop
-                //NDBG_PRINT("waiting: m_num_pending: %d --time-left: %d\n", (int)m_num_pending, int(l_end_time - l_cur_time));
+                //NDBG_PRINT("waiting: m_num_pending: %d --time-left: %d\n", (int)m_nconn_pool.num_in_use(), int(l_end_time - l_cur_time));
                 m_evr_loop->run();
 
                 // TODO -this is pretty hard polling -make option???
@@ -872,7 +863,7 @@ void *t_client::t_run(void *a_nothing)
 
         }
         //NDBG_PRINT("%sDONE_CONNECTIONS%s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
-        //NDBG_PRINT("waiting: m_num_pending: %d --time-left: %d\n", (int)m_num_pending, int(l_end_time - l_cur_time));
+        //NDBG_PRINT("waiting: m_num_pending: %d --time-left: %d\n", (int)m_nconn_pool.num_in_use(), int(l_end_time - l_cur_time));
         m_stopped = true;
         return NULL;
 }
@@ -886,17 +877,24 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
 {
         nconn *l_nconn = a_nconn;
         int32_t l_status;
-
         //NDBG_PRINT("TID[%lu]: Making request: Host: %s\n", pthread_self(), a_http_rx->m_host.c_str());
-
         if(!l_nconn)
         {
-                l_status = m_nconn_pool.get(a_http_rx->m_host,
-                                            a_http_rx->m_scheme,
-                                            a_http_rx->m_host_info,
-                                            m_settings,
-                                            nconn::TYPE_CLIENT,
-                                            &l_nconn);
+                if(m_settings.m_use_persistent_pool)
+                {
+                        l_status = m_nconn_pool.get_try_idle(a_http_rx->m_host,
+                                                             a_http_rx->m_scheme,
+                                                             m_settings,
+                                                             nconn::TYPE_CLIENT,
+                                                             &l_nconn);
+                }
+                else
+                {
+                        l_status = m_nconn_pool.get(a_http_rx->m_scheme,
+                                                    m_settings,
+                                                    nconn::TYPE_CLIENT,
+                                                    &l_nconn);
+                }
                 if(l_status == nconn::NC_STATUS_AGAIN)
                 {
                         // Out of connections -try again later...
@@ -907,6 +905,7 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                         NDBG_PRINT("Error l_nconn == NULL\n");
                         return STATUS_ERROR;
                 }
+                l_nconn->set_host_info(a_http_rx->m_host_info);
         }
 
         //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: Host: %s l_nconn: %p\n",
@@ -1000,9 +999,6 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                 return STATUS_ERROR;
         }
 
-        // Add to num pending
-        ++m_num_pending;
-
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_http_rx->m_host.c_str(), l_nconn->get_data1());
         l_status = l_nconn->nc_run_state_machine(m_evr_loop, nconn::NC_MODE_WRITE);
         if(STATUS_OK != l_status)
@@ -1026,11 +1022,11 @@ int32_t t_client::start_connections(void)
 
         //NDBG_PRINT("start_connections\n");
         //NDBG_PRINT("m_num_done:                %d\n", (int)m_num_done);
-        //NDBG_PRINT("m_num_pending:             %d\n", (int)m_num_pending);
+        //NDBG_PRINT("m_num_pending:             %d\n", (int)m_nconn_pool.num_in_use());
         //NDBG_PRINT("m_settings.m_num_parallel: %d\n", (int)m_settings.m_num_parallel);
         //NDBG_PRINT("m_stopped:                 %d\n", (int)m_stopped);
         //NDBG_PRINT("is_pending_done():         %d\n", (int)is_pending_done());
-        while((m_num_pending < m_settings.m_num_parallel) &&
+        while((m_nconn_pool.num_in_use() < (uint32_t)m_settings.m_num_parallel) &&
               !m_stopped &&
               (!is_pending_done()))
         {
@@ -1038,12 +1034,28 @@ int32_t t_client::start_connections(void)
                 http_rx *l_rx = get_rx();
                 if(!l_rx)
                 {
+                        //NDBG_PRINT("%scontinue%s\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                         continue;
                 }
 
-                int32_t l_status = request(l_rx);
-                if(STATUS_OK != l_status)
+                // Only run on resolved
+                if(!l_rx->is_resolved())
                 {
+                        //NDBG_PRINT("%scontinue%s\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
+                        continue;
+                }
+
+                // TODO REMOVE
+                //NDBG_PRINT("TID[%lu]: m_num_pending: %d m_settings.m_num_parallel: %d m_stopped: %d is_pending_done: %d\n",
+                //                pthread_self(),
+                //                m_nconn_pool.num_in_use(),
+                //                m_settings.m_num_parallel,
+                //                m_stopped,
+                //                is_pending_done());
+                int32_t l_status = request(l_rx);
+                if(l_status != STATUS_OK)
+                {
+                        //NDBG_PRINT("%serror%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
                         return STATUS_ERROR;
                 }
 
@@ -1154,14 +1166,14 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_
 
         // Reduce num pending
         ++m_num_fetched;
-        --m_num_pending;
 
-        //NDBG_PRINT("%sCLEANUP%s: m_num_fetched: %d m_num_pending: %d\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, (int)m_num_fetched, (int)m_num_pending);
+        //NDBG_PRINT("%sCLEANUP%s: m_num_fetched: %d m_num_pending: %d\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, (int)m_num_fetched, (int)m_nconn_pool.num_in_use());
         //NDBG_PRINT("%sADDING_BACK%s: PTR: %p %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_nconn, (uint32_t)a_nconn->get_id());
 
         // Add back to free list
         if(STATUS_OK != m_nconn_pool.release(a_nconn))
         {
+                NDBG_PRINT("%sCLEANUP_ERROR%s: PTR: %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_nconn);
                 return STATUS_ERROR;
         }
 

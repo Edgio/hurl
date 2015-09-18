@@ -34,7 +34,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ../core/http
     ../core/url_router
     ../core/support
-)
+    ../core/nconn
+    ../core
+    )
 
 #add_definitions(-std=c++0x)
 
@@ -87,6 +89,7 @@ tcmalloc
 profiler
 #asan
 #efence
+#pthread_workqueue
 )
 
 install(TARGETS hss_cmd

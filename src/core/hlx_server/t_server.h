@@ -35,6 +35,14 @@
 // signal
 #include <signal.h>
 
+// TODO multi-thread support
+#if 0
+// TODO Need extern here???
+extern "C" {
+#include <pthread_workqueue.h>
+}
+#endif
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -47,9 +55,12 @@
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
-
-
 namespace ns_hlx {
+
+struct work_struct;
+typedef work_struct work_t;
+
+typedef std::queue <nconn *> out_q_t;
 
 //: ----------------------------------------------------------------------------
 //: t_server
@@ -57,6 +68,14 @@ namespace ns_hlx {
 class t_server
 {
 public:
+        // -------------------------------------------------
+        // Public const
+        // -------------------------------------------------
+        // TODO multi-thread support
+#if 0
+        static const uint32_t sc_work_q_conn_idx = 0xFFFFFFFF;
+#endif
+
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -68,6 +87,7 @@ public:
         void *t_run(void *a_nothing);
         void stop(void);
         bool is_running(void) { return !m_stopped; }
+        uint32_t get_timeout_s(void) { return m_settings.m_timeout_s;};
 
         // -------------------------------------------------
         // Public members
@@ -76,6 +96,7 @@ public:
         pthread_t m_t_run_thread;
         settings_struct_t m_settings;
         url_router *m_url_router;
+        out_q_t m_out_q;
 
         // -----------------------------
         // Summary info
@@ -109,7 +130,20 @@ private:
 
         int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true, int32_t a_status = 0);
 
-        int32_t get_response(nconn &ao_conn);
+        // TODO multi-thread support
+#if 0
+        // Work Queue
+        int32_t add_work(nconn *a_nconn, http_req *a_req);
+        static void do_work(void *a_work);
+#endif
+        int32_t handle_req(nconn *a_nconn, http_req *a_req);
+
+        // Initialize
+        int32_t init(void);
+
+        // Get new client connection
+        nconn *get_new_client_conn(int a_fd);
+        int32_t reset_conn_input_q(nconn *anconn);
 
         // -------------------------------------------------
         // Private members
@@ -119,8 +153,18 @@ private:
         int32_t m_start_time_s;
         evr_loop *m_evr_loop;
         nconn::scheme_t m_scheme;
-        nconn *m_nconn;
+        nconn *m_listening_nconn;
+        nconn *m_out_q_nconn;
+        int m_out_q_fd;
 
+        // TODO multi-thread support
+#if 0
+        // Work queue
+        pthread_workqueue_t m_work_q;
+        pthread_workqueue_attr_t m_work_q_attr;
+#endif
+
+        bool m_is_initd;
 };
 
 

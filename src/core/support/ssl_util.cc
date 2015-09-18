@@ -186,7 +186,10 @@ namespace ns_hlx {
 SSL_CTX* ssl_init(const std::string &a_cipher_list,
 		  long a_options,
 		  const std::string &a_ca_file,
-		  const std::string &a_ca_path)
+		  const std::string &a_ca_path,
+		  bool a_server_flag,
+		  const std::string &a_tls_key_file,
+		  const std::string &a_tls_crt_file)
 {
         SSL_CTX *l_server_ctx;
 
@@ -223,7 +226,14 @@ SSL_CTX* ssl_init(const std::string &a_cipher_list,
 #endif
 
         // TODO Make configurable
-        l_server_ctx = SSL_CTX_new(SSLv23_client_method()); /* Create new context */
+        if(a_server_flag)
+        {
+                l_server_ctx = SSL_CTX_new(SSLv23_server_method());
+        }
+        else
+        {
+                l_server_ctx = SSL_CTX_new(SSLv23_client_method());
+        }
         if (l_server_ctx == NULL)
         {
                 ERR_print_errors_fp(stderr);
@@ -235,7 +245,7 @@ SSL_CTX* ssl_init(const std::string &a_cipher_list,
         {
                 if (! SSL_CTX_set_cipher_list(l_server_ctx, a_cipher_list.c_str()))
                 {
-                        NDBG_PRINT("Error cannot set m_cipher list\n");
+                        NDBG_PRINT("Error cannot set m_cipher list: %s\n", a_cipher_list.c_str());
                         ERR_print_errors_fp(stderr);
                         //close_connection(con, nowP);
                         return NULL;
@@ -284,6 +294,35 @@ SSL_CTX* ssl_init(const std::string &a_cipher_list,
                 //long l_results = SSL_CTX_set_options(l_server_ctx, a_options);
                 //NDBG_PRINT("Set SSL CTX options: 0x%08lX -set to: 0x%08lX \n", l_results, a_options);
 
+        }
+
+        if(!a_tls_crt_file.empty())
+        {
+                // set the local certificate from CertFile
+                if(SSL_CTX_use_certificate_chain_file(l_server_ctx, a_tls_crt_file.c_str()) <= 0)
+                {
+                        NDBG_PRINT("Error performing SSL_CTX_use_certificate_file.\n");
+                        ERR_print_errors_fp(stdout);
+                        return NULL;
+                }
+        }
+
+        if(!a_tls_key_file.empty())
+        {
+                // set the private key from KeyFile (may be the same as CertFile) */
+                if(SSL_CTX_use_PrivateKey_file(l_server_ctx, a_tls_key_file.c_str(), SSL_FILETYPE_PEM) <= 0)
+                {
+                        NDBG_PRINT("Error performing SSL_CTX_use_PrivateKey_file.\n");
+                        ERR_print_errors_fp(stdout);
+                        return NULL;
+                }
+                // verify private key
+                if(!SSL_CTX_check_private_key(l_server_ctx))
+                {
+                        NDBG_PRINT("Error performing SSL_CTX_check_private_key.\n");
+                        fprintf(stdout, "Private key does not match the public certificate\n");
+                        return NULL;
+                }
         }
 
 
