@@ -1070,10 +1070,10 @@ int main(int argc, char** argv)
                 l_hlx_server = new ns_hlx::hlx_server();
                 l_hlx_server->set_port(l_http_data_port);
 
-                int32_t l_status;
                 stats_getter *l_stats_getter = new stats_getter();
                 l_stats_getter->m_hlx_client = l_hlx_client;
-                NDBG_PRINT("l_file_getter: %p\n", l_stats_getter);
+
+                int32_t l_status;
                 l_status = l_hlx_server->add_endpoint("/", l_stats_getter);
                 if(l_status != 0)
                 {
