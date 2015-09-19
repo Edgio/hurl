@@ -1077,7 +1077,7 @@ int main(int argc, char** argv)
                 l_status = l_hlx_server->add_endpoint("/", l_stats_getter);
                 if(l_status != 0)
                 {
-                        printf("Error: adding endpoint: %s\n", "/monkeys/<monkey_name>/banana/<banana_num>");
+                        printf("Error: adding endpoint: %s\n", "/");
                         return -1;
                 }
 
