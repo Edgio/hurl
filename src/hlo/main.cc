@@ -27,6 +27,7 @@
 #include "hlx_client.h"
 #include "util.h"
 #include "ndebug.h"
+#include "hlx_server.h"
 
 #include <string.h>
 
@@ -60,8 +61,6 @@
 #include <google/profiler.h>
 #endif
 
-#include "api_server.h"
-
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -74,6 +73,76 @@
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
+
+//: ----------------------------------------------------------------------------
+//: Handler
+//: ----------------------------------------------------------------------------
+const char *G_EXAMPLE_HTTP_RESPONSE =
+"HTTP/1.1 200 OK\r\n"
+"Date: Sun, 07 Jun 2015 22:49:12 GMT\r\n"
+"Server: hss HTTP API Server v0.0.1\r\n"
+"Content-length: 28\r\n"
+"Content-Type: application/json\r\n"
+"\r\n"
+"[{\"xxxxxx-xxxx\":\"x.x.xx\"}]\r\n";
+
+class stats_getter: public ns_hlx::default_http_request_handler
+{
+public:
+        // -----------------------------------------------------------
+        // GET
+        // -----------------------------------------------------------
+        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map, const ns_hlx::http_req &a_request, ns_hlx::http_resp &ao_response)
+        {
+
+                // -------------------------------------------
+                // Process request
+                // -------------------------------------------
+                std::string l_response_body = "{ \"dude\": \"cool\"}";
+
+                if(!m_hlx_client)
+                {
+                        return -1;
+                }
+
+                char l_char_buf[2048];
+                m_hlx_client->get_stats_json(l_char_buf, 2048);
+                l_response_body = l_char_buf;
+
+                // -------------------------------------------
+                // Show
+                // -------------------------------------------
+                //m_request.show(m_color);
+
+                // -------------------------------------------
+                // Write response
+                // -------------------------------------------
+                std::string l_response  = "";
+                l_response += "HTTP/1.1 200 OK\r\n";
+                l_response += "Content-Type: application/json\r\n";
+                l_response += "Access-Control-Allow-Origin: *";
+                l_response += "Access-Control-Allow-Credentials: true";
+                l_response += "Access-Control-Max-Age: 86400";
+                l_response += "Content-Length: ";
+                char l_len_str[64]; sprintf(l_len_str, "%d", (int)l_response_body.length());
+                l_response += l_len_str;
+                l_response += "\r\n\r\n";
+                l_response += l_response_body;
+
+                ns_hlx::nbq *l_q = ao_response.get_q();
+                l_q->write(l_response.c_str(), l_response.length());
+                return 0;
+        }
+
+        // Set client
+        ns_hlx::hlx_client *m_hlx_client;
+        stats_getter(void):
+                m_hlx_client(NULL)
+        {};
+private:
+        DISALLOW_COPY_AND_ASSIGN(stats_getter);
+};
+
 
 //: ----------------------------------------------------------------------------
 //: Settings
@@ -431,7 +500,6 @@ int main(int argc, char** argv)
         ns_hlx::hlx_client *l_hlx_client = new ns_hlx::hlx_client();
         l_settings.m_hlx_client = l_hlx_client;
         g_hlx_client = l_hlx_client;
-        api_server l_api_server;
 
         // For sighandler
         g_settings = &l_settings;
@@ -1016,11 +1084,33 @@ int main(int argc, char** argv)
         uint64_t l_start_time_ms = hlo_get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
 
+        // -------------------------------------------
         // Start api server
+        // -------------------------------------------
+        ns_hlx::hlx_server *l_hlx_server = NULL;
         if(l_http_data_port > 0)
         {
-                l_api_server.set_hlx_client(l_hlx_client);
-                l_api_server.start(l_http_data_port);
+                l_hlx_server = new ns_hlx::hlx_server();
+                l_hlx_server->set_port(l_http_data_port);
+
+                int32_t l_status;
+                stats_getter *l_stats_getter = new stats_getter();
+                l_stats_getter->m_hlx_client = l_hlx_client;
+                NDBG_PRINT("l_file_getter: %p\n", l_stats_getter);
+                l_status = l_hlx_server->add_endpoint("/", l_stats_getter);
+                if(l_status != 0)
+                {
+                        printf("Error: adding endpoint: %s\n", "/monkeys/<monkey_name>/banana/<banana_num>");
+                        return -1;
+                }
+
+                int32_t l_run_status = 0;
+                l_run_status = l_hlx_server->run();
+                if(l_run_status != 0)
+                {
+                        printf("Error: performing hlx_server::run");
+                        return -1;
+                }
         }
 
         // -------------------------------------------
@@ -1062,9 +1152,9 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_http_data_port > 0)
+        if(l_hlx_server)
         {
-                l_api_server.stop();
+                delete l_hlx_server;
         }
 
         //if(l_settings.m_verbose)

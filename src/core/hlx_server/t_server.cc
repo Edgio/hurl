@@ -530,12 +530,10 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *g_completion_timer;
 int32_t t_server::evr_loop_timer_completion_cb(void *a_data)
 {
         return STATUS_OK;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -569,7 +567,7 @@ int32_t t_server::evr_loop_file_error_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t t_server::evr_loop_file_timeout_cb(void *a_data)
 {
-        NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
+        //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         if(!a_data)
         {
                 //NDBG_PRINT("a_data == NULL\n");
@@ -651,6 +649,7 @@ void *t_server::t_run(void *a_nothing)
 int32_t t_server::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_t a_status)
 {
         //NDBG_PRINT("%sCLEANUP%s:\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
+        //NDBG_PRINT_BT();
         // Cancel last timer
         if(a_cancel_timer)
         {
@@ -828,11 +827,13 @@ int32_t t_server::handle_req(nconn *a_nconn, http_req *a_req)
         std::string l_path;
 
         http_resp *l_resp = new http_resp();
-        l_resp->set_q(a_nconn->get_out_q());
+        nbq *l_out_q = a_nconn->get_out_q();
+        l_resp->set_q(l_out_q);
+        l_out_q->reset_write();
 
         l_path.assign(a_req->m_p_url.m_ptr, a_req->m_p_url.m_len);
         //NDBG_PRINT("PATH: %s\n", l_path.c_str());
-        //NDBG_PRINT("l_t_server->m_url_router: %p\n", l_t_server->m_url_router);
+        //NDBG_PRINT("l_t_server->m_url_router: %p\n", m_url_router);
         http_request_handler *l_request_handler = NULL;
         url_param_map_t l_param_map;
         l_request_handler = (http_request_handler *)m_url_router->find_route(l_path,l_param_map);

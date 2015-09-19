@@ -555,6 +555,8 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
                 l_done = false;
         }
 
+        //NDBG_PRINT("%sREADABLE%s HOST[%s] l_done:                  %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_http_rx->m_host.c_str(), l_done);
+
         // Check for done...
         if((l_done) ||
            (l_status == STATUS_ERROR))
@@ -671,12 +673,10 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *g_completion_timer;
 int32_t t_client::evr_loop_timer_completion_cb(void *a_data)
 {
         return STATUS_OK;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -797,6 +797,7 @@ void *t_client::t_run(void *a_nothing)
                                 NDBG_PRINT("Error resolving http_rx host: %s\n", (*i_rx)->m_host.c_str());
                         }
                         ++m_num_error;
+                        ++m_summary_info.m_error_addr;
                         append_summary((*i_rx));
                 }
 
@@ -877,7 +878,7 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
 {
         nconn *l_nconn = a_nconn;
         int32_t l_status;
-        //NDBG_PRINT("TID[%lu]: Making request: Host: %s\n", pthread_self(), a_http_rx->m_host.c_str());
+        //NDBG_PRINT("TID[%lu]: Making request: Host: %s a_nconn: %p\n", pthread_self(), a_http_rx->m_host.c_str(), a_nconn);
         if(!l_nconn)
         {
                 if(m_settings.m_use_persistent_pool)
@@ -993,7 +994,7 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
 
         // TODO Make configurable
         l_status = m_evr_loop->add_timer(m_settings.m_timeout_s*1000, evr_loop_file_timeout_cb, l_nconn, &(l_nconn->m_timer_obj));
-        if(STATUS_OK != l_status)
+        if(l_status != STATUS_OK)
         {
                 NDBG_PRINT("Error: Performing add_timer\n");
                 return STATUS_ERROR;
@@ -1001,10 +1002,10 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
 
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_http_rx->m_host.c_str(), l_nconn->get_data1());
         l_status = l_nconn->nc_run_state_machine(m_evr_loop, nconn::NC_MODE_WRITE);
-        if(STATUS_OK != l_status)
+        if(l_status == STATUS_ERROR)
         {
-                NDBG_PRINT("Error: Performing do_connect\n");
-                T_CLIENT_CONN_CLEANUP(this, l_nconn, a_http_rx, 500, "Performing do_connect", STATUS_ERROR);
+                NDBG_PRINT("Error: Performing nc_run_state_machine\n");
+                T_CLIENT_CONN_CLEANUP(this, l_nconn, a_http_rx, 500, "Performing nc_run_state_machine", STATUS_ERROR);
                 return STATUS_OK;
         }
 
@@ -1158,6 +1159,8 @@ int32_t t_client::cleanup_connection(nconn *a_nconn, bool a_cancel_timer, int32_
 {
 
         //NDBG_PRINT("%sCLEANUP%s: PTR: %p\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_nconn);
+        //NDBG_PRINT_BT();
+
         // Cancel last timer
         if(a_cancel_timer)
         {

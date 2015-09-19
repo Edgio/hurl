@@ -32,7 +32,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ../core/support
     ../core/http_parser
     ../core/ndebug
-    ../core/hlx_client    
+    ../core/hlx_client
+    ../core/hlx_server
+    ../core/http
+    ../core/url_router
+    ../core/nconn
+    ../core
 )
 
 #add_definitions(-std=c++0x)
@@ -40,7 +45,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 # Source files
 SET(SRCS
   main.cc
-  api_server.cc
 )
 
 # Headers

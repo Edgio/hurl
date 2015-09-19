@@ -335,6 +335,7 @@ int32_t nconn_tcp::ncaccept(evr_loop *a_evr_loop)
 
                 return l_client_sock_fd;
         }
+        m_tcp_state = TCP_STATE_CONNECTED;
         return nconn::NC_STATUS_OK;
 }
 
