@@ -77,15 +77,6 @@
 //: ----------------------------------------------------------------------------
 //: Handler
 //: ----------------------------------------------------------------------------
-const char *G_EXAMPLE_HTTP_RESPONSE =
-"HTTP/1.1 200 OK\r\n"
-"Date: Sun, 07 Jun 2015 22:49:12 GMT\r\n"
-"Server: hss HTTP API Server v0.0.1\r\n"
-"Content-length: 28\r\n"
-"Content-Type: application/json\r\n"
-"\r\n"
-"[{\"xxxxxx-xxxx\":\"x.x.xx\"}]\r\n";
-
 class stats_getter: public ns_hlx::default_http_request_handler
 {
 public:
@@ -94,29 +85,16 @@ public:
         // -----------------------------------------------------------
         int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map, const ns_hlx::http_req &a_request, ns_hlx::http_resp &ao_response)
         {
-
-                // -------------------------------------------
                 // Process request
-                // -------------------------------------------
-                std::string l_response_body = "{ \"dude\": \"cool\"}";
-
                 if(!m_hlx_client)
                 {
                         return -1;
                 }
-
                 char l_char_buf[2048];
                 m_hlx_client->get_stats_json(l_char_buf, 2048);
+                std::string l_response_body;
                 l_response_body = l_char_buf;
-
-                // -------------------------------------------
-                // Show
-                // -------------------------------------------
-                //m_request.show(m_color);
-
-                // -------------------------------------------
                 // Write response
-                // -------------------------------------------
                 std::string l_response  = "";
                 l_response += "HTTP/1.1 200 OK\r\n";
                 l_response += "Content-Type: application/json\r\n";
@@ -133,8 +111,7 @@ public:
                 l_q->write(l_response.c_str(), l_response.length());
                 return 0;
         }
-
-        // Set client
+        // hlx client
         ns_hlx::hlx_client *m_hlx_client;
         stats_getter(void):
                 m_hlx_client(NULL)
