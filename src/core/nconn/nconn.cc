@@ -497,6 +497,10 @@ int32_t nconn::nc_cleanup()
                 return STATUS_ERROR;
         }
 
+        // Set data to null
+        m_data1 = NULL;
+        m_data2 = NULL;
+
         return STATUS_OK;
 }
 
