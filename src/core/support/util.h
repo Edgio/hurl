@@ -33,29 +33,19 @@
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
-//: Fwd' Decls
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
 int32_t break_header_string(const std::string &a_header_str, std::string &ao_header_key, std::string &ao_header_val);
 
+// Time utils...
+const char *get_date_str(void);
 uint64_t get_time_s(void);
 uint64_t get_time_ms(void);
 uint64_t get_time_us(void);
 uint64_t get_delta_time_ms(uint64_t a_start_time_ms);
 uint64_t get_delta_time_us(uint64_t a_start_time_us);
 
+// Path utils
 std::string get_file_wo_path(std::string &a_filename);
 std::string get_file_path(std::string &a_filename);
 std::string get_base_filename(std::string &a_filename);

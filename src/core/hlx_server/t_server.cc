@@ -92,6 +92,7 @@ t_server::t_server(const settings_struct_t &a_settings,
         m_listening_nconn(NULL),
         m_out_q_nconn(NULL),
         m_out_q_fd(-1),
+        m_default_handler(),
         // TODO multi-thread support
 #if 0
         m_work_q(),
@@ -280,12 +281,16 @@ nconn *t_server::get_new_client_conn(int a_fd)
 //: ----------------------------------------------------------------------------
 int32_t t_server::reset_conn_input_q(nconn *anconn)
 {
-        // TODO create q pool... -this is gonna leak...
-        nbq *l_in_q2 = new nbq(16384);
         http_req *l_req2 = new http_req();
-        anconn->set_in_q(l_in_q2);
         anconn->set_data1(l_req2);
-
+        if(anconn->get_in_q())
+        {
+                anconn->get_in_q()->reset();
+        }
+        else
+        {
+                anconn->set_in_q(new nbq(16384));
+        }
         return STATUS_OK;
 }
 
@@ -483,6 +488,7 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
                                 l_t_server->cleanup_connection(l_nconn, true, 500);
                                 return STATUS_ERROR;
                         }
+
                         // -----------------------------------------------------
                         // main loop request handling...
                         // -----------------------------------------------------
@@ -500,6 +506,7 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
 
                         if(l_status != nconn::NC_STATUS_EOF)
                         {
+                                //NDBG_PRINT("RESETTING.\n");
                                 l_status = l_t_server->reset_conn_input_q(l_nconn);
                                 if(l_status != STATUS_OK)
                                 {
@@ -508,10 +515,6 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
                                         return STATUS_ERROR;
                                 }
                         }
-
-                        // TODO Keep-alives???
-                        //NDBG_PRINT("Supports keep-alives: %d\n", l_nconn->m_supports_keep_alives);
-
                 }
                 if(l_status == nconn::NC_STATUS_EOF)
                 {
@@ -895,12 +898,18 @@ int32_t t_server::handle_req(nconn *a_nconn, http_req *a_req)
                 }
                 }
         }
-
-        // Error...
-        if(l_status != STATUS_OK)
+        else
         {
-                return STATUS_ERROR;
+                // Send default response
+                m_default_handler.do_get(l_param_map, *a_req, *l_resp);
         }
+
+        if(l_resp)
+        {
+                delete l_resp;
+                l_resp = NULL;
+        }
+
         return STATUS_OK;
 }
 

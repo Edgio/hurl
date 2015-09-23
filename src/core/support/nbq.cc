@@ -36,6 +36,7 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 int32_t nbq::write(const char *a_buf, uint32_t a_len)
 {
+        //NDBG_PRINT("write: a_buf: %p a_len: %u\n", a_buf, a_len);
         if(!a_len || !a_buf)
         {
                 return 0;
@@ -46,6 +47,7 @@ int32_t nbq::write(const char *a_buf, uint32_t a_len)
         do {
                 if(!m_write_avail)
                 {
+                        //NDBG_PRINT("ADD_AVAIL\n");
                         add_avail();
                 }
                 uint32_t l_write_bytes = (l_bytes_to_write > m_write_avail)?m_write_avail:l_bytes_to_write;
@@ -157,7 +159,16 @@ void nbq::read_incr(uint32_t a_size)
         // Check for next block
         if(m_read_avail == 0)
         {
-                if(m_read_block != --(m_q.end()))
+                // Delete the current block
+#if 0
+                free(m_read_ptr);
+                m_read_ptr = NULL;
+                m_q.pop_front();
+                m_read_block = m_q.front();
+                if(m_read_block != m_q.end())
+#else
+                if(m_read_block != --m_q.end())
+#endif
                 {
                         ++m_read_block;
                         m_read_avail = (*m_read_block)->m_len;
@@ -206,13 +217,17 @@ void nbq::reset(void)
         {
                 if(*i_block)
                 {
+                        //NDBG_PRINT("DELETING.\n");
                         delete *i_block;
                 }
         }
+        m_q.clear();
         m_write_ptr = NULL;
         m_write_avail = 0;
+        m_write_block = m_q.begin();
         m_read_ptr = NULL;
         m_read_avail = 0;
+        m_read_block = m_q.begin();
 }
 
 //: ----------------------------------------------------------------------------
@@ -311,7 +326,8 @@ void nb_struct::init(uint32_t a_len)
         }
         m_len = 0;
 
-        m_data = (char *)malloc(sizeof(char *)*a_len);
+        m_data = (char *)malloc(a_len);
+        //NDBG_PRINT("%sALLOC%s PTR[%p] len: %u\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, m_data, a_len);
         m_len = a_len;
 }
 
@@ -324,6 +340,7 @@ nb_struct::~nb_struct()
 {
         if(m_data)
         {
+                //NDBG_PRINT("%sFREE%s  PTR[%p]\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_data);
                 free(m_data);
                 m_data = NULL;
         }

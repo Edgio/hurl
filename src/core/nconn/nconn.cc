@@ -407,6 +407,18 @@ int32_t nconn::nc_write(void)
                         NDBG_PRINT("Error performing ncwrite: status: %d\n", l_bytes_written);
                         return NC_STATUS_ERROR;
                 }
+                else if(m_verbose)
+                {
+                        if(m_color)
+                        {
+                                NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                        }
+                        NDBG_OUTPUT("%.*s", l_bytes_written, m_out_q->read_ptr());
+                        if(m_color)
+                        {
+                                NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                        }
+                }
                 // and not error?
                 m_out_q->read_incr(l_bytes_written);
         } while(l_bytes_written > 0 && m_out_q->read_avail());
@@ -531,17 +543,17 @@ nconn::nconn(bool a_verbose,
               m_timer_obj(NULL),
               m_last_error(""),
               m_type(a_type),
-              m_nc_state(NC_STATE_FREE),
-              m_id(0),
-              m_idx(0),
-              m_http_parser_settings(),
-              m_http_parser(),
               m_host_info(),
               m_num_reqs_per_conn(a_max_reqs_per_conn),
               m_num_reqs(0),
               m_connect_only(a_connect_only),
               m_in_q(NULL),
-              m_out_q(NULL)
+              m_out_q(NULL),
+              m_nc_state(NC_STATE_FREE),
+              m_id(0),
+              m_idx(0),
+              m_http_parser_settings(),
+              m_http_parser()
 {
         // Set stats
         if(m_collect_stats_flag)

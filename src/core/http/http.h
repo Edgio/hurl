@@ -33,6 +33,19 @@
 #include <map>
 
 //: ----------------------------------------------------------------------------
+//: helper
+//: ----------------------------------------------------------------------------
+#define PARSE_IF_UNPARSED() do { \
+        if(!m_url_parsed) \
+        { \
+                if(parse_url() != STATUS_OK) \
+                { \
+                        NDBG_PRINT("Error performing parse_url\n"); \
+                } \
+        } \
+} while(0)
+
+//: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 struct http_parser;
@@ -47,6 +60,16 @@ class nbq;
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
+// -------------------------------------------------
+// Types
+// -------------------------------------------------
+typedef enum http_status_enum {
+
+        HTTP_STATUS_OK = 200,
+        HTTP_STATUS_NOT_FOUND = 404,
+
+} http_status_t;
+
 typedef struct cr_struct {
         const char *m_ptr;
         uint32_t m_len;
@@ -92,6 +115,7 @@ public:
         const std::string &get_body(void);
         void set_q(nbq *a_q) { m_q = a_q;}
         nbq *get_q(void) { return m_q;}
+        const std::string &get_url_path(void) {PARSE_IF_UNPARSED(); return m_parsed_url_path; }
 
         // -------------------------------------------------
         // Public members
@@ -114,13 +138,14 @@ public:
         // ---------------------------------------
         uint16_t m_status;
         bool m_complete;
-
+        bool m_supports_keep_alives;
 private:
 
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(http_req);
+        int32_t parse_url(void);
 
         // -------------------------------------------------
         // Private members
@@ -128,6 +153,11 @@ private:
         kv_map_list_t m_headers;
         std::string m_body;
         nbq *m_q;
+
+        // Parsed members
+        bool m_url_parsed;
+        std::string m_parsed_url_path;
+
 };
 
 //: ----------------------------------------------------------------------------
@@ -158,6 +188,12 @@ public:
 
         void set_q(nbq *a_q) { m_q = a_q;}
         nbq *get_q(void) { return m_q;}
+
+        // Write parts
+        int32_t write_status(http_status_t a_status);
+        int32_t write_header(const char *a_key, const char *a_val);
+        int32_t write_header(const char *a_key, uint32_t a_key_len, const char *a_val, uint32_t a_val_len);
+        int32_t write_body(const char *a_body, uint32_t a_body_len);
 
         // ---------------------------------------
         // raw http request offsets

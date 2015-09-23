@@ -40,14 +40,10 @@ typedef struct req_stat_struct
 {
         uint32_t m_body_bytes;
         uint32_t m_total_bytes;
-
         uint64_t m_tt_connect_us;
         uint64_t m_tt_first_read_us;
         uint64_t m_tt_completion_us;
-
         uint16_t m_status_code;
-
-        // Add states/error enum
         int32_t m_last_state;
         int32_t m_error;
 

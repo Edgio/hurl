@@ -80,10 +80,10 @@
 class stats_getter: public ns_hlx::default_http_request_handler
 {
 public:
-        // -----------------------------------------------------------
         // GET
-        // -----------------------------------------------------------
-        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map, const ns_hlx::http_req &a_request, ns_hlx::http_resp &ao_response)
+        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map,
+                       ns_hlx::http_req &a_request,
+                       ns_hlx::http_resp &ao_response)
         {
                 // Process request
                 if(!m_hlx_client)
@@ -92,24 +92,20 @@ public:
                 }
                 char l_char_buf[2048];
                 m_hlx_client->get_stats_json(l_char_buf, 2048);
-                std::string l_response_body;
-                l_response_body = l_char_buf;
-                // Write response
-                std::string l_response  = "";
-                l_response += "HTTP/1.1 200 OK\r\n";
-                l_response += "Content-Type: application/json\r\n";
-                l_response += "Access-Control-Allow-Origin: *";
-                l_response += "Access-Control-Allow-Credentials: true";
-                l_response += "Access-Control-Max-Age: 86400";
-                l_response += "Content-Length: ";
-                char l_len_str[64]; sprintf(l_len_str, "%d", (int)l_response_body.length());
-                l_response += l_len_str;
-                l_response += "\r\n\r\n";
-                l_response += l_response_body;
 
-                ns_hlx::nbq *l_q = ao_response.get_q();
-                l_q->write(l_response.c_str(), l_response.length());
-                return 0;
+                char l_len_str[64];
+                uint32_t l_body_len = strlen(l_char_buf);
+                sprintf(l_len_str, "%u", l_body_len);
+
+                ao_response.write_status(ns_hlx::HTTP_STATUS_OK);
+                ao_response.write_header("Content-Type", "application/json");
+                ao_response.write_header("Access-Control-Allow-Origin", "*");
+                ao_response.write_header("Access-Control-Allow-Credentials", "true");
+                ao_response.write_header("Access-Control-Max-Age", "86400");
+                ao_response.write_header("Content-Length", l_len_str);
+                ao_response.write_body(l_char_buf, l_body_len);
+
+                return STATUS_OK;
         }
         // hlx client
         ns_hlx::hlx_client *m_hlx_client;
@@ -1072,7 +1068,6 @@ int main(int argc, char** argv)
 
                 stats_getter *l_stats_getter = new stats_getter();
                 l_stats_getter->m_hlx_client = l_hlx_client;
-
                 int32_t l_status;
                 l_status = l_hlx_server->add_endpoint("/", l_stats_getter);
                 if(l_status != 0)

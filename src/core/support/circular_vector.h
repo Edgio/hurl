@@ -35,44 +35,13 @@
 #define CIRCULAR_VECTOR_DEFAULT_MAX_SIZE 1024
 #define CIRCULAR_VECTOR_DEFAULT_NO_MAX -1
 
-
-//: ----------------------------------------------------------------------------
-//: Fwd' Decls
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: \details: circular_vector
 //: ----------------------------------------------------------------------------
 template<class _Tp>
 class circular_vector
 {
-
-
-private:
-
-        // Cache list
-        typedef std::vector<_Tp> c_vector_t;
-
-        // Cache list
-        c_vector_t m_vector;
-        int32_t m_max_size;
-        int32_t m_cur_index;
-        int32_t m_start_index;
-
 public:
-        // ---------------------------------------
-        // Constructor
-        // ---------------------------------------
         circular_vector(int32_t a_max_size = CIRCULAR_VECTOR_DEFAULT_MAX_SIZE) :
                 m_vector(),
                 m_max_size(a_max_size),
@@ -145,8 +114,13 @@ public:
         }
 
 private:
+        // Cache list
+        typedef std::vector<_Tp> c_vector_t;
 
-
+        c_vector_t m_vector;
+        int32_t m_max_size;
+        int32_t m_cur_index;
+        int32_t m_start_index;
 };
 
 #endif

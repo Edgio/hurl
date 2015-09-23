@@ -30,26 +30,7 @@
 #include "http.h"
 #include "url_router.h"
 
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Macros
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
-//: Fwd decl's
-//: ----------------------------------------------------------------------------
-
-
 namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: types
-//: ----------------------------------------------------------------------------
-typedef int16_t http_response_code_t;
 
 //: ----------------------------------------------------------------------------
 //: http_request_handler
@@ -63,31 +44,26 @@ public:
         http_request_handler(void) {};
         virtual ~http_request_handler(){};
 
-        virtual int32_t do_get(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_post(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_put(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_delete(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_default(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_get(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_post(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_put(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_delete(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_default(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-
+        int32_t get_file(const std::string &a_path, const http_req &a_request, http_resp &ao_response);
+        int32_t send_not_found(const http_req &a_request, http_resp &ao_response, const char *a_resp_str);
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(http_request_handler)
-
-
-        // -------------------------------------------------
-        // Private members
-        // -------------------------------------------------
-
 };
 
 //: ----------------------------------------------------------------------------
-//: http_request_handler
+//: default_http_request_handler
 //: ----------------------------------------------------------------------------
 class default_http_request_handler: public http_request_handler
 {
@@ -98,27 +74,16 @@ public:
         default_http_request_handler(void);
         ~default_http_request_handler();
 
-        int32_t do_get(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
-        int32_t do_post(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
-        int32_t do_put(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
-        int32_t do_delete(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
-        int32_t do_default(const url_param_map_t &a_url_param_map, const http_req &a_request, http_resp &ao_response);
-
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
-
+        int32_t do_get(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_post(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_put(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_delete(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_default(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(default_http_request_handler)
-
-
-        // -------------------------------------------------
-        // Private members
-        // -------------------------------------------------
-
 };
 
 } //namespace ns_hlx {

@@ -44,22 +44,12 @@ extern "C" {
 #endif
 
 //: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Macros
-//: ----------------------------------------------------------------------------
-
-
-//: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
 namespace ns_hlx {
 
 struct work_struct;
 typedef work_struct work_t;
-
 typedef std::queue <nconn *> out_q_t;
 
 //: ----------------------------------------------------------------------------
@@ -79,10 +69,8 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_server(const settings_struct_t &a_settings,
-                 url_router *a_url_router);
+        t_server(const settings_struct_t &a_settings, url_router *a_url_router);
         ~t_server();
-
         int run(void);
         void *t_run(void *a_nothing);
         void stop(void);
@@ -97,14 +85,6 @@ public:
         settings_struct_t m_settings;
         url_router *m_url_router;
         out_q_t m_out_q;
-
-        // -----------------------------
-        // Summary info
-        // -----------------------------
-
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
 
         // -------------------------------------------------
         // Public Static (class) methods
@@ -156,10 +136,10 @@ private:
         nconn *m_listening_nconn;
         nconn *m_out_q_nconn;
         int m_out_q_fd;
+        default_http_request_handler m_default_handler;
 
         // TODO multi-thread support
 #if 0
-        // Work queue
         pthread_workqueue_t m_work_q;
         pthread_workqueue_attr_t m_work_q_attr;
 #endif
@@ -167,9 +147,6 @@ private:
         bool m_is_initd;
 };
 
-
 } //namespace ns_hlx {
 
 #endif // #ifndef _HLX_CLIENT_H
-
-

@@ -87,9 +87,8 @@ class nbq;
 class nconn
 {
 public:
-
         // ---------------------------------------
-        // Protocol
+        // Public types
         // ---------------------------------------
         typedef enum scheme_enum {
 
@@ -128,7 +127,7 @@ public:
         } mode_t;
 
         // -------------------------------------------------
-        // Const
+        // Public methods
         // -------------------------------------------------
         nconn(bool a_verbose,
               bool a_color,
@@ -137,17 +136,12 @@ public:
               bool a_collect_stats = false,
               bool a_connect_only = false,
               type_t a_type = TYPE_CLIENT);
-
-        // Destructor
         virtual ~nconn();
-
         void set_host(const std::string &a_host) {m_host = a_host;};
-
         void set_data1(void * a_data) {m_data1 = a_data;}
         void *get_data1(void) {return m_data1;}
         void set_data2(void * a_data) {m_data2 = a_data;}
         void *get_data2(void) {return m_data2;}
-
         void reset_stats(void) { stat_init(m_stat); }
         const req_stat_t &get_stats(void) const { return m_stat;};
         uint64_t get_id(void) {return m_id;}
@@ -155,17 +149,6 @@ public:
         uint32_t get_idx(void) {return m_idx;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
         bool can_reuse(void);
-
-        // -------------------------------------------------
-        // Virtual Methods
-        // -------------------------------------------------
-        virtual int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len) = 0;
-        virtual int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len) = 0;
-        virtual bool is_listening(void) = 0;
-        virtual bool is_connecting(void) = 0;
-        virtual bool is_accepting(void) = 0;
-        virtual bool is_free(void) = 0;
-
         void set_in_q(nbq *a_q) { m_in_q = a_q;};
         void set_out_q(nbq *a_q) { m_out_q = a_q;};
         nbq *get_in_q(void) { return m_in_q;};
@@ -182,8 +165,14 @@ public:
         void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;};
 
         // -------------------------------------------------
-        // Public static methods
+        // Virtual Methods
         // -------------------------------------------------
+        virtual int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len) = 0;
+        virtual int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len) = 0;
+        virtual bool is_listening(void) = 0;
+        virtual bool is_connecting(void) = 0;
+        virtual bool is_accepting(void) = 0;
+        virtual bool is_free(void) = 0;
 
         // -------------------------------------------------
         // Public members
@@ -204,6 +193,31 @@ public:
         void *m_timer_obj;
         std::string m_last_error;
         type_t m_type;
+
+protected:
+        // -------------------------------------------------
+        // Protected Virtual methods
+        // -------------------------------------------------
+        virtual int32_t ncsetup(evr_loop *a_evr_loop) = 0;
+        virtual int32_t ncread(char *a_buf, uint32_t a_buf_len) = 0;
+        virtual int32_t ncwrite(char *a_buf, uint32_t a_buf_len) = 0;
+        virtual int32_t ncaccept(evr_loop *a_evr_loop) = 0;
+        virtual int32_t ncconnect(evr_loop *a_evr_loop) = 0;
+        virtual int32_t nccleanup(void) = 0;
+        virtual int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val) = 0;
+        virtual int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd) = 0;
+
+        // -------------------------------------------------
+        // Protected members
+        // -------------------------------------------------
+        host_info_t m_host_info;
+        int64_t m_num_reqs_per_conn;
+        int64_t m_num_reqs;
+        bool m_connect_only;
+
+        nbq *m_in_q;
+        nbq *m_out_q;
+
 private:
 
         // ---------------------------------------
@@ -233,29 +247,6 @@ private:
 
         http_parser_settings m_http_parser_settings;
         http_parser m_http_parser;
-protected:
-        // -------------------------------------------------
-        // Protected methods
-        // -------------------------------------------------
-        virtual int32_t ncsetup(evr_loop *a_evr_loop) = 0;
-        virtual int32_t ncread(char *a_buf, uint32_t a_buf_len) = 0;
-        virtual int32_t ncwrite(char *a_buf, uint32_t a_buf_len) = 0;
-        virtual int32_t ncaccept(evr_loop *a_evr_loop) = 0;
-        virtual int32_t ncconnect(evr_loop *a_evr_loop) = 0;
-        virtual int32_t nccleanup(void) = 0;
-        virtual int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val) = 0;
-        virtual int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd) = 0;
-
-        // -------------------------------------------------
-        // Protected members
-        // -------------------------------------------------
-        host_info_t m_host_info;
-        int64_t m_num_reqs_per_conn;
-        int64_t m_num_reqs;
-        bool m_connect_only;
-
-        nbq *m_in_q;
-        nbq *m_out_q;
 };
 
 } //namespace ns_hlx {

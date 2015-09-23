@@ -77,6 +77,11 @@ __thread uint64_t g_last_us       = 0;
 
 __thread uint64_t g_cyles_us      = 0;
 
+// Date cache...
+__thread uint64_t g_last_date_str_s_rdtsc  = 0;
+__thread uint64_t g_last_date_str_s        = 0;
+__thread char g_last_date_str[128];
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -96,6 +101,23 @@ static inline bool _use_cached_time(uint64_t l_last_rdtsc)
         }
         l_last_rdtsc = rdtsc();
         return false;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const char *get_date_str(void)
+{
+        if(_use_cached_time(g_last_date_str_s_rdtsc) && g_last_s)
+        {
+                return g_last_date_str;
+        }
+        time_t l_now = time(0);
+        struct tm l_tm = *gmtime(&l_now);
+        strftime(g_last_date_str, sizeof g_last_date_str, "%a, %d %b %Y %H:%M:%S %Z", &l_tm);
+        return g_last_date_str;
 }
 
 //: ----------------------------------------------------------------------------

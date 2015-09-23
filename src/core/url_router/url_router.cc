@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <list>
+#include <stdio.h>
 
 //: ----------------------------------------------------------------------------
 //: Macros
@@ -43,6 +44,35 @@
     DISALLOW_ASSIGN(class_name)
 #endif
 
+//: ----------------------------------------------------------------------------
+//: Constants
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: ANSI Color Code Strings
+//:
+//: Taken from:
+//: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
+//: ----------------------------------------------------------------------------
+#define ANSI_COLOR_OFF          "\033[0m"
+#define ANSI_COLOR_FG_BLACK     "\033[01;30m"
+#define ANSI_COLOR_FG_RED       "\033[01;31m"
+#define ANSI_COLOR_FG_GREEN     "\033[01;32m"
+#define ANSI_COLOR_FG_YELLOW    "\033[01;33m"
+#define ANSI_COLOR_FG_BLUE      "\033[01;34m"
+#define ANSI_COLOR_FG_MAGENTA   "\033[01;35m"
+#define ANSI_COLOR_FG_CYAN      "\033[01;36m"
+#define ANSI_COLOR_FG_WHITE     "\033[01;37m"
+#define ANSI_COLOR_FG_DEFAULT   "\033[01;39m"
+#define ANSI_COLOR_BG_BLACK     "\033[01;40m"
+#define ANSI_COLOR_BG_RED       "\033[01;41m"
+#define ANSI_COLOR_BG_GREEN     "\033[01;42m"
+#define ANSI_COLOR_BG_YELLOW    "\033[01;43m"
+#define ANSI_COLOR_BG_BLUE      "\033[01;44m"
+#define ANSI_COLOR_BG_MAGENTA   "\033[01;45m"
+#define ANSI_COLOR_BG_CYAN      "\033[01;46m"
+#define ANSI_COLOR_BG_WHITE     "\033[01;47m"
+#define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -59,6 +89,7 @@ typedef std::list <edge *> edge_list_t;
 typedef enum {
         PART_TYPE_STRING = 0,
         PART_TYPE_PARAMETER,
+        PART_TYPE_TERMINAL,
         PART_TYPE_NONE
 } part_type_t;
 
@@ -96,6 +127,10 @@ static inline std::string pattern_str(const pattern_t &a_pattern)
                 {
                         l_retval += i_part->m_str;
                 }
+                else if(i_part->m_type == PART_TYPE_TERMINAL)
+                {
+                        l_retval += "*";
+                }
         }
 
         return l_retval;
@@ -119,6 +154,10 @@ static inline uint32_t pattern_len(const pattern_t &a_pattern)
                 else if(i_part->m_type == PART_TYPE_STRING)
                 {
                         l_retval += i_part->m_str.length();
+                }
+                else if(i_part->m_type == PART_TYPE_TERMINAL)
+                {
+                        l_retval += 1;
                 }
         }
 
@@ -469,6 +508,11 @@ bool edge::match_route(const std::string &a_route, url_param_map_t &ao_url_param
 
                         }
                 }
+                else if(i_part->m_type == PART_TYPE_TERMINAL)
+                {
+                        ao_suffix = std::string();
+                        return true;
+                }
         }
 
         //NDBG_PRINT("LEN: %u -- a_route.length(): %d\n", l_len, (int)a_route.length());
@@ -668,11 +712,38 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                         l_part.m_type = PART_TYPE_STRING;
                         l_part.m_str.clear();
 
-                } else {
+                }
+                else if(l_path[i_char] == '*')
+                {
+                        // Preceded by '/'
+                        if(l_path[i_char - 1] != '/')
+                        {
+                                NDBG_PRINT("Error terminals must be preceded by '\'.\n");
+                                return -1;
+                        }
+                        // Add last part to pattern
+                        ao_pattern.push_back(l_part);
+
+                        // Set up parameter
+                        l_part.m_type = PART_TYPE_TERMINAL;
+                        l_part.m_str.clear();
+
+                        // Add last part to pattern
+                        ao_pattern.push_back(l_part);
+
+                        // We outtie after terminal...
+                        goto convert_path_to_pattern_done;
+
+                }
+                else
+                {
                         l_part.m_str += l_path[i_char];
                 }
 
         }
+
+
+convert_path_to_pattern_done:
 
         // Still in parameter???
         if(l_part.m_type == PART_TYPE_PARAMETER)
@@ -904,15 +975,13 @@ const void *node::find_route(const std::string &a_route, url_param_map_t &ao_url
                 if((*i_edge)->match_route(a_route, l_url_param_map, l_suffix))
                 {
 
-                        //NDBG_PRINT("%sFIND_ROUTE%s: MATCH_ROUTE %s == %s ... remainder: %s\n",
+                        //NDBG_PRINT("%sFIND_ROUTE%s: MATCH_ROUTE %s == %s ... remainder: %s len(%d)\n",
                         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
                         //                pattern_str((*i_edge)->m_pattern).c_str(),
-                        //                a_route.c_str(), l_suffix.c_str());
+                        //                a_route.c_str(), l_suffix.c_str(), (int)l_suffix.length());
 
                         if(!l_suffix.length())
                         {
-                                //NDBG_PRINT("m_data: %p\n", (*i_edge)->m_child->m_data);
-
                                 // TODO better way to update map???
                                 for(url_param_map_t::const_iterator i_arg = l_url_param_map.begin();
                                                 i_arg != l_url_param_map.end();
@@ -1012,7 +1081,13 @@ int32_t url_router::add_route(const std::string &a_route, const void *a_data)
 //: ----------------------------------------------------------------------------
 const void *url_router::find_route(const std::string &a_route, url_param_map_t &ao_url_param_map)
 {
-        return m_root_node->find_route(a_route, ao_url_param_map);
+        const void *l_data = NULL;
+        if(!m_root_node)
+        {
+                return NULL;
+        }
+        l_data = m_root_node->find_route(a_route, ao_url_param_map);
+        return l_data;
 }
 
 //: ----------------------------------------------------------------------------

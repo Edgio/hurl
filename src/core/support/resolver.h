@@ -39,7 +39,6 @@
 //: ----------------------------------------------------------------------------
 #define RESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
 
-
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
@@ -47,14 +46,6 @@ namespace ns_hlx {
 
 // TODO Create struct with TTL for storing ai cache
 typedef std::map <std::string, std::string> ai_cache_map_t;
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -65,12 +56,9 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
-
         resolver();
         ~resolver();
-
-        // Settings...
+        int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
         void set_verbose(bool a_val) { m_verbose = a_val;}
         void set_color(bool a_val) { m_color = a_val;}
         void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
@@ -80,10 +68,6 @@ public:
                                std::string &ao_error);
         int32_t sync_ai_cache(void);
         int32_t read_ai_cache(const std::string &a_ai_cache_file);
-
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
 
 private:
         // -------------------------------------------------
@@ -95,15 +79,10 @@ private:
         // Private members
         // -------------------------------------------------
         bool m_is_initd;
-
-        // -------------------------------------------------
-        // Settings
-        // -------------------------------------------------
         bool m_verbose;
         bool m_color;
         uint32_t m_timeout_s;
         uint32_t m_use_cache;
-
         pthread_mutex_t m_cache_mutex;
         ai_cache_map_t m_ai_cache_map;
         std::string m_ai_cache_file;

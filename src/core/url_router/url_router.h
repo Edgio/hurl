@@ -12,6 +12,7 @@
 //: ----------------------------------------------------------------------------
 #include <string>
 #include <map>
+#include <stdint.h>
 
 namespace ns_hlx {
 

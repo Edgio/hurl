@@ -78,6 +78,9 @@ public:
 
         } ssl_opt_t;
 
+        // ---------------------------------------
+        // Public methods
+        // ---------------------------------------
         nconn_ssl(bool a_verbose,
                   bool a_color,
                   int64_t a_max_reqs_per_conn = -1,
@@ -109,10 +112,7 @@ public:
           };
 
         // Destructor
-        ~nconn_ssl()
-        {
-        };
-
+        ~nconn_ssl() {};
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
         bool is_listening(void) {return (m_ssl_state == SSL_STATE_LISTENING);};
@@ -126,23 +126,20 @@ public:
                                          (m_ssl_state == SSL_STATE_SSL_ACCEPTING_WANT_WRITE));};
         bool is_free(void) { return (m_ssl_state == SSL_STATE_FREE);}
 
+protected:
+        // -------------------------------------------------
+        // Protected methods
+        // -------------------------------------------------
         int32_t ncsetup(evr_loop *a_evr_loop);
         int32_t ncread(char *a_buf, uint32_t a_buf_len);
         int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
         int32_t ncaccept(evr_loop *a_evr_loop);
         int32_t ncconnect(evr_loop *a_evr_loop);
         int32_t nccleanup(void);
+        int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
 
-        // -------------------------------------------------
-        // Public static methods
-        // -------------------------------------------------
-
-
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
 private:
-
         // ---------------------------------------
         // Connection state
         // ---------------------------------------
@@ -195,14 +192,6 @@ private:
         std::string m_tls_key;
         std::string m_tls_crt;
         ssl_state_t m_ssl_state;
-
-protected:
-        // -------------------------------------------------
-        // Protected methods
-        // -------------------------------------------------
-        int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
-
 };
 
 } //namespace ns_hlx {

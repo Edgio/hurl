@@ -108,39 +108,24 @@ public:
         bool is_running(void);
         int32_t add_endpoint(const std::string &a_endpoint, const http_request_handler *a_handler);
 
-        // -------------------------------------------------
-        // Class methods
-        // -------------------------------------------------
-
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(hlx_server)
-
-
         int init(void);
         int init_server_list(void);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-
-        // -------------------------------------------------
-        // Settings
-        // -------------------------------------------------
         bool m_verbose;
         bool m_color;
         bool m_stats;
-
-        // Run Settings
         uint16_t m_port;
         uint32_t m_num_threads;
         int32_t m_num_parallel;
-
         nconn::scheme_t m_scheme;
-
-        // TLS
         SSL_CTX* m_ssl_ctx;
         std::string m_tls_key;
         std::string m_tls_crt;
@@ -149,27 +134,12 @@ private:
         long m_ssl_options;
         std::string m_ssl_ca_file;
         std::string m_ssl_ca_path;
-
-        // Stats
         uint64_t m_start_time_ms;
-
-        // t_client
         t_server_list_t m_t_server_list;
         int m_evr_loop_type;
-
-        // router
         url_router m_url_router;
-
-        // -------------------------------------------------
-        // State
-        // -------------------------------------------------
         int32_t m_fd;
         bool m_is_initd;
-
-
-        // -------------------------------------------------
-        // Class members
-        // -------------------------------------------------
 };
 
 

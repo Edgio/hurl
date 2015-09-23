@@ -50,13 +50,12 @@
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
-#include <inttypes.h>
-#include <string.h>
 
 // Profiler
 #define ENABLE_PROFILER 1
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
+#include <google/heap-profiler.h>
 #endif
 
 
@@ -79,62 +78,16 @@
 //: ----------------------------------------------------------------------------
 //: Handler
 //: ----------------------------------------------------------------------------
-const char *G_EXAMPLE_HTTP_RESPONSE =
-"HTTP/1.1 200 OK\r\n"
-"Date: Sun, 07 Jun 2015 22:49:12 GMT\r\n"
-"Server: hss HTTP API Server v0.0.1\r\n"
-"Content-length: 28\r\n"
-"Content-Type: application/json\r\n"
-"\r\n"
-"[{\"xxxxxx-xxxx\":\"x.x.xx\"}]\r\n";
-
 class file_getter: public ns_hlx::default_http_request_handler
 {
-        // -----------------------------------------------------------
         // GET
-        // -----------------------------------------------------------
-        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map, const ns_hlx::http_req &a_request, ns_hlx::http_resp &ao_response)
+        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map,
+                       ns_hlx::http_req &a_request,
+                       ns_hlx::http_resp &ao_response)
         {
-                // TODO Do stuff
-                //ns_hlx::http_msg l_response;
-                //l_response.set_response("HELLO GET");
-                //l_response.set_status_code(200);
-                //return l_response;
-                ns_hlx::nbq *l_q = ao_response.get_q();
-                l_q->write(G_EXAMPLE_HTTP_RESPONSE, strlen(G_EXAMPLE_HTTP_RESPONSE));
-                return 0;
+                return get_file(a_request.get_url_path(), a_request, ao_response);
         }
-
-        // -----------------------------------------------------------
-        // POST
-        // -----------------------------------------------------------
-        int32_t do_post(const ns_hlx::url_param_map_t &a_url_param_map, const ns_hlx::http_req &a_request, ns_hlx::http_resp &ao_response)
-        {
-                // TODO Do stuff
-                NDBG_PRINT("do_post\n");
-                //ns_hlx::http_msg l_response;
-                //l_response.set_response("HELLO POST");
-                //l_response.set_status_code(200);
-                //return l_response;
-                return 0;
-        }
-
-        // -----------------------------------------------------------
-        // DELETE
-        // -----------------------------------------------------------
-        int32_t do_delete(const ns_hlx::url_param_map_t &a_url_param_map, const ns_hlx::http_req &a_request, ns_hlx::http_resp &ao_response)
-        {
-                // TODO Do stuff
-                NDBG_PRINT("do_delete\n");
-                //ns_hlx::http_msg l_response;
-                //l_response.set_response("HELLO DELETE");
-                //l_response.set_status_code(200);
-                //return l_response;
-                return 0;
-        }
-
 };
-
 
 //: ----------------------------------------------------------------------------
 //: Settings
@@ -351,7 +304,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Debug Options:\n");
-        fprintf(a_stream, "  -G, --gprofile       Google profiler output file\n");
+        fprintf(a_stream, "  -G, --gprofile       Google cpu profiler output file\n");
+        fprintf(a_stream, "  -H, --hprofile       Google heap profiler output file\n");
 
         fprintf(a_stream, "\n");
 
@@ -397,12 +351,14 @@ int main(int argc, char** argv)
                 { "color",          0, 0, 'c' },
                 { "status",         0, 0, 's' },
                 { "gprofile",       1, 0, 'G' },
+                { "hprofile",       1, 0, 'H' },
 
                 // list sentinel
                 { 0, 0, 0, 0 }
         };
 
         std::string l_gprof_file;
+        std::string l_hprof_file;
         bool l_show_status = false;
         uint16_t l_server_port = 23456;
         ns_hlx::nconn::scheme_t l_scheme = ns_hlx::nconn::SCHEME_TCP;
@@ -412,7 +368,7 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
-        char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcsG:";
+        char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcsG:H:";
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -569,11 +525,19 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
-                // Google Profiler Output File
+                // Google CPU Profiler Output File
                 // ---------------------------------------
                 case 'G':
                 {
                         l_gprof_file = l_argument;
+                        break;
+                }
+                // ---------------------------------------
+                // Google Heap Profiler Output File
+                // ---------------------------------------
+                case 'H':
+                {
+                        l_hprof_file = l_argument;
                         break;
                 }
                 // ---------------------------------------
@@ -622,13 +586,12 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Add endpoints
         // -------------------------------------------
-        int32_t l_status;
+        int32_t l_status = 0;
         file_getter *l_file_getter = new file_getter();
-        NDBG_PRINT("l_file_getter: %p\n", l_file_getter);
-        l_status = l_hlx_server->add_endpoint("/monkeys/<monkey_name>/banana/<banana_num>", l_file_getter);
+        l_status = l_hlx_server->add_endpoint("/*", l_file_getter);
         if(l_status != 0)
         {
-                printf("Error: adding endpoint: %s\n", "/monkeys/<monkey_name>/banana/<banana_num>");
+                printf("Error: adding endpoint: %s\n", "/*");
                 return -1;
         }
 
@@ -644,11 +607,19 @@ int main(int argc, char** argv)
         //signal(SIGPIPE, SIG_IGN);
 
         // -------------------------------------------
-        // Start Profiler
+        // Start CPU Profiler
         // -------------------------------------------
         if (!l_gprof_file.empty())
         {
                 ProfilerStart(l_gprof_file.c_str());
+        }
+
+        // -------------------------------------------
+        // Start Heap Profiler
+        // -------------------------------------------
+        if (!l_hprof_file.empty())
+        {
+                HeapProfilerStart(l_hprof_file.c_str());
         }
 
         // -------------------------------------------
@@ -687,6 +658,15 @@ int main(int argc, char** argv)
         {
                 ProfilerStop();
         }
+
+        // -------------------------------------------
+        // Start Heap Profiler
+        // -------------------------------------------
+        if (!l_hprof_file.empty())
+        {
+                HeapProfilerStop();
+        }
+
 
         //uint64_t l_end_time_ms = get_time_ms() - l_start_time_ms;
 

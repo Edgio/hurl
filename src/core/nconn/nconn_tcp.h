@@ -29,19 +29,7 @@
 #include "nconn.h"
 #include "ndebug.h"
 
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
-
 namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -75,22 +63,17 @@ public:
                                 a_collect_stats,
                                 a_connect_only,
                                 a_type),
-                          m_tcp_state(TCP_STATE_FREE),
                           m_fd(-1),
                           m_sock_opt_recv_buf_size(),
                           m_sock_opt_send_buf_size(),
                           m_sock_opt_no_delay(false),
-                          m_timeout_s(10)
+                          m_timeout_s(10),
+                          m_tcp_state(TCP_STATE_FREE)
 
         {
                 m_scheme = SCHEME_TCP;
         };
-
-        // Destructor
-        ~nconn_tcp()
-        {
-        };
-
+        ~nconn_tcp() {};
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
         bool is_listening(void) {return (m_tcp_state == TCP_STATE_LISTENING);};
@@ -98,7 +81,12 @@ public:
         bool is_accepting(void) {return (m_tcp_state == TCP_STATE_ACCEPTING);};
         bool is_free(void) { return (m_tcp_state == TCP_STATE_FREE);}
 
-        // TODO Experimental refactoring
+protected:
+        // -------------------------------------------------
+        // Protected methods
+        // -------------------------------------------------
+        int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t ncsetup(evr_loop *a_evr_loop);
         int32_t ncread(char *a_buf, uint32_t a_buf_len);
         int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
@@ -106,8 +94,16 @@ public:
         int32_t ncconnect(evr_loop *a_evr_loop);
         int32_t nccleanup(void);
 
-private:
+        // -------------------------------------------------
+        // Protected members
+        // -------------------------------------------------
+        int m_fd;
+        uint32_t m_sock_opt_recv_buf_size;
+        uint32_t m_sock_opt_send_buf_size;
+        bool m_sock_opt_no_delay;
+        uint32_t m_timeout_s;
 
+private:
         // ---------------------------------------
         // Connection state
         // ---------------------------------------
@@ -132,25 +128,6 @@ private:
         // Private members
         // -------------------------------------------------
         tcp_conn_state_t m_tcp_state;
-
-protected:
-        // -------------------------------------------------
-        // Protected methods
-        // -------------------------------------------------
-        int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
-
-        // -------------------------------------------------
-        // Protected members
-        // -------------------------------------------------
-        int m_fd;
-
-        // Socket options
-        uint32_t m_sock_opt_recv_buf_size;
-        uint32_t m_sock_opt_send_buf_size;
-        bool m_sock_opt_no_delay;
-        uint32_t m_timeout_s;
-
 };
 
 } //namespace ns_hlx {

@@ -30,6 +30,7 @@
 #include "util.h"
 #include "http_parser/http_parser.h"
 #include "nbq.h"
+#include <string.h>
 
 namespace ns_hlx {
 
@@ -49,9 +50,12 @@ http_req::http_req(void):
         m_method(),
         m_status(),
         m_complete(false),
+        m_supports_keep_alives(false),
         m_headers(),
         m_body(),
-        m_q(NULL)
+        m_q(NULL),
+        m_url_parsed(false),
+        m_parsed_url_path()
 {
 
 }
@@ -80,8 +84,13 @@ void http_req::clear(void)
         m_p_body.clear();
         m_status = 0;
         m_complete = false;
+        m_supports_keep_alives = false;
         m_headers.clear();
         m_body.clear();
+
+        // Parsed members
+        m_url_parsed = false;
+        m_parsed_url_path.clear();
 }
 
 //: ----------------------------------------------------------------------------
@@ -147,16 +156,116 @@ const std::string &http_req::get_body(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t http_req::parse_url(void)
+{
+        if(m_url_parsed)
+        {
+                return STATUS_OK;
+        }
+
+        m_parsed_url_path.assign(m_p_url.m_ptr, m_p_url.m_len);
+        m_url_parsed = true;
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_resp::write_status(http_status_t a_status)
+{
+        // TODO Make map...
+        ns_hlx::nbq *l_q = get_q();
+        if(!l_q)
+        {
+                NDBG_PRINT("Error getting response q");
+                return STATUS_ERROR;
+        }
+        switch(a_status)
+        {
+        case HTTP_STATUS_OK:
+        {
+                l_q->write("HTTP/1.1 200 OK\r\n", strlen("HTTP/1.1 200 OK\r\n"));
+                break;
+        }
+        case HTTP_STATUS_NOT_FOUND:
+        {
+                l_q->write("HTTP/1.1 404 Not Found\r\n", strlen("HTTP/1.1 404 Not Found\r\n"));
+                break;
+        }
+        default:
+        {
+                break;
+        }
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_resp::write_header(const char *a_key, const char *a_val)
+{
+        return write_header(a_key, strlen(a_key), a_val, strlen(a_val));
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_resp::write_header(const char *a_key, uint32_t a_key_len, const char *a_val, uint32_t a_val_len)
+{
+        //NDBG_PRINT("WRITE_HEADER: %s: %s\n", a_key, a_val);
+        ns_hlx::nbq *l_q = get_q();
+        if(!l_q)
+        {
+                NDBG_PRINT("Error getting response q");
+                return STATUS_ERROR;
+        }
+        l_q->write(a_key, a_key_len);
+        l_q->write(": ", 2);
+        l_q->write(a_val, a_val_len);
+        l_q->write("\r\n", 2);
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_resp::write_body(const char *a_body, uint32_t a_body_len)
+{
+        ns_hlx::nbq *l_q = get_q();
+        if(!l_q)
+        {
+                NDBG_PRINT("Error getting response q");
+                return STATUS_ERROR;
+        }
+        l_q->write("\r\n", strlen("\r\n"));
+        l_q->write(a_body, a_body_len);
+        return STATUS_OK;
+
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 http_resp::http_resp(void):
         m_p_status(),
         m_p_h_list_key(),
         m_p_h_list_val(),
         m_p_body(),
         m_complete(false),
-
         // TODO Hack to support getting connection meta
         m_conn_info(),
-
         m_status(0),
         m_headers(),
         m_body(),
@@ -195,6 +304,7 @@ void http_resp::clear(void)
         m_complete = false;
         m_headers.clear();
         m_body.clear();
+
 }
 
 //: ----------------------------------------------------------------------------
@@ -585,6 +695,7 @@ int hp_on_message_complete(http_parser* a_parser)
                         {
                                 http_req *l_req = static_cast<http_req *>(l_conn->m_data1);
                                 l_req->m_complete = true;
+                                l_req->m_supports_keep_alives = l_conn->m_supports_keep_alives;
                         }
                 }
         }
