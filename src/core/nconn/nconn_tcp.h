@@ -49,16 +49,12 @@ public:
                 OPT_TCP_SENTINEL = 999
         } tcp_opt_t;
 
-        nconn_tcp(bool a_verbose,
-                  bool a_color,
-                  int64_t a_max_reqs_per_conn = -1,
+        nconn_tcp(int64_t a_max_reqs_per_conn = -1,
                   bool a_save_response_in_reqlet = false,
                   bool a_collect_stats = false,
                   bool a_connect_only = false,
                   type_t a_type = TYPE_CLIENT):
-                          nconn(a_verbose,
-                                a_color,
-                                a_max_reqs_per_conn,
+                          nconn(a_max_reqs_per_conn,
                                 a_save_response_in_reqlet,
                                 a_collect_stats,
                                 a_connect_only,

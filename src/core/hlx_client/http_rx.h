@@ -27,7 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn_pool.h"
-#include "settings.h"
+#include "client_settings.h"
 #include "ndebug.h"
 #include "http_rx.h"
 
@@ -154,7 +154,7 @@ public:
         host_info_t m_host_info;
         uint32_t m_idx;
 
-        t_stat_t m_stat_agg;
+        hlx_client::t_stat_t m_stat_agg;
         bool m_multipath;
 
 #if 0

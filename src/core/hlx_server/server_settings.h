@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    settings.h
+//: \file:    server_settings.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    03/11/2015
@@ -20,13 +20,13 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _SETTINGS_H
-#define _SETTINGS_H
+#ifndef _SERVER_SETTINGS_H
+#define _SERVER_SETTINGS_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx_client.h"
+#include "hlo/hlx_server.h"
 #include "ndebug.h"
 #include "evr.h"
 #include "nconn.h"
@@ -57,7 +57,7 @@ typedef std::map<std::string, std::string> header_map_t;
 //: ----------------------------------------------------------------------------
 //: Settings
 //: ----------------------------------------------------------------------------
-typedef struct settings_struct
+typedef struct server_settings_struct
 {
         bool m_verbose;
         bool m_color;
@@ -77,7 +77,6 @@ typedef struct settings_struct
         uint32_t m_timeout_s;
         int32_t m_run_time_s;
         int32_t m_rate;
-        request_mode_t m_request_mode;
         int32_t m_num_end_fetches;
         bool m_connect_only;
         int32_t m_num_reqs_per_conn;
@@ -104,16 +103,13 @@ typedef struct settings_struct
         std::string m_tls_key;
         std::string m_tls_crt;
 
-        // resolver
-        resolver *m_resolver;
-
         // server fd
         int m_fd;
 
         // ---------------------------------
         // Defaults...
         // ---------------------------------
-        settings_struct() :
+        server_settings_struct() :
                 m_verbose(false),
                 m_color(false),
                 m_quiet(false),
@@ -128,7 +124,6 @@ typedef struct settings_struct
                 m_timeout_s(10),
                 m_run_time_s(-1),
                 m_rate(-1),
-                m_request_mode(REQUEST_MODE_ROUND_ROBIN),
                 m_num_end_fetches(-1),
                 m_connect_only(false),
                 m_num_reqs_per_conn(-1),
@@ -149,15 +144,14 @@ typedef struct settings_struct
                 m_scheme(nconn::SCHEME_TCP),
                 m_tls_key(""),
                 m_tls_crt(""),
-                m_resolver(NULL),
                 m_fd(-1)
         {}
 
 private:
-        DISALLOW_COPY_AND_ASSIGN(settings_struct);
+        DISALLOW_COPY_AND_ASSIGN(server_settings_struct);
 
-} settings_struct_t;
+} server_settings_struct_t;
 
 } //namespace ns_hlx {
 
-#endif // #ifndef _SETTINGS_H
+#endif // #ifndef _SERVER_SETTINGS_H

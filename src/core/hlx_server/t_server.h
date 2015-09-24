@@ -26,9 +26,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx_server.h"
+#include "hlo/hlx_server.h"
 #include "nconn_pool.h"
-#include "settings.h"
+#include "server_settings.h"
 #include "ndebug.h"
 #include "evr.h"
 
@@ -69,7 +69,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_server(const settings_struct_t &a_settings, url_router *a_url_router);
+        t_server(const server_settings_struct_t &a_settings, url_router *a_url_router);
         ~t_server();
         int run(void);
         void *t_run(void *a_nothing);
@@ -82,7 +82,7 @@ public:
         // -------------------------------------------------
         // Needs to be public for now -to join externally
         pthread_t m_t_run_thread;
-        settings_struct_t m_settings;
+        server_settings_struct_t m_settings;
         url_router *m_url_router;
         out_q_t m_out_q;
 
@@ -124,6 +124,7 @@ private:
         // Get new client connection
         nconn *get_new_client_conn(int a_fd);
         int32_t reset_conn_input_q(nconn *anconn);
+        int32_t config_conn(nconn *a_nconn);
 
         // -------------------------------------------------
         // Private members

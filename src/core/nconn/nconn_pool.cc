@@ -27,29 +27,7 @@
 #include "nconn_pool.h"
 #include "nconn_tcp.h"
 #include "nconn_ssl.h"
-
-//: ----------------------------------------------------------------------------
-//: Macros
-//: ----------------------------------------------------------------------------
-#define NCONN_POOL_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
-        do { \
-                int _status = 0; \
-                _status = _conn.set_opt((_opt), (_buf), (_len)); \
-                if (_status != nconn::NC_STATUS_OK) { \
-                        NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
-                        return NULL;\
-                } \
-        } while(0)
-
-#define NCONN_POOL_GET_NCONN_OPT(_conn, _opt, _buf, _len) \
-        do { \
-                int _status = 0; \
-                _status = _conn.get_opt((_opt), (_buf), (_len)); \
-                if (_status != nconn::NC_STATUS_OK) { \
-                        NDBG_PRINT("STATUS_ERROR: Failed to get_opt %d.  Status: %d.\n", _opt, _status); \
-                        return nconn::NC_STATUS_ERROR;\
-                } \
-        } while(0)
+#include <unordered_map>
 
 namespace ns_hlx {
 
@@ -59,77 +37,18 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme,
-                               const settings_struct_t &a_settings,
                                nconn::type_t a_type)
 {
         nconn *l_nconn = NULL;
 
-        //NDBG_PRINT("CREATING NEW CONNECTION: a_settings.m_num_reqs_per_conn: %d\n", (int)a_settings.m_num_reqs_per_conn);
+        //NDBG_PRINT("CREATING NEW CONNECTION: a_scheme: %d\n", a_scheme);
         if(a_scheme == nconn::SCHEME_TCP)
         {
-                l_nconn = new nconn_tcp(a_settings.m_verbose,
-                                        a_settings.m_color,
-                                        a_settings.m_num_reqs_per_conn,
-                                        a_settings.m_save_response,
-                                        a_settings.m_collect_stats,
-                                        a_settings.m_connect_only,
-                                        a_type);
+                l_nconn = new nconn_tcp(a_type);
         }
         else if(a_scheme == nconn::SCHEME_SSL)
         {
-                l_nconn = new nconn_ssl(a_settings.m_verbose,
-                                        a_settings.m_color,
-                                        a_settings.m_num_reqs_per_conn,
-                                        a_settings.m_save_response,
-                                        a_settings.m_collect_stats,
-                                        a_settings.m_connect_only,
-                                        a_type);
-        }
-
-        // -------------------------------------------
-        // Set options
-        // -------------------------------------------
-        // Set generic options
-        NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, a_settings.m_sock_opt_recv_buf_size);
-        NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, a_settings.m_sock_opt_send_buf_size);
-        NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, a_settings.m_sock_opt_no_delay);
-
-        // Set ssl options
-        if(a_scheme == nconn::SCHEME_SSL)
-        {
-                NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                       nconn_ssl::OPT_SSL_CIPHER_STR,
-                                       a_settings.m_ssl_cipher_list.c_str(),
-                                       a_settings.m_ssl_cipher_list.length());
-
-                NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                       nconn_ssl::OPT_SSL_CTX,
-                                       a_settings.m_ssl_ctx,
-                                       sizeof(a_settings.m_ssl_ctx));
-
-                NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                       nconn_ssl::OPT_SSL_VERIFY,
-                                       &(a_settings.m_ssl_verify),
-                                       sizeof(a_settings.m_ssl_verify));
-
-                //NCONN_POOL_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_OPTIONS,
-                //                              &(a_settings.m_ssl_options),
-                //                              sizeof(a_settings.m_ssl_options));
-
-                if(!a_settings.m_tls_crt.empty())
-                {
-                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                               nconn_ssl::OPT_SSL_TLS_CRT,
-                                               a_settings.m_tls_crt.c_str(),
-                                               a_settings.m_tls_crt.length());
-                }
-                if(!a_settings.m_tls_key.empty())
-                {
-                        NCONN_POOL_SET_NCONN_OPT((*l_nconn),
-                                               nconn_ssl::OPT_SSL_TLS_KEY,
-                                               a_settings.m_tls_key.c_str(),
-                                               a_settings.m_tls_key.length());
-                }
+                l_nconn = new nconn_ssl(a_type);
         }
 
         return l_nconn;
@@ -141,7 +60,6 @@ nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme,
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::get(nconn::scheme_t a_scheme,
-                        const settings_struct_t &a_settings,
                         nconn::type_t a_type,
                         nconn **ao_nconn)
 {
@@ -167,10 +85,6 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme,
 
         if(m_conn_idx_free_list.empty())
         {
-                if(a_settings.m_verbose)
-                {
-                        NDBG_PRINT("TID[%lu]: Error no free connections\n", pthread_self());
-                }
                 return nconn::NC_STATUS_AGAIN;
         }
 
@@ -204,7 +118,7 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme,
 
         if(!l_nconn)
         {
-                l_nconn = create_conn(a_scheme, a_settings, a_type);
+                l_nconn = create_conn(a_scheme, a_type);
                 if(!l_nconn)
                 {
                         NDBG_PRINT("Error performing create_conn\n");
@@ -231,7 +145,6 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme,
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::get_try_idle(const std::string &a_host,
                                  nconn::scheme_t a_scheme,
-                                 const settings_struct_t &a_settings,
                                  nconn::type_t a_type,
                                  nconn **ao_nconn)
 {
@@ -268,7 +181,7 @@ int32_t nconn_pool::get_try_idle(const std::string &a_host,
         }
 
         int32_t l_status;
-        l_status = get(a_scheme, a_settings, a_type, ao_nconn);
+        l_status = get(a_scheme, a_type, ao_nconn);
         if(l_status != nconn::NC_STATUS_OK)
         {
                 return nconn::NC_STATUS_AGAIN;
@@ -438,7 +351,6 @@ nconn_pool::nconn_pool(uint32_t a_size):
                 //NDBG_PRINT("ADDING i_conn: %u\n", i_conn);
                 m_conn_idx_free_list.push_back(i_conn);
         }
-
 };
 
 //: ----------------------------------------------------------------------------
@@ -456,7 +368,6 @@ nconn_pool::~nconn_pool(void)
                         m_nconn_vector[i_conn] = NULL;
                 }
         }
-
 }
 
 } //namespace ns_hlx {

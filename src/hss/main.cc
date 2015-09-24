@@ -24,8 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
-#include "hlx_server.h"
+#include "hlo/hlx_server.h"
 
 // getrlimit
 #include <sys/time.h>
@@ -72,6 +71,43 @@
 #define HSS_VERSION_PATCH "alpha"
 
 //: ----------------------------------------------------------------------------
+//: Status
+//: ----------------------------------------------------------------------------
+#ifndef STATUS_ERROR
+#define STATUS_ERROR -1
+#endif
+
+#ifndef STATUS_OK
+#define STATUS_OK 0
+#endif
+
+//: ----------------------------------------------------------------------------
+//: ANSI Color Code Strings
+//:
+//: Taken from:
+//: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
+//: ----------------------------------------------------------------------------
+#define ANSI_COLOR_OFF          "\033[0m"
+#define ANSI_COLOR_FG_BLACK     "\033[01;30m"
+#define ANSI_COLOR_FG_RED       "\033[01;31m"
+#define ANSI_COLOR_FG_GREEN     "\033[01;32m"
+#define ANSI_COLOR_FG_YELLOW    "\033[01;33m"
+#define ANSI_COLOR_FG_BLUE      "\033[01;34m"
+#define ANSI_COLOR_FG_MAGENTA   "\033[01;35m"
+#define ANSI_COLOR_FG_CYAN      "\033[01;36m"
+#define ANSI_COLOR_FG_WHITE     "\033[01;37m"
+#define ANSI_COLOR_FG_DEFAULT   "\033[01;39m"
+#define ANSI_COLOR_BG_BLACK     "\033[01;40m"
+#define ANSI_COLOR_BG_RED       "\033[01;41m"
+#define ANSI_COLOR_BG_GREEN     "\033[01;42m"
+#define ANSI_COLOR_BG_YELLOW    "\033[01;43m"
+#define ANSI_COLOR_BG_BLUE      "\033[01;44m"
+#define ANSI_COLOR_BG_MAGENTA   "\033[01;45m"
+#define ANSI_COLOR_BG_CYAN      "\033[01;46m"
+#define ANSI_COLOR_BG_WHITE     "\033[01;47m"
+#define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
+
+//: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
 
@@ -112,6 +148,14 @@ private:
         HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(settings_struct);
 
 } settings_struct_t;
+
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+uint64_t hlo_get_time_ms(void);
+uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms);
+void display_results_line_desc(settings_struct &a_settings);
+void display_results_line(settings_struct &a_settings);
 
 //: ----------------------------------------------------------------------------
 //: \details: Signal handler
@@ -188,7 +232,8 @@ void command_exec(settings_struct_t &a_settings)
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
-        //bool l_first_time = true;
+        ns_hlx::hlx_server *l_hlx_server = a_settings.m_hlx_server;
+        bool l_first_time = true;
 
         nonblock(NB_ENABLE);
         //: ------------------------------------
@@ -210,7 +255,7 @@ void command_exec(settings_struct_t &a_settings)
                         {
                                 g_test_finished = true;
                                 g_cancelled = true;
-                                a_settings.m_hlx_server->stop();
+                                l_hlx_server->stop();
                                 l_sent_stop = true;
                                 break;
                         }
@@ -226,12 +271,17 @@ void command_exec(settings_struct_t &a_settings)
                 // TODO add define...
                 usleep(200000);
 
-                //if(a_thread_args.m_settings.m_show_stats)
-                //{
-                //        l_reqlet_repo->display_status_line(a_thread_args.m_settings.m_color);
-                //}
+                if(a_settings.m_show_stats && !a_settings.m_verbose)
+                {
+                        if(l_first_time)
+                        {
+                                display_results_line_desc(a_settings);
+                                l_first_time = false;
+                        }
+                        display_results_line(a_settings);
+                }
 
-                if (!a_settings.m_hlx_server->is_running())
+                if (!l_hlx_server->is_running())
                 {
                         g_test_finished = true;
                 }
@@ -240,7 +290,7 @@ void command_exec(settings_struct_t &a_settings)
         // Send stop -if unsent
         if(!l_sent_stop)
         {
-                a_settings.m_hlx_server->stop();
+                l_hlx_server->stop();
                 l_sent_stop = true;
         }
 
@@ -361,7 +411,7 @@ int main(int argc, char** argv)
         std::string l_hprof_file;
         bool l_show_status = false;
         uint16_t l_server_port = 23456;
-        ns_hlx::nconn::scheme_t l_scheme = ns_hlx::nconn::SCHEME_TCP;
+        ns_hlx::hlx_server::scheme_type_t l_scheme = ns_hlx::hlx_server::SCHEME_HTTP;
         std::string l_tls_key;
         std::string l_tls_crt;
 
@@ -427,7 +477,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'T':
                 {
-                        l_scheme = ns_hlx::nconn::SCHEME_SSL;
+                        l_scheme = ns_hlx::hlx_server::SCHEME_HTTPS;
                 }
                 // ---------------------------------------
                 // TLS private key
@@ -568,7 +618,7 @@ int main(int argc, char** argv)
         // Check for inputs
         // -------------------------------------------
         // TLS Check
-        if(l_scheme == ns_hlx::nconn::SCHEME_SSL)
+        if(l_scheme == ns_hlx::hlx_server::SCHEME_HTTPS)
         {
                 if(l_tls_key.empty() || l_tls_crt.empty())
                 {
@@ -687,4 +737,124 @@ int main(int argc, char** argv)
         return 0;
 
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t hlo_get_time_ms(void)
+{
+        uint64_t l_retval;
+        struct timespec l_timespec;
+
+        clock_gettime(CLOCK_REALTIME, &l_timespec);
+        l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
+
+        return l_retval;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms)
+{
+        uint64_t l_retval;
+        struct timespec l_timespec;
+
+        clock_gettime(CLOCK_REALTIME, &l_timespec);
+        l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
+
+        return l_retval - a_start_time_ms;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_results_line_desc(settings_struct &a_settings)
+{
+        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+        if(a_settings.m_color)
+        {
+        printf("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
+                        ANSI_COLOR_FG_GREEN, "Cmpltd", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLUE, "Total", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_MAGENTA, "IdlKil", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_RED, "Errors", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_YELLOW, "kBytes Recvd", ANSI_COLOR_OFF,
+                        "Elapsed",
+                        "Req/s",
+                        "MB/s");
+        }
+        else
+        {
+                printf("| %9s / %9s | %9s | %9s | %12s | %9s | %11s | %9s |\n",
+                                "Cmpltd",
+                                "Total",
+                                "IdlKil",
+                                "Errors",
+                                "kBytes Recvd",
+                                "Elapsed",
+                                "Req/s",
+                                "MB/s");
+        }
+        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void display_results_line(settings_struct &a_settings)
+{
+        ns_hlx::hlx_server::t_stat_t l_total;
+        //uint64_t l_cur_time_ms = hlo_get_time_ms();
+
+        // Get stats
+        a_settings.m_hlx_server->get_stats(l_total);
+
+#if 0
+        double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
+                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
+        double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
+                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
+        a_settings.m_last_display_time_ms = hlo_get_time_ms();
+        *a_settings.m_last_stat = l_total;
+
+        if(a_settings.m_color)
+        {
+                        printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
+                                        ANSI_COLOR_FG_GREEN, l_total.m_total_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_total_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_MAGENTA, l_total.m_num_idle_killed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_num_bytes_read))/(1024.0), ANSI_COLOR_OFF,
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        l_reqs_per_s,
+                                        l_kb_per_s/1024.0
+                                        );
+        }
+        else
+        {
+                printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
+                                l_total.m_total_reqs,
+                                l_total.m_total_reqs,
+                                l_total.m_num_idle_killed,
+                                l_total.m_num_errors,
+                                ((double)(l_total.m_num_bytes_read))/(1024.0),
+                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
+                                l_reqs_per_s,
+                                l_kb_per_s/1024.0
+                                );
+
+        }
+#endif
+}
+
 

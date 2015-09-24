@@ -30,16 +30,17 @@
 #endif
 #include <inttypes.h>
 
-#include "hlx_client.h"
-#include "util.h"
+#include "hlo/hlx_client.h"
 #include "ssl_util.h"
-#include "ndebug.h"
+#include "time_util.h"
+#include "string_util.h"
 #include "resolver.h"
 #include "nconn_ssl.h"
 #include "nconn_tcp.h"
 #include "tinymt64.h"
 #include "t_client.h"
-#include "settings.h"
+#include "client_settings.h"
+#include "ndebug.h"
 
 #include <string.h>
 
@@ -87,7 +88,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-summary_info_struct::summary_info_struct():
+hlx_client::summary_info_struct::summary_info_struct():
         m_success(),
         m_error_addr(),
         m_error_conn(),
@@ -110,7 +111,7 @@ int hlx_client::init_client_list(void)
         // -------------------------------------------
         // Bury the config into a settings struct
         // -------------------------------------------
-        settings_struct_t l_settings;
+        client_settings_struct_t l_settings;
         l_settings.m_verbose = m_verbose;
         l_settings.m_color = m_color;
         l_settings.m_quiet = m_quiet;
@@ -1607,7 +1608,7 @@ int hlx_client::init(void)
 //: ----------------------------------------------------------------------------
 void hlx_client::get_stats(t_stat_t &ao_all_stats,
                            bool a_get_breakdown,
-                           tag_stat_map_t &ao_breakdown_stats) const
+                           tag_stat_map_t &ao_breakdown_stats)
 {
         // -------------------------------------------
         // Aggregate
@@ -1706,13 +1707,13 @@ int32_t hlx_client::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void append_to_map(summary_map_t &ao_sum, const summary_map_t &a_append)
+static void append_to_map(hlx_client::summary_map_t &ao_sum, const hlx_client::summary_map_t &a_append)
 {
-        for(summary_map_t::const_iterator i_sum = a_append.begin();
+        for(hlx_client::summary_map_t::const_iterator i_sum = a_append.begin();
             i_sum != a_append.end();
            ++i_sum)
         {
-                summary_map_t::iterator i_obj = ao_sum.find(i_sum->first);
+                hlx_client::summary_map_t::iterator i_obj = ao_sum.find(i_sum->first);
                 if(i_obj != ao_sum.end())
                 {
                         i_obj->second += i_sum->second;
@@ -1753,7 +1754,47 @@ void hlx_client::get_summary_info(summary_info_t &ao_summary_info)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_stat_struct::clear(void)
+void hlx_client::add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat)
+{
+
+        // Stats
+        add_stat(ao_stat_agg.m_stat_us_connect , a_add_total_stat.m_stat_us_connect);
+        add_stat(ao_stat_agg.m_stat_us_first_response , a_add_total_stat.m_stat_us_first_response);
+        add_stat(ao_stat_agg.m_stat_us_end_to_end , a_add_total_stat.m_stat_us_end_to_end);
+
+        ao_stat_agg.m_total_bytes += a_add_total_stat.m_total_bytes;
+        ao_stat_agg.m_total_reqs += a_add_total_stat.m_total_reqs;
+
+        ao_stat_agg.m_num_resolved += a_add_total_stat.m_num_resolved;
+        ao_stat_agg.m_num_conn_started += a_add_total_stat.m_num_conn_started;
+        ao_stat_agg.m_num_conn_completed += a_add_total_stat.m_num_conn_completed;
+        ao_stat_agg.m_num_idle_killed += a_add_total_stat.m_num_idle_killed;
+        ao_stat_agg.m_num_errors += a_add_total_stat.m_num_errors;
+        ao_stat_agg.m_num_bytes_read += a_add_total_stat.m_num_bytes_read;
+
+        for(status_code_count_map_t::const_iterator i_code = a_add_total_stat.m_status_code_count_map.begin();
+                        i_code != a_add_total_stat.m_status_code_count_map.end();
+                        ++i_code)
+        {
+                status_code_count_map_t::iterator i_code2;
+                if((i_code2 = ao_stat_agg.m_status_code_count_map.find(i_code->first)) == ao_stat_agg.m_status_code_count_map.end())
+                {
+                        ao_stat_agg.m_status_code_count_map[i_code->first] = i_code->second;
+                }
+                else
+                {
+                        i_code2->second += i_code->second;
+                }
+        }
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_client::t_stat_struct::clear(void)
 {
         // Stats
         m_stat_us_connect.clear();

@@ -31,7 +31,7 @@
 #include "req_stat.h"
 #include "nbq.h"
 
-#include "http/http.h"
+#include "hlo/hlx_common.h"
 #include "http_parser/http_parser.h"
 
 #include <string>
@@ -59,6 +59,8 @@ do { \
         } \
 } while(0)
 
+// TODO -display errors?
+#if 0
 #define NCONN_ERROR(...)\
 do { \
         char _buf[1024];\
@@ -72,6 +74,14 @@ do { \
                 fflush(stdout); \
         }\
 } while(0)
+#else
+#define NCONN_ERROR(...)\
+do { \
+        char _buf[1024];\
+        sprintf(_buf, __VA_ARGS__);\
+        m_last_error = _buf;\
+} while(0)
+#endif
 
 namespace ns_hlx {
 
@@ -129,40 +139,56 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn(bool a_verbose,
-              bool a_color,
-              int64_t a_max_reqs_per_conn = -1,
+        nconn(int64_t a_max_reqs_per_conn = -1,
               bool a_save = false,
               bool a_collect_stats = false,
               bool a_connect_only = false,
               type_t a_type = TYPE_CLIENT);
         virtual ~nconn();
-        void set_host(const std::string &a_host) {m_host = a_host;};
+
+        // Data
         void set_data1(void * a_data) {m_data1 = a_data;}
         void *get_data1(void) {return m_data1;}
         void set_data2(void * a_data) {m_data2 = a_data;}
         void *get_data2(void) {return m_data2;}
+
+        // Stats
         void reset_stats(void) { stat_init(m_stat); }
-        const req_stat_t &get_stats(void) const { return m_stat;};
+        const req_stat_t &get_stats(void) const { return m_stat;}
+
+        // Getters
         uint64_t get_id(void) {return m_id;}
-        void set_id(uint64_t a_id) {m_id = a_id;}
         uint32_t get_idx(void) {return m_idx;}
+
+        // Setters
+        void set_host(const std::string &a_host) {m_host = a_host;}
+        void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
-        bool can_reuse(void);
+        void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;}
+        void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
+        void set_save_response(bool a_flag) {m_save = a_flag;};
+        void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
+        void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
+
+        // Q's
         void set_in_q(nbq *a_q) { m_in_q = a_q;};
         void set_out_q(nbq *a_q) { m_out_q = a_q;};
         nbq *get_in_q(void) { return m_in_q;};
         nbq *get_out_q(void) { return m_out_q;};
+
+        // State
+        bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
+        void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
+        void bump_num_requested(void) {++m_num_reqs;}
+        bool can_reuse(void);
+
+        // Running
         int32_t nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode);
         int32_t nc_read(void);
         int32_t nc_write(void);
         int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
         int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
-        bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
-        void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
-        void bump_num_requested(void) {++m_num_reqs;}
-        void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;};
 
         // -------------------------------------------------
         // Virtual Methods
@@ -179,8 +205,6 @@ public:
         // -------------------------------------------------
         // TODO hide this!
         scheme_t m_scheme;
-        bool m_verbose;
-        bool m_color;
         std::string m_host;
         req_stat_t m_stat;
         bool m_save;

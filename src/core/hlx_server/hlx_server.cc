@@ -24,11 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlo/hlx_server.h"
 #include "ndebug.h"
-#include "hlx_server.h"
 #include "t_server.h"
-#include "util.h"
 #include "ssl_util.h"
+#include "time_util.h"
+#include "url_router.h"
 
 #include <errno.h>
 #include <string.h>
@@ -106,7 +107,7 @@ void hlx_server::set_port(uint16_t a_port)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx_server::set_scheme(nconn::scheme_t a_scheme)
+void hlx_server::set_scheme(scheme_type_t a_scheme)
 {
         m_scheme = a_scheme;
 }
@@ -146,7 +147,7 @@ int hlx_server::set_ssl_options(const std::string &a_ssl_options_str)
 int hlx_server::set_ssl_options(long a_ssl_options)
 {
         m_ssl_options = a_ssl_options;
-        return HLX_CLIENT_STATUS_OK;
+        return HLX_SERVER_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -378,7 +379,32 @@ bool hlx_server::is_running(void)
 //: ----------------------------------------------------------------------------
 int32_t hlx_server::add_endpoint(const std::string &a_endpoint, const http_request_handler *a_handler)
 {
-        return m_url_router.add_route(a_endpoint, a_handler);
+        if(!m_url_router)
+        {
+                return HLX_SERVER_STATUS_ERROR;
+        }
+        return m_url_router->add_route(a_endpoint, a_handler);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_server::get_stats(t_stat_t &ao_all_stats) const
+{
+        // -------------------------------------------
+        // Aggregate
+        // -------------------------------------------
+        for(t_server_list_t::const_iterator i_client = m_t_server_list.begin();
+           i_client != m_t_server_list.end();
+           ++i_client)
+        {
+                // Get stuff from client...
+                // TODO
+                //add_to_total_stat_agg(ao_all_stats, i_client->stats);
+
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -435,13 +461,20 @@ int hlx_server::init_server_list(void)
         // -------------------------------------------
         // Bury the config into a settings struct
         // -------------------------------------------
-        settings_struct_t l_settings;
+        server_settings_struct_t l_settings;
         l_settings.m_verbose = m_verbose;
         l_settings.m_color = m_color;
         l_settings.m_evr_loop_type = (evr_loop_type_t)m_evr_loop_type;
         l_settings.m_num_parallel = m_num_parallel;
         l_settings.m_fd = m_fd;
-        l_settings.m_scheme = m_scheme;
+        if(m_scheme == SCHEME_HTTPS)
+        {
+                l_settings.m_scheme = nconn::SCHEME_SSL;
+        }
+        else
+        {
+                l_settings.m_scheme = nconn::SCHEME_TCP;
+        }
         l_settings.m_tls_key = m_tls_key;
         l_settings.m_tls_crt = m_tls_crt;
         l_settings.m_ssl_ctx = m_ssl_ctx;
@@ -456,13 +489,13 @@ int hlx_server::init_server_list(void)
         // -------------------------------------------
         for(uint32_t i_server_idx = 0; i_server_idx < m_num_threads; ++i_server_idx)
         {
-                t_server *l_t_server = new t_server(l_settings, &m_url_router);
+                t_server *l_t_server = new t_server(l_settings, m_url_router);
                 m_t_server_list.push_back(l_t_server);
         }
         // 0 threads -make a single server
         if(m_num_threads == 0)
         {
-                t_server *l_t_server = new t_server(l_settings, &m_url_router);
+                t_server *l_t_server = new t_server(l_settings, m_url_router);
                 m_t_server_list.push_back(l_t_server);
         }
         return STATUS_OK;
@@ -480,7 +513,7 @@ hlx_server::hlx_server(void):
         m_port(23456),
         m_num_threads(1),
         m_num_parallel(128),
-        m_scheme(nconn::SCHEME_TCP),
+        m_scheme(SCHEME_HTTP),
         m_ssl_ctx(NULL),
         m_tls_key(),
         m_tls_crt(),
@@ -492,11 +525,11 @@ hlx_server::hlx_server(void):
         m_start_time_ms(0),
         m_t_server_list(),
         m_evr_loop_type(EVR_LOOP_EPOLL),
-        m_url_router(),
+        m_url_router(NULL),
         m_fd(-1),
         m_is_initd(false)
 {
-
+        m_url_router = new url_router();
 }
 
 //: ----------------------------------------------------------------------------
@@ -506,7 +539,11 @@ hlx_server::hlx_server(void):
 //: ----------------------------------------------------------------------------
 hlx_server::~hlx_server()
 {
-        // TODO
+        if(m_url_router)
+        {
+                delete m_url_router;
+                m_url_router = NULL;
+        }
 }
 
 } //namespace ns_hlx {

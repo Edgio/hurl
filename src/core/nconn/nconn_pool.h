@@ -28,7 +28,6 @@
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
 #include "nconn.h"
-#include "settings.h"
 
 #include <list>
 #include <unordered_set>
@@ -47,6 +46,13 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 
 //: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+typedef std::vector<nconn *> nconn_vector_t;
+typedef std::list<uint32_t> conn_id_list_t;
+typedef std::unordered_set<uint32_t> conn_id_set_t;
+
+//: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
 typedef enum
@@ -54,13 +60,6 @@ typedef enum
         NCACHE_LAST = 0,
         NCACHE_LRU,
 } ncache_evict_t;
-
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef std::vector<nconn *> nconn_vector_t;
-typedef std::list<uint32_t> conn_id_list_t;
-typedef std::unordered_set<uint32_t> conn_id_set_t;
 
 //: ----------------------------------------------------------------------------
 //: Cache
@@ -304,7 +303,6 @@ private:
 
 typedef nlru <nconn *> idle_conn_lru_t;
 
-
 //: ----------------------------------------------------------------------------
 //: \class: nconn_pool
 //: ----------------------------------------------------------------------------
@@ -318,16 +316,13 @@ public:
         ~nconn_pool();
         // TODO passing settings struct -readonly reference
         int32_t get(nconn::scheme_t a_scheme,
-                    const settings_struct_t &a_settings,
                     nconn::type_t a_type,
                     nconn **ao_nconn);
         int32_t get_try_idle(const std::string &a_host,
                     nconn::scheme_t a_scheme,
-                    const settings_struct_t &a_settings,
                     nconn::type_t a_type,
                     nconn **ao_nconn);
         nconn *create_conn(nconn::scheme_t a_scheme,
-                           const settings_struct_t &a_settings,
                            nconn::type_t a_type);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);

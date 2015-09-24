@@ -26,10 +26,12 @@
 //: ----------------------------------------------------------------------------
 #include "t_client.h"
 #include "ndebug.h"
-#include "util.h"
 #include "ssl_util.h"
+#include "time_util.h"
 #include "resolver.h"
 #include "tinymt64.h"
+#include "nconn_tcp.h"
+#include "nconn_ssl.h"
 
 #include <unistd.h>
 
@@ -47,6 +49,16 @@
                 a_t_client->cleanup_connection(a_conn, true, a_error); \
         }while(0)
 
+#define T_CLIENT_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
+        do { \
+                int _status = 0; \
+                _status = _conn.set_opt((_opt), (_buf), (_len)); \
+                if (_status != nconn::NC_STATUS_OK) { \
+                        NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
+                        return STATUS_ERROR;\
+                } \
+        } while(0)
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -60,7 +72,7 @@ __thread t_client *g_t_client = NULL;
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #define COPY_SETTINGS(_field) m_settings._field = a_settings._field
-t_client::t_client(const settings_struct_t &a_settings):
+t_client::t_client(const client_settings_struct_t &a_settings):
         m_t_run_thread(),
         m_settings(),
         m_num_resolved(0),
@@ -372,7 +384,7 @@ http_rx *t_client::get_rx(void)
         // Based on mode
         switch(m_settings.m_request_mode)
         {
-        case REQUEST_MODE_ROUND_ROBIN:
+        case hlx_client::REQUEST_MODE_ROUND_ROBIN:
         {
                 l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 uint32_t l_next_index = m_http_rx_vector_idx + 1;
@@ -384,7 +396,7 @@ http_rx *t_client::get_rx(void)
                 m_http_rx_vector_idx = l_next_index;
                 break;
         }
-        case REQUEST_MODE_SEQUENTIAL:
+        case hlx_client::REQUEST_MODE_SEQUENTIAL:
         {
                 l_rx = m_http_rx_vector[m_http_rx_vector_idx];
                 if(l_rx->is_done())
@@ -395,7 +407,7 @@ http_rx *t_client::get_rx(void)
                 }
                 break;
         }
-        case REQUEST_MODE_RANDOM:
+        case hlx_client::REQUEST_MODE_RANDOM:
         {
                 tinymt64_t *l_rand_ptr = (tinymt64_t*)m_rand_ptr;
                 uint32_t l_next_index = (uint32_t)(tinymt64_generate_uint64(l_rand_ptr) % m_http_rx_vector.size());
@@ -452,10 +464,10 @@ int32_t t_client::evr_loop_file_writeable_cb(void *a_data)
         l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, nconn::NC_MODE_WRITE);
         if(STATUS_ERROR == l_status)
         {
-                if(l_nconn->m_verbose)
-                {
-                        NDBG_PRINT("Error: performing run_state_machine\n");
-                }
+                //if(l_nconn->m_verbose)
+                //{
+                //        NDBG_PRINT("Error: performing run_state_machine\n");
+                //}
                 T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, l_http_rx, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
                 return STATUS_ERROR;
         }
@@ -529,12 +541,13 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
                 l_mode = nconn::NC_MODE_WRITE;
         }
         l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, l_mode);
-        if((STATUS_ERROR == l_status) &&
-           l_nconn->m_verbose)
-        {
-                NDBG_PRINT("Error: performing run_state_machine\n");
-                return STATUS_ERROR;
-        }
+        // TODO Check status???
+        //if((STATUS_ERROR == l_status) &&
+        //   l_nconn->m_verbose)
+        //{
+        //        NDBG_PRINT("Error: performing run_state_machine\n");
+        //        return STATUS_ERROR;
+        //}
 
         if(l_status >= 0)
         {
@@ -568,7 +581,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
                 }
 
                 // Add stats
-                add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats());
+                l_t_client->add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats());
                 l_nconn->reset_stats();
 
                 // Bump stats
@@ -723,7 +736,7 @@ int32_t t_client::evr_loop_file_timeout_cb(void *a_data)
         //printf("%sT_O%s: %p\n",ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
         //                l_rconn->m_timer_obj);
 
-        add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats());
+        l_t_client->add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats());
 
         if(l_t_client->m_settings.m_verbose)
         {
@@ -885,14 +898,12 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                 {
                         l_status = m_nconn_pool.get_try_idle(a_http_rx->m_host,
                                                              a_http_rx->m_scheme,
-                                                             m_settings,
                                                              nconn::TYPE_CLIENT,
                                                              &l_nconn);
                 }
                 else
                 {
                         l_status = m_nconn_pool.get(a_http_rx->m_scheme,
-                                                    m_settings,
                                                     nconn::TYPE_CLIENT,
                                                     &l_nconn);
                 }
@@ -901,11 +912,21 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                         // Out of connections -try again later...
                         return STATUS_OK;
                 }
-                else if(l_status != nconn::NC_STATUS_OK)
+                else if(!l_nconn ||
+                        (l_status != nconn::NC_STATUS_OK))
                 {
                         NDBG_PRINT("Error l_nconn == NULL\n");
                         return STATUS_ERROR;
                 }
+
+                // Configure connection
+                l_status = config_conn(l_nconn);
+                if(l_status != STATUS_OK)
+                {
+                        NDBG_PRINT("Error performing config_conn\n");
+                        return STATUS_ERROR;
+                }
+
                 l_nconn->set_host_info(a_http_rx->m_host_info);
         }
 
@@ -1234,13 +1255,94 @@ int32_t t_client::set_header(const std::string &a_header_key, const std::string 
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_client::get_stats_copy(tag_stat_map_t &ao_tag_stat_map)
+void t_client::get_stats_copy(hlx_client::tag_stat_map_t &ao_tag_stat_map)
 {
         // TODO Make threadsafe...
         for(http_rx_vector_t::iterator i_rx = m_http_rx_vector.begin(); i_rx != m_http_rx_vector.end(); ++i_rx)
         {
                 ao_tag_stat_map[(*i_rx)->get_label()] = (*i_rx)->m_stat_agg;
         }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void t_client::add_stat_to_agg(hlx_client::t_stat_t &ao_stat_agg, const req_stat_t &a_req_stat)
+{
+        update_stat(ao_stat_agg.m_stat_us_connect, a_req_stat.m_tt_connect_us);
+        update_stat(ao_stat_agg.m_stat_us_first_response, a_req_stat.m_tt_first_read_us);
+        update_stat(ao_stat_agg.m_stat_us_end_to_end, a_req_stat.m_tt_completion_us);
+
+        // Totals
+        ++ao_stat_agg.m_total_reqs;
+        ao_stat_agg.m_total_bytes += a_req_stat.m_total_bytes;
+
+        // Status code
+        //NDBG_PRINT("%sSTATUS_CODE%s: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);
+        ++ao_stat_agg.m_status_code_count_map[a_req_stat.m_status_code];
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_client::config_conn(nconn *a_nconn)
+{
+        a_nconn->set_num_reqs_per_conn(m_settings.m_num_reqs_per_conn);
+        a_nconn->set_save_response(m_settings.m_save_response);
+        a_nconn->set_collect_stats(m_settings.m_collect_stats);
+        a_nconn->set_connect_only(m_settings.m_connect_only);
+
+        // -------------------------------------------
+        // Set options
+        // -------------------------------------------
+        // Set generic options
+        T_CLIENT_SET_NCONN_OPT((*a_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_settings.m_sock_opt_recv_buf_size);
+        T_CLIENT_SET_NCONN_OPT((*a_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_settings.m_sock_opt_send_buf_size);
+        T_CLIENT_SET_NCONN_OPT((*a_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_settings.m_sock_opt_no_delay);
+
+        // Set ssl options
+        if(a_nconn->m_scheme == nconn::SCHEME_SSL)
+        {
+                T_CLIENT_SET_NCONN_OPT((*a_nconn),
+                                       nconn_ssl::OPT_SSL_CIPHER_STR,
+                                       m_settings.m_ssl_cipher_list.c_str(),
+                                       m_settings.m_ssl_cipher_list.length());
+
+                T_CLIENT_SET_NCONN_OPT((*a_nconn),
+                                       nconn_ssl::OPT_SSL_CTX,
+                                       m_settings.m_ssl_ctx,
+                                       sizeof(m_settings.m_ssl_ctx));
+
+                T_CLIENT_SET_NCONN_OPT((*a_nconn),
+                                       nconn_ssl::OPT_SSL_VERIFY,
+                                       &(m_settings.m_ssl_verify),
+                                       sizeof(m_settings.m_ssl_verify));
+
+                //T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_OPTIONS,
+                //                              &(a_settings.m_ssl_options),
+                //                              sizeof(a_settings.m_ssl_options));
+
+                if(!m_settings.m_tls_crt.empty())
+                {
+                        T_CLIENT_SET_NCONN_OPT((*a_nconn),
+                                               nconn_ssl::OPT_SSL_TLS_CRT,
+                                               m_settings.m_tls_crt.c_str(),
+                                               m_settings.m_tls_crt.length());
+                }
+                if(!m_settings.m_tls_key.empty())
+                {
+                        T_CLIENT_SET_NCONN_OPT((*a_nconn),
+                                               nconn_ssl::OPT_SSL_TLS_KEY,
+                                               m_settings.m_tls_key.c_str(),
+                                               m_settings.m_tls_key.length());
+                }
+        }
+        return STATUS_OK;
 }
 
 } //namespace ns_hlx {

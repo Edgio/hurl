@@ -29,15 +29,7 @@ LIST(APPEND INST_HDRS ${HDRS})
 # include paths
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 #${CMAKE_CURRENT_BINARY_DIR}
-    ../core/support
-    ../core/http_parser
-    ../core/ndebug
-    ../core/hlx_client
-    ../core/hlx_server
-    ../core/http
-    ../core/url_router
-    ../core/nconn
-    ../core
+    ../../include
 )
 
 #add_definitions(-std=c++0x)

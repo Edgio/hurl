@@ -26,17 +26,14 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <pthread.h>
 #include <signal.h>
+#include <stdint.h>
 
 #include <string>
 #include <list>
-#include <vector>
 #include <map>
-#include <stdint.h>
-#include "http_request_handler.h"
-#include "nbq.h"
-#include "nconn.h"
+
+#include "hlo/hlx_common.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -63,10 +60,69 @@ typedef ssl_ctx_st SSL_CTX;
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
-//: Types
+//: Fwd decl's
 //: ----------------------------------------------------------------------------
 class t_server;
-typedef std::list <t_server *> t_server_list_t;
+class url_router;
+
+#ifndef URL_PARAM_MAP_T
+#define URL_PARAM_MAP_T
+typedef std::map <std::string, std::string> url_param_map_t;
+#endif
+
+//: ----------------------------------------------------------------------------
+//: http_request_handler
+//: ----------------------------------------------------------------------------
+class http_request_handler
+{
+public:
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
+        http_request_handler(void) {};
+        virtual ~http_request_handler(){};
+
+        virtual int32_t do_get(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_post(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_put(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_delete(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_default(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+
+        // -------------------------------------------------
+        // Public members
+        // -------------------------------------------------
+        int32_t get_file(const std::string &a_path, const http_req &a_request, http_resp &ao_response);
+        int32_t send_not_found(const http_req &a_request, http_resp &ao_response, const char *a_resp_str);
+private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(http_request_handler)
+};
+
+//: ----------------------------------------------------------------------------
+//: default_http_request_handler
+//: ----------------------------------------------------------------------------
+class default_http_request_handler: public http_request_handler
+{
+public:
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
+        default_http_request_handler(void);
+        ~default_http_request_handler();
+
+        int32_t do_get(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_post(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_put(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_delete(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_default(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(default_http_request_handler)
+};
 
 //: ----------------------------------------------------------------------------
 //: hlx_server
@@ -74,6 +130,40 @@ typedef std::list <t_server *> t_server_list_t;
 class hlx_server
 {
 public:
+        //: --------------------------------------------------------------------
+        //: Types
+        //: --------------------------------------------------------------------
+        typedef std::list <t_server *> t_server_list_t;
+
+        // -----------------------------------------------
+        // All Stat Aggregation..
+        // -----------------------------------------------
+        typedef struct t_stat_struct
+        {
+                // Totals
+                uint64_t m_total_bytes;
+                uint64_t m_total_reqs;
+
+                // Client stats
+
+                t_stat_struct():
+                        m_total_bytes(0),
+                        m_total_reqs(0)
+                {}
+
+                void clear();
+
+        } t_stat_t;
+
+        // -----------------------------------------------
+        // Scheme
+        // -----------------------------------------------
+        typedef enum {
+                SCHEME_NONE = 0,
+                SCHEME_HTTP,
+                SCHEME_HTTPS
+        } scheme_type_t;
+
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -92,7 +182,7 @@ public:
         void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
 
         // TLS
-        void set_scheme(nconn::scheme_t a_scheme);
+        void set_scheme(scheme_type_t a_scheme);
         void set_ssl_cipher_list(const std::string &a_cipher_list);
         void set_ssl_ca_path(const std::string &a_ssl_ca_path);
         void set_ssl_ca_file(const std::string &a_ssl_ca_file);
@@ -107,6 +197,9 @@ public:
         int32_t wait_till_stopped(void);
         bool is_running(void);
         int32_t add_endpoint(const std::string &a_endpoint, const http_request_handler *a_handler);
+
+        // Stats
+        void get_stats(t_stat_t &ao_all_stats) const;
 
 private:
         // -------------------------------------------------
@@ -125,7 +218,7 @@ private:
         uint16_t m_port;
         uint32_t m_num_threads;
         int32_t m_num_parallel;
-        nconn::scheme_t m_scheme;
+        scheme_type_t m_scheme;
         SSL_CTX* m_ssl_ctx;
         std::string m_tls_key;
         std::string m_tls_crt;
@@ -137,7 +230,7 @@ private:
         uint64_t m_start_time_ms;
         t_server_list_t m_t_server_list;
         int m_evr_loop_type;
-        url_router m_url_router;
+        url_router *m_url_router;
         int32_t m_fd;
         bool m_is_initd;
 };

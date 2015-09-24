@@ -27,9 +27,8 @@
 #include "nconn.h"
 #include "nbq.h"
 #include "evr.h"
-
-// For time routines
-#include "util.h"
+#include "time_util.h"
+#include "http_cb.h"
 
 #include <errno.h>
 #include <string.h>
@@ -116,10 +115,7 @@ state_top:
                 l_status = ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        if(m_verbose)
-                        {
-                                NDBG_PRINT("Error performing ncconnect\n");
-                        }
+                        //NDBG_PRINT("Error performing ncconnect.\n");
                         return STATUS_ERROR;
                 }
 
@@ -340,19 +336,19 @@ int32_t nconn::nc_read(void)
                 //m_read_buf_idx += l_bytes_read;
                 if(l_parse_status < (size_t)l_bytes_read)
                 {
-                        if(m_verbose)
-                        {
-                                NCONN_ERROR("HOST[%s]: Error: parse error.  Reason: %s: %s\n",
-                                                m_host.c_str(),
-                                                //"","");
-                                                http_errno_name((enum http_errno)m_http_parser.http_errno),
-                                                http_errno_description((enum http_errno)m_http_parser.http_errno));
-                                //NDBG_PRINT("%s: %sl_bytes_read%s[%d] <= 0 total = %u idx = %u\n",
-                                //              m_host.c_str(),
-                                //              ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read, l_total_bytes_read, m_read_buf_idx);
-                                //ns_hlx::mem_display((const uint8_t *)m_read_buf + m_read_buf_idx, l_bytes_read);
-
-                        }
+                        //if(m_verbose)
+                        //{
+                        //        NCONN_ERROR("HOST[%s]: Error: parse error.  Reason: %s: %s\n",
+                        //                        m_host.c_str(),
+                        //                        //"","");
+                        //                        http_errno_name((enum http_errno)m_http_parser.http_errno),
+                        //                        http_errno_description((enum http_errno)m_http_parser.http_errno));
+                        //        //NDBG_PRINT("%s: %sl_bytes_read%s[%d] <= 0 total = %u idx = %u\n",
+                        //        //              m_host.c_str(),
+                        //        //              ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read, l_total_bytes_read, m_read_buf_idx);
+                        //        //ns_hlx::mem_display((const uint8_t *)m_read_buf + m_read_buf_idx, l_bytes_read);
+                        //
+                        //}
 
                         return NC_STATUS_ERROR;
 
@@ -406,18 +402,6 @@ int32_t nconn::nc_write(void)
                 {
                         NDBG_PRINT("Error performing ncwrite: status: %d\n", l_bytes_written);
                         return NC_STATUS_ERROR;
-                }
-                else if(m_verbose)
-                {
-                        if(m_color)
-                        {
-                                NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
-                        }
-                        NDBG_OUTPUT("%.*s", l_bytes_written, m_out_q->read_ptr());
-                        if(m_color)
-                        {
-                                NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
-                        }
                 }
                 // and not error?
                 m_out_q->read_incr(l_bytes_written);
@@ -521,16 +505,12 @@ int32_t nconn::nc_cleanup()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn::nconn(bool a_verbose,
-      bool a_color,
-      int64_t a_max_reqs_per_conn,
-      bool a_save,
-      bool a_collect_stats,
-      bool a_connect_only,
-      type_t a_type):
+nconn::nconn(int64_t a_max_reqs_per_conn,
+             bool a_save,
+             bool a_collect_stats,
+             bool a_connect_only,
+             type_t a_type):
               m_scheme(SCHEME_NONE),
-              m_verbose(a_verbose),
-              m_color(a_color),
               m_host(),
               m_stat(),
               m_save(a_save),

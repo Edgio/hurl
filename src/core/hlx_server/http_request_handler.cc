@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "http_request_handler.h"
+#include "hlo/hlx_server.h"
 #include "ndebug.h"
-#include "util.h"
+#include "time_util.h"
 
 #include <inttypes.h>
 #include <string.h>

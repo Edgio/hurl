@@ -27,7 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn_pool.h"
-#include "settings.h"
+#include "client_settings.h"
 #include "ndebug.h"
 #include "http_rx.h"
 
@@ -50,7 +50,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_client(const settings_struct_t &a_settings);
+        t_client(const client_settings_struct_t &a_settings);
         ~t_client();
 
         int run(void);
@@ -64,7 +64,7 @@ public:
         void clear_headers(void) { m_settings.m_header_map.clear(); };
         void set_ssl_ctx(SSL_CTX * a_ssl_ctx) { m_settings.m_ssl_ctx = a_ssl_ctx;};
         uint32_t get_timeout_s(void) { return m_settings.m_timeout_s;};
-        void get_stats_copy(tag_stat_map_t &ao_tag_stat_map);
+        void get_stats_copy(hlx_client::tag_stat_map_t &ao_tag_stat_map);
         void set_end_fetches(int32_t a_num_fetches) { m_num_fetches = a_num_fetches;}
         bool is_done(void) const
         {
@@ -87,7 +87,7 @@ public:
         // -------------------------------------------------
         // Needs to be public for now -to join externally
         pthread_t m_t_run_thread;
-        settings_struct_t m_settings;
+        client_settings_struct_t m_settings;
 
         // Reqlets
         uint32_t m_num_resolved;
@@ -95,7 +95,7 @@ public:
         uint32_t m_num_error;
 
         // Summary info
-        summary_info_t m_summary_info;
+        hlx_client::summary_info_t m_summary_info;
 
         // -------------------------------------------------
         // Static (class) methods
@@ -125,6 +125,8 @@ private:
         int32_t create_request(nbq &a_q, http_rx &a_http_rx);
         http_rx *get_rx(void);
         void limit_rate();
+        void add_stat_to_agg(hlx_client::t_stat_t &ao_stat_agg, const req_stat_t &a_req_stat);
+        int32_t config_conn(nconn *a_nconn);
 
         // -------------------------------------------------
         // Private members

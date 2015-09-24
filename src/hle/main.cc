@@ -24,8 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx_client.h"
-#include "ndebug.h"
+#include "hlo/hlx_client.h"
+#include "rapidjson/document.h"
 
 #include <string.h>
 
@@ -63,8 +63,6 @@
 #include <google/profiler.h>
 #endif
 
-// json support
-#include "rapidjson/document.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -81,13 +79,41 @@
 #define HLE_VERSION_PATCH "alpha"
 
 //: ----------------------------------------------------------------------------
-//: Macros
+//: Status
 //: ----------------------------------------------------------------------------
+#ifndef STATUS_ERROR
+#define STATUS_ERROR -1
+#endif
+
+#ifndef STATUS_OK
+#define STATUS_OK 0
+#endif
 
 //: ----------------------------------------------------------------------------
-//: Types
+//: ANSI Color Code Strings
+//:
+//: Taken from:
+//: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
 //: ----------------------------------------------------------------------------
-
+#define ANSI_COLOR_OFF          "\033[0m"
+#define ANSI_COLOR_FG_BLACK     "\033[01;30m"
+#define ANSI_COLOR_FG_RED       "\033[01;31m"
+#define ANSI_COLOR_FG_GREEN     "\033[01;32m"
+#define ANSI_COLOR_FG_YELLOW    "\033[01;33m"
+#define ANSI_COLOR_FG_BLUE      "\033[01;34m"
+#define ANSI_COLOR_FG_MAGENTA   "\033[01;35m"
+#define ANSI_COLOR_FG_CYAN      "\033[01;36m"
+#define ANSI_COLOR_FG_WHITE     "\033[01;37m"
+#define ANSI_COLOR_FG_DEFAULT   "\033[01;39m"
+#define ANSI_COLOR_BG_BLACK     "\033[01;40m"
+#define ANSI_COLOR_BG_RED       "\033[01;41m"
+#define ANSI_COLOR_BG_GREEN     "\033[01;42m"
+#define ANSI_COLOR_BG_YELLOW    "\033[01;43m"
+#define ANSI_COLOR_BG_BLUE      "\033[01;44m"
+#define ANSI_COLOR_BG_MAGENTA   "\033[01;45m"
+#define ANSI_COLOR_BG_CYAN      "\033[01;46m"
+#define ANSI_COLOR_BG_WHITE     "\033[01;47m"
+#define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
 //: ----------------------------------------------------------------------------
 //: Settings
 //: ----------------------------------------------------------------------------
@@ -262,7 +288,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
 
                 if (!a_settings.m_hlx_client->is_running())
                 {
-                        //NDBG_PRINT("IS NOT RUNNING.\n");
+                        //printf("IS NOT RUNNING.\n");
                         g_test_finished = true;
                 }
 
@@ -409,7 +435,7 @@ int command_exec_cli(settings_struct_t &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t add_line(FILE *a_file_ptr, ns_hlx::host_list_t &a_host_list)
+int32_t add_line(FILE *a_file_ptr, ns_hlx::hlx_client::host_list_t &a_host_list)
 {
 
         char l_readline[MAX_READLINE_SIZE];
@@ -429,11 +455,11 @@ int32_t add_line(FILE *a_file_ptr, ns_hlx::host_list_t &a_host_list)
                 l_readline[l_readline_len - 1] = '\0';
                 std::string l_string(l_readline);
                 l_string.erase( std::remove_if( l_string.begin(), l_string.end(), ::isspace ), l_string.end() );
-                ns_hlx::host_t l_host;
+                ns_hlx::hlx_client::host_t l_host;
                 l_host.m_host = l_string;
                 if(!l_string.empty())
                         a_host_list.push_back(l_host);
-                //NDBG_PRINT("READLINE: %s\n", l_readline);
+                //printf("READLINE: %s\n", l_readline);
         }
 
         return STATUS_OK;
@@ -448,7 +474,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 {
 
         // print out the version information
-        fprintf(a_stream, "hle HTTP Load Runner.\n");
+        fprintf(a_stream, "hle HTTP Parallel Curl.\n");
         fprintf(a_stream, "Copyright (C) 2014 Edgecast Networks.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
                         HLE_VERSION_MAJOR,
@@ -633,12 +659,12 @@ int main(int argc, char** argv)
         bool l_cli = false;
 
         // Defaults
-        ns_hlx::output_type_t l_output_mode = ns_hlx::OUTPUT_JSON;
-        int l_output_part =   ns_hlx::PART_HOST
-                            | ns_hlx::PART_SERVER
-                            | ns_hlx::PART_STATUS_CODE
-                            | ns_hlx::PART_HEADERS
-                            | ns_hlx::PART_BODY
+        ns_hlx::hlx_client::output_type_t l_output_mode = ns_hlx::hlx_client::OUTPUT_JSON;
+        int l_output_part =   ns_hlx::hlx_client::PART_HOST
+                            | ns_hlx::hlx_client::PART_SERVER
+                            | ns_hlx::hlx_client::PART_STATUS_CODE
+                            | ns_hlx::hlx_client::PART_HEADERS
+                            | ns_hlx::hlx_client::PART_BODY
                             ;
         bool l_output_pretty = false;
 
@@ -659,7 +685,7 @@ int main(int argc, char** argv)
                         l_url = std::string(argv[i_arg]);
                         //if(l_settings.m_verbose)
                         //{
-                        //      NDBG_PRINT("Found unspecified argument: %s --assuming url...\n", l_url.c_str());
+                        //      printf("Found unspecified argument: %s --assuming url...\n", l_url.c_str());
                         //}
                         break;
                 } else {
@@ -688,7 +714,7 @@ int main(int argc, char** argv)
                 {
                         l_argument.clear();
                 }
-                //NDBG_PRINT("arg[%c=%d]: %s\n", l_opt, l_option_index, l_argument.c_str());
+                //printf("arg[%c=%d]: %s\n", l_opt, l_option_index, l_argument.c_str());
 
                 switch (l_opt)
                 {
@@ -837,7 +863,7 @@ int main(int argc, char** argv)
                 case 'p':
                 {
                         int l_num_parallel = 1;
-                        //NDBG_PRINT("arg: --parallel: %s\n", optarg);
+                        //printf("arg: --parallel: %s\n", optarg);
                         //l_settings.m_start_type = START_PARALLEL;
                         l_num_parallel = atoi(optarg);
                         if (l_num_parallel < 1)
@@ -855,7 +881,7 @@ int main(int argc, char** argv)
                 case 't':
                 {
                         int l_max_threads = 1;
-                        //NDBG_PRINT("arg: --threads: %s\n", l_argument.c_str());
+                        //printf("arg: --threads: %s\n", l_argument.c_str());
                         l_max_threads = atoi(optarg);
                         if (l_max_threads < 0)
                         {
@@ -898,7 +924,7 @@ int main(int argc, char** argv)
                 case 'T':
                 {
                         int l_timeout_s = -1;
-                        //NDBG_PRINT("arg: --threads: %s\n", l_argument.c_str());
+                        //printf("arg: --threads: %s\n", l_argument.c_str());
                         l_timeout_s = atoi(optarg);
                         if (l_timeout_s < 1)
                         {
@@ -1009,7 +1035,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'l':
                 {
-                        l_output_mode = ns_hlx::OUTPUT_LINE_DELIMITED;
+                        l_output_mode = ns_hlx::hlx_client::OUTPUT_LINE_DELIMITED;
                         break;
                 }
                 // ---------------------------------------
@@ -1017,7 +1043,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'j':
                 {
-                        l_output_mode = ns_hlx::OUTPUT_JSON;
+                        l_output_mode = ns_hlx::hlx_client::OUTPUT_JSON;
                         break;
                 }
                 // ---------------------------------------
@@ -1071,7 +1097,7 @@ int main(int argc, char** argv)
         }
 
 
-        ns_hlx::host_list_t l_host_list;
+        ns_hlx::hlx_client::host_list_t l_host_list;
         // -------------------------------------------------
         // Host list processing
         // -------------------------------------------------
@@ -1125,12 +1151,12 @@ int main(int argc, char** argv)
                         return STATUS_ERROR;
                 }
 
-                //NDBG_PRINT("ADD_FILE: DONE: %s\n", a_url_file.c_str());
+                //printf("ADD_FILE: DONE: %s\n", a_url_file.c_str());
 
                 l_status = fclose(l_file);
                 if (0 != l_status)
                 {
-                        NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
+                        printf("Error performing fclose.  Reason: %s\n", strerror(errno));
                         return STATUS_ERROR;
                 }
         }
@@ -1146,14 +1172,14 @@ int main(int argc, char** argv)
                 l_status = stat(l_host_file_json_str.c_str(), &l_stat);
                 if(l_status != 0)
                 {
-                        NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", l_host_file_json_str.c_str(), strerror(errno));
+                        printf("Error performing stat on file: %s.  Reason: %s\n", l_host_file_json_str.c_str(), strerror(errno));
                         return STATUS_ERROR;
                 }
 
                 // Check if is regular file
                 if(!(l_stat.st_mode & S_IFREG))
                 {
-                        NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", l_host_file_json_str.c_str());
+                        printf("Error opening file: %s.  Reason: is NOT a regular file\n", l_host_file_json_str.c_str());
                         return STATUS_ERROR;
                 }
 
@@ -1164,7 +1190,7 @@ int main(int argc, char** argv)
                 l_file = fopen(l_host_file_json_str.c_str(),"r");
                 if (NULL == l_file)
                 {
-                        NDBG_PRINT("Error opening file: %s.  Reason: %s\n", l_host_file_json_str.c_str(), strerror(errno));
+                        printf("Error opening file: %s.  Reason: %s\n", l_host_file_json_str.c_str(), strerror(errno));
                         return STATUS_ERROR;
                 }
 
@@ -1177,7 +1203,7 @@ int main(int argc, char** argv)
                 l_read_size = fread(l_buf, 1, l_size, l_file);
                 if(l_read_size != l_size)
                 {
-                        NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
+                        printf("Error performing fread.  Reason: %s [%d:%d]\n",
                                         strerror(errno), l_read_size, l_size);
                         return STATUS_ERROR;
                 }
@@ -1190,7 +1216,7 @@ int main(int argc, char** argv)
                 l_doc.Parse(l_buf_str.c_str());
                 if(!l_doc.IsArray())
                 {
-                        NDBG_PRINT("Error reading json from file: %s.  Reason: data is not an array\n",
+                        printf("Error reading json from file: %s.  Reason: data is not an array\n",
                                         l_host_file_json_str.c_str());
                         return STATUS_ERROR;
                 }
@@ -1200,12 +1226,12 @@ int main(int argc, char** argv)
                 {
                         if(!l_doc[i_record].IsObject())
                         {
-                                NDBG_PRINT("Error reading json from file: %s.  Reason: array membe not an object\n",
+                                printf("Error reading json from file: %s.  Reason: array membe not an object\n",
                                                 l_host_file_json_str.c_str());
                                 return STATUS_ERROR;
                         }
 
-                        ns_hlx::host_t l_host;
+                        ns_hlx::hlx_client::host_t l_host;
 
                         // "host" : "irobdownload.blob.core.windows.net:443",
                         // "hostname" : "irobdownload.blob.core.windows.net",
@@ -1233,7 +1259,7 @@ int main(int argc, char** argv)
                 l_status = fclose(l_file);
                 if (STATUS_OK != l_status)
                 {
-                        NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
+                        printf("Error performing fclose.  Reason: %s\n", strerror(errno));
                         return STATUS_ERROR;
                 }
         }
@@ -1250,10 +1276,10 @@ int main(int argc, char** argv)
 
         if(l_settings.m_verbose)
         {
-                NDBG_OUTPUT("Showing hostname list:\n");
-                for(ns_hlx::host_list_t::iterator i_host = l_host_list.begin(); i_host != l_host_list.end(); ++i_host)
+                printf("Showing hostname list:\n");
+                for(ns_hlx::hlx_client::host_list_t::iterator i_host = l_host_list.begin(); i_host != l_host_list.end(); ++i_host)
                 {
-                        NDBG_OUTPUT("%s\n", i_host->m_host.c_str());
+                        printf("%s\n", i_host->m_host.c_str());
                 }
         }
 
@@ -1328,7 +1354,7 @@ int main(int argc, char** argv)
                 l_responses_str = l_hlx_client->dump_all_responses(l_use_color, l_output_pretty, l_output_mode, l_output_part);
                 if(l_output_file.empty())
                 {
-                        NDBG_OUTPUT("%s\n", l_responses_str.c_str());
+                        printf("%s\n", l_responses_str.c_str());
                 }
                 else
                 {
@@ -1338,7 +1364,7 @@ int main(int argc, char** argv)
                         FILE *l_file_ptr = fopen(l_output_file.c_str(), "w+");
                         if(l_file_ptr == NULL)
                         {
-                                NDBG_PRINT("Error performing fopen. Reason: %s\n", strerror(errno));
+                                printf("Error performing fopen. Reason: %s\n", strerror(errno));
                                 return STATUS_ERROR;
                         }
 
@@ -1346,7 +1372,7 @@ int main(int argc, char** argv)
                         l_num_bytes_written = fwrite(l_responses_str.c_str(), 1, l_responses_str.length(), l_file_ptr);
                         if(l_num_bytes_written != (int32_t)l_responses_str.length())
                         {
-                                NDBG_PRINT("Error performing fwrite. Reason: %s\n", strerror(errno));
+                                printf("Error performing fwrite. Reason: %s\n", strerror(errno));
                                 fclose(l_file_ptr);
                                 return STATUS_ERROR;
                         }
@@ -1355,7 +1381,7 @@ int main(int argc, char** argv)
                         l_status = fclose(l_file_ptr);
                         if(l_status != 0)
                         {
-                                NDBG_PRINT("Error performing fclose. Reason: %s\n", strerror(errno));
+                                printf("Error performing fclose. Reason: %s\n", strerror(errno));
                                 return STATUS_ERROR;
                         }
                 }
@@ -1380,7 +1406,7 @@ int main(int argc, char** argv)
 
         //if(l_settings.m_verbose)
         //{
-        //      NDBG_PRINT("Cleanup\n");
+        //      printf("Cleanup\n");
         //}
 
         return 0;
@@ -1407,33 +1433,33 @@ void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
                 l_off_color = ANSI_COLOR_OFF;
         }
 
-        ns_hlx::summary_info_t l_summary_info;
+        ns_hlx::hlx_client::summary_info_t l_summary_info;
         a_settings.m_hlx_client->get_summary_info(l_summary_info);
-        NDBG_OUTPUT("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
-        NDBG_OUTPUT("| total hosts:                     %u\n",a_num_hosts);
-        NDBG_OUTPUT("| success:                         %u\n",l_summary_info.m_success);
-        NDBG_OUTPUT("| error address lookup:            %u\n",l_summary_info.m_error_addr);
-        NDBG_OUTPUT("| error connectivity:              %u\n",l_summary_info.m_error_conn);
-        NDBG_OUTPUT("| error unknown:                   %u\n",l_summary_info.m_error_unknown);
-        NDBG_OUTPUT("| ssl error cert expired           %u\n",l_summary_info.m_ssl_error_expired);
-        NDBG_OUTPUT("| ssl error cert self-signed       %u\n",l_summary_info.m_ssl_error_self_signed);
-        NDBG_OUTPUT("| ssl error other                  %u\n",l_summary_info.m_ssl_error_other);
+        printf("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
+        printf("| total hosts:                     %u\n",a_num_hosts);
+        printf("| success:                         %u\n",l_summary_info.m_success);
+        printf("| error address lookup:            %u\n",l_summary_info.m_error_addr);
+        printf("| error connectivity:              %u\n",l_summary_info.m_error_conn);
+        printf("| error unknown:                   %u\n",l_summary_info.m_error_unknown);
+        printf("| ssl error cert expired           %u\n",l_summary_info.m_ssl_error_expired);
+        printf("| ssl error cert self-signed       %u\n",l_summary_info.m_ssl_error_self_signed);
+        printf("| ssl error other                  %u\n",l_summary_info.m_ssl_error_other);
 
         // Sort
         typedef std::map<uint32_t, std::string> _sorted_map_t;
         _sorted_map_t l_sorted_map;
-        NDBG_OUTPUT("+--------------- %sSSL PROTOCOLS%s -------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
+        printf("+--------------- %sSSL PROTOCOLS%s -------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
         l_sorted_map.clear();
-        for(ns_hlx::summary_map_t::iterator i_s = l_summary_info.m_ssl_protocols.begin(); i_s != l_summary_info.m_ssl_protocols.end(); ++i_s)
+        for(ns_hlx::hlx_client::summary_map_t::iterator i_s = l_summary_info.m_ssl_protocols.begin(); i_s != l_summary_info.m_ssl_protocols.end(); ++i_s)
         l_sorted_map[i_s->second] = i_s->first;
         for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
-        NDBG_OUTPUT("| %-32s %u\n", i_s->second.c_str(), i_s->first);
-        NDBG_OUTPUT("+--------------- %sSSL CIPHERS%s ---------------- \n", l_cipher_str.c_str(), l_off_color.c_str());
+        printf("| %-32s %u\n", i_s->second.c_str(), i_s->first);
+        printf("+--------------- %sSSL CIPHERS%s ---------------- \n", l_cipher_str.c_str(), l_off_color.c_str());
         l_sorted_map.clear();
-        for(ns_hlx::summary_map_t::iterator i_s = l_summary_info.m_ssl_ciphers.begin(); i_s != l_summary_info.m_ssl_ciphers.end(); ++i_s)
+        for(ns_hlx::hlx_client::summary_map_t::iterator i_s = l_summary_info.m_ssl_ciphers.begin(); i_s != l_summary_info.m_ssl_ciphers.end(); ++i_s)
         l_sorted_map[i_s->second] = i_s->first;
         for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
-        NDBG_OUTPUT("| %-32s %u\n", i_s->second.c_str(), i_s->first);
+        printf("| %-32s %u\n", i_s->second.c_str(), i_s->first);
 }
 
 //: ----------------------------------------------------------------------------
@@ -1448,8 +1474,8 @@ void display_status_line(settings_struct_t &a_settings)
         // -------------------------------------------------
 
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::tag_stat_map_t l_unused;
+        ns_hlx::hlx_client::t_stat_t l_total;
+        ns_hlx::hlx_client::tag_stat_map_t l_unused;
         a_settings.m_hlx_client->get_stats(l_total, false, l_unused);
 
         uint32_t l_num_done = l_total.m_total_reqs;

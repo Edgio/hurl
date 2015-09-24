@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn_ssl.h"
-#include "util.h"
+#include "time_util.h"
 #include "evr.h"
 #include "hostcheck.h"
 #include "ssl_util.h"
@@ -738,10 +738,10 @@ ncconnect_state_top:
                 l_status = nconn_tcp::ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        if(m_verbose)
-                        {
-                                NDBG_PRINT("Error performing ncconnect\n");
-                        }
+                        //if(m_verbose)
+                        //{
+                        //        NDBG_PRINT("Error performing ncconnect\n");
+                        //}
                         return NC_STATUS_ERROR;
                 }
 

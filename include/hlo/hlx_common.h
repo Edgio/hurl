@@ -2,7 +2,7 @@
 //: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    http.h
+//: \file:    hlx_common.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    07/20/2015
@@ -20,30 +20,26 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _HTTP_H
-#define _HTTP_H
+#ifndef _HLX_COMMON_H
+#define _HLX_COMMON_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
-#include "nbq.h"
 #include <string>
 #include <list>
 #include <map>
 
 //: ----------------------------------------------------------------------------
-//: helper
+//: Macros
 //: ----------------------------------------------------------------------------
-#define PARSE_IF_UNPARSED() do { \
-        if(!m_url_parsed) \
-        { \
-                if(parse_url() != STATUS_OK) \
-                { \
-                        NDBG_PRINT("Error performing parse_url\n"); \
-                } \
-        } \
-} while(0)
+#define HTTP_DISALLOW_ASSIGN(class_name)\
+    class_name& operator=(const class_name &);
+#define HTTP_DISALLOW_COPY(class_name)\
+    class_name(const class_name &);
+#define HTTP_DISALLOW_COPY_AND_ASSIGN(class_name)\
+    HTTP_DISALLOW_COPY(class_name)\
+    HTTP_DISALLOW_ASSIGN(class_name)
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -115,7 +111,7 @@ public:
         const std::string &get_body(void);
         void set_q(nbq *a_q) { m_q = a_q;}
         nbq *get_q(void) { return m_q;}
-        const std::string &get_url_path(void) {PARSE_IF_UNPARSED(); return m_parsed_url_path; }
+        const std::string &get_url_path(void);
 
         // -------------------------------------------------
         // Public members
@@ -144,7 +140,7 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(http_req);
+        HTTP_DISALLOW_COPY_AND_ASSIGN(http_req);
         int32_t parse_url(void);
 
         // -------------------------------------------------
@@ -217,7 +213,7 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(http_resp);
+        HTTP_DISALLOW_COPY_AND_ASSIGN(http_resp);
 
         // -------------------------------------------------
         // Private members
@@ -227,18 +223,6 @@ private:
         std::string m_body;
         nbq *m_q;
 };
-
-//: ----------------------------------------------------------------------------
-//: Callbacks
-//: ----------------------------------------------------------------------------
-int hp_on_message_begin(http_parser* a_parser);
-int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length);
-int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length);
-int hp_on_header_field(http_parser* a_parser, const char *a_at, size_t a_length);
-int hp_on_header_value(http_parser* a_parser, const char *a_at, size_t a_length);
-int hp_on_headers_complete(http_parser* a_parser);
-int hp_on_body(http_parser* a_parser, const char *a_at, size_t a_length);
-int hp_on_message_complete(http_parser* a_parser);
 
 } // ns_hlx
 

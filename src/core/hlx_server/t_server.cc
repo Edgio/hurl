@@ -25,17 +25,31 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "t_server.h"
-#include "util.h"
 #include "ndebug.h"
 #include "nbq.h"
 #include "nconn_tcp.h"
 #include "nconn_ssl.h"
+#include "time_util.h"
+#include "url_router.h"
 
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
 
 namespace ns_hlx {
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
+#define T_SERVER_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
+        do { \
+                int _status = 0; \
+                _status = _conn.set_opt((_opt), (_buf), (_len)); \
+                if (_status != nconn::NC_STATUS_OK) { \
+                        NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
+                        return STATUS_ERROR;\
+                } \
+        } while(0)
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -78,7 +92,7 @@ __thread t_server *g_t_server = NULL;
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #define COPY_SETTINGS(_field) m_settings._field = a_settings._field
-t_server::t_server(const settings_struct_t &a_settings,
+t_server::t_server(const server_settings_struct_t &a_settings,
                    url_router *a_url_router):
         m_t_run_thread(),
         m_settings(),
@@ -220,7 +234,16 @@ int32_t t_server::init(void)
 #endif
 
         // Create a server connection object
-        m_listening_nconn = m_nconn_pool.create_conn(m_settings.m_scheme, m_settings,nconn::TYPE_SERVER);
+        m_listening_nconn = m_nconn_pool.create_conn(m_settings.m_scheme, nconn::TYPE_SERVER);
+
+        // Config
+        l_status = config_conn(m_listening_nconn);
+        if(l_status != STATUS_OK)
+        {
+                NDBG_PRINT("Error: performing config_conn\n");
+                return STATUS_ERROR;
+        }
+
         l_status = m_listening_nconn->nc_set_listening(m_evr_loop, m_settings.m_fd);
         if(l_status != STATUS_OK)
         {
@@ -240,12 +263,20 @@ nconn *t_server::get_new_client_conn(int a_fd)
         nconn *l_nconn;
         int32_t l_status;
         l_status = m_nconn_pool.get(m_settings.m_scheme,
-                                    m_settings,
                                     nconn::TYPE_SERVER,
                                     &l_nconn);
-        if(l_status != nconn::NC_STATUS_OK)
+        if(!l_nconn ||
+           (l_status != nconn::NC_STATUS_OK))
         {
                 NDBG_PRINT("Error: performing m_nconn_pool.get\n");
+                return NULL;
+        }
+
+        // Config
+        l_status = config_conn(l_nconn);
+        if(l_status != STATUS_OK)
+        {
+                NDBG_PRINT("Error: performing config_conn\n");
                 return NULL;
         }
 
@@ -362,10 +393,10 @@ int32_t t_server::evr_loop_file_writeable_cb(void *a_data)
                                                  nconn::NC_MODE_WRITE);
         if(STATUS_ERROR == l_status)
         {
-                if(l_nconn->m_verbose)
-                {
-                        NDBG_PRINT("Error: performing run_state_machine\n");
-                }
+                //if(l_nconn->m_verbose)
+                //{
+                //        NDBG_PRINT("Error: performing run_state_machine\n");
+                //}
                 l_t_server->cleanup_connection(l_nconn, true, 901);
                 return STATUS_OK;
         }
@@ -431,12 +462,13 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
         {
                 // Returns new client fd on success
                 l_status = l_nconn->nc_run_state_machine(l_t_server->m_evr_loop, nconn::NC_MODE_NONE);
-                if((STATUS_ERROR == l_status) &&
-                   l_nconn->m_verbose)
-                {
-                        NDBG_PRINT("Error: performing run_state_machine\n");
-                        return STATUS_ERROR;
-                }
+                // TODO Check status...
+                //if((STATUS_ERROR == l_status) &&
+                //   l_nconn->m_verbose)
+                //{
+                //        NDBG_PRINT("Error: performing run_state_machine\n");
+                //        return STATUS_ERROR;
+                //}
 
                 // Get new connected client conn
                 l_nconn = l_t_server->get_new_client_conn(l_status);
@@ -458,11 +490,12 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
         else
         {
                 l_status = l_nconn->nc_run_state_machine(l_t_server->m_evr_loop, nconn::NC_MODE_READ);
-                if((STATUS_ERROR == l_status) && l_nconn->m_verbose)
-                {
-                        NDBG_PRINT("Error: performing run_state_machine\n");
-                        l_t_server->cleanup_connection(l_nconn, true, 500);
-                }
+                // TODO Check status???
+                //if((STATUS_ERROR == l_status) && l_nconn->m_verbose)
+                //{
+                //        NDBG_PRINT("Error: performing run_state_machine\n");
+                //        l_t_server->cleanup_connection(l_nconn, true, 500);
+                //}
                 http_req *l_req = static_cast<http_req *>(l_nconn->get_data1());
                 if(!l_req)
                 {
@@ -497,11 +530,13 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
                                 // Try write if out q
                                 int32_t l_write_status;
                                 l_write_status = l_nconn->nc_run_state_machine(l_t_server->m_evr_loop, nconn::NC_MODE_WRITE);
-                                if((l_write_status == STATUS_ERROR) && l_nconn->m_verbose)
-                                {
-                                        NDBG_PRINT("Error: performing run_state_machine\n");
-                                        l_t_server->cleanup_connection(l_nconn, true, 500);
-                                }
+                                UNUSED(l_write_status);
+                                // TODO Check status???
+                                //if((l_write_status == STATUS_ERROR) && l_nconn->m_verbose)
+                                //{
+                                //        NDBG_PRINT("Error: performing run_state_machine\n");
+                                //        l_t_server->cleanup_connection(l_nconn, true, 500);
+                                //}
                         }
 
                         if(l_status != nconn::NC_STATUS_EOF)
@@ -910,6 +945,66 @@ int32_t t_server::handle_req(nconn *a_nconn, http_req *a_req)
                 l_resp = NULL;
         }
 
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_server::config_conn(nconn *a_nconn)
+{
+        a_nconn->set_num_reqs_per_conn(m_settings.m_num_reqs_per_conn);
+        a_nconn->set_save_response(m_settings.m_save_response);
+        a_nconn->set_collect_stats(m_settings.m_collect_stats);
+        a_nconn->set_connect_only(m_settings.m_connect_only);
+
+        // -------------------------------------------
+        // Set options
+        // -------------------------------------------
+        // Set generic options
+        T_SERVER_SET_NCONN_OPT((*a_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_settings.m_sock_opt_recv_buf_size);
+        T_SERVER_SET_NCONN_OPT((*a_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_settings.m_sock_opt_send_buf_size);
+        T_SERVER_SET_NCONN_OPT((*a_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_settings.m_sock_opt_no_delay);
+
+        // Set ssl options
+        if(a_nconn->m_scheme == nconn::SCHEME_SSL)
+        {
+                T_SERVER_SET_NCONN_OPT((*a_nconn),
+                                       nconn_ssl::OPT_SSL_CIPHER_STR,
+                                       m_settings.m_ssl_cipher_list.c_str(),
+                                       m_settings.m_ssl_cipher_list.length());
+
+                T_SERVER_SET_NCONN_OPT((*a_nconn),
+                                       nconn_ssl::OPT_SSL_CTX,
+                                       m_settings.m_ssl_ctx,
+                                       sizeof(m_settings.m_ssl_ctx));
+
+                T_SERVER_SET_NCONN_OPT((*a_nconn),
+                                       nconn_ssl::OPT_SSL_VERIFY,
+                                       &(m_settings.m_ssl_verify),
+                                       sizeof(m_settings.m_ssl_verify));
+
+                //T_CLIENT_SET_NCONN_OPT((*l_nconn), nconn_ssl::OPT_SSL_OPTIONS,
+                //                              &(a_settings.m_ssl_options),
+                //                              sizeof(a_settings.m_ssl_options));
+
+                if(!m_settings.m_tls_crt.empty())
+                {
+                        T_SERVER_SET_NCONN_OPT((*a_nconn),
+                                               nconn_ssl::OPT_SSL_TLS_CRT,
+                                               m_settings.m_tls_crt.c_str(),
+                                               m_settings.m_tls_crt.length());
+                }
+                if(!m_settings.m_tls_key.empty())
+                {
+                        T_SERVER_SET_NCONN_OPT((*a_nconn),
+                                               nconn_ssl::OPT_SSL_TLS_KEY,
+                                               m_settings.m_tls_key.c_str(),
+                                               m_settings.m_tls_key.length());
+                }
+        }
         return STATUS_OK;
 }
 

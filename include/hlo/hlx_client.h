@@ -62,170 +62,169 @@ class resolver;
 class t_client;
 
 //: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef std::list <t_client *> t_client_list_t;
-typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
-
-// -----------------------------------------------
-// Host info
-// -----------------------------------------------
-typedef struct host_struct {
-        std::string m_host;
-        std::string m_hostname;
-        std::string m_id;
-        std::string m_where;
-        std::string m_url;
-
-        host_struct():
-                m_host(),
-                m_hostname(),
-                m_id(),
-                m_where(),
-                m_url()
-        {};
-} host_t;
-
-// -----------------------------------------------
-// xstat
-// -----------------------------------------------
-typedef struct xstat_struct
-{
-        double m_sum_x;
-        double m_sum_x2;
-        double m_min;
-        double m_max;
-        uint64_t m_num;
-
-        double min() const { return m_min; }
-        double max() const { return m_max; }
-        double mean() const { return (m_num > 0) ? m_sum_x / m_num : 0.0; }
-        double var() const { return (m_num > 0) ? (m_sum_x2 - m_sum_x) / m_num : 0.0; }
-        double stdev() const { return sqrt(var()); }
-
-        xstat_struct():
-                m_sum_x(0.0),
-                m_sum_x2(0.0),
-                m_min(1000000000.0),
-                m_max(0.0),
-                m_num(0)
-        {}
-
-        void clear()
-        {
-                m_sum_x = 0.0;
-                m_sum_x2 = 0.0;
-                m_min = 1000000000.0;
-                m_max = 0.0;
-                m_num = 0;
-        };
-} xstat_t;
-
-// -----------------------------------------------
-// All Stat Aggregation..
-// -----------------------------------------------
-typedef struct t_stat_struct
-{
-
-        // Stats
-        xstat_t m_stat_us_connect;
-        xstat_t m_stat_us_first_response;
-        xstat_t m_stat_us_end_to_end;
-
-        // Totals
-        uint64_t m_total_bytes;
-        uint64_t m_total_reqs;
-
-        // Client stats
-        uint64_t m_num_resolved;
-        uint64_t m_num_conn_started;
-        uint64_t m_num_conn_completed;
-        uint64_t m_num_idle_killed;
-        uint64_t m_num_errors;
-        uint64_t m_num_bytes_read;
-
-        status_code_count_map_t m_status_code_count_map;
-
-        t_stat_struct():
-                m_stat_us_connect(),
-                m_stat_us_first_response(),
-                m_stat_us_end_to_end(),
-                m_total_bytes(0),
-                m_total_reqs(0),
-                m_num_resolved(0),
-                m_num_conn_started(0),
-                m_num_conn_completed(0),
-                m_num_idle_killed(0),
-                m_num_errors(0),
-                m_num_bytes_read(0),
-                m_status_code_count_map()
-        {}
-
-        void clear();
-
-} t_stat_t;
-
-
-// -----------------------------------------------
-// Summary info
-// -----------------------------------------------
-typedef std::map <std::string, uint32_t> summary_map_t;
-typedef struct summary_info_struct {
-        uint32_t m_success;
-        uint32_t m_error_addr;
-        uint32_t m_error_conn;
-        uint32_t m_error_unknown;
-        uint32_t m_ssl_error_self_signed;
-        uint32_t m_ssl_error_expired;
-        uint32_t m_ssl_error_other;
-        summary_map_t m_ssl_protocols;
-        summary_map_t m_ssl_ciphers;
-
-        summary_info_struct();
-
-} summary_info_t;
-
-typedef std::map <std::string, t_stat_t> tag_stat_map_t;
-typedef std::list <host_t> host_list_t;
-typedef std::list <std::string> server_list_t;
-
-// -----------------------------------------------
-// Scheme
-// -----------------------------------------------
-typedef enum {
-        SCHEME_NONE = 0,
-        SCHEME_HTTP,
-        SCHEME_HTTPS
-} scheme_type_t;
-
-// -----------------------------------------------
-// Output formats
-// -----------------------------------------------
-typedef enum {
-        OUTPUT_LINE_DELIMITED,
-        OUTPUT_JSON
-} output_type_t;
-
-typedef enum {
-        PART_HOST = 1,
-        PART_SERVER = 1 << 1,
-        PART_STATUS_CODE = 1 << 2,
-        PART_HEADERS = 1 << 3,
-        PART_BODY = 1 << 4
-} output_part_t;
-
-typedef enum {
-        REQUEST_MODE_SEQUENTIAL = 0,
-        REQUEST_MODE_RANDOM,
-        REQUEST_MODE_ROUND_ROBIN
-} request_mode_t;
-
-//: ----------------------------------------------------------------------------
 //: hlx_client
 //: ----------------------------------------------------------------------------
 class hlx_client
 {
 public:
+        //: --------------------------------------------------------------------
+        //: Types
+        //: --------------------------------------------------------------------
+        typedef std::list <t_client *> t_client_list_t;
+        typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
+
+        // -----------------------------------------------
+        // Host info
+        // -----------------------------------------------
+        typedef struct host_struct {
+                std::string m_host;
+                std::string m_hostname;
+                std::string m_id;
+                std::string m_where;
+                std::string m_url;
+
+                host_struct():
+                        m_host(),
+                        m_hostname(),
+                        m_id(),
+                        m_where(),
+                        m_url()
+                {};
+        } host_t;
+
+        // -----------------------------------------------
+        // xstat
+        // -----------------------------------------------
+        typedef struct xstat_struct
+        {
+                double m_sum_x;
+                double m_sum_x2;
+                double m_min;
+                double m_max;
+                uint64_t m_num;
+
+                double min() const { return m_min; }
+                double max() const { return m_max; }
+                double mean() const { return (m_num > 0) ? m_sum_x / m_num : 0.0; }
+                double var() const { return (m_num > 0) ? (m_sum_x2 - m_sum_x) / m_num : 0.0; }
+                double stdev() const { return sqrt(var()); }
+
+                xstat_struct():
+                        m_sum_x(0.0),
+                        m_sum_x2(0.0),
+                        m_min(1000000000.0),
+                        m_max(0.0),
+                        m_num(0)
+                {}
+
+                void clear()
+                {
+                        m_sum_x = 0.0;
+                        m_sum_x2 = 0.0;
+                        m_min = 1000000000.0;
+                        m_max = 0.0;
+                        m_num = 0;
+                };
+        } xstat_t;
+
+        // -----------------------------------------------
+        // All Stat Aggregation..
+        // -----------------------------------------------
+        typedef struct t_stat_struct
+        {
+
+                // Stats
+                xstat_t m_stat_us_connect;
+                xstat_t m_stat_us_first_response;
+                xstat_t m_stat_us_end_to_end;
+
+                // Totals
+                uint64_t m_total_bytes;
+                uint64_t m_total_reqs;
+
+                // Client stats
+                uint64_t m_num_resolved;
+                uint64_t m_num_conn_started;
+                uint64_t m_num_conn_completed;
+                uint64_t m_num_idle_killed;
+                uint64_t m_num_errors;
+                uint64_t m_num_bytes_read;
+
+                status_code_count_map_t m_status_code_count_map;
+
+                t_stat_struct():
+                        m_stat_us_connect(),
+                        m_stat_us_first_response(),
+                        m_stat_us_end_to_end(),
+                        m_total_bytes(0),
+                        m_total_reqs(0),
+                        m_num_resolved(0),
+                        m_num_conn_started(0),
+                        m_num_conn_completed(0),
+                        m_num_idle_killed(0),
+                        m_num_errors(0),
+                        m_num_bytes_read(0),
+                        m_status_code_count_map()
+                {}
+
+                void clear();
+
+        } t_stat_t;
+
+        // -----------------------------------------------
+        // Summary info
+        // -----------------------------------------------
+        typedef std::map <std::string, uint32_t> summary_map_t;
+        typedef struct summary_info_struct {
+                uint32_t m_success;
+                uint32_t m_error_addr;
+                uint32_t m_error_conn;
+                uint32_t m_error_unknown;
+                uint32_t m_ssl_error_self_signed;
+                uint32_t m_ssl_error_expired;
+                uint32_t m_ssl_error_other;
+                summary_map_t m_ssl_protocols;
+                summary_map_t m_ssl_ciphers;
+
+                summary_info_struct();
+
+        } summary_info_t;
+
+        typedef std::map <std::string, t_stat_t> tag_stat_map_t;
+        typedef std::list <host_t> host_list_t;
+        typedef std::list <std::string> server_list_t;
+
+        // -----------------------------------------------
+        // Scheme
+        // -----------------------------------------------
+        typedef enum {
+                SCHEME_NONE = 0,
+                SCHEME_HTTP,
+                SCHEME_HTTPS
+        } scheme_type_t;
+
+        // -----------------------------------------------
+        // Output formats
+        // -----------------------------------------------
+        typedef enum {
+                OUTPUT_LINE_DELIMITED,
+                OUTPUT_JSON
+        } output_type_t;
+
+        typedef enum {
+                PART_HOST = 1,
+                PART_SERVER = 1 << 1,
+                PART_STATUS_CODE = 1 << 2,
+                PART_HEADERS = 1 << 3,
+                PART_BODY = 1 << 4
+        } output_part_t;
+
+        typedef enum {
+                REQUEST_MODE_SEQUENTIAL = 0,
+                REQUEST_MODE_RANDOM,
+                REQUEST_MODE_ROUND_ROBIN
+        } request_mode_t;
+
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -320,9 +319,7 @@ public:
                                        output_type_t a_output_type,
                                        int a_part_map);
 
-        void get_stats(t_stat_t &ao_all_stats,
-                       bool a_get_breakdown,
-                       tag_stat_map_t &ao_breakdown_stats) const;
+        void get_stats(t_stat_t &ao_all_stats, bool a_get_breakdown, tag_stat_map_t &ao_breakdown_stats);
         int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
         void get_summary_info(summary_info_t &ao_summary_info);
 
@@ -346,6 +343,8 @@ private:
 
         int init(void);
         int init_client_list(void);
+
+        void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
 
         // -------------------------------------------------
         // Private members
@@ -434,7 +433,7 @@ private:
 //: \param:   ao_stat stat to be updated
 //: \param:   a_val value to update stat with
 //: ----------------------------------------------------------------------------
-inline void update_stat(xstat_t &ao_stat, double a_val)
+inline void update_stat(hlx_client::xstat_t &ao_stat, double a_val)
 {
         ao_stat.m_num++;
         ao_stat.m_sum_x += a_val;
@@ -449,7 +448,7 @@ inline void update_stat(xstat_t &ao_stat, double a_val)
 //: \param:   ao_stat stat to be updated
 //: \param:   a_from_stat stat to add
 //: ----------------------------------------------------------------------------
-inline void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
+inline void add_stat(hlx_client::xstat_t &ao_stat, const hlx_client::xstat_t &a_from_stat)
 {
         ao_stat.m_num += a_from_stat.m_num;
         ao_stat.m_sum_x += a_from_stat.m_sum_x;
@@ -465,7 +464,7 @@ inline void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
 //: \return:  n/a
 //: \param:   ao_stat stat to be cleared
 //: ----------------------------------------------------------------------------
-inline void clear_stat(xstat_t &ao_stat)
+inline void clear_stat(hlx_client::xstat_t &ao_stat)
 {
         ao_stat.m_sum_x = 0.0;
         ao_stat.m_sum_x2 = 0.0;
@@ -479,7 +478,7 @@ inline void clear_stat(xstat_t &ao_stat)
 //: \return:  n/a
 //: \param:   ao_stat stat display
 //: ----------------------------------------------------------------------------
-inline void show_stat(const xstat_t &ao_stat)
+inline void show_stat(const hlx_client::xstat_t &ao_stat)
 {
         printf("Stat: Mean: %4.2f, StdDev: %4.2f, Min: %4.2f, Max: %4.2f Num: %lu\n",
                ao_stat.mean(),

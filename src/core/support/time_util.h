@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    util.h
+//: \file:    time_util.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    02/07/2014
@@ -20,42 +20,24 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _UTIL_H
-#define _UTIL_H
+#ifndef _TIME_UTIL_H
+#define _TIME_UTIL_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <string>
 #include <stdint.h>
-#include "req_stat.h"
-#include "hlx_client.h"
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-int32_t break_header_string(const std::string &a_header_str, std::string &ao_header_key, std::string &ao_header_val);
-
-// Time utils...
 const char *get_date_str(void);
 uint64_t get_time_s(void);
 uint64_t get_time_ms(void);
 uint64_t get_time_us(void);
 uint64_t get_delta_time_ms(uint64_t a_start_time_ms);
 uint64_t get_delta_time_us(uint64_t a_start_time_us);
-
-// Path utils
-std::string get_file_wo_path(std::string &a_filename);
-std::string get_file_path(std::string &a_filename);
-std::string get_base_filename(std::string &a_filename);
-std::string get_file_ext(std::string &a_filename);
-std::string get_file_wo_ext(std::string &a_filename);
-
-// Add stat to agg
-void add_stat_to_agg(t_stat_t &ao_stat_agg, const req_stat_t &a_req_stat);
-void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
-
 } //namespace ns_hlx {
 
 #endif

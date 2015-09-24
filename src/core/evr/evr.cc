@@ -28,7 +28,7 @@
 #include "evr_select.h"
 #include "evr_epoll.h"
 #include "ndebug.h"
-#include "util.h"
+#include "time_util.h"
 
 #include <unistd.h>
 #include <sys/eventfd.h>

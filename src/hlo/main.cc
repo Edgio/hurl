@@ -24,10 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx_client.h"
-#include "util.h"
-#include "ndebug.h"
-#include "hlx_server.h"
+#include "hlo/hlx_client.h"
+#include "hlo/hlx_server.h"
 
 #include <string.h>
 
@@ -69,6 +67,43 @@
 #define HLO_VERSION_MINOR 0
 #define HLO_VERSION_MACRO 1
 #define HLO_VERSION_PATCH "alpha"
+
+//: ----------------------------------------------------------------------------
+//: Status
+//: ----------------------------------------------------------------------------
+#ifndef STATUS_ERROR
+#define STATUS_ERROR -1
+#endif
+
+#ifndef STATUS_OK
+#define STATUS_OK 0
+#endif
+
+//: ----------------------------------------------------------------------------
+//: ANSI Color Code Strings
+//:
+//: Taken from:
+//: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
+//: ----------------------------------------------------------------------------
+#define ANSI_COLOR_OFF          "\033[0m"
+#define ANSI_COLOR_FG_BLACK     "\033[01;30m"
+#define ANSI_COLOR_FG_RED       "\033[01;31m"
+#define ANSI_COLOR_FG_GREEN     "\033[01;32m"
+#define ANSI_COLOR_FG_YELLOW    "\033[01;33m"
+#define ANSI_COLOR_FG_BLUE      "\033[01;34m"
+#define ANSI_COLOR_FG_MAGENTA   "\033[01;35m"
+#define ANSI_COLOR_FG_CYAN      "\033[01;36m"
+#define ANSI_COLOR_FG_WHITE     "\033[01;37m"
+#define ANSI_COLOR_FG_DEFAULT   "\033[01;39m"
+#define ANSI_COLOR_BG_BLACK     "\033[01;40m"
+#define ANSI_COLOR_BG_RED       "\033[01;41m"
+#define ANSI_COLOR_BG_GREEN     "\033[01;42m"
+#define ANSI_COLOR_BG_YELLOW    "\033[01;43m"
+#define ANSI_COLOR_BG_BLUE      "\033[01;44m"
+#define ANSI_COLOR_BG_MAGENTA   "\033[01;45m"
+#define ANSI_COLOR_BG_CYAN      "\033[01;46m"
+#define ANSI_COLOR_BG_WHITE     "\033[01;47m"
+#define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -113,7 +148,7 @@ public:
                 m_hlx_client(NULL)
         {};
 private:
-        DISALLOW_COPY_AND_ASSIGN(stats_getter);
+        HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(stats_getter);
 };
 
 
@@ -135,7 +170,7 @@ typedef struct settings_struct
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
 
-        ns_hlx::t_stat_t *m_last_stat;
+        ns_hlx::hlx_client::t_stat_t *m_last_stat;
         int32_t m_run_time_ms;
 
         // Used for displaying interval stats
@@ -158,7 +193,7 @@ typedef struct settings_struct
                 m_run_time_ms(-1),
                 m_last_responses_count()
         {
-                m_last_stat = new ns_hlx::t_stat_struct();
+                m_last_stat = new ns_hlx::hlx_client::t_stat_struct();
                 for(uint32_t i = 0; i < 10; ++i) {m_last_responses_count[i] = 0;}
         }
 
@@ -786,19 +821,19 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'M':
                 {
-                        ns_hlx::request_mode_t l_mode;
+                        ns_hlx::hlx_client::request_mode_t l_mode;
                         std::string l_mode_arg = optarg;
                         if(l_mode_arg == "roundrobin")
                         {
-                                l_mode = ns_hlx::REQUEST_MODE_ROUND_ROBIN;
+                                l_mode = ns_hlx::hlx_client::REQUEST_MODE_ROUND_ROBIN;
                         }
                         else if(l_mode_arg == "sequential")
                         {
-                                l_mode = ns_hlx::REQUEST_MODE_SEQUENTIAL;
+                                l_mode = ns_hlx::hlx_client::REQUEST_MODE_SEQUENTIAL;
                         }
                         else if(l_mode_arg == "random")
                         {
-                                l_mode = ns_hlx::REQUEST_MODE_RANDOM;
+                                l_mode = ns_hlx::hlx_client::REQUEST_MODE_RANDOM;
                         }
                         else
                         {
@@ -1243,8 +1278,8 @@ void display_responses_line_desc(settings_struct &a_settings)
 void display_responses_line(settings_struct &a_settings)
 {
 
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::tag_stat_map_t l_unused;
+        ns_hlx::hlx_client::t_stat_t l_total;
+        ns_hlx::hlx_client::tag_stat_map_t l_unused;
         uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
@@ -1256,10 +1291,10 @@ void display_responses_line(settings_struct &a_settings)
         *(a_settings.m_last_stat) = l_total;
 
         // Aggregate over status code map
-        ns_hlx::status_code_count_map_t m_status_code_count_map;
+        ns_hlx::hlx_client::status_code_count_map_t m_status_code_count_map;
 
         uint32_t l_responses[10] = {0};
-        for(ns_hlx::status_code_count_map_t::iterator i_code = l_total.m_status_code_count_map.begin();
+        for(ns_hlx::hlx_client::status_code_count_map_t::iterator i_code = l_total.m_status_code_count_map.begin();
             i_code != l_total.m_status_code_count_map.end();
             ++i_code)
         {
@@ -1407,8 +1442,8 @@ void display_results_line_desc(settings_struct &a_settings)
 //: ----------------------------------------------------------------------------
 void display_results_line(settings_struct &a_settings)
 {
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::tag_stat_map_t l_unused;
+        ns_hlx::hlx_client::t_stat_t l_total;
+        ns_hlx::hlx_client::tag_stat_map_t l_unused;
         uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
@@ -1456,7 +1491,7 @@ void display_results_line(settings_struct &a_settings)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 static void show_total_agg_stat(std::string &a_tag,
-        const ns_hlx::t_stat_t &a_stat,
+        const ns_hlx::hlx_client::t_stat_t &a_stat,
         double a_time_elapsed_s,
         uint32_t a_max_parallel,
         bool a_color)
@@ -1506,7 +1541,7 @@ static void show_total_agg_stat(std::string &a_tag,
         else
                 printf("| HTTP response codes: \n");
 
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
+        for(ns_hlx::hlx_client::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
                         i_status_code != a_stat.m_status_code_count_map.end();
                 ++i_status_code)
         {
@@ -1529,8 +1564,8 @@ void display_results(settings_struct &a_settings,
                      double a_elapsed_time,
                      bool a_show_breakdown_flag)
 {
-        ns_hlx::tag_stat_map_t l_tag_stat_map;
-        ns_hlx::t_stat_t l_total;
+        ns_hlx::hlx_client::tag_stat_map_t l_tag_stat_map;
+        ns_hlx::hlx_client::t_stat_t l_total;
 
         // Get stats
         a_settings.m_hlx_client->get_stats(l_total, a_show_breakdown_flag, l_tag_stat_map);
@@ -1545,7 +1580,7 @@ void display_results(settings_struct &a_settings,
         // -------------------------------------------
         if(a_show_breakdown_flag)
         {
-                for(ns_hlx::tag_stat_map_t::iterator i_stat = l_tag_stat_map.begin();
+                for(ns_hlx::hlx_client::tag_stat_map_t::iterator i_stat = l_tag_stat_map.begin();
                                 i_stat != l_tag_stat_map.end();
                                 ++i_stat)
                 {
@@ -1561,7 +1596,7 @@ void display_results(settings_struct &a_settings,
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 static void show_total_agg_stat_legacy(std::string &a_tag,
-                                       const ns_hlx::t_stat_t &a_stat,
+                                       const ns_hlx::hlx_client::t_stat_t &a_stat,
                                        std::string &a_sep,
                                        double a_time_elapsed_s,
                                        uint32_t a_max_parallel)
@@ -1596,7 +1631,7 @@ static void show_total_agg_stat_legacy(std::string &a_tag,
         if(a_sep == "\n")
                 printf("%s", a_sep.c_str());
 
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
+        for(ns_hlx::hlx_client::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
                         i_status_code != a_stat.m_status_code_count_map.end();
                 ++i_status_code)
         {
@@ -1617,8 +1652,8 @@ void display_results_http_load_style(settings_struct &a_settings,
                                      bool a_show_breakdown_flag,
                                      bool a_one_line_flag)
 {
-        ns_hlx::tag_stat_map_t l_tag_stat_map;
-        ns_hlx::t_stat_t l_total;
+        ns_hlx::hlx_client::tag_stat_map_t l_tag_stat_map;
+        ns_hlx::hlx_client::t_stat_t l_total;
 
         // Get stats
         a_settings.m_hlx_client->get_stats(l_total, a_show_breakdown_flag, l_tag_stat_map);
@@ -1637,7 +1672,7 @@ void display_results_http_load_style(settings_struct &a_settings,
         // -------------------------------------------
         if(a_show_breakdown_flag)
         {
-                for(ns_hlx::tag_stat_map_t::iterator i_stat = l_tag_stat_map.begin();
+                for(ns_hlx::hlx_client::tag_stat_map_t::iterator i_stat = l_tag_stat_map.begin();
                                 i_stat != l_tag_stat_map.end();
                                 ++i_stat)
                 {

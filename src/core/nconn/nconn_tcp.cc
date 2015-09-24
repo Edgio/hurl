@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn_tcp.h"
-#include "util.h"
+#include "time_util.h"
 #include "evr.h"
 #include "ndebug.h"
 
@@ -393,10 +393,10 @@ state_top:
                 }
                 case ECONNREFUSED:
                 {
-                        if(m_verbose)
-                        {
-                                NCONN_ERROR("HOST[%s]: Error Connection refused. Reason: %s\n", m_host.c_str(), strerror(errno));
-                        }
+                        //if(m_verbose)
+                        //{
+                        //        NCONN_ERROR("HOST[%s]: Error Connection refused. Reason: %s\n", m_host.c_str(), strerror(errno));
+                        //}
                         return NC_STATUS_ERROR;
                 }
                 case EAGAIN:
