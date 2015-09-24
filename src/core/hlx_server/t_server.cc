@@ -234,7 +234,9 @@ int32_t t_server::init(void)
 #endif
 
         // Create a server connection object
-        m_listening_nconn = m_nconn_pool.create_conn(m_settings.m_scheme, nconn::TYPE_SERVER);
+        m_listening_nconn = m_nconn_pool.create_conn(m_settings.m_scheme,
+                                                     m_settings.m_save_response,
+                                                     nconn::TYPE_SERVER);
 
         // Config
         l_status = config_conn(m_listening_nconn);
@@ -263,6 +265,7 @@ nconn *t_server::get_new_client_conn(int a_fd)
         nconn *l_nconn;
         int32_t l_status;
         l_status = m_nconn_pool.get(m_settings.m_scheme,
+                                    m_settings.m_save_response,
                                     nconn::TYPE_SERVER,
                                     &l_nconn);
         if(!l_nconn ||
@@ -503,6 +506,7 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
                         l_t_server->cleanup_connection(l_nconn, true, 500);
                         return STATUS_ERROR;
                 }
+                //NDBG_PRINT("l_req->m_complete: %d\n", l_req->m_complete);
                 // Add work
                 if(l_req->m_complete)
                 {
@@ -875,7 +879,7 @@ int32_t t_server::handle_req(nconn *a_nconn, http_req *a_req)
         http_request_handler *l_request_handler = NULL;
         url_param_map_t l_param_map;
         l_request_handler = (http_request_handler *)m_url_router->find_route(l_path,l_param_map);
-        //NDBG_PRINT("l_request_handler: %p\n", l_request_handler);
+        //sNDBG_PRINT("l_request_handler: %p\n", l_request_handler);
         if(l_request_handler)
         {
                 // Method switch

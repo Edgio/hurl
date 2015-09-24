@@ -316,13 +316,16 @@ public:
         ~nconn_pool();
         // TODO passing settings struct -readonly reference
         int32_t get(nconn::scheme_t a_scheme,
+                    bool a_save,
                     nconn::type_t a_type,
                     nconn **ao_nconn);
         int32_t get_try_idle(const std::string &a_host,
                     nconn::scheme_t a_scheme,
+                    bool a_save,
                     nconn::type_t a_type,
                     nconn **ao_nconn);
         nconn *create_conn(nconn::scheme_t a_scheme,
+                           bool a_save,
                            nconn::type_t a_type);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);

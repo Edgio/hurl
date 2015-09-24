@@ -372,7 +372,7 @@ int32_t nconn::nc_read(void)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_write(void)
 {
-        //NDBG_PRINT("%sTRY_WRITE%s: \n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
         if(!m_out_q)
         {
                 NDBG_PRINT("Error m_out_q == NULL\n");
@@ -505,16 +505,12 @@ int32_t nconn::nc_cleanup()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn::nconn(int64_t a_max_reqs_per_conn,
-             bool a_save,
-             bool a_collect_stats,
-             bool a_connect_only,
-             type_t a_type):
+nconn::nconn(bool a_save, type_t a_type):
               m_scheme(SCHEME_NONE),
               m_host(),
               m_stat(),
               m_save(a_save),
-              m_collect_stats_flag(a_collect_stats),
+              m_collect_stats_flag(false),
               m_data1(NULL),
               m_data2(NULL),
               m_connect_start_time_us(0),
@@ -524,9 +520,9 @@ nconn::nconn(int64_t a_max_reqs_per_conn,
               m_last_error(""),
               m_type(a_type),
               m_host_info(),
-              m_num_reqs_per_conn(a_max_reqs_per_conn),
+              m_num_reqs_per_conn(-1),
               m_num_reqs(0),
-              m_connect_only(a_connect_only),
+              m_connect_only(false),
               m_in_q(NULL),
               m_out_q(NULL),
               m_nc_state(NC_STATE_FREE),

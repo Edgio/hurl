@@ -49,16 +49,8 @@ public:
                 OPT_TCP_SENTINEL = 999
         } tcp_opt_t;
 
-        nconn_tcp(int64_t a_max_reqs_per_conn = -1,
-                  bool a_save_response_in_reqlet = false,
-                  bool a_collect_stats = false,
-                  bool a_connect_only = false,
-                  type_t a_type = TYPE_CLIENT):
-                          nconn(a_max_reqs_per_conn,
-                                a_save_response_in_reqlet,
-                                a_collect_stats,
-                                a_connect_only,
-                                a_type),
+        nconn_tcp(bool a_save, type_t a_type):
+                          nconn(a_save, a_type),
                           m_fd(-1),
                           m_sock_opt_recv_buf_size(),
                           m_sock_opt_send_buf_size(),

@@ -81,16 +81,8 @@ public:
         // ---------------------------------------
         // Public methods
         // ---------------------------------------
-        nconn_ssl(int64_t a_max_reqs_per_conn = -1,
-                  bool a_save_response_in_reqlet = false,
-                  bool a_collect_stats = false,
-                  bool a_connect_only = false,
-                  type_t a_type = TYPE_CLIENT):
-                          nconn_tcp(a_max_reqs_per_conn,
-                        	    a_save_response_in_reqlet,
-                        	    a_collect_stats,
-                        	    a_connect_only,
-                        	    a_type),
+        nconn_ssl(bool a_save, type_t a_type):
+                          nconn_tcp(a_save, a_type),
                           m_ssl_ctx(NULL),
                           m_ssl(NULL),
                           m_ssl_opt_verify(false),

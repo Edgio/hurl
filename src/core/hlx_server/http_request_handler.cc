@@ -111,7 +111,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         l_status = stat(l_path.c_str(), &l_stat);
         if(l_status != 0)
         {
-                NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
+                //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
                 send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
                 // TODO Check response???
                 return STATUS_OK;
@@ -120,7 +120,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         // Check if is regular file
         if(!(l_stat.st_mode & S_IFREG))
         {
-                NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", l_path.c_str());
+                //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", l_path.c_str());
                 send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
                 // TODO Check response???
                 return STATUS_OK;
@@ -130,7 +130,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         l_file = fopen(l_path.c_str(),"r");
         if (NULL == l_file)
         {
-                NDBG_PRINT("Error opening file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
+                //NDBG_PRINT("Error opening file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
                 send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
                 // TODO Check response???
                 return STATUS_OK;
@@ -141,7 +141,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         // Bounds check -remove later
         if(l_size > 16*1024)
         {
-                NDBG_PRINT("Error file size exceeds current size limits\n");
+                //NDBG_PRINT("Error file size exceeds current size limits\n");
                 send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
                 // TODO Check response???
                 return STATUS_OK;
@@ -153,8 +153,8 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         l_read_size = fread(l_body, 1, l_size, l_file);
         if(l_read_size != l_size)
         {
-                NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
-                                strerror(errno), l_read_size, l_size);
+                //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
+                //                strerror(errno), l_read_size, l_size);
                 send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
                 // TODO Check response???
                 goto get_file_done;
@@ -166,7 +166,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         l_status = fclose(l_file);
         if (STATUS_OK != l_status)
         {
-                NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
+                //NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
                 send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
                 // TODO Check response???
                 goto get_file_done;
@@ -195,7 +195,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         l_status = ao_response.write_body(l_body, l_size);
         if(l_status != STATUS_OK)
         {
-                NDBG_PRINT("Error performing write_body\n");
+                //NDBG_PRINT("Error performing write_body\n");
                 goto get_file_done;
         }
 

@@ -139,11 +139,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn(int64_t a_max_reqs_per_conn = -1,
-              bool a_save = false,
-              bool a_collect_stats = false,
-              bool a_connect_only = false,
-              type_t a_type = TYPE_CLIENT);
+        nconn(bool a_save, type_t a_type);
         virtual ~nconn();
 
         // Data

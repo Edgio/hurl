@@ -898,12 +898,14 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                 {
                         l_status = m_nconn_pool.get_try_idle(a_http_rx->m_host,
                                                              a_http_rx->m_scheme,
+                                                             m_settings.m_save_response,
                                                              nconn::TYPE_CLIENT,
                                                              &l_nconn);
                 }
                 else
                 {
                         l_status = m_nconn_pool.get(a_http_rx->m_scheme,
+                                                    m_settings.m_save_response,
                                                     nconn::TYPE_CLIENT,
                                                     &l_nconn);
                 }

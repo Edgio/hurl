@@ -37,6 +37,7 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme,
+                               bool a_save,
                                nconn::type_t a_type)
 {
         nconn *l_nconn = NULL;
@@ -44,11 +45,11 @@ nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme,
         //NDBG_PRINT("CREATING NEW CONNECTION: a_scheme: %d\n", a_scheme);
         if(a_scheme == nconn::SCHEME_TCP)
         {
-                l_nconn = new nconn_tcp(a_type);
+                l_nconn = new nconn_tcp(a_save, a_type);
         }
         else if(a_scheme == nconn::SCHEME_SSL)
         {
-                l_nconn = new nconn_ssl(a_type);
+                l_nconn = new nconn_ssl(a_save, a_type);
         }
 
         return l_nconn;
@@ -60,6 +61,7 @@ nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme,
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::get(nconn::scheme_t a_scheme,
+                        bool a_save,
                         nconn::type_t a_type,
                         nconn **ao_nconn)
 {
@@ -118,7 +120,7 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme,
 
         if(!l_nconn)
         {
-                l_nconn = create_conn(a_scheme, a_type);
+                l_nconn = create_conn(a_scheme, a_save, a_type);
                 if(!l_nconn)
                 {
                         NDBG_PRINT("Error performing create_conn\n");
@@ -145,6 +147,7 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme,
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::get_try_idle(const std::string &a_host,
                                  nconn::scheme_t a_scheme,
+                                 bool a_save,
                                  nconn::type_t a_type,
                                  nconn **ao_nconn)
 {
@@ -181,7 +184,7 @@ int32_t nconn_pool::get_try_idle(const std::string &a_host,
         }
 
         int32_t l_status;
-        l_status = get(a_scheme, a_type, ao_nconn);
+        l_status = get(a_scheme, a_save, a_type, ao_nconn);
         if(l_status != nconn::NC_STATUS_OK)
         {
                 return nconn::NC_STATUS_AGAIN;
