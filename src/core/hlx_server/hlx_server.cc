@@ -197,7 +197,7 @@ void hlx_server::set_num_parallel(uint32_t a_num_parallel)
 //: ----------------------------------------------------------------------------
 int32_t hlx_server::run(void)
 {
-        NDBG_PRINT("Running...\n");
+        //NDBG_PRINT("Running...\n");
 
         int l_status = 0;
         if(!m_is_initd)
