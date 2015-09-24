@@ -411,7 +411,7 @@ int main(int argc, char** argv)
         std::string l_hprof_file;
         bool l_show_status = false;
         uint16_t l_server_port = 23456;
-        ns_hlx::hlx_server::scheme_type_t l_scheme = ns_hlx::hlx_server::SCHEME_HTTP;
+        ns_hlx::scheme_type_t l_scheme = ns_hlx::SCHEME_HTTP;
         std::string l_tls_key;
         std::string l_tls_crt;
 
@@ -477,7 +477,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'T':
                 {
-                        l_scheme = ns_hlx::hlx_server::SCHEME_HTTPS;
+                        l_scheme = ns_hlx::SCHEME_HTTPS;
                 }
                 // ---------------------------------------
                 // TLS private key
@@ -618,7 +618,7 @@ int main(int argc, char** argv)
         // Check for inputs
         // -------------------------------------------
         // TLS Check
-        if(l_scheme == ns_hlx::hlx_server::SCHEME_HTTPS)
+        if(l_scheme == ns_hlx::SCHEME_HTTPS)
         {
                 if(l_tls_key.empty() || l_tls_crt.empty())
                 {

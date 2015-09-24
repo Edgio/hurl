@@ -33,6 +33,8 @@
 #include <stdint.h>
 #include <math.h>
 
+#include "hlo/hlx_common.h"
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -74,25 +76,6 @@ public:
         typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
 
         // -----------------------------------------------
-        // Host info
-        // -----------------------------------------------
-        typedef struct host_struct {
-                std::string m_host;
-                std::string m_hostname;
-                std::string m_id;
-                std::string m_where;
-                std::string m_url;
-
-                host_struct():
-                        m_host(),
-                        m_hostname(),
-                        m_id(),
-                        m_where(),
-                        m_url()
-                {};
-        } host_t;
-
-        // -----------------------------------------------
         // xstat
         // -----------------------------------------------
         typedef struct xstat_struct
@@ -132,7 +115,6 @@ public:
         // -----------------------------------------------
         typedef struct t_stat_struct
         {
-
                 // Stats
                 xstat_t m_stat_us_connect;
                 xstat_t m_stat_us_first_response;
@@ -166,9 +148,7 @@ public:
                         m_num_bytes_read(0),
                         m_status_code_count_map()
                 {}
-
                 void clear();
-
         } t_stat_t;
 
         // -----------------------------------------------
@@ -187,21 +167,8 @@ public:
                 summary_map_t m_ssl_ciphers;
 
                 summary_info_struct();
-
         } summary_info_t;
-
         typedef std::map <std::string, t_stat_t> tag_stat_map_t;
-        typedef std::list <host_t> host_list_t;
-        typedef std::list <std::string> server_list_t;
-
-        // -----------------------------------------------
-        // Scheme
-        // -----------------------------------------------
-        typedef enum {
-                SCHEME_NONE = 0,
-                SCHEME_HTTP,
-                SCHEME_HTTPS
-        } scheme_type_t;
 
         // -----------------------------------------------
         // Output formats

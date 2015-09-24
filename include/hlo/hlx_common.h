@@ -56,25 +56,27 @@ class nbq;
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-// -------------------------------------------------
-// Types
-// -------------------------------------------------
-typedef enum http_status_enum {
 
+// Scheme
+typedef enum {
+        SCHEME_NONE = 0,
+        SCHEME_HTTP,
+        SCHEME_HTTPS
+} scheme_type_t;
+
+// Status
+typedef enum http_status_enum {
         HTTP_STATUS_OK = 200,
         HTTP_STATUS_NOT_FOUND = 404,
-
 } http_status_t;
 
 typedef struct cr_struct {
         const char *m_ptr;
         uint32_t m_len;
-
         cr_struct():
                 m_ptr(NULL),
                 m_len(0)
         {}
-
         void clear(void)
         {
                 m_ptr = NULL;
@@ -82,14 +84,28 @@ typedef struct cr_struct {
         }
 } cr_t;
 
-typedef std::list <cr_t> cr_list_t;
+// Host
+typedef struct host_struct {
+        std::string m_host;
+        std::string m_hostname;
+        std::string m_id;
+        std::string m_where;
+        std::string m_url;
+        host_struct():
+                m_host(),
+                m_hostname(),
+                m_id(),
+                m_where(),
+                m_url()
+        {};
+} host_t;
 
-// For parsed headers
+typedef std::list <cr_t> cr_list_t;
 typedef std::list <std::string> str_list_t;
 typedef std::map <std::string, str_list_t> kv_map_list_t;
-
-// TODO Hack to support getting connection meta
 typedef std::map <std::string, std::string> conn_info_t;
+typedef std::list <host_t> host_list_t;
+typedef std::list <std::string> server_list_t;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

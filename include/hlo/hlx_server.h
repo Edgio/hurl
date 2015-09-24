@@ -140,29 +140,14 @@ public:
         // -----------------------------------------------
         typedef struct t_stat_struct
         {
-                // Totals
                 uint64_t m_total_bytes;
                 uint64_t m_total_reqs;
-
-                // Client stats
-
                 t_stat_struct():
                         m_total_bytes(0),
                         m_total_reqs(0)
                 {}
-
                 void clear();
-
         } t_stat_t;
-
-        // -----------------------------------------------
-        // Scheme
-        // -----------------------------------------------
-        typedef enum {
-                SCHEME_NONE = 0,
-                SCHEME_HTTP,
-                SCHEME_HTTPS
-        } scheme_type_t;
 
         // -------------------------------------------------
         // Public methods

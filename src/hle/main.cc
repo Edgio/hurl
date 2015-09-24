@@ -309,11 +309,8 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         {
                 display_status_line(a_settings);
         }
-
         nonblock(NB_DISABLE);
-
         return 0;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -435,9 +432,8 @@ int command_exec_cli(settings_struct_t &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t add_line(FILE *a_file_ptr, ns_hlx::hlx_client::host_list_t &a_host_list)
+int32_t add_line(FILE *a_file_ptr, ns_hlx::host_list_t &a_host_list)
 {
-
         char l_readline[MAX_READLINE_SIZE];
         while(fgets(l_readline, sizeof(l_readline), a_file_ptr))
         {
@@ -455,13 +451,12 @@ int32_t add_line(FILE *a_file_ptr, ns_hlx::hlx_client::host_list_t &a_host_list)
                 l_readline[l_readline_len - 1] = '\0';
                 std::string l_string(l_readline);
                 l_string.erase( std::remove_if( l_string.begin(), l_string.end(), ::isspace ), l_string.end() );
-                ns_hlx::hlx_client::host_t l_host;
+                ns_hlx::host_t l_host;
                 l_host.m_host = l_string;
                 if(!l_string.empty())
                         a_host_list.push_back(l_host);
                 //printf("READLINE: %s\n", l_readline);
         }
-
         return STATUS_OK;
 }
 
@@ -1097,7 +1092,7 @@ int main(int argc, char** argv)
         }
 
 
-        ns_hlx::hlx_client::host_list_t l_host_list;
+        ns_hlx::host_list_t l_host_list;
         // -------------------------------------------------
         // Host list processing
         // -------------------------------------------------
@@ -1231,7 +1226,7 @@ int main(int argc, char** argv)
                                 return STATUS_ERROR;
                         }
 
-                        ns_hlx::hlx_client::host_t l_host;
+                        ns_hlx::host_t l_host;
 
                         // "host" : "irobdownload.blob.core.windows.net:443",
                         // "hostname" : "irobdownload.blob.core.windows.net",
@@ -1277,7 +1272,7 @@ int main(int argc, char** argv)
         if(l_settings.m_verbose)
         {
                 printf("Showing hostname list:\n");
-                for(ns_hlx::hlx_client::host_list_t::iterator i_host = l_host_list.begin(); i_host != l_host_list.end(); ++i_host)
+                for(ns_hlx::host_list_t::iterator i_host = l_host_list.begin(); i_host != l_host_list.end(); ++i_host)
                 {
                         printf("%s\n", i_host->m_host.c_str());
                 }
