@@ -81,20 +81,20 @@ public:
         // ---------------------------------------
         // Public methods
         // ---------------------------------------
-        nconn_ssl(bool a_save, type_t a_type):
-                          nconn_tcp(a_save, a_type),
-                          m_ssl_ctx(NULL),
-                          m_ssl(NULL),
-                          m_ssl_opt_verify(false),
-                          m_ssl_opt_verify_allow_self_signed(false),
-                          m_ssl_opt_tlsext_hostname(""),
-                          m_ssl_opt_ca_file(""),
-                          m_ssl_opt_ca_path(""),
-                          m_ssl_opt_options(0),
-                          m_ssl_opt_cipher_str(""),
-                          m_tls_key(""),
-                          m_tls_crt(""),
-                          m_ssl_state(SSL_STATE_FREE)
+        nconn_ssl():
+          nconn_tcp(),
+          m_ssl_ctx(NULL),
+          m_ssl(NULL),
+          m_ssl_opt_verify(false),
+          m_ssl_opt_verify_allow_self_signed(false),
+          m_ssl_opt_tlsext_hostname(""),
+          m_ssl_opt_ca_file(""),
+          m_ssl_opt_ca_path(""),
+          m_ssl_opt_options(0),
+          m_ssl_opt_cipher_str(""),
+          m_tls_key(""),
+          m_tls_crt(""),
+          m_ssl_state(SSL_STATE_FREE)
           {
                 m_scheme = SCHEME_SSL;
           };

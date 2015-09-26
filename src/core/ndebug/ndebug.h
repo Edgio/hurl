@@ -27,6 +27,8 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
+#include <stdint.h>
+#include <stdio.h>
 
 // For POD check
 #include <stdarg.h>

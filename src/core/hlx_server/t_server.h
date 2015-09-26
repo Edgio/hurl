@@ -31,6 +31,7 @@
 #include "server_settings.h"
 #include "ndebug.h"
 #include "evr.h"
+#include "http_cb.h"
 
 // signal
 #include <signal.h>
@@ -48,8 +49,12 @@ extern "C" {
 //: ----------------------------------------------------------------------------
 namespace ns_hlx {
 
+// TODO multi-thread support
+#if 0
 struct work_struct;
 typedef work_struct work_t;
+#endif
+
 typedef std::queue <nconn *> out_q_t;
 
 //: ----------------------------------------------------------------------------
@@ -108,7 +113,7 @@ private:
                 return reinterpret_cast<t_server *>(a_context)->t_run(NULL);
         }
 
-        int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true, int32_t a_status = 0);
+        int32_t cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t a_status = 0);
 
         // TODO multi-thread support
 #if 0
@@ -123,7 +128,7 @@ private:
 
         // Get new client connection
         nconn *get_new_client_conn(int a_fd);
-        int32_t reset_conn_input_q(nconn *anconn);
+        int32_t reset_conn_input_q(http_data_t *a_data, nconn *a_nconn);
         int32_t config_conn(nconn *a_nconn);
 
         // -------------------------------------------------
@@ -138,6 +143,7 @@ private:
         nconn *m_out_q_nconn;
         int m_out_q_fd;
         default_http_request_handler m_default_handler;
+        http_data_vector_t m_http_data_vector;
 
         // TODO multi-thread support
 #if 0
@@ -146,6 +152,7 @@ private:
 #endif
 
         bool m_is_initd;
+
 };
 
 } //namespace ns_hlx {

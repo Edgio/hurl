@@ -43,7 +43,6 @@ typedef struct req_stat_struct
         uint64_t m_tt_connect_us;
         uint64_t m_tt_first_read_us;
         uint64_t m_tt_completion_us;
-        uint16_t m_status_code;
         int32_t m_last_state;
         int32_t m_error;
 

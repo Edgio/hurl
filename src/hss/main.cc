@@ -353,9 +353,11 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -s, --status         Status -show server statistics\n");
         fprintf(a_stream, "  \n");
 
+#ifdef ENABLE_PROFILER
         fprintf(a_stream, "Debug Options:\n");
         fprintf(a_stream, "  -G, --gprofile       Google cpu profiler output file\n");
         fprintf(a_stream, "  -H, --hprofile       Google heap profiler output file\n");
+#endif
 
         fprintf(a_stream, "\n");
 
@@ -400,9 +402,10 @@ int main(int argc, char** argv)
                 { "verbose",        0, 0, 'r' },
                 { "color",          0, 0, 'c' },
                 { "status",         0, 0, 's' },
+#ifdef ENABLE_PROFILER
                 { "gprofile",       1, 0, 'G' },
                 { "hprofile",       1, 0, 'H' },
-
+#endif
                 // list sentinel
                 { 0, 0, 0, 0 }
         };
@@ -418,7 +421,11 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
+#ifdef ENABLE_PROFILER
         char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcsG:H:";
+#else
+        char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcs";
+#endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
@@ -574,6 +581,7 @@ int main(int argc, char** argv)
                         l_hlx_server->set_stats(true);
                         break;
                 }
+#ifdef ENABLE_PROFILER
                 // ---------------------------------------
                 // Google CPU Profiler Output File
                 // ---------------------------------------
@@ -582,6 +590,8 @@ int main(int argc, char** argv)
                         l_gprof_file = l_argument;
                         break;
                 }
+#endif
+#ifdef ENABLE_PROFILER
                 // ---------------------------------------
                 // Google Heap Profiler Output File
                 // ---------------------------------------
@@ -590,6 +600,7 @@ int main(int argc, char** argv)
                         l_hprof_file = l_argument;
                         break;
                 }
+#endif
                 // ---------------------------------------
                 // What???
                 // ---------------------------------------
@@ -657,23 +668,23 @@ int main(int argc, char** argv)
         //signal(SIGPIPE, SIG_IGN);
 
         // -------------------------------------------
-        // Start CPU Profiler
+        // Profiling
         // -------------------------------------------
+#ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
         {
                 ProfilerStart(l_gprof_file.c_str());
         }
-
-        // -------------------------------------------
-        // Start Heap Profiler
-        // -------------------------------------------
+#endif
+#ifdef ENABLE_PROFILER
         if (!l_hprof_file.empty())
         {
                 HeapProfilerStart(l_hprof_file.c_str());
         }
+#endif
 
         // -------------------------------------------
-        // Run Server
+        // Run...
         // -------------------------------------------
         int32_t l_run_status = 0;
         l_run_status = l_hlx_server->run();
@@ -682,57 +693,42 @@ int main(int argc, char** argv)
                 printf("Error: performing hlx_server::run");
                 return -1;
         }
-
         //uint64_t l_start_time_ms = get_time_ms();
-
-        // -------------------------------------------
-        // Run command exec
-        // -------------------------------------------
-        // Copy in settings
         command_exec(l_settings);
-
         if(l_settings.m_verbose)
         {
                 printf("Finished -joining all threads\n");
         }
-
-        // -------------------------------------------
-        // Wait for completion
-        // -------------------------------------------
         l_hlx_server->wait_till_stopped();
 
         // -------------------------------------------
-        // Stop profiler
+        // Profiling
         // -------------------------------------------
+#ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
         {
                 ProfilerStop();
         }
-
-        // -------------------------------------------
-        // Start Heap Profiler
-        // -------------------------------------------
+#endif
+#ifdef ENABLE_PROFILER
         if (!l_hprof_file.empty())
         {
                 HeapProfilerStop();
         }
-
-
+#endif
         //uint64_t l_end_time_ms = get_time_ms() - l_start_time_ms;
-
-
-        // -------------------------------------------
         // Status???
-        // -------------------------------------------
         if(l_show_status)
         {
                 // TODO
         }
 
-        // -------------------------------------------
         // Cleanup...
-        // -------------------------------------------
-        // ...
+        if(l_hlx_server)
+        {
+                delete l_hlx_server;
+                l_hlx_server = NULL;
+        }
 
         return 0;
 
@@ -747,10 +743,8 @@ uint64_t hlo_get_time_ms(void)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
-
         clock_gettime(CLOCK_REALTIME, &l_timespec);
         l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
-
         return l_retval;
 }
 
@@ -763,13 +757,10 @@ uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
-
         clock_gettime(CLOCK_REALTIME, &l_timespec);
         l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
-
         return l_retval - a_start_time_ms;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -856,5 +847,3 @@ void display_results_line(settings_struct &a_settings)
         }
 #endif
 }
-
-

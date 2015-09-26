@@ -27,6 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
+#include <stdint.h>
 #include <list>
 
 namespace ns_hlx {
@@ -59,18 +60,32 @@ public:
         // -------------------------------------------------
         nbq(uint32_t a_bsize);
         ~nbq();
+
+        // Writing...
         int32_t write(const char *a_buf, uint32_t a_len);
-        uint32_t write_avail(void);
-        char *write_ptr(void);
-        void write_incr(uint32_t a_size);
-        uint32_t read_avail(void);
-        char *read_ptr(void);
-        void read_incr(uint32_t a_size);
-        uint32_t add_avail(void);
+
+        // Reading
+        int32_t read(char *a_buf, uint32_t a_len);
+        uint32_t read_avail(void) {return m_total_read_avail;}
+
+        // Resetting...
         void reset_read(void);
         void reset_write(void);
         void reset(void);
 
+        // Block Writing...
+        char *   b_write_ptr(void) {return m_cur_block_write_ptr;}
+        uint32_t b_write_avail(void) {return m_cur_block_write_avail;}
+        int32_t  b_write_add_avail();
+        void     b_write_incr(uint32_t a_len);
+
+        // Block Reading...
+        char *   b_read_ptr(void) {return m_cur_block_read_ptr;}
+        int32_t  b_read_avail(void);
+        void     b_read_incr(uint32_t a_len);
+
+        // Debugging display all
+        void     b_display_all(void);
 private:
         // -------------------------------------------------
         // Private methods
@@ -80,14 +95,22 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        char *m_write_ptr;
-        uint32_t m_write_avail;
-        uint32_t m_write_num;
-        nb_list_t::iterator m_write_block;
-        char *m_read_ptr;
-        uint32_t m_read_avail;
-        nb_list_t::iterator m_read_block;
+        // Write...
+        char *m_cur_block_write_ptr;
+        uint32_t m_cur_block_write_avail;
+        nb_list_t::iterator m_cur_write_block;
+
+        // Read...
+        char *m_cur_block_read_ptr;
+        nb_list_t::iterator m_cur_read_block;
+
+        // Totals
+        uint32_t m_total_read_avail;
+
+        // Block size
         uint32_t m_bsize;
+
+        // Block list
         nb_list_t m_q;
 };
 

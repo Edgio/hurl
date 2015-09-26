@@ -49,14 +49,14 @@ public:
                 OPT_TCP_SENTINEL = 999
         } tcp_opt_t;
 
-        nconn_tcp(bool a_save, type_t a_type):
-                          nconn(a_save, a_type),
-                          m_fd(-1),
-                          m_sock_opt_recv_buf_size(),
-                          m_sock_opt_send_buf_size(),
-                          m_sock_opt_no_delay(false),
-                          m_timeout_s(10),
-                          m_tcp_state(TCP_STATE_FREE)
+        nconn_tcp():
+          nconn(),
+          m_fd(-1),
+          m_sock_opt_recv_buf_size(),
+          m_sock_opt_send_buf_size(),
+          m_sock_opt_no_delay(false),
+          m_timeout_s(10),
+          m_tcp_state(TCP_STATE_FREE)
 
         {
                 m_scheme = SCHEME_TCP;

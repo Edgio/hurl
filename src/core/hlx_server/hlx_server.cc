@@ -544,6 +544,24 @@ hlx_server::~hlx_server()
                 delete m_url_router;
                 m_url_router = NULL;
         }
+
+        for(t_server_list_t::iterator i_t_server = m_t_server_list.begin();
+                        i_t_server != m_t_server_list.end();
+                        ++i_t_server)
+        {
+                if(*i_t_server)
+                {
+                        delete *i_t_server;
+                }
+        }
+        m_t_server_list.clear();
+
+        if(m_ssl_ctx)
+        {
+                SSL_CTX_free(m_ssl_ctx);
+                m_ssl_ctx = NULL;
+        }
+
 }
 
 } //namespace ns_hlx {

@@ -31,6 +31,9 @@
 #include "ssl_util.h"
 #include "ndebug.h"
 
+// TODO Look into removing...
+#include "http_cb.h"
+
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -843,30 +846,33 @@ ncconnect_state_top:
                 // -----------------------------------------
                 // TODO Only store in some mode???
                 // might be slow
-                if(m_save)
+                if(m_data)
                 {
-                        http_resp *l_rx = static_cast<http_resp *>(m_data1);
-                        if(l_rx)
+                        http_data_t *l_data = static_cast<http_data_t *>(m_data);
+                        if(l_data->m_save)
                         {
-                                // Get protocol
-                                std::string l_protocol;
-                                std::string l_cipher;
-                                int32_t l_status;
-                                l_status = get_ssl_session_info(m_ssl, l_protocol, l_cipher);
-                                if(l_status != STATUS_OK)
+                                http_resp *l_rx = static_cast<http_resp *>(l_data->m_http_resp);
+                                if(l_rx)
                                 {
-                                        // do nothing
+                                        // Get protocol
+                                        std::string l_protocol;
+                                        std::string l_cipher;
+                                        int32_t l_status;
+                                        l_status = get_ssl_session_info(m_ssl, l_protocol, l_cipher);
+                                        if(l_status != STATUS_OK)
+                                        {
+                                                // do nothing
+                                        }
+                                        l_rx->m_conn_info["Protocol"] = l_protocol;
+                                        l_rx->m_conn_info["Cipher"] = l_cipher;
+
+                                        // TODO REMOVE
+                                        //NDBG_PRINT("%sncconnect%s: Protocol: %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_protocol.c_str());
+                                        //NDBG_PRINT("%sncconnect%s: Cipher:   %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_cipher.c_str());
+
                                 }
-                                l_rx->m_conn_info["Protocol"] = l_protocol;
-                                l_rx->m_conn_info["Cipher"] = l_cipher;
-
-                                // TODO REMOVE
-                                //NDBG_PRINT("%sncconnect%s: Protocol: %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_protocol.c_str());
-                                //NDBG_PRINT("%sncconnect%s: Cipher:   %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_cipher.c_str());
-
                         }
                 }
-
                 if(m_ssl_opt_verify)
                 {
                         int32_t l_status = 0;

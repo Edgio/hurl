@@ -108,14 +108,6 @@ public:
 
         } scheme_t;
 
-        typedef enum type_enum {
-
-                TYPE_CLIENT = 0,
-                TYPE_SERVER,
-                TYPE_NONE
-
-        } type_t;
-
         typedef enum status_enum {
 
                 NC_STATUS_FREE = -1,
@@ -137,16 +129,19 @@ public:
         } mode_t;
 
         // -------------------------------------------------
+        // Successful read/write callbacks
+        // -------------------------------------------------
+        typedef int32_t (*nconn_cb_t)(void *, char *, uint32_t);
+
+        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn(bool a_save, type_t a_type);
+        nconn(void);
         virtual ~nconn();
 
         // Data
-        void set_data1(void * a_data) {m_data1 = a_data;}
-        void *get_data1(void) {return m_data1;}
-        void set_data2(void * a_data) {m_data2 = a_data;}
-        void *get_data2(void) {return m_data2;}
+        void set_data(void * a_data) {m_data = a_data;}
+        void *get_data(void) {return m_data;}
 
         // Stats
         void reset_stats(void) { stat_init(m_stat); }
@@ -162,9 +157,10 @@ public:
         void set_idx(uint32_t a_id) {m_idx = a_id;}
         void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
-        void set_save_response(bool a_flag) {m_save = a_flag;};
         void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
         void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
+        void set_read_cb(nconn_cb_t a_cb) {m_read_cb = a_cb;}
+        void set_write_cb(nconn_cb_t a_cb) {m_write_cb = a_cb;}
 
         // Q's
         void set_in_q(nbq *a_q) { m_in_q = a_q;};
@@ -203,17 +199,11 @@ public:
         scheme_t m_scheme;
         std::string m_host;
         req_stat_t m_stat;
-        bool m_save;
         bool m_collect_stats_flag;
-        void *m_data1;
-        void *m_data2;
+        void *m_data;
         uint64_t m_connect_start_time_us;
         uint64_t m_request_start_time_us;
-        bool m_supports_keep_alives;
-        void *m_timer_obj;
         std::string m_last_error;
-        type_t m_type;
-
 protected:
         // -------------------------------------------------
         // Protected Virtual methods
@@ -239,7 +229,6 @@ protected:
         nbq *m_out_q;
 
 private:
-
         // ---------------------------------------
         // Connection state
         // ---------------------------------------
@@ -264,9 +253,8 @@ private:
         nc_conn_state_t m_nc_state;
         uint64_t m_id;
         uint32_t m_idx;
-
-        http_parser_settings m_http_parser_settings;
-        http_parser m_http_parser;
+        nconn_cb_t m_read_cb;
+        nconn_cb_t m_write_cb;
 };
 
 } //namespace ns_hlx {

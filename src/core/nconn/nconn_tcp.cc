@@ -329,7 +329,7 @@ int32_t nconn_tcp::ncaccept(evr_loop *a_evr_loop)
                 l_client_sock_fd = accept(m_fd, (struct sockaddr *)&l_client_address, &l_sockaddr_in_length);
                 if (l_client_sock_fd < 0)
                 {
-                        NDBG_PRINT("Error accept failed. Reason[%d]: %s\n", errno, strerror(errno));
+                        //NDBG_PRINT("Error accept failed. Reason[%d]: %s\n", errno, strerror(errno));
                         return NC_STATUS_ERROR;
                 }
 

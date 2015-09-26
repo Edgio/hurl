@@ -1,9 +1,10 @@
 1. fix hle with edge triggered epoll
 2. hlx_server.
-  a. obj management nbq/conn/http_req/http_resp
+  a. Memory management
   b. stats
   c. access logs
   d. http_req splitting -if read overlaps
   e. thread-safe q's
-  h. disallow enqueue'ing multiple requests for the same conn
-3. fix hle results file.
+  f. disallow enqueue'ing multiple requests for the same conn
+  g. Catch+unit tests
+  h. blackbox tests

@@ -30,6 +30,7 @@
 #include "client_settings.h"
 #include "ndebug.h"
 #include "http_rx.h"
+#include "http_cb.h"
 
 // signal
 #include <signal.h>
@@ -121,11 +122,11 @@ private:
 
         int32_t request(http_rx *a_http_rx, nconn *a_nconn = NULL);
         int32_t start_connections(void);
-        int32_t cleanup_connection(nconn *a_nconn, bool a_cancel_timer = true, int32_t a_status = 0);
+        int32_t cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t a_status = 0);
         int32_t create_request(nbq &a_q, http_rx &a_http_rx);
         http_rx *get_rx(void);
         void limit_rate();
-        void add_stat_to_agg(hlx_client::t_stat_t &ao_stat_agg, const req_stat_t &a_req_stat);
+        void add_stat_to_agg(hlx_client::t_stat_t &ao_stat_agg, const req_stat_t &a_req_stat, uint16_t a_status_code);
         int32_t config_conn(nconn *a_nconn);
 
         // -------------------------------------------------
@@ -151,6 +152,7 @@ private:
         // Reqlet vectors
         http_rx_vector_t m_http_rx_vector;
         uint32_t m_http_rx_vector_idx;
+        http_data_vector_t m_http_data_vector;
 
         void *m_rand_ptr;
 
