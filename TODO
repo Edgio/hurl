@@ -1,3 +1,5 @@
+0. Mac OS X support -evr_kqueue + eventfd analog.
+
 1. hle
   a. fix hle with edge triggered epoll
   b. fix addr resolution errors showing up as "successful" results.
