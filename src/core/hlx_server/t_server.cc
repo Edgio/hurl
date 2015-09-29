@@ -185,6 +185,24 @@ t_server::~t_server()
         {
                 delete m_listening_nconn;
         }
+
+        // Clean up http_data
+        for(http_data_vector_t::iterator i_data = m_http_data_vector.begin(); i_data != m_http_data_vector.end(); ++i_data)
+        {
+                if(*i_data)
+                {
+                        // Check for http req
+                        if((*i_data)->m_http_req)
+                        {
+                                delete static_cast<http_req *>((*i_data)->m_http_req);
+                                (*i_data)->m_http_req = NULL;
+                        }
+
+                        delete (*i_data);
+                        *i_data = NULL;
+                }
+        }
+        m_http_data_vector.clear();
 }
 
 //: ----------------------------------------------------------------------------
@@ -737,6 +755,19 @@ int32_t t_server::cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t 
         if(a_timer_obj)
         {
                 m_evr_loop->cancel_timer(&(a_timer_obj));
+        }
+
+        nbq *l_out_q = a_nconn->get_out_q();
+        if(l_out_q)
+        {
+                delete l_out_q;
+                a_nconn->set_out_q(NULL);
+        }
+        nbq *l_in_q = a_nconn->get_in_q();
+        if(l_in_q)
+        {
+                delete l_in_q;
+                a_nconn->set_in_q(NULL);
         }
 
         //NDBG_PRINT("%sADDING_BACK%s: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (uint32_t)a_nconn->get_id());
