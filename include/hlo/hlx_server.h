@@ -134,17 +134,34 @@ public:
         //: Types
         //: --------------------------------------------------------------------
         typedef std::list <t_server *> t_server_list_t;
+        typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
 
         // -----------------------------------------------
         // All Stat Aggregation..
         // -----------------------------------------------
         typedef struct t_stat_struct
         {
-                uint64_t m_total_bytes;
-                uint64_t m_total_reqs;
+                // Server stats
+                uint64_t m_num_conn_started;
+                uint64_t m_num_conn_completed;
+                uint64_t m_num_reqs;
+                uint64_t m_num_idle_killed;
+                uint64_t m_num_errors;
+                uint64_t m_num_bytes_read;
+                uint64_t m_num_bytes_written;
+                uint32_t m_cur_conn_count;
+                status_code_count_map_t m_status_code_count_map;
+
                 t_stat_struct():
-                        m_total_bytes(0),
-                        m_total_reqs(0)
+                        m_num_conn_started(0),
+                        m_num_conn_completed(0),
+                        m_num_reqs(0),
+                        m_num_idle_killed(0),
+                        m_num_errors(0),
+                        m_num_bytes_read(0),
+                        m_num_bytes_written(0),
+                        m_cur_conn_count(0),
+                        m_status_code_count_map()
                 {}
                 void clear();
         } t_stat_t;
@@ -184,7 +201,7 @@ public:
         int32_t add_endpoint(const std::string &a_endpoint, const http_request_handler *a_handler);
 
         // Stats
-        void get_stats(t_stat_t &ao_all_stats) const;
+        void get_stats(t_stat_t &ao_all_stats);
 
 private:
         // -------------------------------------------------
@@ -193,6 +210,7 @@ private:
         HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(hlx_server)
         int init(void);
         int init_server_list(void);
+        void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
 
         // -------------------------------------------------
         // Private members

@@ -121,6 +121,7 @@ t_server::t_server(const server_settings_struct_t &a_settings,
         m_out_q_fd(-1),
         m_default_handler(),
         m_http_data_vector(),
+        m_stat(),
         // TODO multi-thread support
 #if 0
         m_work_q(),
@@ -291,6 +292,9 @@ nconn *t_server::get_new_client_conn(int a_fd)
                 return NULL;
         }
 
+        ++m_stat.m_cur_conn_count;
+        ++m_stat.m_num_conn_started;
+
         // TODO create q pool... -this is gonna leak...
         nbq *l_out_q = new nbq(16384);
         l_nconn->set_out_q(l_out_q);
@@ -378,6 +382,16 @@ void t_server::stop(void)
         {
                 NDBG_PRINT("Error performing stop.\n");
         }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void t_server::get_stats_copy(hlx_server::t_stat_t &ao_stat)
+{
+        ao_stat = m_stat;
 }
 
 //: ----------------------------------------------------------------------------
@@ -515,6 +529,11 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
         else
         {
                 l_status = l_nconn->nc_run_state_machine(l_t_server->m_evr_loop, nconn::NC_MODE_READ);
+                if(l_status > 0)
+                {
+                        l_t_server->m_stat.m_num_bytes_read += l_status;
+                }
+
                 // TODO Check status???
                 //if((STATUS_ERROR == l_status) && l_nconn->m_verbose)
                 //{
@@ -532,6 +551,8 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
                 //NDBG_PRINT("l_req->m_complete: %d\n", l_req->m_complete);
                 if(l_req->m_complete)
                 {
+                        ++l_t_server->m_stat.m_num_reqs;
+
                         // TODO multi-thread support
 #if 0
                         l_t_server->add_work(l_nconn, l_req);
@@ -556,7 +577,10 @@ int32_t t_server::evr_loop_file_readable_cb(void *a_data)
                                 // Try write if out q
                                 int32_t l_write_status;
                                 l_write_status = l_nconn->nc_run_state_machine(l_t_server->m_evr_loop, nconn::NC_MODE_WRITE);
-                                UNUSED(l_write_status);
+                                if(l_write_status > 0)
+                                {
+                                        l_t_server->m_stat.m_num_bytes_written += l_write_status;
+                                }
                                 // TODO Check status???
                                 //if((l_write_status == STATUS_ERROR) && l_nconn->m_verbose)
                                 //{
@@ -612,6 +636,8 @@ int32_t t_server::evr_loop_file_error_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
         t_server *l_t_server = static_cast<t_server *>(l_data->m_ctx);
 
+        ++l_t_server->m_stat.m_num_errors;
+
         if(l_nconn->is_free())
         {
                 return STATUS_OK;
@@ -639,6 +665,9 @@ int32_t t_server::evr_loop_file_timeout_cb(void *a_data)
         {
                 return STATUS_OK;
         }
+
+        ++l_t_server->m_stat.m_num_idle_killed;
+
         if(l_t_server->m_settings.m_verbose)
         {
                 NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %lu THIS: %p\n",
@@ -716,6 +745,9 @@ int32_t t_server::cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t 
         {
                 return STATUS_ERROR;
         }
+
+        --m_stat.m_cur_conn_count;
+        ++m_stat.m_num_conn_completed;
 
         return STATUS_OK;
 }

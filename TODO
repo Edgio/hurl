@@ -1,4 +1,7 @@
-1. fix hle with edge triggered epoll
+1. hle
+  a. fix hle with edge triggered epoll
+  b. fix addr resolution errors showing up as "successful" results.
+
 2. hlx_server.
   a. Memory management
   b. stats
@@ -8,3 +11,4 @@
   f. disallow enqueue'ing multiple requests for the same conn
   g. Catch+unit tests
   h. blackbox tests
+  i. fix hlo tests -connection errors and "Error: performing m_nconn_pool.get"

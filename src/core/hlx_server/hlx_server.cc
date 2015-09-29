@@ -391,7 +391,7 @@ int32_t hlx_server::add_endpoint(const std::string &a_endpoint, const http_reque
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx_server::get_stats(t_stat_t &ao_all_stats) const
+void hlx_server::get_stats(t_stat_t &ao_all_stats)
 {
         // -------------------------------------------
         // Aggregate
@@ -402,8 +402,9 @@ void hlx_server::get_stats(t_stat_t &ao_all_stats) const
         {
                 // Get stuff from client...
                 // TODO
-                //add_to_total_stat_agg(ao_all_stats, i_client->stats);
-
+                t_stat_t l_stat;
+                (*i_client)->get_stats_copy(l_stat);
+                add_to_total_stat_agg(ao_all_stats, l_stat);
         }
 }
 
@@ -457,7 +458,6 @@ int hlx_server::init(void)
 //: ----------------------------------------------------------------------------
 int hlx_server::init_server_list(void)
 {
-
         // -------------------------------------------
         // Bury the config into a settings struct
         // -------------------------------------------
@@ -499,6 +499,37 @@ int hlx_server::init_server_list(void)
                 m_t_server_list.push_back(l_t_server);
         }
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_server::add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat)
+{
+        ao_stat_agg.m_num_conn_started += a_add_total_stat.m_num_conn_started;
+        ao_stat_agg.m_num_conn_completed += a_add_total_stat.m_num_conn_completed;
+        ao_stat_agg.m_num_reqs += a_add_total_stat.m_num_reqs;
+        ao_stat_agg.m_num_idle_killed += a_add_total_stat.m_num_idle_killed;
+        ao_stat_agg.m_num_errors += a_add_total_stat.m_num_errors;
+        ao_stat_agg.m_num_bytes_read += a_add_total_stat.m_num_bytes_read;
+        ao_stat_agg.m_num_bytes_written += a_add_total_stat.m_num_bytes_written;
+        ao_stat_agg.m_cur_conn_count += a_add_total_stat.m_cur_conn_count;
+        for(status_code_count_map_t::const_iterator i_code = a_add_total_stat.m_status_code_count_map.begin();
+                        i_code != a_add_total_stat.m_status_code_count_map.end();
+                        ++i_code)
+        {
+                status_code_count_map_t::iterator i_code2;
+                if((i_code2 = ao_stat_agg.m_status_code_count_map.find(i_code->first)) == ao_stat_agg.m_status_code_count_map.end())
+                {
+                        ao_stat_agg.m_status_code_count_map[i_code->first] = i_code->second;
+                }
+                else
+                {
+                        i_code2->second += i_code->second;
+                }
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -555,13 +586,30 @@ hlx_server::~hlx_server()
                 }
         }
         m_t_server_list.clear();
-
         if(m_ssl_ctx)
         {
                 SSL_CTX_free(m_ssl_ctx);
                 m_ssl_ctx = NULL;
         }
+}
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx_server::t_stat_struct::clear(void)
+{
+        m_num_conn_started = 0;
+        m_num_conn_completed = 0;
+        m_num_reqs = 0;
+        m_num_idle_killed = 0;
+        m_num_errors = 0;
+        m_num_bytes_read = 0;
+        m_num_bytes_written = 0;
+        m_cur_conn_count = 0;
+        m_status_code_count_map.clear();
 }
 
 } //namespace ns_hlx {

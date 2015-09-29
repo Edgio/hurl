@@ -81,6 +81,7 @@ public:
         void stop(void);
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_s(void) { return m_settings.m_timeout_s;};
+        void get_stats_copy(hlx_server::t_stat_t &ao_stat);
 
         // -------------------------------------------------
         // Public members
@@ -144,6 +145,7 @@ private:
         int m_out_q_fd;
         default_http_request_handler m_default_handler;
         http_data_vector_t m_http_data_vector;
+        hlx_server::t_stat_t m_stat;
 
         // TODO multi-thread support
 #if 0

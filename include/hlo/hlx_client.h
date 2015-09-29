@@ -301,16 +301,10 @@ private:
         // Private methods
         // -------------------------------------------------
         HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(hlx_client)
-
-        std::string dump_all_responses_line_dl(bool a_color,
-                                               bool a_pretty,
-                                               int a_part_map);
-
+        std::string dump_all_responses_line_dl(bool a_color,bool a_pretty,int a_part_map);
         std::string dump_all_responses_json(int a_part_map);
-
         int init(void);
         int init_client_list(void);
-
         void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
 
         // -------------------------------------------------

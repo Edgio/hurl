@@ -169,7 +169,6 @@ typedef struct settings_struct
         // Stats
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
-
         ns_hlx::hlx_client::t_stat_t *m_last_stat;
         int32_t m_run_time_ms;
 

@@ -49,6 +49,7 @@
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
+#include <inttypes.h>
 
 // Profiler
 #define ENABLE_PROFILER 1
@@ -134,6 +135,10 @@ typedef struct settings_struct
         bool m_color;
         bool m_show_stats;
         ns_hlx::hlx_server *m_hlx_server;
+        ns_hlx::hlx_server::t_stat_t *m_last_stat;
+        uint64_t m_start_time_ms;
+        uint64_t m_last_display_time_ms;
+        int32_t m_run_time_ms;
 
         // ---------------------------------
         // Defaults...
@@ -142,8 +147,22 @@ typedef struct settings_struct
                 m_verbose(false),
                 m_color(false),
                 m_show_stats(false),
-                m_hlx_server(NULL)
-        {}
+                m_hlx_server(NULL),
+                m_last_stat(NULL),
+                m_start_time_ms(),
+                m_last_display_time_ms(),
+                m_run_time_ms(-1)
+        {
+                m_last_stat = new ns_hlx::hlx_server::t_stat_struct();
+        }
+        ~settings_struct()
+        {
+                if(m_last_stat)
+                {
+                        delete m_last_stat;
+                        m_last_stat = NULL;
+                }
+        }
 private:
         HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(settings_struct);
 
@@ -269,7 +288,7 @@ void command_exec(settings_struct_t &a_settings)
                 }
 
                 // TODO add define...
-                usleep(200000);
+                usleep(500000);
 
                 if(a_settings.m_show_stats && !a_settings.m_verbose)
                 {
@@ -642,8 +661,6 @@ int main(int argc, char** argv)
                 l_hlx_server->set_tls_crt(l_tls_crt);
         }
 
-        //uint64_t l_start_time_ms = get_time_ms();
-
         // -------------------------------------------
         // Add endpoints
         // -------------------------------------------
@@ -682,6 +699,9 @@ int main(int argc, char** argv)
                 HeapProfilerStart(l_hprof_file.c_str());
         }
 #endif
+
+        uint64_t l_start_time_ms = hlo_get_time_ms();
+        l_settings.m_start_time_ms = l_start_time_ms;
 
         // -------------------------------------------
         // Run...
@@ -769,32 +789,38 @@ uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms)
 //: ----------------------------------------------------------------------------
 void display_results_line_desc(settings_struct &a_settings)
 {
-        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+
+        // TODO m_num_reqs
+
+        printf("+-----------/-----------+-----------+-----------+-----------+--------------+--------------+-------------+-------------+\n");
         if(a_settings.m_color)
         {
-        printf("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
-                        ANSI_COLOR_FG_GREEN, "Cmpltd", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_BLUE, "Total", ANSI_COLOR_OFF,
+        printf("| %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %s%12s%s | %11s | %11s |\n",
+                        ANSI_COLOR_FG_WHITE, "CCurnt", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_GREEN, "CStart", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLUE, "CComp", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_MAGENTA, "IdlKil", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_RED, "Errors", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_YELLOW, "kBytes Recvd", ANSI_COLOR_OFF,
-                        "Elapsed",
+                        ANSI_COLOR_FG_YELLOW, "kBytes  Rd/s", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_CYAN,   "kBytes  Wr/s", ANSI_COLOR_OFF,
                         "Req/s",
-                        "MB/s");
+                        "Elapsed");
         }
         else
         {
-                printf("| %9s / %9s | %9s | %9s | %12s | %9s | %11s | %9s |\n",
-                                "Cmpltd",
-                                "Total",
+                printf("| %9s / %9s / %9s | %9s | %9s | %12s | %12s | %11s | %11s |\n",
+                                "CCurnt",
+                                "CStart",
+                                "CComp",
                                 "IdlKil",
                                 "Errors",
-                                "kBytes Recvd",
-                                "Elapsed",
+                                "kBytes  Rd/s",
+                                "kBytes  Wr/s",
                                 "Req/s",
-                                "MB/s");
+                                "Elapsed");
+
         }
-        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+        printf("+-----------/-----------+-----------+-----------+-----------+--------------+--------------+-------------+-------------+\n");
 }
 
 //: ----------------------------------------------------------------------------
@@ -805,45 +831,47 @@ void display_results_line_desc(settings_struct &a_settings)
 void display_results_line(settings_struct &a_settings)
 {
         ns_hlx::hlx_server::t_stat_t l_total;
-        //uint64_t l_cur_time_ms = hlo_get_time_ms();
+        uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
         a_settings.m_hlx_server->get_stats(l_total);
 
-#if 0
-        double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
+        double l_reqs_per_s = ((double)(l_total.m_num_reqs - a_settings.m_last_stat->m_num_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
+        double l_kb_read_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
+                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
+        double l_kb_written_per_s = ((double)(l_total.m_num_bytes_written - a_settings.m_last_stat->m_num_bytes_written)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         a_settings.m_last_display_time_ms = hlo_get_time_ms();
         *a_settings.m_last_stat = l_total;
 
+        // TODO m_num_reqs
+
         if(a_settings.m_color)
         {
-                        printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
-                                        ANSI_COLOR_FG_GREEN, l_total.m_total_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLUE, l_total.m_total_reqs, ANSI_COLOR_OFF,
+                        printf("| %s%9" PRIu32 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s | %10.2fs | %10.2fs |\n",
+                                        ANSI_COLOR_FG_WHITE, l_total.m_cur_conn_count, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_GREEN, l_total.m_num_conn_started, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_num_conn_completed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_MAGENTA, l_total.m_num_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_num_bytes_read))/(1024.0), ANSI_COLOR_OFF,
-                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        ANSI_COLOR_FG_YELLOW, l_kb_read_per_s, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_CYAN, l_kb_written_per_s, ANSI_COLOR_OFF,
                                         l_reqs_per_s,
-                                        l_kb_per_s/1024.0
-                                        );
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0);
         }
         else
         {
-                printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
-                                l_total.m_total_reqs,
-                                l_total.m_total_reqs,
+                printf("| %9" PRIu32 " / %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f | %10.2fs | %10.2fs |\n",
+                                l_total.m_cur_conn_count,
+                                l_total.m_num_conn_started,
+                                l_total.m_num_conn_completed,
                                 l_total.m_num_idle_killed,
                                 l_total.m_num_errors,
-                                ((double)(l_total.m_num_bytes_read))/(1024.0),
-                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
+                                l_kb_read_per_s,
+                                l_kb_written_per_s,
                                 l_reqs_per_s,
-                                l_kb_per_s/1024.0
-                                );
+                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0));
 
         }
-#endif
 }
