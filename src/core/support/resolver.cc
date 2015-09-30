@@ -29,7 +29,10 @@
 #include "base64.h"
 
 // json support
+//#pragma GCC diagnostic push
+//#pragma GCC diagnostic ignored "-Werror"
 #include "rapidjson/document.h"
+//#pragma GCC diagnostic pop
 
 // For getaddrinfo
 #include <sys/types.h>

@@ -324,7 +324,7 @@ int32_t nconn_pool::release(nconn *a_nconn)
 void nconn_pool::init(void)
 {
         m_idle_conn_ncache.set_delete_cb(delete_cb, this);
-};
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -344,7 +344,7 @@ nconn_pool::nconn_pool(uint32_t a_size):
                 //NDBG_PRINT("ADDING i_conn: %u\n", i_conn);
                 m_conn_idx_free_list.push_back(i_conn);
         }
-};
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

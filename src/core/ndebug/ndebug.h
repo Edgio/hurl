@@ -175,7 +175,7 @@ inline int check_for_pod(int count, ...)
     va_start(ap, count);
     va_end(ap);
     return 0;
-};
+}
 
 //: ----------------------------------------------------------------------------
 //: Prototypes

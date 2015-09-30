@@ -92,7 +92,7 @@ typedef struct http_data_struct {
 
         {};
 private:
-        DISALLOW_COPY_AND_ASSIGN(http_data_struct);
+        DISALLOW_COPY_AND_ASSIGN(http_data_struct)
 } http_data_t;
 typedef std::vector <http_data_t *> http_data_vector_t;
 

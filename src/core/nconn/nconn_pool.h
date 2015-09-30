@@ -270,7 +270,7 @@ public:
                 return;
         }
 private:
-        DISALLOW_COPY_AND_ASSIGN(nlru);
+        DISALLOW_COPY_AND_ASSIGN(nlru)
 
         // ---------------------------------------
         // run access policy...
@@ -337,7 +337,7 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(nconn_pool);
+        DISALLOW_COPY_AND_ASSIGN(nconn_pool)
         void init(void);
 
         // -------------------------------------------------

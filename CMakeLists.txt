@@ -23,30 +23,61 @@
 project(hlo)
 cmake_minimum_required(VERSION 2.8.0)
 
+# Set install prefix
 SET(CMAKE_INSTALL_PREFIX "/usr")
 
-# Definitions
-add_definitions(-std=c++0x)
-add_definitions(-Wall)
-add_definitions(-Werror)
-add_definitions(-Weffc++)
-#add_definitions(-pedantic)
-add_definitions(-ggdb)
-#add_definitions(-O0)
-add_definitions(-O2)
-#add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
-# Package Dependancies
-# find_package(Boost REQUIRED)
-
 # Build options
-#option(enable_tests "Build the unit test suite." OFF)
+option(GCC_OPTIONS    "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
+option(DEBUG_MODE     "Compile in debug mode." OFF)
+option(BUILD_TESTS    "Build the unit tests." OFF)
+#option(BUILD_PROFILE  "Enable google cpu and heap profiler support" OFF)
+#option(BUILD_TCMALLOC "Build with tcmalloc" ON)
 
+# ------------------------------------------------------------------------------
+# Compiler options
+# ------------------------------------------------------------------------------
+add_definitions(-std=c++0x)
+add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
+#add_definitions(-pedantic)
+#add_definitions(-D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now)
+
+# Address sanitizer options
+#add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+
+# ------------------------------------------------------------------------------
+# Optional flags
+# ------------------------------------------------------------------------------
+if (DEBUG_MODE)
+  add_definitions(-O0 -ggdb)
+else()
+  add_definitions(-O2)
+endif()
+
+# ------------------------------------------------------------------------------
+# Display the current settings
+# ------------------------------------------------------------------------------
+message(STATUS "Build Configuration:")
+message("")
+message("    Build Option                               Variable                Value                 ")
+message("    ------------------------------------------------------------------------------------------")
+message("    Debug mode:                                " "DEBUG_MODE              " ${DEBUG_MODE})
+message("    Build unit tests:                          " "BUILD_TESTS             " ${BUILD_TESTS})
+message("    Install path:                              " "INSTALL_PREFIX          " ${CMAKE_INSTALL_PREFIX})
+message("")
+
+# ------------------------------------------------------------------------------
 # include source and test directories
+# ------------------------------------------------------------------------------
 add_subdirectory(src)
 
-# ------------------------------------------------
+if (BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
+
+# ------------------------------------------------------------------------------
 # Debian Package Support
-# ------------------------------------------------
+# ------------------------------------------------------------------------------
 EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_VERSION "1.3.0-${DISTRIBUTION}")

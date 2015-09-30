@@ -156,7 +156,7 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        HTTP_DISALLOW_COPY_AND_ASSIGN(http_req);
+        HTTP_DISALLOW_COPY_AND_ASSIGN(http_req)
         int32_t parse_url(void);
 
         // -------------------------------------------------
@@ -229,7 +229,7 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        HTTP_DISALLOW_COPY_AND_ASSIGN(http_resp);
+        HTTP_DISALLOW_COPY_AND_ASSIGN(http_resp)
 
         // -------------------------------------------------
         // Private members

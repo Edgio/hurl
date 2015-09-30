@@ -994,7 +994,7 @@ int32_t nconn_ssl::validate_server_certificate(const char* a_host, bool a_disall
         l_cert = SSL_get_peer_certificate(m_ssl);
         if(NULL == l_cert)
         {
-                NCONN_ERROR("HOST[%s]: SSL_get_peer_certificate error.  ssl: %p", a_host, m_ssl);
+                NCONN_ERROR("HOST[%s]: SSL_get_peer_certificate error.  ssl: %p", a_host, (void *)m_ssl);
                 return NC_STATUS_ERROR;
         }
 

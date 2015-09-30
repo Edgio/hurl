@@ -49,7 +49,7 @@ public:
         int del(int a_fd);
 
 private:
-        DISALLOW_COPY_AND_ASSIGN(evr_epoll);
+        DISALLOW_COPY_AND_ASSIGN(evr_epoll)
         int m_epoll_fd;
 };
 
