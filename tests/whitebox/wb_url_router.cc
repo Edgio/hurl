@@ -58,7 +58,7 @@ TEST_CASE( "url router test", "[url_router]" )
         {
                 INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
                 l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
-                REQUIRE(l_status == 0);
+                REQUIRE((l_status == 0));
         }
 
         // Display
@@ -81,7 +81,7 @@ TEST_CASE( "url router test", "[url_router]" )
                         l_request_route = l_find_ptr_pairs[i_find].m_route;
                         INFO("Finding route: " << l_request_route);
                         l_found = l_url_router.find_route(l_request_route, l_url_param_map);
-                        REQUIRE(l_found == l_find_ptr_pairs[i_find].m_data);
+                        REQUIRE((l_found == l_find_ptr_pairs[i_find].m_data));
 
                         // TODO Check for parameters
                         //if(l_found != NULL)
@@ -109,7 +109,7 @@ TEST_CASE( "url router test", "[url_router]" )
                         l_request_route = l_find_ptr_pairs[i_find].m_route;
                         INFO("Finding route: " << l_request_route);
                         l_found = l_url_router.find_route(l_request_route, l_url_param_map);
-                        REQUIRE(l_found == NULL);
+                        REQUIRE((l_found == NULL));
                 }
         }
 }

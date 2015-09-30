@@ -99,42 +99,42 @@ TEST_CASE( "nbq test", "[nbq]" ) {
 
         SECTION("Writing then Reading to new") {
                 nbq_write(l_nbq, l_buf, 331, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 331 );
-                //l_nbq.b_display_all();
+                REQUIRE(( l_nbq.read_avail() == 331 ));
+                //l_nbq.b_display_all());
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
         }
         SECTION("Reset Writing then Reading to new") {
                 l_nbq.reset_read();
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
                 l_nbq.reset_write();
                 l_nbq.reset_read();
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
                 nbq_write(l_nbq, l_buf, 331, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 331 );
+                REQUIRE(( l_nbq.read_avail() == 331 ));
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
         }
         SECTION("Reset Writing then Reading") {
                 l_nbq.reset();
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
                 nbq_write(l_nbq, l_buf, 331, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 331 );
+                REQUIRE(( l_nbq.read_avail() == 331 ));
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
         }
         SECTION("Reset Writing/Writing then Reading") {
                 l_nbq.reset();
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
                 nbq_write(l_nbq, l_buf, 331, BLOCK_SIZE);
                 nbq_write(l_nbq, l_buf, 331, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 662 );
-                //l_nbq.b_display_all();
+                REQUIRE(( l_nbq.read_avail() == 662 ));
+                //l_nbq.b_display_all());
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
-                REQUIRE( l_nbq.read_avail() == 0 );
+                REQUIRE(( l_nbq.read_avail() == 0 ));
         }
 }
