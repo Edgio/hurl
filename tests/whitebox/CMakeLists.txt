@@ -42,11 +42,9 @@ add_test(nbq wb_nbq)
 # ------------------------------------------------
 # wb_url_router
 # ------------------------------------------------
-SET(SRCS _catch.cc wb_url_router.cc ../../src/core/url_router/url_router.cc ../../src/core/ndebug/ndebug.cc)
+SET(SRCS wb_url_router.cc ../../src/core/url_router/url_router.cc ../../src/core/ndebug/ndebug.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../src/core/url_router/ ../../src/core/ndebug/)
 add_executable(wb_url_router ${HDRS} ${SRCS})
-SET_TARGET_PROPERTIES(wb_url_router PROPERTIES OUTPUT_NAME "wb_url_router")
 target_link_libraries(wb_url_router compiled_catch)
+SET_TARGET_PROPERTIES(wb_url_router PROPERTIES OUTPUT_NAME "wb_url_router")
 add_test(url_router wb_url_router)
-
-
