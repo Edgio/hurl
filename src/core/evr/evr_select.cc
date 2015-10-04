@@ -119,7 +119,7 @@ int evr_select::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered)
+int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
         int l_fd = a_fd;
         if (size_t(l_fd) >= m_conns.size())
@@ -136,7 +136,7 @@ int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_tr
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_select::mod(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered)
+int evr_select::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
         int l_fd = a_fd;
         FD_CLR(l_fd, &m_wfdset);

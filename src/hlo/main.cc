@@ -1161,6 +1161,12 @@ int main(int argc, char** argv)
         if(l_hlx_server)
         {
                 delete l_hlx_server;
+                l_hlx_server = NULL;
+        }
+        if(l_hlx_client)
+        {
+                delete l_hlx_client;
+                l_hlx_client = NULL;
         }
 
         //if(l_settings.m_verbose)

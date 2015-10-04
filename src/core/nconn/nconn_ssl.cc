@@ -279,13 +279,13 @@ int32_t nconn_ssl::ssl_accept(void)
                 }
                 case SSL_ERROR_WANT_READ:
                 {
-                        NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_ERROR_WANT_READ\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
+                        //NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_ERROR_WANT_READ\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
                         m_ssl_state = SSL_STATE_SSL_ACCEPTING_WANT_READ;
                         return NC_STATUS_AGAIN;
                 }
                 case SSL_ERROR_WANT_WRITE:
                 {
-                        NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_STATE_SSL_CONNECTING_WANT_WRITE\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
+                        //NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_STATE_SSL_CONNECTING_WANT_WRITE\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
                         m_ssl_state = SSL_STATE_SSL_ACCEPTING_WANT_WRITE;
                         return NC_STATUS_AGAIN;
                 }
@@ -499,6 +499,15 @@ int32_t nconn_ssl::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
         // set to accepting state
         m_ssl_state = SSL_STATE_ACCEPTING;
 
+        // Add to event handler
+        if (0 != a_evr_loop->mod_fd(m_fd,
+                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
+                                    this))
+        {
+                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                return NC_STATUS_ERROR;
+        }
+
         return NC_STATUS_OK;
 }
 
@@ -511,36 +520,37 @@ int32_t nconn_ssl::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
-        do {
-                l_status = SSL_read(m_ssl, a_buf, a_buf_len);
-                //NDBG_PRINT("%sHOST%s: %s ssl[%p] READ: %ld bytes. Reason: %s\n",
-                //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
-                //                m_host.c_str(),
-                //                m_ssl,
-                //                l_status,
-                //                strerror(errno));
-                if(l_status < 0)
-                {
-                        int l_ssl_error = SSL_get_error(m_ssl, l_status);
-                        //NDBG_PRINT("%sSSL_READ%s[%3d] l_bytes_read: %d error: %d\n",
-                        //                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                        //                SSL_get_fd(m_ssl), l_bytes_read,
-                        //                l_ssl_error);
-                        if(l_ssl_error == SSL_ERROR_WANT_READ)
-                        {
-                                return NC_STATUS_OK;
-                        }
-                }
-                else
-                {
-                        l_bytes_read += l_status;
-                }
 
-        } while((l_status < 0) && (errno == EAGAIN));
-
-        if(l_status >= 0)
+        l_status = SSL_read(m_ssl, a_buf, a_buf_len);
+        //NDBG_PRINT("%sHOST%s: %s ssl[%p] READ: %ld bytes. Reason: %s\n",
+        //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
+        //                m_host.c_str(),
+        //                m_ssl,
+        //                l_status,
+        //                strerror(errno));
+        if(l_status < 0)
+        {
+                int l_ssl_error = SSL_get_error(m_ssl, l_status);
+                //NDBG_PRINT("%sSSL_READ%s[%3d] l_bytes_read: %d error: %d\n",
+                //                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+                //                SSL_get_fd(m_ssl), l_bytes_read,
+                //                l_ssl_error);
+                if(l_ssl_error == SSL_ERROR_WANT_READ)
+                {
+                        return NC_STATUS_OK;
+                }
+        }
+        else
+        {
+                l_bytes_read += l_status;
+        }
+        if(l_status > 0)
         {
                 return l_bytes_read;
+        }
+        if(l_status == 0)
+        {
+                return NC_STATUS_EOF;
         }
 
         // TODO Translate status...
@@ -569,22 +579,21 @@ int32_t nconn_ssl::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int32_t l_bytes_written = 0;
         int l_status;
-        while(l_bytes_written < (int32_t)a_buf_len)
+
+        l_status = SSL_write(m_ssl, a_buf + l_bytes_written, a_buf_len - l_bytes_written);
+        //NDBG_PRINT("%sHOST%s: %s ssl[%p] WRITE: %d bytes. Reason: %s\n",
+        //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
+        //                m_host.c_str(),
+        //                m_ssl,
+        //                l_status,
+        //                strerror(errno));
+        if(l_status < 0)
         {
-                l_status = SSL_write(m_ssl, a_buf + l_bytes_written, a_buf_len - l_bytes_written);
-                //NDBG_PRINT("%sHOST%s: %s ssl[%p] WRITE: %d bytes. Reason: %s\n",
-                //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
-                //                m_host.c_str(),
-                //                m_ssl,
-                //                l_status,
-                //                strerror(errno));
-                if(l_status < 0)
-                {
-                        NCONN_ERROR("HOST[%s]: Error: performing SSL_write.\n", m_host.c_str());
-                        return NC_STATUS_ERROR;
-                }
-                l_bytes_written += l_status;
+                NCONN_ERROR("HOST[%s]: Error: performing SSL_write.\n", m_host.c_str());
+                return NC_STATUS_ERROR;
         }
+
+        l_bytes_written += l_status;
         return l_bytes_written;
 }
 
@@ -660,7 +669,7 @@ ncaccept_state_top:
                         if(SSL_STATE_SSL_ACCEPTING_WANT_READ == m_ssl_state)
                         {
                                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
                                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
@@ -670,7 +679,7 @@ ncaccept_state_top:
                         else if(SSL_STATE_SSL_ACCEPTING_WANT_WRITE == m_ssl_state)
                         {
                                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
                                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
@@ -688,7 +697,7 @@ ncaccept_state_top:
                 // Add to event handler
                 // -------------------------------------------
                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
@@ -772,7 +781,7 @@ ncconnect_state_top:
                         if(SSL_STATE_SSL_CONNECTING_WANT_READ == m_ssl_state)
                         {
                                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
                                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
@@ -782,7 +791,7 @@ ncconnect_state_top:
                         else if(SSL_STATE_SSL_CONNECTING_WANT_WRITE == m_ssl_state)
                         {
                                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
                                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
@@ -800,7 +809,7 @@ ncconnect_state_top:
                 // Add to event handler
                 // -------------------------------------------
                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_STATUS_ERROR,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
@@ -851,7 +860,7 @@ ncconnect_state_top:
                         http_data_t *l_data = static_cast<http_data_t *>(m_data);
                         if(l_data->m_save)
                         {
-                                http_resp *l_rx = static_cast<http_resp *>(l_data->m_http_resp);
+                                http_resp *l_rx = &(l_data->m_http_resp);
                                 if(l_rx)
                                 {
                                         // Get protocol
@@ -865,11 +874,9 @@ ncconnect_state_top:
                                         }
                                         l_rx->m_conn_info["Protocol"] = l_protocol;
                                         l_rx->m_conn_info["Cipher"] = l_cipher;
-
                                         // TODO REMOVE
                                         //NDBG_PRINT("%sncconnect%s: Protocol: %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_protocol.c_str());
                                         //NDBG_PRINT("%sncconnect%s: Cipher:   %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_cipher.c_str());
-
                                 }
                         }
                 }
@@ -884,7 +891,6 @@ ncconnect_state_top:
                                 return NC_STATUS_ERROR;
                         }
                 }
-
 #if 0
                 // -------------------------------------------
                 // Send request

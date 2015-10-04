@@ -84,3 +84,6 @@
 ==31312== For counts of detected and suppressed errors, rerun with: -v
 ==31312== ERROR SUMMARY: 6 errors from 6 contexts (suppressed: 0 from 0)
 
+ ->Edge triggered examples:
+ hlo "http://127.0.0.1:12345/TEST_FILE" -k -c -t1 -p10 -A10 -T2
+ hss -p12345 -s -c

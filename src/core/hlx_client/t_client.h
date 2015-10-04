@@ -122,7 +122,7 @@ private:
 
         int32_t request(http_rx *a_http_rx, nconn *a_nconn = NULL);
         int32_t start_connections(void);
-        int32_t cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t a_status = 0);
+        int32_t cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj);
         int32_t create_request(nbq &a_q, http_rx &a_http_rx);
         http_rx *get_rx(void);
         void limit_rate();
@@ -152,7 +152,7 @@ private:
         // Reqlet vectors
         http_rx_vector_t m_http_rx_vector;
         uint32_t m_http_rx_vector_idx;
-        http_data_vector_t m_http_data_vector;
+        http_data_pool_t m_http_data_pool;
 
         void *m_rand_ptr;
 

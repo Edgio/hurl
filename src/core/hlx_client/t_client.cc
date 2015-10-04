@@ -46,7 +46,7 @@
                         a_t_client->append_summary(a_http_rx);\
                 ++(a_t_client->m_num_done);\
                 if(a_status >= 500) {++(a_t_client->m_num_error);}\
-                a_t_client->cleanup_connection(a_conn, a_timer_obj, a_error); \
+                a_t_client->cleanup_connection(a_conn, a_timer_obj); \
         }while(0)
 
 #define T_CLIENT_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
@@ -101,7 +101,7 @@ t_client::t_client(const client_settings_struct_t &a_settings):
         m_last_get_req_us(0),
         m_http_rx_vector(),
         m_http_rx_vector_idx(0),
-        m_http_data_vector(),
+        m_http_data_pool(),
         m_rand_ptr(NULL)
 {
         // Friggin effc++
@@ -152,10 +152,10 @@ t_client::t_client(const client_settings_struct_t &a_settings):
         // Create loop
         m_evr_loop = new evr_loop(evr_loop_file_readable_cb,
                                   evr_loop_file_writeable_cb,
-                                  evr_loop_file_error_cb,
+                                  NULL,
                                   m_settings.m_evr_loop_type,
-                                  m_settings.m_num_parallel);
-
+                                  m_settings.m_num_parallel,
+                                  false);
 }
 
 //: ----------------------------------------------------------------------------
@@ -208,7 +208,6 @@ t_client::~t_client()
                 }
         }
         m_http_rx_vector.clear();
-
         if(m_evr_loop)
         {
                 delete m_evr_loop;
@@ -427,12 +426,11 @@ int32_t t_client::evr_loop_file_writeable_cb(void *a_data)
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
         t_client *l_t_client = static_cast<t_client *>(l_data->m_ctx);
-
-        CHECK_FOR_NULL_ERROR(l_data->m_http_req);
-        http_rx *l_http_rx = static_cast<http_rx*>(l_data->m_http_req);
+        CHECK_FOR_NULL_ERROR(l_data->m_http_rx);
+        http_rx *l_http_rx = static_cast<http_rx*>(l_data->m_http_rx);
 
         // Cancel last timer
-        l_t_client->m_evr_loop->cancel_timer(&(l_data->m_timer_obj));
+        l_t_client->m_evr_loop->cancel_timer(l_data->m_timer_obj);
 
         int32_t l_status = STATUS_OK;
         l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, nconn::NC_MODE_WRITE);
@@ -440,7 +438,7 @@ int32_t t_client::evr_loop_file_writeable_cb(void *a_data)
         {
                 //if(l_nconn->m_verbose)
                 //{
-                //        NDBG_PRINT("Error: performing run_state_machine\n");
+                        NDBG_PRINT("Error: performing run_state_machine l_status: %d\n", l_status);
                 //}
                 T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, (l_data->m_timer_obj), l_http_rx, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
                 return STATUS_ERROR;
@@ -460,6 +458,7 @@ int32_t t_client::evr_loop_file_writeable_cb(void *a_data)
                 }
                 else
                 {
+                        NDBG_PRINT("Error: not-done\n");
                         T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, (l_data->m_timer_obj), l_http_rx, 0, "", STATUS_ERROR);
                 }
                 return STATUS_OK;
@@ -486,14 +485,13 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
         t_client *l_t_client = static_cast<t_client *>(l_data->m_ctx);
+        CHECK_FOR_NULL_ERROR(l_data->m_http_rx);
+        http_rx *l_http_rx = static_cast<http_rx*>(l_data->m_http_rx);
 
-        CHECK_FOR_NULL_ERROR(l_data->m_http_req);
-        http_rx *l_http_rx = static_cast<http_rx*>(l_data->m_http_req);
-        CHECK_FOR_NULL_ERROR(l_data->m_http_resp);
-        http_resp *l_http_resp = static_cast<http_resp*>(l_data->m_http_resp);
+        http_resp *l_http_resp = &(l_data->m_http_resp);
 
         // Cancel last timer
-        l_t_client->m_evr_loop->cancel_timer(&(l_data->m_timer_obj));
+        l_t_client->m_evr_loop->cancel_timer(l_data->m_timer_obj);
 
         bool l_done = l_http_resp->m_complete;
         int32_t l_status = STATUS_OK;
@@ -503,6 +501,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
         {
                 l_mode = nconn::NC_MODE_WRITE;
         }
+
         l_status = l_nconn->nc_run_state_machine(l_t_client->m_evr_loop, l_mode);
         if(l_status >= 0)
         {
@@ -529,6 +528,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
                 l_nconn->reset_stats();
                 if(l_status == STATUS_ERROR)
                 {
+                        NDBG_PRINT("Error: performing run_state_machine l_status: %d\n", l_status);
                         T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, (l_data->m_timer_obj), l_http_rx, 901, l_nconn->m_last_error.c_str(), STATUS_ERROR);
                 }
                 else
@@ -557,7 +557,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
                         ++(l_t_client->m_num_done);
 
                         // Cancel last timer
-                        l_t_client->m_evr_loop->cancel_timer(&(l_data->m_timer_obj));
+                        l_t_client->m_evr_loop->cancel_timer(l_data->m_timer_obj);
                         uint64_t l_last_connect_us = l_nconn->m_stat.m_tt_connect_us;
                         l_nconn->reset_stats();
                         l_nconn->m_stat.m_tt_connect_us = l_last_connect_us;
@@ -604,6 +604,7 @@ int32_t t_client::evr_loop_file_readable_cb(void *a_data)
                                 l_status = l_t_client->m_nconn_pool.add_idle(l_nconn);
                                 if(STATUS_OK != l_status)
                                 {
+                                        NDBG_PRINT("Error: performing l_t_client->m_nconn_pool.add_idle l_status: %d\n", l_status);
                                         T_CLIENT_CONN_CLEANUP(l_t_client, l_nconn, (l_data->m_timer_obj), l_http_rx, 901, "Error setting idle", STATUS_ERROR);
                                         return STATUS_ERROR;
                                 }
@@ -631,42 +632,25 @@ int32_t t_client::evr_loop_timer_completion_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::evr_loop_file_error_cb(void *a_data)
-{
-        //NDBG_PRINT("%sSTATUS_ERRORS%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
-        CHECK_FOR_NULL_ERROR(a_data);
-
-         // TODO cleanup???
-
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int32_t t_client::evr_loop_file_timeout_cb(void *a_data)
 {
-        //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_data);
+        NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_data());
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
         t_client *l_t_client = static_cast<t_client *>(l_data->m_ctx);
-
-        CHECK_FOR_NULL_ERROR(l_data->m_http_req);
-        http_rx *l_http_rx = static_cast<http_rx*>(l_data->m_http_req);
+        CHECK_FOR_NULL_ERROR(l_data->m_http_rx);
+        http_rx *l_http_rx = static_cast<http_rx*>(l_data->m_http_rx);
 
         l_t_client->add_stat_to_agg(l_http_rx->m_stat_agg, l_nconn->get_stats(), 902);
-        if(l_t_client->m_settings.m_verbose)
+        //if(l_t_client->m_settings.m_verbose)
         {
-                NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %lu HOST: %s THIS: %p\n",
+                NDBG_PRINT("%sTIMING OUT CONN%s: i_conn: %p HOST: %s\n",
                                 ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-                                l_nconn->get_id(),
-                                l_nconn->m_host.c_str(),
-                                l_t_client);
+                                l_nconn,
+                                l_nconn->m_host.c_str());
         }
         ++l_t_client->m_num_fetched;
         ++l_http_rx->m_stat_agg.m_num_idle_killed;
@@ -786,6 +770,7 @@ void *t_client::t_run(void *a_nothing)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+//uint32_t g_client_req_num = 0;
 int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
 {
         nconn *l_nconn = a_nconn;
@@ -840,21 +825,11 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                 return STATUS_ERROR;
         }
 
-        http_resp *l_resp = static_cast<http_resp *>(l_data->m_http_resp);
-        if(!l_data->m_http_resp)
-        {
-                l_resp = new http_resp();
-                l_data->m_http_resp = l_resp;
-        }
-        else
-        {
-                l_resp->clear();
-        }
+        l_data->m_http_resp.clear();
 
         // Set resp object
-        a_http_rx->set_http_resp(l_resp);
-        l_resp->m_complete = false;
-        l_data->m_http_req = a_http_rx;
+        a_http_rx->set_http_resp(&(l_data->m_http_resp));
+        l_data->m_http_rx = a_http_rx;
 
         // Assign the request for connection
         l_nconn->set_host(a_http_rx->m_host);
@@ -923,17 +898,17 @@ int32_t t_client::request(http_rx *a_http_rx, nconn *a_nconn)
                 return STATUS_ERROR;
         }
 
+        //NDBG_PRINT("g_client_req_num: %d\n", ++g_client_req_num);
+
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_http_rx->m_host.c_str(), l_nconn->get_data1());
         l_status = l_nconn->nc_run_state_machine(m_evr_loop, nconn::NC_MODE_WRITE);
         if(l_status == STATUS_ERROR)
         {
-                NDBG_PRINT("Error: Performing nc_run_state_machine\n");
+                NDBG_PRINT("Error: Performing nc_run_state_machine. l_status: %d\n", l_status);
                 T_CLIENT_CONN_CLEANUP(this, l_nconn, (l_data->m_timer_obj), a_http_rx, 500, "Performing nc_run_state_machine", STATUS_ERROR);
                 return STATUS_OK;
         }
-
         return STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -1078,12 +1053,12 @@ int32_t t_client::create_request(nbq &a_q, http_rx &a_http_rx)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_client::cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t a_status)
+int32_t t_client::cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj)
 {
         //NDBG_PRINT("%sCLEANUP%s: PTR: %p\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_nconn);
         if(a_timer_obj)
         {
-                m_evr_loop->cancel_timer(&(a_timer_obj));
+                m_evr_loop->cancel_timer(a_timer_obj);
         }
         ++m_num_fetched;
         if(STATUS_OK != m_nconn_pool.release(a_nconn))
@@ -1229,17 +1204,22 @@ int32_t t_client::config_conn(nconn *a_nconn)
 
         if(!a_nconn->get_data())
         {
-                http_data_t *l_data = new http_data_t();
-                //NDBG_PRINT("Adding http_data: %p.\n", l_data);
-                m_http_data_vector.push_back(l_data);
+                http_data_t *l_data = m_http_data_pool.get_free();
+                if(l_data)
+                {
+                        l_data->m_http_resp.clear();
+                        l_data->m_http_req.clear();
+                }
+                else
+                {
+                        l_data = new http_data_t();
+                        m_http_data_pool.add(l_data);
+                }
                 a_nconn->set_data(l_data);
-
-                l_data->m_id = m_http_data_vector.size() - 1;
                 l_data->m_verbose = m_settings.m_verbose;
                 l_data->m_color = m_settings.m_color;
                 l_data->m_nconn = a_nconn;
-                l_data->m_http_req = NULL;
-                l_data->m_http_resp = NULL;
+                l_data->m_http_rx = NULL;
                 l_data->m_ctx = this;
                 l_data->m_timer_obj = NULL;
                 l_data->m_save = m_settings.m_save_response;

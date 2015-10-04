@@ -55,7 +55,6 @@ public:
           m_sock_opt_recv_buf_size(),
           m_sock_opt_send_buf_size(),
           m_sock_opt_no_delay(false),
-          m_timeout_s(10),
           m_tcp_state(TCP_STATE_FREE)
 
         {
@@ -89,7 +88,6 @@ protected:
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
-        uint32_t m_timeout_s;
 
 private:
         // ---------------------------------------

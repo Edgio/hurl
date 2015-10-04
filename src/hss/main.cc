@@ -490,9 +490,9 @@ int main(int argc, char** argv)
                         int l_num_threads = 1;
                         //NDBG_PRINT("arg: --threads: %s\n", l_argument.c_str());
                         l_num_threads = atoi(optarg);
-                        if (l_num_threads < 1)
+                        if (l_num_threads < 0)
                         {
-                                printf("num-threads must be at least 1\n");
+                                printf("num-threads must be at least 0\n");
                                 print_usage(stdout, -1);
                         }
                         l_hlx_server->set_num_threads(l_num_threads);
@@ -792,13 +792,14 @@ void display_results_line_desc(settings_struct &a_settings)
 
         // TODO m_num_reqs
 
-        printf("+-----------/-----------+-----------+-----------+-----------+--------------+--------------+-------------+-------------+\n");
+        printf("+-----------/-----------/-----------/-----------+-----------+-----------+--------------+--------------+-------------+-------------+\n");
         if(a_settings.m_color)
         {
-        printf("| %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %s%12s%s | %11s | %11s |\n",
+        printf("| %s%9s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %s%12s%s | %11s | %11s |\n",
                         ANSI_COLOR_FG_WHITE, "CCurnt", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_GREEN, "CStart", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_BLUE, "CComp", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLUE,  "CComp", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLACK, "TReqs", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_MAGENTA, "IdlKil", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_RED, "Errors", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_YELLOW, "kBytes  Rd/s", ANSI_COLOR_OFF,
@@ -808,19 +809,19 @@ void display_results_line_desc(settings_struct &a_settings)
         }
         else
         {
-                printf("| %9s / %9s / %9s | %9s | %9s | %12s | %12s | %11s | %11s |\n",
+                printf("| %9s / %9s / %9s / %9s | %9s | %9s | %12s | %12s | %11s | %11s |\n",
                                 "CCurnt",
                                 "CStart",
                                 "CComp",
+                                "TReqs",
                                 "IdlKil",
                                 "Errors",
                                 "kBytes  Rd/s",
                                 "kBytes  Wr/s",
                                 "Req/s",
                                 "Elapsed");
-
         }
-        printf("+-----------/-----------+-----------+-----------+-----------+--------------+--------------+-------------+-------------+\n");
+        printf("+-----------/-----------/-----------/-----------+-----------+-----------+--------------+--------------+-------------+-------------+\n");
 }
 
 //: ----------------------------------------------------------------------------
@@ -845,14 +846,13 @@ void display_results_line(settings_struct &a_settings)
         a_settings.m_last_display_time_ms = hlo_get_time_ms();
         *a_settings.m_last_stat = l_total;
 
-        // TODO m_num_reqs
-
         if(a_settings.m_color)
         {
-                        printf("| %s%9" PRIu32 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s | %10.2fs | %10.2fs |\n",
+                        printf("| %s%9" PRIu32 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s |  %10.2f | %10.2fs |\n",
                                         ANSI_COLOR_FG_WHITE, l_total.m_cur_conn_count, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_GREEN, l_total.m_num_conn_started, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_BLUE, l_total.m_num_conn_completed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLACK, l_total.m_num_reqs, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_MAGENTA, l_total.m_num_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_YELLOW, l_kb_read_per_s, ANSI_COLOR_OFF,
@@ -862,10 +862,11 @@ void display_results_line(settings_struct &a_settings)
         }
         else
         {
-                printf("| %9" PRIu32 " / %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f | %10.2fs | %10.2fs |\n",
+                printf("| %9" PRIu32 " / %9" PRIu64 " / %9" PRIi64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f |  %10.2f | %10.2fs |\n",
                                 l_total.m_cur_conn_count,
                                 l_total.m_num_conn_started,
                                 l_total.m_num_conn_completed,
+                                l_total.m_num_reqs,
                                 l_total.m_num_idle_killed,
                                 l_total.m_num_errors,
                                 l_kb_read_per_s,

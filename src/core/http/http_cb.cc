@@ -124,11 +124,10 @@ int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length)
                         NDBG_OUTPUT(": url:    %.*s\n", (int)a_length, a_at);
                 }
         }
-        if(l_data->m_save && l_data->m_type == HTTP_DATA_TYPE_SERVER && l_data->m_http_req)
+        if(l_data->m_save && l_data->m_type == HTTP_DATA_TYPE_SERVER)
         {
-                http_req *l_req = static_cast<http_req *>(l_data->m_http_req);
-                l_req->m_p_url.m_ptr = a_at;
-                l_req->m_p_url.m_len = a_length;
+                l_data->m_http_req.m_p_url.m_ptr = a_at;
+                l_data->m_http_req.m_p_url.m_len = a_length;
         }
         return 0;
 }
@@ -164,14 +163,13 @@ int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length)
                 }
         }
         l_data->m_status_code = a_parser->status_code;
-        if(l_data->m_type == HTTP_DATA_TYPE_CLIENT && l_data->m_http_resp)
+        if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
         {
-                http_resp *l_resp = static_cast<http_resp *>(l_data->m_http_resp);
-                l_resp->set_status(a_parser->status_code);
+                l_data->m_http_resp.set_status(a_parser->status_code);
                 if(l_data->m_save)
                 {
-                        l_resp->m_p_status.m_ptr = a_at;
-                        l_resp->m_p_status.m_len = a_length;
+                        l_data->m_http_resp.m_p_status.m_ptr = a_at;
+                        l_data->m_http_resp.m_p_status.m_len = a_length;
                 }
         }
         return 0;
@@ -202,15 +200,13 @@ int hp_on_header_field(http_parser* a_parser, const char *a_at, size_t a_length)
                 cr_struct l_cr;
                 l_cr.m_ptr = a_at;
                 l_cr.m_len = a_length;
-                if(l_data->m_type == HTTP_DATA_TYPE_CLIENT && l_data->m_http_resp)
+                if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
                 {
-                        http_resp *l_resp = static_cast<http_resp *>(l_data->m_http_resp);
-                        l_resp->m_p_h_list_key.push_back(l_cr);
+                        l_data->m_http_resp.m_p_h_list_key.push_back(l_cr);
                 }
-                else if(l_data->m_type == HTTP_DATA_TYPE_SERVER && l_data->m_http_req)
+                else if(l_data->m_type == HTTP_DATA_TYPE_SERVER)
                 {
-                        http_req *l_req = static_cast<http_req *>(l_data->m_http_req);
-                        l_req->m_p_h_list_key.push_back(l_cr);
+                        l_data->m_http_req.m_p_h_list_key.push_back(l_cr);
                 }
         }
         return 0;
@@ -241,15 +237,13 @@ int hp_on_header_value(http_parser* a_parser, const char *a_at, size_t a_length)
                 cr_struct l_cr;
                 l_cr.m_ptr = a_at;
                 l_cr.m_len = a_length;
-                if(l_data->m_type == HTTP_DATA_TYPE_CLIENT && l_data->m_http_resp)
+                if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
                 {
-                        http_resp *l_resp = static_cast<http_resp *>(l_data->m_http_resp);
-                        l_resp->m_p_h_list_val.push_back(l_cr);
+                        l_data->m_http_resp.m_p_h_list_val.push_back(l_cr);
                 }
-                else if(l_data->m_type == HTTP_DATA_TYPE_SERVER && l_data->m_http_req)
+                else if(l_data->m_type == HTTP_DATA_TYPE_SERVER)
                 {
-                        http_req *l_req = static_cast<http_req *>(l_data->m_http_req);
-                        l_req->m_p_h_list_val.push_back(l_cr);
+                        l_data->m_http_req.m_p_h_list_val.push_back(l_cr);
                 }
         }
         return 0;
@@ -273,12 +267,11 @@ int hp_on_headers_complete(http_parser* a_parser)
                 NDBG_OUTPUT("method: %d\n", a_parser->method);
                 NDBG_OUTPUT("http_errno: %d\n", a_parser->http_errno);
         }
-        if(l_data->m_save && l_data->m_type == HTTP_DATA_TYPE_SERVER && l_data->m_http_req)
+        if(l_data->m_save && l_data->m_type == HTTP_DATA_TYPE_SERVER)
         {
-                http_req *l_req = static_cast<http_req *>(l_data->m_http_req);
-                l_req->m_http_major = a_parser->http_major;
-                l_req->m_http_minor = a_parser->http_minor;
-                l_req->m_method = a_parser->method;
+                l_data->m_http_req.m_http_major = a_parser->http_major;
+                l_data->m_http_req.m_http_minor = a_parser->http_minor;
+                l_data->m_http_req.m_method = a_parser->method;
         }
         return 0;
 }
@@ -305,30 +298,28 @@ int hp_on_body(http_parser* a_parser, const char *a_at, size_t a_length)
         }
         if(l_data->m_save)
         {
-                if(l_data->m_type == HTTP_DATA_TYPE_CLIENT && l_data->m_http_resp)
+                if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
                 {
-                        http_resp *l_resp = static_cast<http_resp *>(l_data->m_http_resp);
-                        if(!l_resp->m_p_body.m_ptr)
+                        if(!l_data->m_http_resp.m_p_body.m_ptr)
                         {
-                                l_resp->m_p_body.m_ptr = a_at;
-                                l_resp->m_p_body.m_len = a_length;
+                                l_data->m_http_resp.m_p_body.m_ptr = a_at;
+                                l_data->m_http_resp.m_p_body.m_len = a_length;
                         }
                         else
                         {
-                                l_resp->m_p_body.m_len += a_length;
+                                l_data->m_http_resp.m_p_body.m_len += a_length;
                         }
                 }
-                else if(l_data->m_type == HTTP_DATA_TYPE_SERVER && l_data->m_http_req)
+                else if(l_data->m_type == HTTP_DATA_TYPE_SERVER)
                 {
-                        http_req *l_req = static_cast<http_req *>(l_data->m_http_req);
-                        if(!l_req->m_p_body.m_ptr)
+                        if(!l_data->m_http_req.m_p_body.m_ptr)
                         {
-                                l_req->m_p_body.m_ptr = a_at;
-                                l_req->m_p_body.m_len = a_length;
+                                l_data->m_http_req.m_p_body.m_ptr = a_at;
+                                l_data->m_http_req.m_p_body.m_len = a_length;
                         }
                         else
                         {
-                                l_req->m_p_body.m_len += a_length;
+                                l_data->m_http_req.m_p_body.m_len += a_length;
                         }
                 }
         }
@@ -362,16 +353,14 @@ int hp_on_message_complete(http_parser* a_parser)
         {
                 l_data->m_supports_keep_alives = false;
         }
-        if(l_data->m_type == HTTP_DATA_TYPE_CLIENT && l_data->m_http_resp)
+        if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
         {
-                http_resp *l_resp = static_cast<http_resp *>(l_data->m_http_resp);
-                l_resp->m_complete = true;
+                l_data->m_http_resp.m_complete = true;
         }
-        else if(l_data->m_type == HTTP_DATA_TYPE_SERVER && l_data->m_http_req)
+        else if(l_data->m_type == HTTP_DATA_TYPE_SERVER)
         {
-                http_req *l_req = static_cast<http_req *>(l_data->m_http_req);
-                l_req->m_complete = true;
-                l_req->m_supports_keep_alives = l_data->m_supports_keep_alives;
+                l_data->m_http_req.m_complete = true;
+                l_data->m_http_req.m_supports_keep_alives = l_data->m_supports_keep_alives;
         }
         return 0;
 }

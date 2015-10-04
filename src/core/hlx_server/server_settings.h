@@ -121,7 +121,9 @@ typedef struct server_settings_struct
                 m_req_body_len(0),
                 m_evr_loop_type(EVR_LOOP_EPOLL),
                 m_num_parallel(64),
-                m_timeout_s(10),
+
+                // TODO Put back to something reasonable like 10
+                m_timeout_s(100000),
                 m_run_time_s(-1),
                 m_rate(-1),
                 m_num_end_fetches(-1),

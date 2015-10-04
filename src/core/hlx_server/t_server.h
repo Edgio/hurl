@@ -32,6 +32,7 @@
 #include "ndebug.h"
 #include "evr.h"
 #include "http_cb.h"
+#include "obj_pool.h"
 
 // signal
 #include <signal.h>
@@ -114,7 +115,7 @@ private:
                 return reinterpret_cast<t_server *>(a_context)->t_run(NULL);
         }
 
-        int32_t cleanup_connection(nconn *a_nconn, void *a_timer_obj, int32_t a_status = 0);
+        int32_t cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj);
 
         // TODO multi-thread support
 #if 0
@@ -144,7 +145,7 @@ private:
         nconn *m_out_q_nconn;
         int m_out_q_fd;
         default_http_request_handler m_default_handler;
-        http_data_vector_t m_http_data_vector;
+        http_data_pool_t m_http_data_pool;
         hlx_server::t_stat_t m_stat;
 
         // TODO multi-thread support

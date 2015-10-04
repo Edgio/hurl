@@ -181,6 +181,7 @@ public:
         int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
         int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
+        int32_t nc_init(void);
 
         // -------------------------------------------------
         // Virtual Methods

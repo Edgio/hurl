@@ -246,7 +246,7 @@ int32_t hlx_server::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-#define MAX_PENDING_CONNECT_REQUESTS 5
+#define MAX_PENDING_CONNECT_REQUESTS 16384
 
 static int32_t create_tcp_server_socket(uint16_t a_port)
 {
@@ -543,7 +543,8 @@ hlx_server::hlx_server(void):
         m_stats(false),
         m_port(23456),
         m_num_threads(1),
-        m_num_parallel(128),
+        // TODO Need to make epoll vector resizeable
+        m_num_parallel(512),
         m_scheme(SCHEME_HTTP),
         m_ssl_ctx(NULL),
         m_tls_key(),

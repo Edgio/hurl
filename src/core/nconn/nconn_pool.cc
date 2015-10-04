@@ -70,18 +70,18 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme, nconn **ao_nconn)
         //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
         //                ao_nconn, m_conn_idx_free_list.size());
 
-        // Try create new from free-list
-        if(m_conn_idx_free_list.empty())
+        if((m_pool_size != -1) &&
+            m_idle_conn_ncache.size() &&
+           (m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size))
         {
-                //NDBG_PRINT("%sGET_CONNECTION%s: evicting.................................\n",
-                //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
-
                 // Evict from idle_conn_ncache
                 m_idle_conn_ncache.evict();
         }
 
-        if(m_conn_idx_free_list.empty())
+        if(m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size)
         {
+                // TODO REMOVE
+                NDBG_PRINT("%sEAGAIN%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
                 return nconn::NC_STATUS_AGAIN;
         }
 
@@ -90,17 +90,9 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme, nconn **ao_nconn)
         // Either return existing connection or
         // null for new connection
         // -----------------------------------------
-        nconn *l_nconn = NULL;
-        uint32_t l_conn_idx = *(m_conn_idx_free_list.begin());
-
-        // Start client for this reqlet
-        //NDBG_PRINT("i_conn: %d\n", *i_conn);
-        l_nconn = m_nconn_vector[l_conn_idx];
-        // TODO Check for NULL
-
+        nconn *l_nconn = m_nconn_obj_pool.get_free();
         //NDBG_PRINT("%sGET_CONNECTION%s: GET[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
         //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
-
         if(l_nconn &&
            (l_nconn->m_scheme != a_scheme))
         {
@@ -121,14 +113,9 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme, nconn **ao_nconn)
                         NDBG_PRINT("Error performing create_conn\n");
                         return nconn::NC_STATUS_ERROR;
                 }
-                l_nconn->set_idx(l_conn_idx);
-                m_nconn_vector[l_conn_idx] = l_nconn;
+                m_nconn_obj_pool.add(l_nconn);
         }
 
-        // TODO SET ID!!!
-        //l_nconn->m_hash = l_hash;
-        m_conn_idx_used_set.insert(l_conn_idx);
-        m_conn_idx_free_list.pop_front();
         //NDBG_PRINT("%sGET_CONNECTION%s: ERASED[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
         *ao_nconn = l_nconn;
@@ -169,7 +156,6 @@ int32_t nconn_pool::get_try_idle(const std::string &a_host, nconn::scheme_t a_sc
         if(l_nconn_lkp)
         {
                 *ao_nconn = const_cast<nconn *>(*l_nconn_lkp);
-                m_conn_idx_used_set.insert((*ao_nconn)->get_idx());
                 return nconn::NC_STATUS_OK;
         }
 
@@ -213,17 +199,9 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
                 l_label = "https://";
         }
         l_label += a_nconn->m_host;
-
         id_t l_id = m_idle_conn_ncache.insert(l_label, a_nconn);
-
-        // Setting id
         //NDBG_PRINT(" ::NCACHE::%sINSERT%s: SET_ID[%d]\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_id);
-
         a_nconn->set_id(l_id);
-
-        // Remove from in use set
-        m_conn_idx_used_set.erase(a_nconn->get_idx());
-
         return STATUS_OK;
 }
 
@@ -252,14 +230,8 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
                 return STATUS_ERROR;
         }
 
-        uint32_t l_conn_idx = a_nconn->get_idx();
         a_nconn->reset_stats();
-        m_conn_idx_free_list.push_back(l_conn_idx);
-
-        //NDBG_PRINT("%sGET_CONNECTION%s: ADDED[%u] m_conn_free_list.size() = %lu\n",
-        //                ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_conn_idx, m_conn_idx_free_list.size());
-
-        m_conn_idx_used_set.erase(l_conn_idx);
+        m_nconn_obj_pool.release(a_nconn);
         return STATUS_OK;
 }
 
@@ -270,7 +242,7 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
 //: ----------------------------------------------------------------------------
 int nconn_pool::delete_cb(void* o_1, void *a_2)
 {
-        //NDBG_PRINT("::NCACHE::%sDELETE%s: %p %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, o_1, a_2);
+        NDBG_PRINT("::NCACHE::%sDELETE%s: %p %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, o_1, a_2);
         nconn_pool *l_nconn_pool = reinterpret_cast<nconn_pool *>(o_1);
         nconn *l_nconn = *(reinterpret_cast<nconn **>(a_2));
         int32_t l_status = l_nconn_pool->cleanup(l_nconn);
@@ -279,6 +251,7 @@ int nconn_pool::delete_cb(void* o_1, void *a_2)
                 NDBG_PRINT("Error performing cleanup\n");
                 return STATUS_ERROR;
         }
+        l_nconn_pool->get_nconn_obj_pool().release(l_nconn);
         return STATUS_OK;
 }
 
@@ -331,19 +304,12 @@ void nconn_pool::init(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn_pool::nconn_pool(uint32_t a_size):
-                       m_nconn_vector(a_size),
-                       m_conn_idx_free_list(),
-                       m_conn_idx_used_set(),
+nconn_pool::nconn_pool(int32_t a_size):
+                       m_nconn_obj_pool(),
                        m_idle_conn_ncache(a_size, NCACHE_LRU),
-                       m_initd(false)
+                       m_initd(false),
+                       m_pool_size(a_size)
 {
-        for(uint32_t i_conn = 0; i_conn < a_size; ++i_conn)
-        {
-                m_nconn_vector[i_conn] = NULL;
-                //NDBG_PRINT("ADDING i_conn: %u\n", i_conn);
-                m_conn_idx_free_list.push_back(i_conn);
-        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -353,14 +319,19 @@ nconn_pool::nconn_pool(uint32_t a_size):
 //: ----------------------------------------------------------------------------
 nconn_pool::~nconn_pool(void)
 {
-        for(uint32_t i_conn = 0; i_conn < m_nconn_vector.size(); ++i_conn)
+        // TODO rethink this...
+#if 0
+        for(nconn_obj_pool_t::obj_idx_set_t::iterator i_idx = m_nconn_obj_pool.m_used_idx_set.begin();
+                        i_idx != m_nconn_obj_pool.m_used_idx_set.end();
+                        ++i_idx)
         {
-                if(m_nconn_vector[i_conn])
+                int32_t l_status = cleanup(m_nconn_obj_pool.m_obj_vec[*i_idx]);
+                if(l_status != STATUS_OK)
                 {
-                        delete m_nconn_vector[i_conn];
-                        m_nconn_vector[i_conn] = NULL;
+                        NDBG_PRINT("Error performing cleanup\n");
                 }
         }
+#endif
 }
 
 } //namespace ns_hlx {

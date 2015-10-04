@@ -28,6 +28,10 @@
 //: ----------------------------------------------------------------------------
 #include "http_parser.h"
 #include "ndebug.h"
+#include "obj_pool.h"
+#include "evr.h"
+#include "hlo/hlx_common.h"
+#include "http_rx.h"
 #include <vector>
 
 namespace ns_hlx {
@@ -53,48 +57,47 @@ typedef enum type_enum {
 //: ----------------------------------------------------------------------------
 typedef struct http_data_struct {
 
-        int32_t m_id;
         bool m_verbose;
         bool m_color;
-
         nconn *m_nconn;
-        void *m_http_req;
-        void *m_http_resp;
+        http_req m_http_req;
+        http_resp m_http_resp;
+        http_rx *m_http_rx;
         void *m_ctx;
-        void *m_timer_obj;
-
+        evr_timer_event_t *m_timer_obj;
         http_parser_settings m_http_parser_settings;
         http_parser m_http_parser;
-
         bool m_save;
         http_data_type_t m_type;
         bool m_supports_keep_alives;
         uint16_t m_status_code;
+        uint64_t m_idx;
+
+        uint64_t get_idx(void) {return m_idx;}
+        void set_idx(uint64_t a_idx) {m_idx = a_idx;}
 
         http_data_struct(void):
-                m_id(-1),
                 m_verbose(false),
                 m_color(false),
-
                 m_nconn(NULL),
-                m_http_req(NULL),
-                m_http_resp(NULL),
+                m_http_req(),
+                m_http_resp(),
+                m_http_rx(NULL),
                 m_ctx(NULL),
                 m_timer_obj(NULL),
-
                 m_http_parser_settings(),
                 m_http_parser(),
-
                 m_save(false),
                 m_type(HTTP_DATA_TYPE_NONE),
                 m_supports_keep_alives(false),
-                m_status_code(0)
-
+                m_status_code(0),
+                m_idx(0)
         {};
+
 private:
         DISALLOW_COPY_AND_ASSIGN(http_data_struct)
 } http_data_t;
-typedef std::vector <http_data_t *> http_data_vector_t;
+typedef obj_pool <http_data_t> http_data_pool_t;
 
 //: ----------------------------------------------------------------------------
 //: Callbacks

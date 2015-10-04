@@ -85,7 +85,7 @@ state_top:
                 l_status = ncaccept(a_evr_loop);
                 if(l_status < 0)
                 {
-                        //NDBG_PRINT("Error performing ncaccept\n");
+                        NDBG_PRINT("Error performing ncaccept\n");
                         return STATUS_ERROR;
                 }
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status);
@@ -102,7 +102,7 @@ state_top:
                 l_status = ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        //NDBG_PRINT("Error performing ncconnect.\n");
+                        NDBG_PRINT("Error performing ncconnect.\n");
                         return STATUS_ERROR;
                 }
                 if(is_connecting())
@@ -121,7 +121,7 @@ state_top:
                 {
                         // TODO -this aint cool...
                         // Set state to 200
-                        http_resp *l_rx = static_cast<http_resp *>((static_cast<http_data_t *>(m_data))->m_http_resp);
+                        http_resp *l_rx = &((static_cast<http_data_t *>(m_data))->m_http_resp);
                         if(l_rx)
                         {
                                 l_rx->set_status(200);
@@ -158,6 +158,7 @@ state_top:
         case NC_STATE_CONNECTED:
         {
                 int32_t l_status = STATUS_OK;
+                int32_t l_bytes = 0;
                 switch(a_mode)
                 {
                 case NC_MODE_READ:
@@ -168,16 +169,28 @@ state_top:
                                 //NDBG_PRINT("Error performing nc_read -host: %s\n", m_host.c_str());
                                 return STATUS_ERROR;
                         }
-                        // TODO other states???
-                        // Stats
-                        if(m_collect_stats_flag && (l_status > 0))
+                        else if(l_status == NC_STATUS_EOF)
                         {
-                                m_stat.m_total_bytes += l_status;
-                                if(m_stat.m_tt_first_read_us == 0)
+                                //NDBG_PRINT("NC_STATUS_EOF\n");
+                                return NC_STATUS_EOF;
+                        }
+                        else if(l_status == NC_STATUS_AGAIN)
+                        {
+                                //NDBG_PRINT("NC_STATUS_EOF\n");
+                                return NC_STATUS_AGAIN;
+                        }
+                        // TODO other states???
+                        if(l_status > 0)
+                        {
+                                l_bytes += l_status;
+                                if(m_collect_stats_flag)
                                 {
-                                        m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
+                                        m_stat.m_total_bytes += l_status;
+                                        if(m_stat.m_tt_first_read_us == 0)
+                                        {
+                                                m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
+                                        }
                                 }
-
                         }
                         break;
                 }
@@ -186,9 +199,25 @@ state_top:
                         l_status = nc_write();
                         if(l_status == NC_STATUS_ERROR)
                         {
-                                NDBG_PRINT("Error performing nc_write\n");
+                                //NDBG_PRINT("Error performing nc_write\n");
                                 return STATUS_ERROR;
                         }
+                        else if(l_status == NC_STATUS_EOF)
+                        {
+                                //NDBG_PRINT("NC_STATUS_EOF\n");
+                                return NC_STATUS_EOF;
+                        }
+                        else if(l_status == NC_STATUS_AGAIN)
+                        {
+                                //NDBG_PRINT("NC_STATUS_AGAIN\n");
+                                return NC_STATUS_AGAIN;
+                        }
+                        if(l_status > 0)
+                        {
+                                l_bytes += l_status;
+                        }
+                        // TODO -if EAGAIN -mod evr for EPOLL_OUT
+
                         break;
                 }
                 default:
@@ -196,7 +225,7 @@ state_top:
                         break;
                 }
                 }
-                return l_status;
+                return l_bytes;
         }
         // -------------------------------------------------
         // STATE: DONE
@@ -430,6 +459,7 @@ int32_t nconn::nc_set_accepting(evr_loop *a_evr_loop, int a_fd)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_cleanup()
 {
+        //NDBG_PRINT("%s--CONN--%s last_state: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_nc_state);
         int32_t l_status;
         l_status = nccleanup();
         m_nc_state = NC_STATE_FREE;
@@ -442,6 +472,8 @@ int32_t nconn::nc_cleanup()
 
         // Set data to null
         m_data = NULL;
+        m_in_q = NULL;
+        m_out_q = NULL;
 
         return STATUS_OK;
 }

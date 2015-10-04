@@ -28,7 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
 #include "nconn.h"
-
+#include "obj_pool.h"
 #include <list>
 #include <unordered_set>
 #include <unordered_map>
@@ -40,17 +40,6 @@
 #define NCACHE_DEFAULT_MAX_ENTRIES 64
 
 namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef std::vector<nconn *> nconn_vector_t;
-typedef std::list<uint32_t> conn_id_list_t;
-typedef std::unordered_set<uint32_t> conn_id_set_t;
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -310,9 +299,14 @@ class nconn_pool
 {
 public:
         // -------------------------------------------------
+        // Types
+        // -------------------------------------------------
+        typedef obj_pool<nconn> nconn_obj_pool_t;
+
+        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint32_t a_size);
+        nconn_pool(int32_t a_size);
         ~nconn_pool();
         // TODO passing settings struct -readonly reference
         int32_t get(nconn::scheme_t a_scheme, nconn **ao_nconn);
@@ -321,19 +315,15 @@ public:
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
         int32_t cleanup(nconn *a_nconn);
-        uint32_t num_in_use(void) const {return m_conn_idx_used_set.size();}
+        uint32_t num_in_use(void) const {return ((uint32_t)m_nconn_obj_pool.used_size());}
+        nconn_obj_pool_t &get_nconn_obj_pool(void){return m_nconn_obj_pool;}
 
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
         static int delete_cb(void* o_1, void *a_2);
 
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
-
 private:
-
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
@@ -343,11 +333,10 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        nconn_vector_t m_nconn_vector;
-        conn_id_list_t m_conn_idx_free_list;
-        conn_id_set_t m_conn_idx_used_set;
+        nconn_obj_pool_t m_nconn_obj_pool;
         idle_conn_lru_t m_idle_conn_ncache;
         bool m_initd;
+        int32_t m_pool_size;
 
 protected:
         // -------------------------------------------------

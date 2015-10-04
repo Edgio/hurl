@@ -37,7 +37,7 @@
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define EVR_DEFAULT_TIME_WAIT_MS 300
+#define EVR_DEFAULT_TIME_WAIT_MS (-1)
 
 namespace ns_hlx {
 
@@ -65,7 +65,10 @@ typedef enum evr_file_attr
 {
         EVR_FILE_ATTR_MASK_READ = 1 << 0,
         EVR_FILE_ATTR_MASK_WRITE = 1 << 1,
-        EVR_FILE_ATTR_MASK_STATUS_ERROR = 1 << 2
+        EVR_FILE_ATTR_MASK_STATUS_ERROR = 1 << 2,
+        EVR_FILE_ATTR_MASK_RD_HUP = 1 << 3,
+        EVR_FILE_ATTR_MASK_HUP = 1 << 4,
+        EVR_FILE_ATTR_MASK_ET = 1 << 5,
 } evr_file_attr_t;
 
 //: ----------------------------------------------------------------------------
@@ -80,8 +83,8 @@ public:
         virtual ~evr() {};
 
         virtual int wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec) = 0;
-        virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered) = 0;
-        virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data, bool a_edge_triggered) = 0;
+        virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
+        virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
         virtual int del(int a_fd) = 0;
 
 private:
@@ -162,8 +165,7 @@ public:
                  evr_file_cb_t a_error_cb = NULL,
                  evr_loop_type_t a_type = EVR_LOOP_EPOLL,
                  uint32_t a_max_conn = 1,
-                 bool a_use_lock = false,
-                 bool a_edge_triggered = false);
+                 bool a_use_lock = false);
         ~evr_loop();
         int32_t run(void);
 
@@ -179,8 +181,8 @@ public:
         // -------------------------------------------
         // Timer events...
         // -------------------------------------------
-        int32_t add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
-        int32_t cancel_timer(void **a_timer);
+        int32_t add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, evr_timer_event_t **ao_timer);
+        int32_t cancel_timer(evr_timer_event_t *a_timer);
         int32_t stop(void);
 
         // -------------------------------------------
@@ -208,7 +210,6 @@ private:
 
         // Control fd -used primarily for cancelling an existing epooll_wait
         int m_control_fd;
-        bool m_edge_triggered;
 
         // -------------------------------------------
         // TODO Reevaluate Using class member instead
