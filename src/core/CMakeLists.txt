@@ -30,13 +30,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ./url_router
     ./http
     ./http_parser
-    ./tinymt
     ./evr
     ./cityhash
     ./support
     ./nconn
-    ./hlx_client
-    ./hlk_server
     ../../include 
 )
 
@@ -44,7 +41,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 SET(SRCS
     ./ndebug/ndebug.cc
     ./http_parser/http_parser.cc
-    ./tinymt/tinymt64.cc
     ./evr/evr.cc
     ./evr/evr_epoll.cc
     ./evr/evr_select.cc
@@ -63,20 +59,17 @@ SET(SRCS
     ./support/nbq.cc
     ./http/http.cc
     ./http/http_cb.cc
-    ./hlx_client/hlx_client.cc
-    ./hlx_client/t_client.cc
-    ./hlx_client/http_rx.cc
-    ./hlx_server/hlx_server.cc
-    ./hlx_server/t_server.cc
-    ./hlx_server/http_request_handler.cc
+    ./http/t_http.cc
+    ./http/http_request_handler.cc
+    ./http/subreq.cc
+    ./http/httpd.cc
+    ./http/listener.cc
     ./url_router/url_router.cc
 )
 
 # Headers
 SET(HDRS
-    ../../include/hlo/hlx_client.h
-    ../../include/hlo/hlx_server.h
-    ../../include/hlo/hlx_common.h
+    ../../include/hlo/hlx.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

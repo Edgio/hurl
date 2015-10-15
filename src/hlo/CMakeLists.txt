@@ -37,6 +37,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 # Source files
 SET(SRCS
   main.cc
+  tinymt64.cc
 )
 
 # Headers
@@ -72,6 +73,7 @@ SET(HDRS
 
 # build and install hl
 add_executable(hlo_cmd ${HDRS} ${SRCS})
+add_dependencies(hlo_cmd hlxcore)
 SET_TARGET_PROPERTIES(hlo_cmd PROPERTIES OUTPUT_NAME "hlo")
 target_link_libraries(hlo_cmd
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a

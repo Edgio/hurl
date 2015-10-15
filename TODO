@@ -1,10 +1,9 @@
 0. Mac OS X support -evr_kqueue + eventfd analog.
 
 1. hle
-  a. fix hle with edge triggered epoll
-  b. fix addr resolution errors showing up as "successful" results.
-  c. verify hostnames
-  d. cert expiration error messages.
+  a. fix addr resolution errors showing up as "successful" results.
+  b. verify hostnames
+  c. cert expiration error messages.
 
 2. hlx_server.
   a. access logs
@@ -13,77 +12,12 @@
   d. disallow enqueue'ing multiple requests for the same conn
   e. Catch+unit tests
   f. blackbox tests
-  g. fix hlo tests -connection errors and "Error: performing m_nconn_pool.get"
-  h. valgrind leaks:
+  
+3. hlo
+  a. timeout errors with hlo test
+  b. memory leaks?
 
-==31312== 
-==31312== HEAP SUMMARY:
-==31312==     in use at exit: 1,695,563 bytes in 53,146 blocks
-==31312==   total heap usage: 1,005,659 allocs, 952,513 frees, 915,487,075 bytes allocated
-==31312== 
-==31312== 32 bytes in 1 blocks are possibly lost in loss record 520 of 594
-==31312==    at 0x4A080E0: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==31312==    by 0x41AAF6: ns_hlx::evr_loop::add_timer(unsigned long, int (*)(void*), void*, void**) (evr.cc:316)
-==31312==    by 0x412D82: ns_hlx::t_server::evr_loop_file_readable_cb(void*) (t_server.cc:627)
-==31312==    by 0x41AA52: ns_hlx::evr_loop::run() (evr.cc:226)
-==31312==    by 0x411B1B: ns_hlx::t_server::t_run(void*) (t_server.cc:739)
-==31312==    by 0x3000C08181: start_thread (pthread_create.c:312)
-==31312==    by 0x30004FA47C: clone (clone.S:111)
-==31312== 
-==31312== 32 bytes in 1 blocks are possibly lost in loss record 521 of 594
-==31312==    at 0x4A080E0: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==31312==    by 0x41AAF6: ns_hlx::evr_loop::add_timer(unsigned long, int (*)(void*), void*, void**) (evr.cc:316)
-==31312==    by 0x411281: ns_hlx::t_server::evr_loop_file_writeable_cb(void*) (t_server.cc:463)
-==31312==    by 0x41AA6D: ns_hlx::evr_loop::run() (evr.cc:240)
-==31312==    by 0x411B1B: ns_hlx::t_server::t_run(void*) (t_server.cc:739)
-==31312==    by 0x3000C08181: start_thread (pthread_create.c:312)
-==31312==    by 0x30004FA47C: clone (clone.S:111)
-==31312== 
-==31312== 235 (32 direct, 203 indirect) bytes in 1 blocks are definitely lost in loss record 542 of 594
-==31312==    at 0x4A080E0: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==31312==    by 0x415CF4: ns_hlx::url_router::add_route(std::string const&, void const*) (url_router.cc:1063)
-==31312==    by 0x40C991: main (main.cc:669)
-==31312== 
-==31312== 9,824 bytes in 307 blocks are definitely lost in loss record 591 of 594
-==31312==    at 0x4A080E0: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==31312==    by 0x41AAF6: ns_hlx::evr_loop::add_timer(unsigned long, int (*)(void*), void*, void**) (evr.cc:316)
-==31312==    by 0x412D82: ns_hlx::t_server::evr_loop_file_readable_cb(void*) (t_server.cc:627)
-==31312==    by 0x412DE2: ns_hlx::t_server::evr_loop_file_readable_cb(void*) (t_server.cc:539)
-==31312==    by 0x41AA52: ns_hlx::evr_loop::run() (evr.cc:226)
-==31312==    by 0x411B1B: ns_hlx::t_server::t_run(void*) (t_server.cc:739)
-==31312==    by 0x3000C08181: start_thread (pthread_create.c:312)
-==31312==    by 0x30004FA47C: clone (clone.S:111)
-==31312== 
-==31312== 795,616 bytes in 24,863 blocks are definitely lost in loss record 593 of 594
-==31312==    at 0x4A080E0: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==31312==    by 0x41AAF6: ns_hlx::evr_loop::add_timer(unsigned long, int (*)(void*), void*, void**) (evr.cc:316)
-==31312==    by 0x412D82: ns_hlx::t_server::evr_loop_file_readable_cb(void*) (t_server.cc:627)
-==31312==    by 0x41AA52: ns_hlx::evr_loop::run() (evr.cc:226)
-==31312==    by 0x411B1B: ns_hlx::t_server::t_run(void*) (t_server.cc:739)
-==31312==    by 0x3000C08181: start_thread (pthread_create.c:312)
-==31312==    by 0x30004FA47C: clone (clone.S:111)
-==31312== 
-==31312== 796,192 bytes in 24,881 blocks are definitely lost in loss record 594 of 594
-==31312==    at 0x4A080E0: operator new(unsigned long) (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
-==31312==    by 0x41AAF6: ns_hlx::evr_loop::add_timer(unsigned long, int (*)(void*), void*, void**) (evr.cc:316)
-==31312==    by 0x411281: ns_hlx::t_server::evr_loop_file_writeable_cb(void*) (t_server.cc:463)
-==31312==    by 0x41AA6D: ns_hlx::evr_loop::run() (evr.cc:240)
-==31312==    by 0x411B1B: ns_hlx::t_server::t_run(void*) (t_server.cc:739)
-==31312==    by 0x3000C08181: start_thread (pthread_create.c:312)
-==31312==    by 0x30004FA47C: clone (clone.S:111)
-==31312== 
-==31312== LEAK SUMMARY:
-==31312==    definitely lost: 1,601,664 bytes in 50,052 blocks
-==31312==    indirectly lost: 203 bytes in 8 blocks
-==31312==      possibly lost: 64 bytes in 2 blocks
-==31312==    still reachable: 93,632 bytes in 3,084 blocks
-==31312==         suppressed: 0 bytes in 0 blocks
-==31312== Reachable blocks (those to which a pointer was found) are not shown.
-==31312== To see them, rerun with: --leak-check=full --show-leak-kinds=all
-==31312== 
-==31312== For counts of detected and suppressed errors, rerun with: -v
-==31312== ERROR SUMMARY: 6 errors from 6 contexts (suppressed: 0 from 0)
-
- ->Edge triggered examples:
+  ->Edge triggered examples:
  hlo "http://127.0.0.1:12345/TEST_FILE" -k -c -t1 -p10 -A10 -T2
  hss -p12345 -s -c
+

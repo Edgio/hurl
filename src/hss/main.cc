@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlo/hlx_server.h"
+#include "hlo/hlx.h"
 
 // getrlimit
 #include <sys/time.h>
@@ -134,8 +134,8 @@ typedef struct settings_struct
         bool m_verbose;
         bool m_color;
         bool m_show_stats;
-        ns_hlx::hlx_server *m_hlx_server;
-        ns_hlx::hlx_server::t_stat_t *m_last_stat;
+        ns_hlx::httpd *m_httpd;
+        ns_hlx::t_stat_t *m_last_stat;
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
         int32_t m_run_time_ms;
@@ -147,13 +147,13 @@ typedef struct settings_struct
                 m_verbose(false),
                 m_color(false),
                 m_show_stats(false),
-                m_hlx_server(NULL),
+                m_httpd(NULL),
                 m_last_stat(NULL),
                 m_start_time_ms(),
                 m_last_display_time_ms(),
                 m_run_time_ms(-1)
         {
-                m_last_stat = new ns_hlx::hlx_server::t_stat_struct();
+                m_last_stat = new ns_hlx::t_stat_struct();
         }
         ~settings_struct()
         {
@@ -164,8 +164,9 @@ typedef struct settings_struct
                 }
         }
 private:
-        HLX_SERVER_DISALLOW_COPY_AND_ASSIGN(settings_struct);
-
+        // Disallow copy/assign
+        settings_struct& operator=(const settings_struct &);
+        settings_struct(const settings_struct &);
 } settings_struct_t;
 
 //: ----------------------------------------------------------------------------
@@ -191,7 +192,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_hlx_server->stop();
+                g_settings->m_httpd->stop();
         }
 }
 
@@ -251,7 +252,7 @@ void command_exec(settings_struct_t &a_settings)
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
-        ns_hlx::hlx_server *l_hlx_server = a_settings.m_hlx_server;
+        ns_hlx::httpd *l_httpd = a_settings.m_httpd;
         bool l_first_time = true;
 
         nonblock(NB_ENABLE);
@@ -274,7 +275,7 @@ void command_exec(settings_struct_t &a_settings)
                         {
                                 g_test_finished = true;
                                 g_cancelled = true;
-                                l_hlx_server->stop();
+                                l_httpd->stop();
                                 l_sent_stop = true;
                                 break;
                         }
@@ -300,7 +301,7 @@ void command_exec(settings_struct_t &a_settings)
                         display_results_line(a_settings);
                 }
 
-                if (!l_hlx_server->is_running())
+                if (!l_httpd->is_running())
                 {
                         g_test_finished = true;
                 }
@@ -309,7 +310,7 @@ void command_exec(settings_struct_t &a_settings)
         // Send stop -if unsent
         if(!l_sent_stop)
         {
-                l_hlx_server->stop();
+                l_httpd->stop();
                 l_sent_stop = true;
         }
 
@@ -393,9 +394,8 @@ int main(int argc, char** argv)
 {
 
         settings_struct_t l_settings;
-        ns_hlx::hlx_server *l_hlx_server = new ns_hlx::hlx_server();
-        l_settings.m_hlx_server = l_hlx_server;
-
+        ns_hlx::httpd *l_httpd = new ns_hlx::httpd();
+        l_settings.m_httpd = l_httpd;
         // For sighandler
         g_settings = &l_settings;
 
@@ -433,7 +433,7 @@ int main(int argc, char** argv)
         std::string l_hprof_file;
         bool l_show_status = false;
         uint16_t l_server_port = 23456;
-        ns_hlx::scheme_type_t l_scheme = ns_hlx::SCHEME_HTTP;
+        ns_hlx::scheme_t l_scheme = ns_hlx::SCHEME_TCP;
         std::string l_tls_key;
         std::string l_tls_crt;
 
@@ -479,7 +479,6 @@ int main(int argc, char** argv)
                 case 'p':
                 {
                         l_server_port = (uint16_t)strtoul(l_argument.c_str(), NULL, 10);
-                        l_hlx_server->set_port(l_server_port);
                         break;
                 }
                 // ---------------------------------------
@@ -495,7 +494,7 @@ int main(int argc, char** argv)
                                 printf("num-threads must be at least 0\n");
                                 print_usage(stdout, -1);
                         }
-                        l_hlx_server->set_num_threads(l_num_threads);
+                        l_httpd->set_num_threads(l_num_threads);
                         break;
                 }
                 // ---------------------------------------
@@ -503,7 +502,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'T':
                 {
-                        l_scheme = ns_hlx::SCHEME_HTTPS;
+                        l_scheme = ns_hlx::SCHEME_SSL;
                 }
                 // ---------------------------------------
                 // TLS private key
@@ -539,7 +538,7 @@ int main(int argc, char** argv)
                         {
                                 l_cipher_str = "AES256-SHA";
                         }
-                        l_hlx_server->set_ssl_cipher_list(l_cipher_str);
+                        l_httpd->set_ssl_cipher_list(l_cipher_str);
                         break;
                 }
                 // ---------------------------------------
@@ -548,7 +547,7 @@ int main(int argc, char** argv)
                 case 'O':
                 {
                         int32_t l_status;
-                        l_status = l_hlx_server->set_ssl_options(l_argument);
+                        l_status = l_httpd->set_ssl_options(l_argument);
                         if(l_status != STATUS_OK)
                         {
                                 return STATUS_ERROR;
@@ -561,7 +560,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'F':
                 {
-                        l_hlx_server->set_ssl_ca_file(l_argument);
+                        l_httpd->set_ssl_ca_file(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -569,7 +568,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'L':
                 {
-                        l_hlx_server->set_ssl_ca_path(l_argument);
+                        l_httpd->set_ssl_ca_path(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -578,7 +577,7 @@ int main(int argc, char** argv)
                 case 'r':
                 {
                         l_settings.m_verbose = true;
-                        l_hlx_server->set_verbose(true);
+                        l_httpd->set_verbose(true);
                         break;
                 }
                 // ---------------------------------------
@@ -587,7 +586,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx_server->set_color(true);
+                        l_httpd->set_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -597,7 +596,7 @@ int main(int argc, char** argv)
                 {
                         l_settings.m_show_stats = true;
                         l_show_status = true;
-                        l_hlx_server->set_stats(true);
+                        l_httpd->set_stats(true);
                         break;
                 }
 #ifdef ENABLE_PROFILER
@@ -648,30 +647,34 @@ int main(int argc, char** argv)
         // Check for inputs
         // -------------------------------------------
         // TLS Check
-        if(l_scheme == ns_hlx::SCHEME_HTTPS)
+        if(l_scheme == ns_hlx::SCHEME_SSL)
         {
                 if(l_tls_key.empty() || l_tls_crt.empty())
                 {
                         printf("Error: TLS selected but not private key or public crt provided\n");
                         return -1;
                 }
-
-                l_hlx_server->set_scheme(l_scheme);
-                l_hlx_server->set_tls_key(l_tls_key);
-                l_hlx_server->set_tls_crt(l_tls_crt);
+                l_httpd->set_tls_key(l_tls_key);
+                l_httpd->set_tls_crt(l_tls_crt);
         }
+        ns_hlx::listener *l_listener = new ns_hlx::listener(l_server_port, l_scheme);
 
         // -------------------------------------------
         // Add endpoints
         // -------------------------------------------
         int32_t l_status = 0;
         file_getter *l_file_getter = new file_getter();
-        l_status = l_hlx_server->add_endpoint("/*", l_file_getter);
+        l_status = l_listener->add_endpoint("/*", l_file_getter);
         if(l_status != 0)
         {
                 printf("Error: adding endpoint: %s\n", "/*");
                 return -1;
         }
+
+        // -------------------------------------------
+        // Add listener
+        // -------------------------------------------
+        l_httpd->add_listener(l_listener);
 
         // -------------------------------------------
         // Sigint handler
@@ -707,10 +710,10 @@ int main(int argc, char** argv)
         // Run...
         // -------------------------------------------
         int32_t l_run_status = 0;
-        l_run_status = l_hlx_server->run();
+        l_run_status = l_httpd->run();
         if(l_run_status != 0)
         {
-                printf("Error: performing hlx_server::run");
+                printf("Error: performing httpd::run");
                 return -1;
         }
         //uint64_t l_start_time_ms = get_time_ms();
@@ -719,7 +722,7 @@ int main(int argc, char** argv)
         {
                 printf("Finished -joining all threads\n");
         }
-        l_hlx_server->wait_till_stopped();
+        l_httpd->wait_till_stopped();
 
         // -------------------------------------------
         // Profiling
@@ -744,10 +747,10 @@ int main(int argc, char** argv)
         }
 
         // Cleanup...
-        if(l_hlx_server)
+        if(l_httpd)
         {
-                delete l_hlx_server;
-                l_hlx_server = NULL;
+                delete l_httpd;
+                l_httpd = NULL;
         }
 
         return 0;
@@ -831,11 +834,11 @@ void display_results_line_desc(settings_struct &a_settings)
 //: ----------------------------------------------------------------------------
 void display_results_line(settings_struct &a_settings)
 {
-        ns_hlx::hlx_server::t_stat_t l_total;
+        ns_hlx::t_stat_t l_total;
         uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
-        a_settings.m_hlx_server->get_stats(l_total);
+        a_settings.m_httpd->get_stats(l_total);
 
         double l_reqs_per_s = ((double)(l_total.m_num_reqs - a_settings.m_last_stat->m_num_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));

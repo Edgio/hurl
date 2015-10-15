@@ -95,7 +95,6 @@ int32_t resolver::cached_resolve(std::string &a_host,
 {
 
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_host.c_str(), a_port);
-
         if(!m_is_initd)
         {
                 init();

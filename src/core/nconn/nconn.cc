@@ -44,7 +44,7 @@ namespace ns_hlx {
 int32_t nconn::nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d --START\n",
-        //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
+        //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
 state_top:
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d\n",
         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
@@ -85,7 +85,7 @@ state_top:
                 l_status = ncaccept(a_evr_loop);
                 if(l_status < 0)
                 {
-                        NDBG_PRINT("Error performing ncaccept\n");
+                        //NDBG_PRINT("Error performing ncaccept\n");
                         return STATUS_ERROR;
                 }
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status);
@@ -99,17 +99,19 @@ state_top:
         case NC_STATE_CONNECTING:
         {
                 int32_t l_status;
+                //NDBG_PRINT("connect...\n");
                 l_status = ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        NDBG_PRINT("Error performing ncconnect.\n");
+                        //NDBG_PRINT("Error performing ncconnect for host: %s.\n", m_host.c_str());
                         return STATUS_ERROR;
                 }
                 if(is_connecting())
                 {
                         //NDBG_PRINT("Still connecting...\n");
-                        return STATUS_OK;
+                        return NC_STATUS_AGAIN;
                 }
+                //NDBG_PRINT("Connected: %s\n", m_host.c_str());
                 // Returning client fd
                 // If OK -change state to connected???
                 m_nc_state = NC_STATE_CONNECTED;
@@ -140,7 +142,7 @@ state_top:
                 l_status = ncaccept(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        NDBG_PRINT("Error performing ncaccept\n");
+                        //NDBG_PRINT("Error performing ncaccept\n");
                         return STATUS_ERROR;
                 }
                 if(is_accepting())
@@ -164,6 +166,7 @@ state_top:
                 case NC_MODE_READ:
                 {
                         l_status = nc_read();
+                        //NDBG_PRINT("l_status: %d\n", l_status);
                         if(l_status == NC_STATUS_ERROR)
                         {
                                 //NDBG_PRINT("Error performing nc_read -host: %s\n", m_host.c_str());
@@ -420,9 +423,7 @@ bool nconn::can_reuse(void)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_set_listening(evr_loop *a_evr_loop, int32_t a_val)
 {
-
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
-
         int32_t l_status;
         l_status = ncset_listening(a_evr_loop, a_val);
         if(l_status != NC_STATUS_OK)

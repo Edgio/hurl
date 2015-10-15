@@ -27,7 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "host_info.h"
+#include "hlo/hlx.h"
 
 #include <pthread.h>
 

@@ -71,6 +71,8 @@ static bool ssl_x509_get_ids(X509* x509, std::vector<std::string>& ids);
 int32_t nconn_ssl::init(void)
 {
 
+        //NDBG_PRINT("INIT'ing: m_ssl_ctx: %p\n", m_ssl_ctx);
+
         // Create SSL Context
         m_ssl = SSL_new(m_ssl_ctx);
         // TODO Check for NULL
@@ -139,12 +141,15 @@ int32_t nconn_ssl::ssl_connect(void)
 {
         int l_status;
         m_ssl_state = SSL_STATE_SSL_CONNECTING;
+        //NDBG_PRINT("Connect: %s\n", m_host.c_str());
         l_status = SSL_connect(m_ssl);
+        //NDBG_PRINT("Connect: %d\n", l_status);
         if (l_status <= 0)
         {
                 //NDBG_PRINT("SSL connection failed - %d\n", l_status);
                 //NDBG_PRINT("Showing error.\n");
                 int l_ssl_error = SSL_get_error(m_ssl, l_status);
+                //NDBG_PRINT("l_ssl_error: %d.\n", l_ssl_error);
                 switch(l_ssl_error) {
                 case SSL_ERROR_SSL:
                 {
@@ -155,6 +160,12 @@ int32_t nconn_ssl::ssl_connect(void)
                                                 ERR_get_error(),
                                                 ERR_error_string(ERR_get_error(),NULL),
                                                 gts_last_ssl_error);
+                                //NDBG_PRINT("HOST[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s\n",
+                                //                m_host.c_str(),
+                                //                ERR_get_error(),
+                                //                ERR_error_string(ERR_get_error(),NULL),
+                                //                gts_last_ssl_error);
+
                                 // Set back
                                 gts_last_ssl_error[0] = '\0';
                         }
@@ -164,6 +175,10 @@ int32_t nconn_ssl::ssl_connect(void)
                                                 m_host.c_str(),
                                                 ERR_get_error(),
                                                 ERR_error_string(ERR_get_error(),NULL));
+                                //NDBG_PRINT("HOST[%s]: SSL_ERROR_SSL %lu: %s.\n",
+                                //                m_host.c_str(),
+                                //                ERR_get_error(),
+                                //                ERR_error_string(ERR_get_error(),NULL));
                         }
 
                         break;
@@ -537,7 +552,7 @@ int32_t nconn_ssl::ncread(char *a_buf, uint32_t a_buf_len)
                 //                l_ssl_error);
                 if(l_ssl_error == SSL_ERROR_WANT_READ)
                 {
-                        return NC_STATUS_OK;
+                        return NC_STATUS_AGAIN;
                 }
         }
         else
@@ -577,10 +592,8 @@ int32_t nconn_ssl::ncread(char *a_buf, uint32_t a_buf_len)
 //: ----------------------------------------------------------------------------
 int32_t nconn_ssl::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
-        int32_t l_bytes_written = 0;
         int l_status;
-
-        l_status = SSL_write(m_ssl, a_buf + l_bytes_written, a_buf_len - l_bytes_written);
+        l_status = SSL_write(m_ssl, a_buf, a_buf_len);
         //NDBG_PRINT("%sHOST%s: %s ssl[%p] WRITE: %d bytes. Reason: %s\n",
         //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
         //                m_host.c_str(),
@@ -592,9 +605,7 @@ int32_t nconn_ssl::ncwrite(char *a_buf, uint32_t a_buf_len)
                 NCONN_ERROR("HOST[%s]: Error: performing SSL_write.\n", m_host.c_str());
                 return NC_STATUS_ERROR;
         }
-
-        l_bytes_written += l_status;
-        return l_bytes_written;
+        return l_status;
 }
 
 //: ----------------------------------------------------------------------------
@@ -775,7 +786,7 @@ ncconnect_state_top:
         {
                 int l_status;
                 l_status = ssl_connect();
-                //NDBG_PRINT("%sSSL_CONNECTING%s status = %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status);
+                //NDBG_PRINT("%sSSL_CONNECTING%s status = %d m_ssl_state = %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status, m_ssl_state);
                 if(l_status == NC_STATUS_AGAIN)
                 {
                         if(SSL_STATE_SSL_CONNECTING_WANT_READ == m_ssl_state)

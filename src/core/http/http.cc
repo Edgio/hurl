@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlo/hlx_common.h"
+#include "hlo/hlx.h"
 #include "ndebug.h"
 #include "nconn.h"
 #include "nbq.h"
@@ -62,6 +62,7 @@ http_req::http_req(void):
         m_status(),
         m_complete(false),
         m_supports_keep_alives(false),
+        m_subreq(NULL),
         m_headers(),
         m_body(),
         m_q(NULL),
@@ -187,6 +188,76 @@ const std::string &http_req::get_url_path(void)
 {
         PARSE_IF_UNPARSED();
         return m_parsed_url_path;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_req::write_request_line(char *a_buf, uint32_t a_len)
+{
+        //NDBG_PRINT("WRITE_HEADER: %s: %s\n", a_key, a_val);
+        ns_hlx::nbq *l_q = get_q();
+        if(!l_q)
+        {
+                NDBG_PRINT("Error getting response q");
+                return STATUS_ERROR;
+        }
+        l_q->write(a_buf, a_len);
+        l_q->write("\r\n", 2);
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_req::write_header(const char *a_key, const char *a_val)
+{
+        return write_header(a_key, strlen(a_key), a_val, strlen(a_val));
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_req::write_header(const char *a_key, uint32_t a_key_len, const char *a_val, uint32_t a_val_len)
+{
+        //NDBG_PRINT("WRITE_HEADER: %s: %s\n", a_key, a_val);
+        ns_hlx::nbq *l_q = get_q();
+        if(!l_q)
+        {
+                NDBG_PRINT("Error getting response q");
+                return STATUS_ERROR;
+        }
+        l_q->write(a_key, a_key_len);
+        l_q->write(": ", 2);
+        l_q->write(a_val, a_val_len);
+        l_q->write("\r\n", 2);
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_req::write_body(const char *a_body, uint32_t a_body_len)
+{
+        ns_hlx::nbq *l_q = get_q();
+        if(!l_q)
+        {
+                NDBG_PRINT("Error getting response q");
+                return STATUS_ERROR;
+        }
+        l_q->write("\r\n", strlen("\r\n"));
+        l_q->write(a_body, a_body_len);
+        return STATUS_OK;
+
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

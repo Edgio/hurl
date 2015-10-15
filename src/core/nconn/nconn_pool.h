@@ -37,7 +37,7 @@
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define NCACHE_DEFAULT_MAX_ENTRIES 64
+#define NCACHE_DEFAULT_MAX_ENTRIES 1024
 
 namespace ns_hlx {
 
@@ -97,21 +97,11 @@ public:
         // ---------------------------------------
         // evict...
         // ---------------------------------------
-        void evict(void)
+        void rremove(const id_t &a_id)
         {
-                if(m_item_list.empty())
-                {
-                        return;
-                }
-                _Tp &l_ref = m_item_list.back().second;
-                if(m_delete_cb)
-                {
-                        m_delete_cb(m_o_1, &l_ref);
-                }
-
                 // Get label
-                m_item_list_map.erase(m_item_list.back().first);
-                typename id_label_map_t::iterator i_label = m_id_label_map.find(m_item_list.back().first);
+                m_item_list_map.erase(a_id);
+                typename id_label_map_t::iterator i_label = m_id_label_map.find(a_id);
                 if(i_label == m_id_label_map.end())
                 {
                         // Error couldn't find...
@@ -125,7 +115,7 @@ public:
                 }
 
                 // Find in set
-                typename id_set_t::iterator i_idx = i_set->second.find(m_item_list.back().first);
+                typename id_set_t::iterator i_idx = i_set->second.find(a_id);
                 if(i_idx != i_set->second.end())
                 {
                         // Remove
@@ -141,11 +131,29 @@ public:
         }
 
         // ---------------------------------------
+        // evict...
+        // ---------------------------------------
+        void evict(void)
+        {
+                if(m_item_list.empty())
+                {
+                        return;
+                }
+                _Tp &l_ref = m_item_list.back().second;
+                if(m_delete_cb)
+                {
+                        m_delete_cb(m_o_1, &l_ref);
+                }
+                rremove(m_item_list.back().first);
+        }
+
+        // ---------------------------------------
         // Insert...
         // ---------------------------------------
         id_t insert(const label_t &a_label, const _Tp &a_new_entry)
         {
                 id_t l_id = m_next_id++;
+                //NDBG_PRINT("a_label: %s --size: %lu\n", a_label.c_str(), size());
 
                 m_item_list.push_front(std::make_pair(l_id, a_new_entry));
                 label_id_set_map_t::iterator i_set = m_label_id_set_map.find(a_label);
@@ -163,6 +171,7 @@ public:
                 m_id_label_map[l_id] = a_label;
                 if (m_item_list.size() > m_max_entries)
                 {
+                        NDBG_PRINT("Evict\n");
                         evict();
                 }
 
@@ -202,8 +211,9 @@ public:
                         return NULL;
                 }
 
-                access_policy(i_item);
-                return &i_item->second->second;
+                const _Tp* l_retval = &i_item->second->second;
+                rremove(*i_id);
+                return l_retval;
         }
 
         // ---------------------------------------
@@ -309,13 +319,14 @@ public:
         nconn_pool(int32_t a_size);
         ~nconn_pool();
         // TODO passing settings struct -readonly reference
-        int32_t get(nconn::scheme_t a_scheme, nconn **ao_nconn);
-        int32_t get_try_idle(const std::string &a_host, nconn::scheme_t a_scheme, nconn **ao_nconn);
-        nconn *create_conn(nconn::scheme_t a_scheme);
+        int32_t get(scheme_t a_scheme, nconn **ao_nconn);
+        int32_t get_try_idle(const std::string &a_host, scheme_t a_scheme, nconn **ao_nconn);
+        nconn *create_conn(scheme_t a_scheme);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
         int32_t cleanup(nconn *a_nconn);
         uint32_t num_in_use(void) const {return ((uint32_t)m_nconn_obj_pool.used_size());}
+        uint32_t num_free(void) const {return (m_pool_size - num_in_use());}
         nconn_obj_pool_t &get_nconn_obj_pool(void){return m_nconn_obj_pool;}
 
         // -------------------------------------------------

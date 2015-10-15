@@ -36,16 +36,16 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme)
+nconn *nconn_pool::create_conn(scheme_t a_scheme)
 {
         nconn *l_nconn = NULL;
 
         //NDBG_PRINT("CREATING NEW CONNECTION: a_scheme: %d\n", a_scheme);
-        if(a_scheme == nconn::SCHEME_TCP)
+        if(a_scheme == SCHEME_TCP)
         {
                 l_nconn = new nconn_tcp();
         }
-        else if(a_scheme == nconn::SCHEME_SSL)
+        else if(a_scheme == SCHEME_SSL)
         {
                 l_nconn = new nconn_ssl();
         }
@@ -58,7 +58,7 @@ nconn *nconn_pool::create_conn(nconn::scheme_t a_scheme)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_pool::get(nconn::scheme_t a_scheme, nconn **ao_nconn)
+int32_t nconn_pool::get(scheme_t a_scheme, nconn **ao_nconn)
 {
         if(!m_initd)
         {
@@ -81,7 +81,7 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme, nconn **ao_nconn)
         if(m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size)
         {
                 // TODO REMOVE
-                NDBG_PRINT("%sEAGAIN%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
+                //NDBG_PRINT("%sEAGAIN%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
                 return nconn::NC_STATUS_AGAIN;
         }
 
@@ -127,7 +127,7 @@ int32_t nconn_pool::get(nconn::scheme_t a_scheme, nconn **ao_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_pool::get_try_idle(const std::string &a_host, nconn::scheme_t a_scheme, nconn **ao_nconn)
+int32_t nconn_pool::get_try_idle(const std::string &a_host, scheme_t a_scheme, nconn **ao_nconn)
 {
         //NDBG_PRINT("%sGET_CONNECTION%s: a_host: %s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_host.c_str());
         if(!m_initd)
@@ -137,11 +137,11 @@ int32_t nconn_pool::get_try_idle(const std::string &a_host, nconn::scheme_t a_sc
 
         // TODO --fix using label...
         std::string l_label;
-        if(a_scheme == nconn::SCHEME_TCP)
+        if(a_scheme == SCHEME_TCP)
         {
                 l_label = "http://";
         }
-        else if(a_scheme == nconn::SCHEME_SSL)
+        else if(a_scheme == SCHEME_SSL)
         {
                 l_label = "https://";
         }
@@ -190,11 +190,11 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
 
         // TODO --fix using label...
         std::string l_label;
-        if(a_nconn->m_scheme == nconn::SCHEME_TCP)
+        if(a_nconn->m_scheme == SCHEME_TCP)
         {
                 l_label = "http://";
         }
-        else if(a_nconn->m_scheme == nconn::SCHEME_SSL)
+        else if(a_nconn->m_scheme == SCHEME_SSL)
         {
                 l_label = "https://";
         }
@@ -310,6 +310,7 @@ nconn_pool::nconn_pool(int32_t a_size):
                        m_initd(false),
                        m_pool_size(a_size)
 {
+        //NDBG_PRINT("a_size: %d\n", a_size);
 }
 
 //: ----------------------------------------------------------------------------

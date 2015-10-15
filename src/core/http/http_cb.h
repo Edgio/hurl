@@ -30,8 +30,7 @@
 #include "ndebug.h"
 #include "obj_pool.h"
 #include "evr.h"
-#include "hlo/hlx_common.h"
-#include "http_rx.h"
+#include "hlo/hlx.h"
 #include <vector>
 
 namespace ns_hlx {
@@ -46,9 +45,9 @@ class nconn;
 //: ----------------------------------------------------------------------------
 typedef enum type_enum {
 
-        HTTP_DATA_TYPE_CLIENT = 0,
+        HTTP_DATA_TYPE_NONE = 0,
+        HTTP_DATA_TYPE_CLIENT,
         HTTP_DATA_TYPE_SERVER,
-        HTTP_DATA_TYPE_NONE
 
 } http_data_type_t;
 
@@ -62,7 +61,6 @@ typedef struct http_data_struct {
         nconn *m_nconn;
         http_req m_http_req;
         http_resp m_http_resp;
-        http_rx *m_http_rx;
         void *m_ctx;
         evr_timer_event_t *m_timer_obj;
         http_parser_settings m_http_parser_settings;
@@ -71,6 +69,7 @@ typedef struct http_data_struct {
         http_data_type_t m_type;
         bool m_supports_keep_alives;
         uint16_t m_status_code;
+        url_router *m_url_router;
         uint64_t m_idx;
 
         uint64_t get_idx(void) {return m_idx;}
@@ -82,7 +81,6 @@ typedef struct http_data_struct {
                 m_nconn(NULL),
                 m_http_req(),
                 m_http_resp(),
-                m_http_rx(NULL),
                 m_ctx(NULL),
                 m_timer_obj(NULL),
                 m_http_parser_settings(),
@@ -91,6 +89,7 @@ typedef struct http_data_struct {
                 m_type(HTTP_DATA_TYPE_NONE),
                 m_supports_keep_alives(false),
                 m_status_code(0),
+                m_url_router(NULL),
                 m_idx(0)
         {};
 

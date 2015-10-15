@@ -277,13 +277,11 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
 //: ----------------------------------------------------------------------------
 int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
-        int32_t l_bytes_written = 0;
         int l_status;
-        char *l_buf = a_buf;
         //NDBG_PRINT("%swrite%s: buf: %p fd: %d len: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
         //                l_buf + l_bytes_written, m_fd, a_buf_len - l_bytes_written);
-        //mem_display((const uint8_t*)(l_buf + l_bytes_written), (uint32_t)(a_buf_len - l_bytes_written));
-        l_status = write(m_fd, l_buf + l_bytes_written, a_buf_len - l_bytes_written);
+        //mem_display((const uint8_t*)(a_buf), (uint32_t)(a_buf_len));
+        l_status = send(m_fd, a_buf, a_buf_len, MSG_NOSIGNAL);
         //NDBG_PRINT("write: status: %d\n", l_status);
         if(l_status < 0)
         {
@@ -325,7 +323,6 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
         // -------------------------------------------
         // TODO --set to REUSE????
         SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_REUSEADDR, 1);
-
         if(m_sock_opt_send_buf_size)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_SNDBUF, m_sock_opt_send_buf_size);
@@ -335,7 +332,6 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_RCVBUF, m_sock_opt_recv_buf_size);
         }
-
 
         if(m_sock_opt_no_delay)
         {

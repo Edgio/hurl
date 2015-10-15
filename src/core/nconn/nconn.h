@@ -27,11 +27,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "host_info.h"
 #include "req_stat.h"
 #include "nbq.h"
 
-#include "hlo/hlx_common.h"
+#include "hlo/hlx.h"
 #include "http_parser/http_parser.h"
 
 #include <string>
@@ -97,17 +96,6 @@ class nbq;
 class nconn
 {
 public:
-        // ---------------------------------------
-        // Public types
-        // ---------------------------------------
-        typedef enum scheme_enum {
-
-                SCHEME_TCP = 0,
-                SCHEME_SSL,
-                SCHEME_NONE
-
-        } scheme_t;
-
         typedef enum status_enum {
 
                 NC_STATUS_FREE = -1,

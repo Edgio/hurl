@@ -72,6 +72,7 @@ SET(HDRS
 
 # build and install hss
 add_executable(hss_cmd ${HDRS} ${SRCS})
+add_dependencies(hss_cmd hlxcore)
 SET_TARGET_PROPERTIES(hss_cmd PROPERTIES OUTPUT_NAME "hss")
 target_link_libraries(hss_cmd
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a

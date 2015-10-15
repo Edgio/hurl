@@ -371,7 +371,7 @@ int32_t evr_loop::cancel_timer(evr_timer_event_t *a_timer)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::stop(void)
+int32_t evr_loop::signal_control(void)
 {
         int32_t l_status;
         //NDBG_PRINT("%sSTOP%s: fd[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_control_fd);

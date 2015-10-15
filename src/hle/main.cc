@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlo/hlx_client.h"
+#include "hlo/hlx.h"
 #include "rapidjson/document.h"
 
 #include <string.h>
@@ -62,7 +62,6 @@
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
 #endif
-
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -114,6 +113,12 @@
 #define ANSI_COLOR_BG_CYAN      "\033[01;46m"
 #define ANSI_COLOR_BG_WHITE     "\033[01;47m"
 #define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
+#define UNUSED(x) ( (void)(x) )
+
 //: ----------------------------------------------------------------------------
 //: Settings
 //: ----------------------------------------------------------------------------
@@ -125,7 +130,8 @@ typedef struct settings_struct
         bool m_show_stats;
         bool m_show_summary;
         bool m_cli;
-        ns_hlx::hlx_client *m_hlx_client;
+        ns_hlx::httpd *m_httpd;
+        ns_hlx::subreq *m_subreq;
         uint32_t m_total_reqs;
 
         // ---------------------------------
@@ -138,29 +144,48 @@ typedef struct settings_struct
                 m_show_stats(false),
                 m_show_summary(false),
                 m_cli(false),
-                m_hlx_client(NULL),
+                m_httpd(NULL),
+                m_subreq(NULL),
                 m_total_reqs(0)
         {}
 
 private:
-        HLX_CLIENT_DISALLOW_COPY_AND_ASSIGN(settings_struct);
+        // Disallow copy/assign
+        settings_struct& operator=(const settings_struct &);
+        settings_struct(const settings_struct &);
 
 } settings_struct_t;
+
+//: ----------------------------------------------------------------------------
+//: Globals
+//: ----------------------------------------------------------------------------
+bool g_test_finished = false;
+bool g_cancelled = false;
+settings_struct_t *g_settings = NULL;
 
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
 void display_status_line(settings_struct_t &a_settings);
 void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts);
+int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
+
+//: ----------------------------------------------------------------------------
+//: \details: Completion callback
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t http_completion_cb(void *a_ptr)
+{
+        g_test_finished = true;
+        return 0;
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: Signal handler
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool g_test_finished = false;
-bool g_cancelled = false;
-settings_struct_t *g_settings = NULL;
 void sig_handler(int signo)
 {
         if (signo == SIGINT)
@@ -168,7 +193,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_hlx_client->stop();
+                g_settings->m_httpd->stop();
         }
 }
 
@@ -198,10 +223,8 @@ int kbhit()
 void nonblock(int state)
 {
         struct termios ttystate;
-
         //get the terminal state
         tcgetattr(STDIN_FILENO, &ttystate);
-
         if (state == NB_ENABLE)
         {
                 //turn off canonical mode
@@ -215,7 +238,6 @@ void nonblock(int state)
         }
         //set the terminal attributes.
         tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -227,21 +249,19 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
 {
         int i = 0;
         char l_cmd = ' ';
-        bool l_sent_stop = false;
+        //bool l_sent_stop = false;
         //bool l_first_time = true;
-
         nonblock(NB_ENABLE);
-
-        // run...
         int l_status;
-        l_status = a_settings.m_hlx_client->run();
-        if(HLX_CLIENT_STATUS_OK != l_status)
+
+        //printf("Adding subreq\n\n");
+        l_status = a_settings.m_httpd->add_subreq(a_settings.m_subreq);
+        if(l_status != HLX_SERVER_STATUS_OK)
         {
+                printf("Error: performing add_subreq.\n");
                 return -1;
         }
-
         g_test_finished = false;
-
         // ---------------------------------------
         //   Loop forever until user quits
         // ---------------------------------------
@@ -263,8 +283,8 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         {
                                 g_test_finished = true;
                                 g_cancelled = true;
-                                a_settings.m_hlx_client->stop();
-                                l_sent_stop = true;
+                                a_settings.m_httpd->stop();
+                                //l_sent_stop = true;
                                 break;
                         }
 
@@ -285,25 +305,20 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                 {
                         display_status_line(a_settings);
                 }
-
-                if (!a_settings.m_hlx_client->is_running())
-                {
-                        //printf("IS NOT RUNNING.\n");
-                        g_test_finished = true;
-                }
-
+                //if (!a_settings.m_httpd->is_running())
+                //{
+                //        //printf("IS NOT RUNNING.\n");
+                //        g_test_finished = true;
+                //}
         }
-
         // Send stop -if unsent
-        if(!l_sent_stop && a_send_stop)
-        {
-                a_settings.m_hlx_client->stop();
-                l_sent_stop = true;
-        }
-
+        //if(!l_sent_stop && a_send_stop)
+        //{
+        //        a_settings.m_httpd->stop();
+        //        l_sent_stop = true;
+        //}
         // wait for completion...
-        a_settings.m_hlx_client->wait_till_stopped();
-
+        //a_settings.m_httpd->wait_till_stopped();
         // One more status for the lovers
         if(a_settings.m_show_stats)
         {
@@ -329,13 +344,9 @@ void show_help(void)
 #define MAX_CMD_SIZE 64
 int command_exec_cli(settings_struct_t &a_settings)
 {
+        a_settings.m_httpd->set_use_persistent_pool(true);
+
         bool l_done = false;
-
-        // Set to keep-alive -and reuse
-        a_settings.m_hlx_client->set_header("Connection","keep-alive");
-        a_settings.m_hlx_client->set_num_reqs_per_conn(-1);
-        a_settings.m_hlx_client->set_use_persistent_pool(true);
-
         // -------------------------------------------
         // Interactive mode banner
         // -------------------------------------------
@@ -355,7 +366,6 @@ int command_exec_cli(settings_struct_t &a_settings)
         // ---------------------------------------
         while (!l_done && !g_cancelled)
         {
-
                 // -------------------------------------------
                 // Interactive mode prompt
                 // -------------------------------------------
@@ -411,7 +421,6 @@ int command_exec_cli(settings_struct_t &a_settings)
                         show_help();
                         break;
                 }
-
                 // -------------------------------------------
                 // Default
                 // -------------------------------------------
@@ -420,11 +429,8 @@ int command_exec_cli(settings_struct_t &a_settings)
                         break;
                 }
                 }
-
         }
-
         return 0;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -492,17 +498,14 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -h, --help           Display this help and exit.\n");
         fprintf(a_stream, "  -r, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "URL Options -or without parameter\n");
         fprintf(a_stream, "  -u, --url            URL -REQUIRED (unless running cli: see --cli option).\n");
         fprintf(a_stream, "  -d, --data           HTTP body data -supports bodies up to 8k.\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "Hostname Input Options -also STDIN:\n");
         fprintf(a_stream, "  -f, --host_file      Host name file.\n");
         fprintf(a_stream, "  -x, --execute        Script to execute to get host names.\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "Settings:\n");
         fprintf(a_stream, "  -p, --parallel       Num parallel.\n");
         fprintf(a_stream, "  -t, --threads        Number of parallel threads.\n");
@@ -515,20 +518,20 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).\n");
         fprintf(a_stream, "  -C, --connect_only   Only connect -do not send request.\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "SSL Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
         fprintf(a_stream, "  -O, --ssl_options    SSL Options string.\n");
+        // TODO
+#if 0
         fprintf(a_stream, "  -V, --ssl_verify     Verify server certificate.\n");
         fprintf(a_stream, "  -N, --ssl_sni        Use SSL SNI.\n");
+#endif
         fprintf(a_stream, "  -F, --ssl_ca_file    SSL CA File.\n");
         fprintf(a_stream, "  -L, --ssl_ca_path    SSL CA Path.\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "Command Line Client:\n");
         fprintf(a_stream, "  -I, --cli            Start interactive command line -URL not required.\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --color          Color\n");
@@ -536,27 +539,21 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -s, --show_progress  Show progress\n");
         fprintf(a_stream, "  -m, --show_summary   Show summary output\n");
         fprintf(a_stream, "  \n");
-
         fprintf(a_stream, "Output Options: -defaults to line delimited\n");
         fprintf(a_stream, "  -o, --output         File to write output to. Defaults to stdout\n");
         fprintf(a_stream, "  -l, --line_delimited Output <HOST> <RESPONSE BODY> per line\n");
         fprintf(a_stream, "  -j, --json           JSON { <HOST>: \"body\": <RESPONSE> ...\n");
         fprintf(a_stream, "  -P, --pretty         Pretty output\n");
         fprintf(a_stream, "  \n");
-
 #ifdef ENABLE_PROFILER
         fprintf(a_stream, "Debug Options:\n");
         fprintf(a_stream, "  -G, --gprofile       Google profiler output file\n");
 #endif
-
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running large jobs consider enabling tcp_tw_reuse -eg:\n");
         fprintf(a_stream, "echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse\n");
-
         fprintf(a_stream, "\n");
-
         exit(a_exit_code);
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -567,33 +564,40 @@ void print_usage(FILE* a_stream, int a_exit_code)
 int main(int argc, char** argv)
 {
         settings_struct_t l_settings;
-        ns_hlx::hlx_client *l_hlx_client = new ns_hlx::hlx_client();
-        l_settings.m_hlx_client = l_hlx_client;
+        ns_hlx::httpd *l_httpd = new ns_hlx::httpd();
+        l_settings.m_httpd = l_httpd;
 
         // For sighandler
         g_settings = &l_settings;
 
+        l_httpd->set_split_requests_by_thread(true);
+        l_httpd->set_collect_stats(false);
+        l_httpd->set_use_ai_cache(true);
+        l_httpd->set_use_persistent_pool(false);
+
+        // -------------------------------------------------
+        // Subrequest settings
+        // -------------------------------------------------
+        ns_hlx::subreq *l_subreq = new ns_hlx::subreq("MY_COOL_ID");
+        l_settings.m_subreq = l_subreq;
+
         // Turn on wildcarding by default
-        l_hlx_client->set_wildcarding(false);
-        l_hlx_client->set_split_requests_by_thread(true);
-        l_hlx_client->set_collect_stats(false);
-        l_hlx_client->set_save_response(true);
-        l_hlx_client->set_use_ai_cache(true);
+        l_subreq->m_multipath = false;
+        l_subreq->m_type = ns_hlx::subreq::SUBREQ_TYPE_FANOUT;
+        l_subreq->set_save_response(true);
 
-        // -------------------------------------------
         // Setup default headers before the user
-        // -------------------------------------------
-        l_hlx_client->set_header("User-Agent", "EdgeCast Parallel Curl hle ");
-
-        //l_hlx_client->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
-        //l_hlx_client->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-        //l_hlx_client->set_header("x-select-backend", "self");
-
-        l_hlx_client->set_header("Accept", "*/*");
-
-        //l_hlx_client->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-        //l_hlx_client->set_header("Accept-Encoding", "gzip,deflate");
-        //l_hlx_client->set_header("Connection", "keep-alive");
+        l_subreq->set_header("User-Agent", "EdgeCast Parallel Curl hle ");
+        l_subreq->set_header("Accept", "*/*");
+        //l_httpd->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
+        //l_httpd->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
+        //l_httpd->set_header("x-select-backend", "self");
+        //l_httpd->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        //l_httpd->set_header("Accept-Encoding", "gzip,deflate");
+        l_subreq->set_header("Connection", "keep-alive");
+        l_subreq->set_cb(http_completion_cb);
+        l_subreq->set_num_reqs_per_conn(-1);
+        l_subreq->m_keepalive = true;
 
         // -------------------------------------------
         // Get args...
@@ -654,12 +658,12 @@ int main(int argc, char** argv)
         bool l_cli = false;
 
         // Defaults
-        ns_hlx::hlx_client::output_type_t l_output_mode = ns_hlx::hlx_client::OUTPUT_JSON;
-        int l_output_part =   ns_hlx::hlx_client::PART_HOST
-                            | ns_hlx::hlx_client::PART_SERVER
-                            | ns_hlx::hlx_client::PART_STATUS_CODE
-                            | ns_hlx::hlx_client::PART_HEADERS
-                            | ns_hlx::hlx_client::PART_BODY
+        ns_hlx::subreq::output_type_t l_output_mode = ns_hlx::subreq::OUTPUT_JSON;
+        int l_output_part =   ns_hlx::subreq::PART_HOST
+                            | ns_hlx::subreq::PART_SERVER
+                            | ns_hlx::subreq::PART_STATUS_CODE
+                            | ns_hlx::subreq::PART_HEADERS
+                            | ns_hlx::subreq::PART_BODY
                             ;
         bool l_output_pretty = false;
 
@@ -687,7 +691,6 @@ int main(int argc, char** argv)
                         // reset option flag
                         is_opt = false;
                 }
-
         }
 
         // -------------------------------------------------
@@ -742,13 +745,29 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'd':
                 {
+                        // TODO Size limits???
                         int32_t l_status;
-                        l_status = l_hlx_client->set_data(l_argument.c_str(), l_argument.length());
-                        if(l_status != HLX_CLIENT_STATUS_OK)
+                        // If a_data starts with @ assume file
+                        if(l_argument[0] == '@')
                         {
-                                printf("Error setting HTTP body data with: %s\n", l_argument.c_str());
-                                return -1;
+                                l_status = read_file(l_argument.data() + 1, &(l_subreq->m_body_data), &(l_subreq->m_body_data_len));
+                                if(l_status != 0)
+                                {
+                                        printf("Error reading body data from file: %s\n", l_argument.c_str() + 1);
+                                        return -1;
+                                }
                         }
+                        else
+                        {
+                                l_subreq->m_body_data_len = l_argument.length() + 1;
+                                l_subreq->m_body_data = (char *)malloc(sizeof(char)*l_subreq->m_body_data_len);
+                                memcpy(l_subreq->m_body_data,l_argument.c_str(), l_subreq->m_body_data_len);
+                        }
+
+                        // Add content length
+                        char l_len_str[64];
+                        sprintf(l_len_str, "%u", l_subreq->m_body_data_len);
+                        l_subreq->set_header("Content-Length", l_len_str);
                         break;
                 }
                 // ---------------------------------------
@@ -793,7 +812,7 @@ int main(int argc, char** argv)
                         {
                                 l_cipher_str = "AES256-SHA";
                         }
-                        l_hlx_client->set_ssl_cipher_list(l_cipher_str);
+                        l_httpd->set_ssl_cipher_list(l_cipher_str);
                         break;
                 }
                 // ---------------------------------------
@@ -802,7 +821,7 @@ int main(int argc, char** argv)
                 case 'O':
                 {
                         int32_t l_status;
-                        l_status = l_hlx_client->set_ssl_options(l_argument);
+                        l_status = l_httpd->set_ssl_options(l_argument);
                         if(l_status != STATUS_OK)
                         {
                                 return STATUS_ERROR;
@@ -815,7 +834,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'V':
                 {
-                        l_hlx_client->set_ssl_verify(true);
+                        // TODO
+                        //l_httpd->set_ssl_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -823,8 +843,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'N':
                 {
-
-                        l_hlx_client->set_ssl_sni_verify(true);
+                        // TODO
+                        //l_httpd->set_ssl_sni_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -832,7 +852,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'F':
                 {
-                        l_hlx_client->set_ssl_ca_file(l_argument);
+                        l_httpd->set_ssl_ca_file(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -840,7 +860,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'L':
                 {
-                        l_hlx_client->set_ssl_ca_path(l_argument);
+                        l_httpd->set_ssl_ca_path(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -867,7 +887,7 @@ int main(int argc, char** argv)
                                 return -1;
                         }
 
-                        l_hlx_client->set_num_parallel(l_num_parallel);
+                        l_httpd->set_num_parallel(l_num_parallel);
                         break;
                 }
                 // ---------------------------------------
@@ -883,7 +903,7 @@ int main(int argc, char** argv)
                                 printf("Error num-threads must be 0 or greater\n");
                                 return -1;
                         }
-                        l_hlx_client->set_num_threads(l_max_threads);
+                        l_httpd->set_num_threads(l_max_threads);
                         break;
                 }
                 // ---------------------------------------
@@ -892,8 +912,8 @@ int main(int argc, char** argv)
                 case 'H':
                 {
                         int32_t l_status;
-                        l_status = l_hlx_client->set_header(l_argument);
-                        if(l_status != HLX_CLIENT_STATUS_OK)
+                        l_status = l_subreq->set_header(l_argument);
+                        if(l_status != HLX_SERVER_STATUS_OK)
                         {
                                 printf("Error header string[%s] is malformed\n", l_argument.c_str());
                                 return -1;
@@ -910,7 +930,7 @@ int main(int argc, char** argv)
                                 printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
                                 return -1;
                         }
-                        l_hlx_client->set_verb(l_argument);
+                        l_subreq->set_verb(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -926,7 +946,7 @@ int main(int argc, char** argv)
                                 printf("Error connection timeout must be > 0\n");
                                 return -1;
                         }
-                        l_hlx_client->set_timeout_s(l_timeout_s);
+                        l_subreq->set_timeout_s(l_timeout_s);
                         break;
                 }
                 // ---------------------------------------
@@ -936,7 +956,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_recv_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_hlx_client->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
+                        l_httpd->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -946,7 +966,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_send_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_hlx_client->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
+                        l_httpd->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -954,7 +974,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        l_hlx_client->set_sock_opt_no_delay(true);
+                        l_httpd->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------
@@ -962,7 +982,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'A':
                 {
-                        l_hlx_client->set_ai_cache(l_argument);
+                        l_httpd->set_ai_cache(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -970,7 +990,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'C':
                 {
-                        l_hlx_client->set_connect_only(true);
+                        l_subreq->set_connect_only(true);
                         break;
                 }
                 // ---------------------------------------
@@ -979,7 +999,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_hlx_client->set_verbose(true);
+                        l_httpd->set_verbose(true);
                         break;
                 }
                 // ---------------------------------------
@@ -988,7 +1008,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx_client->set_color(true);
+                        l_httpd->set_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -997,7 +1017,7 @@ int main(int argc, char** argv)
                 case 'q':
                 {
                         l_settings.m_quiet = true;
-                        l_hlx_client->set_quiet(true);
+                        l_httpd->set_quiet(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1013,8 +1033,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'm':
                 {
+                        l_httpd->set_show_summary(true);
                         l_settings.m_show_summary = true;
-                        l_hlx_client->set_show_summary(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1030,7 +1050,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'l':
                 {
-                        l_output_mode = ns_hlx::hlx_client::OUTPUT_LINE_DELIMITED;
+                        l_output_mode = ns_hlx::subreq::OUTPUT_LINE_DELIMITED;
                         break;
                 }
                 // ---------------------------------------
@@ -1038,7 +1058,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'j':
                 {
-                        l_output_mode = ns_hlx::hlx_client::OUTPUT_JSON;
+                        l_output_mode = ns_hlx::subreq::OUTPUT_JSON;
                         break;
                 }
                 // ---------------------------------------
@@ -1088,9 +1108,8 @@ int main(int argc, char** argv)
         // else set url
         if(!l_url.empty())
         {
-                l_hlx_client->set_url(l_url);
+                l_subreq->init_with_url(l_url);
         }
-
 
         ns_hlx::host_list_t l_host_list;
         // -------------------------------------------------
@@ -1205,7 +1224,6 @@ int main(int argc, char** argv)
                 std::string l_buf_str;
                 l_buf_str.assign(l_buf, l_size);
 
-
                 // NOTE: rapidjson assert's on errors -interestingly
                 rapidjson::Document l_doc;
                 l_doc.Parse(l_buf_str.c_str());
@@ -1221,17 +1239,17 @@ int main(int argc, char** argv)
                 {
                         if(!l_doc[i_record].IsObject())
                         {
-                                printf("Error reading json from file: %s.  Reason: array membe not an object\n",
+                                printf("Error reading json from file: %s.  Reason: array member not an object\n",
                                                 l_host_file_json_str.c_str());
                                 return STATUS_ERROR;
                         }
 
                         ns_hlx::host_t l_host;
 
-                        // "host" : "irobdownload.blob.core.windows.net:443",
-                        // "hostname" : "irobdownload.blob.core.windows.net",
+                        // "host" : "coolhost.com:443",
+                        // "hostname" : "coolhost.com",
                         // "id" : "DE4D",
-                        // "where" : "edge"
+                        // "where" : "my_house"
 
                         if(l_doc[i_record].HasMember("host")) l_host.m_host = l_doc[i_record]["host"].GetString();
                         else l_host.m_host = "NO_HOST";
@@ -1287,15 +1305,15 @@ int main(int argc, char** argv)
                 return -1;
         }
         // TODO???
-        //signal(SIGPIPE, SIG_IGN);
+        signal(SIGPIPE, SIG_IGN);
 
-        // Initializer hlx_client
+        // Initializer httpd
         int l_status = 0;
 
         // Set host list
         l_settings.m_total_reqs = l_host_list.size();
-        l_status = l_hlx_client->set_host_list(l_host_list);
-        if(HLX_CLIENT_STATUS_OK != l_status)
+        l_status = l_subreq->set_host_list(l_host_list);
+        if(l_status != HLX_SERVER_STATUS_OK)
         {
                 printf("Error: performing set_host_list.\n");
                 return -1;
@@ -1308,6 +1326,15 @@ int main(int argc, char** argv)
                 ProfilerStart(l_gprof_file.c_str());
         }
 #endif
+
+        // TODO Fix for 0 threads
+
+        // run...
+        l_status = l_httpd->run();
+        if(HLX_SERVER_STATUS_OK != l_status)
+        {
+                return -1;
+        }
 
         // -------------------------------------------
         // Run command exec
@@ -1329,6 +1356,12 @@ int main(int argc, char** argv)
                 }
         }
 
+        // Stop httpd
+        l_httpd->stop();
+
+        // wait for completion...
+        l_httpd->wait_till_stopped();
+
 #ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
         {
@@ -1346,7 +1379,7 @@ int main(int argc, char** argv)
                 bool l_use_color = l_settings.m_color;
                 if(!l_output_file.empty()) l_use_color = false;
                 std::string l_responses_str;
-                l_responses_str = l_hlx_client->dump_all_responses(l_use_color, l_output_pretty, l_output_mode, l_output_part);
+                l_responses_str = l_subreq->dump_all_responses(l_use_color, l_output_pretty, l_output_mode, l_output_part);
                 if(l_output_file.empty())
                 {
                         printf("%s\n", l_responses_str.c_str());
@@ -1393,10 +1426,10 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_hlx_client)
+        if(l_httpd)
         {
-                delete l_hlx_client;
-                l_hlx_client = NULL;
+                delete l_httpd;
+                l_httpd = NULL;
         }
 
         //if(l_settings.m_verbose)
@@ -1428,8 +1461,8 @@ void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
                 l_off_color = ANSI_COLOR_OFF;
         }
 
-        ns_hlx::hlx_client::summary_info_t l_summary_info;
-        a_settings.m_hlx_client->get_summary_info(l_summary_info);
+        ns_hlx::summary_info_t l_summary_info;
+        a_settings.m_httpd->get_summary_info(l_summary_info);
         printf("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
         printf("| total hosts:                     %u\n",a_num_hosts);
         printf("| success:                         %u\n",l_summary_info.m_success);
@@ -1445,13 +1478,13 @@ void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
         _sorted_map_t l_sorted_map;
         printf("+--------------- %sSSL PROTOCOLS%s -------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
         l_sorted_map.clear();
-        for(ns_hlx::hlx_client::summary_map_t::iterator i_s = l_summary_info.m_ssl_protocols.begin(); i_s != l_summary_info.m_ssl_protocols.end(); ++i_s)
+        for(ns_hlx::summary_map_t::iterator i_s = l_summary_info.m_ssl_protocols.begin(); i_s != l_summary_info.m_ssl_protocols.end(); ++i_s)
         l_sorted_map[i_s->second] = i_s->first;
         for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
         printf("| %-32s %u\n", i_s->second.c_str(), i_s->first);
         printf("+--------------- %sSSL CIPHERS%s ---------------- \n", l_cipher_str.c_str(), l_off_color.c_str());
         l_sorted_map.clear();
-        for(ns_hlx::hlx_client::summary_map_t::iterator i_s = l_summary_info.m_ssl_ciphers.begin(); i_s != l_summary_info.m_ssl_ciphers.end(); ++i_s)
+        for(ns_hlx::summary_map_t::iterator i_s = l_summary_info.m_ssl_ciphers.begin(); i_s != l_summary_info.m_ssl_ciphers.end(); ++i_s)
         l_sorted_map[i_s->second] = i_s->first;
         for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
         printf("| %-32s %u\n", i_s->second.c_str(), i_s->first);
@@ -1469,16 +1502,13 @@ void display_status_line(settings_struct_t &a_settings)
         // -------------------------------------------------
 
         // Get stats
-        ns_hlx::hlx_client::t_stat_t l_total;
-        ns_hlx::hlx_client::tag_stat_map_t l_unused;
-        a_settings.m_hlx_client->get_stats(l_total, false, l_unused);
-
+        ns_hlx::t_stat_t l_total;
+        a_settings.m_httpd->get_stats(l_total);
         uint32_t l_num_done = l_total.m_total_reqs;
         uint32_t l_num_resolved = l_total.m_num_resolved;
         uint32_t l_num_get = l_total.m_num_conn_started;
         uint32_t l_num_rx = a_settings.m_total_reqs;
         uint32_t l_num_error = l_total.m_num_errors;
-
         if(a_settings.m_color)
         {
                 printf("Done/Req'd/Resolved/Total/Error %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s\n",
@@ -1493,4 +1523,60 @@ void display_status_line(settings_struct_t &a_settings)
                 printf("Done/Req'd/Resolved/Total/Error %8u / %8u / %8u / %8u / %8u\n",
                                 l_num_done, l_num_get, l_num_resolved, l_num_rx, l_num_error);
         }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
+{
+        // Check is a file
+        struct stat l_stat;
+        int32_t l_status = STATUS_OK;
+        l_status = stat(a_file, &l_stat);
+        if(l_status != 0)
+        {
+                printf("Error performing stat on file: %s.  Reason: %s\n", a_file, strerror(errno));
+                return -1;
+        }
+
+        // Check if is regular file
+        if(!(l_stat.st_mode & S_IFREG))
+        {
+                printf("Error opening file: %s.  Reason: is NOT a regular file\n", a_file);
+                return -1;
+        }
+
+        // Open file...
+        FILE * l_file;
+        l_file = fopen(a_file,"r");
+        if (NULL == l_file)
+        {
+                printf("Error opening file: %s.  Reason: %s\n", a_file, strerror(errno));
+                return -1;
+        }
+
+        // Read in file...
+        int32_t l_size = l_stat.st_size;
+        *a_buf = (char *)malloc(sizeof(char)*l_size);
+        *a_len = l_size;
+        int32_t l_read_size;
+        l_read_size = fread(*a_buf, 1, l_size, l_file);
+        if(l_read_size != l_size)
+        {
+                printf("Error performing fread.  Reason: %s [%d:%d]\n",
+                                strerror(errno), l_read_size, l_size);
+                return -1;
+        }
+
+        // Close file...
+        l_status = fclose(l_file);
+        if (STATUS_OK != l_status)
+        {
+                printf("Error performing fclose.  Reason: %s\n", strerror(errno));
+                return -1;
+        }
+        return 0;
 }
