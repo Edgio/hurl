@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    t_http.h
+//: \file:    t_hlx.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    10/05/2015
@@ -20,8 +20,8 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _T_HTTP
-#define _T_HTTP
+#ifndef _T_HLX_H
+#define _T_HLX_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
@@ -31,7 +31,7 @@
 #include "evr.h"
 #include "http_cb.h"
 #include "obj_pool.h"
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 // signal
 #include <signal.h>
 
@@ -129,9 +129,9 @@ private:
 } vsconf_t;
 
 //: ----------------------------------------------------------------------------
-//: t_http
+//: t_hlx
 //: ----------------------------------------------------------------------------
-class t_http
+class t_hlx
 {
 public:
         // -------------------------------------------------
@@ -152,8 +152,8 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_http(const vsconf_t &a_vsconf);
-        ~t_http();
+        t_hlx(const vsconf_t &a_vsconf);
+        ~t_hlx();
         int run(void);
         void *t_run(void *a_nothing);
         void stop(void);
@@ -189,12 +189,12 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(t_http)
+        DISALLOW_COPY_AND_ASSIGN(t_hlx)
 
         //Helper for pthreads
         static void *t_run_static(void *a_context)
         {
-                return reinterpret_cast<t_http *>(a_context)->t_run(NULL);
+                return reinterpret_cast<t_hlx *>(a_context)->t_run(NULL);
         }
 
         int32_t cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj, http_data_type_t a_type);

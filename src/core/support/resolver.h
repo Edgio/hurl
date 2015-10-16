@@ -27,7 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 
 #include <pthread.h>
 

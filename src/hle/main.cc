@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #include "rapidjson/document.h"
 
 #include <string.h>
@@ -130,7 +130,7 @@ typedef struct settings_struct
         bool m_show_stats;
         bool m_show_summary;
         bool m_cli;
-        ns_hlx::httpd *m_httpd;
+        ns_hlx::hlx *m_hlx;
         ns_hlx::subreq *m_subreq;
         uint32_t m_total_reqs;
 
@@ -144,7 +144,7 @@ typedef struct settings_struct
                 m_show_stats(false),
                 m_show_summary(false),
                 m_cli(false),
-                m_httpd(NULL),
+                m_hlx(NULL),
                 m_subreq(NULL),
                 m_total_reqs(0)
         {}
@@ -193,7 +193,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_httpd->stop();
+                g_settings->m_hlx->stop();
         }
 }
 
@@ -255,7 +255,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         int l_status;
 
         //printf("Adding subreq\n\n");
-        l_status = a_settings.m_httpd->add_subreq(a_settings.m_subreq);
+        l_status = a_settings.m_hlx->add_subreq(a_settings.m_subreq);
         if(l_status != HLX_SERVER_STATUS_OK)
         {
                 printf("Error: performing add_subreq.\n");
@@ -283,7 +283,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         {
                                 g_test_finished = true;
                                 g_cancelled = true;
-                                a_settings.m_httpd->stop();
+                                a_settings.m_hlx->stop();
                                 //l_sent_stop = true;
                                 break;
                         }
@@ -305,7 +305,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                 {
                         display_status_line(a_settings);
                 }
-                //if (!a_settings.m_httpd->is_running())
+                //if (!a_settings.m_hlx->is_running())
                 //{
                 //        //printf("IS NOT RUNNING.\n");
                 //        g_test_finished = true;
@@ -314,11 +314,11 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         // Send stop -if unsent
         //if(!l_sent_stop && a_send_stop)
         //{
-        //        a_settings.m_httpd->stop();
+        //        a_settings.m_hlx->stop();
         //        l_sent_stop = true;
         //}
         // wait for completion...
-        //a_settings.m_httpd->wait_till_stopped();
+        //a_settings.m_hlx->wait_till_stopped();
         // One more status for the lovers
         if(a_settings.m_show_stats)
         {
@@ -344,7 +344,7 @@ void show_help(void)
 #define MAX_CMD_SIZE 64
 int command_exec_cli(settings_struct_t &a_settings)
 {
-        a_settings.m_httpd->set_use_persistent_pool(true);
+        a_settings.m_hlx->set_use_persistent_pool(true);
 
         bool l_done = false;
         // -------------------------------------------
@@ -564,16 +564,16 @@ void print_usage(FILE* a_stream, int a_exit_code)
 int main(int argc, char** argv)
 {
         settings_struct_t l_settings;
-        ns_hlx::httpd *l_httpd = new ns_hlx::httpd();
-        l_settings.m_httpd = l_httpd;
+        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
+        l_settings.m_hlx = l_hlx;
 
         // For sighandler
         g_settings = &l_settings;
 
-        l_httpd->set_split_requests_by_thread(true);
-        l_httpd->set_collect_stats(false);
-        l_httpd->set_use_ai_cache(true);
-        l_httpd->set_use_persistent_pool(false);
+        l_hlx->set_split_requests_by_thread(true);
+        l_hlx->set_collect_stats(false);
+        l_hlx->set_use_ai_cache(true);
+        l_hlx->set_use_persistent_pool(false);
 
         // -------------------------------------------------
         // Subrequest settings
@@ -589,11 +589,11 @@ int main(int argc, char** argv)
         // Setup default headers before the user
         l_subreq->set_header("User-Agent", "EdgeCast Parallel Curl hle ");
         l_subreq->set_header("Accept", "*/*");
-        //l_httpd->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
-        //l_httpd->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-        //l_httpd->set_header("x-select-backend", "self");
-        //l_httpd->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-        //l_httpd->set_header("Accept-Encoding", "gzip,deflate");
+        //l_hlx->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
+        //l_hlx->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
+        //l_hlx->set_header("x-select-backend", "self");
+        //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
         l_subreq->set_header("Connection", "keep-alive");
         l_subreq->set_cb(http_completion_cb);
         l_subreq->set_num_reqs_per_conn(-1);
@@ -812,7 +812,7 @@ int main(int argc, char** argv)
                         {
                                 l_cipher_str = "AES256-SHA";
                         }
-                        l_httpd->set_ssl_cipher_list(l_cipher_str);
+                        l_hlx->set_ssl_cipher_list(l_cipher_str);
                         break;
                 }
                 // ---------------------------------------
@@ -821,7 +821,7 @@ int main(int argc, char** argv)
                 case 'O':
                 {
                         int32_t l_status;
-                        l_status = l_httpd->set_ssl_options(l_argument);
+                        l_status = l_hlx->set_ssl_options(l_argument);
                         if(l_status != STATUS_OK)
                         {
                                 return STATUS_ERROR;
@@ -835,7 +835,7 @@ int main(int argc, char** argv)
                 case 'V':
                 {
                         // TODO
-                        //l_httpd->set_ssl_verify(true);
+                        //l_hlx->set_ssl_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -844,7 +844,7 @@ int main(int argc, char** argv)
                 case 'N':
                 {
                         // TODO
-                        //l_httpd->set_ssl_sni_verify(true);
+                        //l_hlx->set_ssl_sni_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -852,7 +852,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'F':
                 {
-                        l_httpd->set_ssl_ca_file(l_argument);
+                        l_hlx->set_ssl_ca_file(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -860,7 +860,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'L':
                 {
-                        l_httpd->set_ssl_ca_path(l_argument);
+                        l_hlx->set_ssl_ca_path(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -887,7 +887,7 @@ int main(int argc, char** argv)
                                 return -1;
                         }
 
-                        l_httpd->set_num_parallel(l_num_parallel);
+                        l_hlx->set_num_parallel(l_num_parallel);
                         break;
                 }
                 // ---------------------------------------
@@ -903,7 +903,7 @@ int main(int argc, char** argv)
                                 printf("Error num-threads must be 0 or greater\n");
                                 return -1;
                         }
-                        l_httpd->set_num_threads(l_max_threads);
+                        l_hlx->set_num_threads(l_max_threads);
                         break;
                 }
                 // ---------------------------------------
@@ -956,7 +956,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_recv_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_httpd->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
+                        l_hlx->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -966,7 +966,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_send_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_httpd->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
+                        l_hlx->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -974,7 +974,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        l_httpd->set_sock_opt_no_delay(true);
+                        l_hlx->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------
@@ -982,7 +982,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'A':
                 {
-                        l_httpd->set_ai_cache(l_argument);
+                        l_hlx->set_ai_cache(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -999,7 +999,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_httpd->set_verbose(true);
+                        l_hlx->set_verbose(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1008,7 +1008,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_httpd->set_color(true);
+                        l_hlx->set_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1017,7 +1017,7 @@ int main(int argc, char** argv)
                 case 'q':
                 {
                         l_settings.m_quiet = true;
-                        l_httpd->set_quiet(true);
+                        l_hlx->set_quiet(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1033,7 +1033,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'm':
                 {
-                        l_httpd->set_show_summary(true);
+                        l_hlx->set_show_summary(true);
                         l_settings.m_show_summary = true;
                         break;
                 }
@@ -1307,7 +1307,7 @@ int main(int argc, char** argv)
         // TODO???
         signal(SIGPIPE, SIG_IGN);
 
-        // Initializer httpd
+        // Initializer hlx
         int l_status = 0;
 
         // Set host list
@@ -1330,7 +1330,7 @@ int main(int argc, char** argv)
         // TODO Fix for 0 threads
 
         // run...
-        l_status = l_httpd->run();
+        l_status = l_hlx->run();
         if(HLX_SERVER_STATUS_OK != l_status)
         {
                 return -1;
@@ -1356,11 +1356,11 @@ int main(int argc, char** argv)
                 }
         }
 
-        // Stop httpd
-        l_httpd->stop();
+        // Stop hlx
+        l_hlx->stop();
 
         // wait for completion...
-        l_httpd->wait_till_stopped();
+        l_hlx->wait_till_stopped();
 
 #ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
@@ -1426,10 +1426,10 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_httpd)
+        if(l_hlx)
         {
-                delete l_httpd;
-                l_httpd = NULL;
+                delete l_hlx;
+                l_hlx = NULL;
         }
 
         //if(l_settings.m_verbose)
@@ -1462,7 +1462,7 @@ void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
         }
 
         ns_hlx::summary_info_t l_summary_info;
-        a_settings.m_httpd->get_summary_info(l_summary_info);
+        a_settings.m_hlx->get_summary_info(l_summary_info);
         printf("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
         printf("| total hosts:                     %u\n",a_num_hosts);
         printf("| success:                         %u\n",l_summary_info.m_success);
@@ -1503,7 +1503,7 @@ void display_status_line(settings_struct_t &a_settings)
 
         // Get stats
         ns_hlx::t_stat_t l_total;
-        a_settings.m_httpd->get_stats(l_total);
+        a_settings.m_hlx->get_stats(l_total);
         uint32_t l_num_done = l_total.m_total_reqs;
         uint32_t l_num_resolved = l_total.m_num_resolved;
         uint32_t l_num_get = l_total.m_num_conn_started;

@@ -36,7 +36,7 @@
 
 #include <stdint.h>
 
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif

@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #include "tinymt64.h"
 #include <string.h>
 
@@ -152,12 +152,12 @@ public:
                        ns_hlx::http_resp &ao_response)
         {
                 // Process request
-                if(!m_httpd)
+                if(!m_hlx)
                 {
                         return -1;
                 }
                 char l_char_buf[2048];
-                m_httpd->get_stats_json(l_char_buf, 2048);
+                m_hlx->get_stats_json(l_char_buf, 2048);
 
                 char l_len_str[64];
                 uint32_t l_body_len = strlen(l_char_buf);
@@ -174,9 +174,9 @@ public:
                 return STATUS_OK;
         }
         // hlx client
-        ns_hlx::httpd *m_httpd;
+        ns_hlx::hlx *m_hlx;
         stats_getter(void):
-                m_httpd(NULL)
+                m_hlx(NULL)
         {};
 private:
         // Disallow copy/assign
@@ -195,7 +195,7 @@ typedef struct settings_struct
         bool m_show_response_codes;
         bool m_show_per_interval;
         uint32_t m_num_parallel;
-        ns_hlx::httpd *m_httpd;
+        ns_hlx::hlx *m_hlx;
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
         ns_hlx::t_stat_t *m_last_stat;
@@ -212,7 +212,7 @@ typedef struct settings_struct
                 m_show_response_codes(false),
                 m_show_per_interval(false),
                 m_num_parallel(128),
-                m_httpd(NULL),
+                m_hlx(NULL),
                 m_start_time_ms(),
                 m_last_display_time_ms(),
                 m_last_stat(NULL),
@@ -252,13 +252,13 @@ void display_results_http_load_style(settings_struct &a_settings,
                                      double a_elapsed_time,
                                      bool a_one_line_flag = false);
 // Specifying urls instead of hosts
-int32_t add_url(ns_hlx::httpd *a_httpd, ns_hlx::subreq *a_subreq, const std::string &a_url);
+int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subreq *a_subreq, const std::string &a_url);
 int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
-static ns_hlx::httpd *g_httpd = NULL;
+static ns_hlx::hlx *g_hlx = NULL;
 static tinymt64_t *g_rand_ptr = NULL;
 
 //: ----------------------------------------------------------------------------
@@ -276,7 +276,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_httpd->stop();
+                g_settings->m_hlx->stop();
         }
 }
 
@@ -342,7 +342,7 @@ void command_exec(settings_struct_t &a_settings)
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
-        ns_hlx::httpd *l_httpd = a_settings.m_httpd;
+        ns_hlx::hlx *l_hlx = a_settings.m_hlx;
         bool l_first_time = true;
 
         nonblock(NB_ENABLE);
@@ -371,7 +371,7 @@ void command_exec(settings_struct_t &a_settings)
                                 //Quit
                         case 'q':
                                 g_test_finished = true;
-                                l_httpd->stop();
+                                l_hlx->stop();
                                 l_sent_stop = true;
                                 break;
 
@@ -396,7 +396,7 @@ void command_exec(settings_struct_t &a_settings)
                         if(l_time_delta_ms >= a_settings.m_run_time_ms)
                         {
                                 g_test_finished = true;
-                                l_httpd->stop();
+                                l_hlx->stop();
                                 l_sent_stop = true;
                         }
                 }
@@ -423,7 +423,7 @@ void command_exec(settings_struct_t &a_settings)
                         }
                 }
 
-                if (!l_httpd->is_running())
+                if (!l_hlx->is_running())
                 {
                         g_test_finished = true;
                 }
@@ -433,7 +433,7 @@ void command_exec(settings_struct_t &a_settings)
         // Send stop -if unsent
         if(!l_sent_stop)
         {
-                l_httpd->stop();
+                l_hlx->stop();
                 l_sent_stop = true;
         }
         nonblock(NB_DISABLE);
@@ -997,17 +997,17 @@ int main(int argc, char** argv)
 {
         // Get hlo instance
         settings_struct_t l_settings;
-        ns_hlx::httpd *l_httpd = new ns_hlx::httpd();
-        l_settings.m_httpd = l_httpd;
-        g_httpd = l_httpd;
+        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
+        l_settings.m_hlx = l_hlx;
+        g_hlx = l_hlx;
         // For sighandler
         g_settings = &l_settings;
 
-        // httpd settings
-        l_httpd->set_split_requests_by_thread(false);
-        l_httpd->set_collect_stats(true);
-        l_httpd->set_use_ai_cache(true);
-        l_httpd->set_num_threads(4);
+        // hlx settings
+        l_hlx->set_split_requests_by_thread(false);
+        l_hlx->set_collect_stats(true);
+        l_hlx->set_use_ai_cache(true);
+        l_hlx->set_num_threads(4);
 
         int32_t l_http_load_display = -1;
         int32_t l_http_data_port = -1;
@@ -1204,7 +1204,7 @@ int main(int argc, char** argv)
                                 l_cipher_str = "DES-CBC3-SHA";
                         else if (strcasecmp(l_cipher_str.c_str(), "paranoid") == 0)
                                 l_cipher_str = "AES256-SHA";
-                        l_httpd->set_ssl_cipher_list(l_cipher_str);
+                        l_hlx->set_ssl_cipher_list(l_cipher_str);
                         break;
                 }
                 // ---------------------------------------
@@ -1220,7 +1220,7 @@ int main(int argc, char** argv)
                                 printf("Error parallel must be at least 1\n");
                                 return -1;
                         }
-                        l_httpd->set_num_parallel(l_start_parallel);
+                        l_hlx->set_num_parallel(l_start_parallel);
                         l_settings.m_num_parallel = l_start_parallel;
                         break;
                 }
@@ -1238,7 +1238,7 @@ int main(int argc, char** argv)
                                 return -1;
                         }
                         l_subreq->set_num_to_request(l_end_fetches);
-                        l_httpd->set_stop_on_empty(true);
+                        l_hlx->set_stop_on_empty(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1279,7 +1279,7 @@ int main(int argc, char** argv)
                                 printf("Error num-threads must be 0 or greater\n");
                                 return -1;
                         }
-                        l_httpd->set_num_threads(l_max_threads);
+                        l_hlx->set_num_threads(l_max_threads);
                         g_num_threads = l_max_threads;
                         break;
                 }
@@ -1370,7 +1370,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_recv_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_httpd->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
+                        l_hlx->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
 
                         break;
                 }
@@ -1381,7 +1381,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_send_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_httpd->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
+                        l_hlx->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -1389,7 +1389,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        l_httpd->set_sock_opt_no_delay(true);
+                        l_hlx->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1414,7 +1414,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'x':
                 {
-                        l_httpd->set_collect_stats(false);
+                        l_hlx->set_collect_stats(false);
                         break;
                 }
                 // ---------------------------------------
@@ -1423,7 +1423,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_httpd->set_verbose(true);
+                        l_hlx->set_verbose(true);
                         l_subreq->set_save_response(true);
                         break;
                 }
@@ -1433,7 +1433,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_httpd->set_color(true);
+                        l_hlx->set_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1442,7 +1442,7 @@ int main(int argc, char** argv)
                 case 'q':
                 {
                         l_settings.m_quiet = true;
-                        l_httpd->set_quiet(true);
+                        l_hlx->set_quiet(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1524,7 +1524,7 @@ int main(int argc, char** argv)
         if (l_end_fetches > 0 && l_start_parallel > l_end_fetches)
         {
                 l_start_parallel = l_end_fetches;
-                l_httpd->set_num_parallel(l_start_parallel);
+                l_hlx->set_num_parallel(l_start_parallel);
         }
 
         // -------------------------------------------
@@ -1554,7 +1554,7 @@ int main(int argc, char** argv)
                 }
                 // Set callback
                 l_subreq->set_cb(http_completion_cb);
-                l_status = l_httpd->add_subreq(l_subreq);
+                l_status = l_hlx->add_subreq(l_subreq);
                 if(l_status != 0)
                 {
                         printf("Error: performing add_subreq with url: %s\n", l_url.c_str());
@@ -1602,7 +1602,7 @@ int main(int argc, char** argv)
         {
                 ns_hlx::listener *l_listener = new ns_hlx::listener(l_http_data_port, ns_hlx::SCHEME_TCP);
                 stats_getter *l_stats_getter = new stats_getter();
-                l_stats_getter->m_httpd = l_httpd;
+                l_stats_getter->m_hlx = l_hlx;
                 int32_t l_status;
                 l_status = l_listener->add_endpoint("/", l_stats_getter);
                 if(l_status != 0)
@@ -1610,7 +1610,7 @@ int main(int argc, char** argv)
                         printf("Error: adding endpoint: %s\n", "/");
                         return -1;
                 }
-                l_httpd->add_listener(l_listener);
+                l_hlx->add_listener(l_listener);
         }
 
 
@@ -1626,7 +1626,7 @@ int main(int argc, char** argv)
                 l_max_threads, l_start_parallel, l_max_reqs_per_conn);
 
         int32_t l_run_status = 0;
-        l_run_status = l_httpd->run();
+        l_run_status = l_hlx->run();
         if(0 != l_run_status)
         {
                 printf("Error: performing hlo::run");
@@ -1647,7 +1647,7 @@ int main(int argc, char** argv)
         }
 
         // Wait for completion
-        l_httpd->wait_till_stopped();
+        l_hlx->wait_till_stopped();
 
 #ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
@@ -1674,10 +1674,10 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_httpd)
+        if(l_hlx)
         {
-                delete l_httpd;
-                l_httpd = NULL;
+                delete l_hlx;
+                l_hlx = NULL;
         }
 
         //if(l_settings.m_verbose)
@@ -1807,7 +1807,7 @@ void display_responses_line(settings_struct &a_settings)
         uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
-        a_settings.m_httpd->get_stats(l_total);
+        a_settings.m_hlx->get_stats(l_total);
 
         double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
                               ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
@@ -1970,7 +1970,7 @@ void display_results_line(settings_struct &a_settings)
         uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
-        a_settings.m_httpd->get_stats(l_total);
+        a_settings.m_hlx->get_stats(l_total);
 
         double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
@@ -2089,7 +2089,7 @@ void display_results(settings_struct &a_settings,
         ns_hlx::t_stat_t l_total;
 
         // Get stats
-        a_settings.m_httpd->get_stats(l_total);
+        a_settings.m_hlx->get_stats(l_total);
 
         std::string l_tag;
         // TODO Fix elapse and max parallel
@@ -2161,7 +2161,7 @@ void display_results_http_load_style(settings_struct &a_settings,
         ns_hlx::t_stat_t l_total;
 
         // Get stats
-        a_settings.m_httpd->get_stats(l_total);
+        a_settings.m_hlx->get_stats(l_total);
 
         std::string l_tag;
         // Separator
@@ -2179,12 +2179,12 @@ void display_results_http_load_style(settings_struct &a_settings,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t add_url(ns_hlx::httpd *a_httpd, ns_hlx::subreq *a_subreq, const std::string &a_url)
+int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subreq *a_subreq, const std::string &a_url)
 {
         ns_hlx::subreq *l_subreq = new ns_hlx::subreq(*a_subreq);
         l_subreq->init_with_url(a_url);
         //printf("Adding url: %s\n", a_url.c_str());
-        a_httpd->add_subreq(l_subreq);
+        a_hlx->add_subreq(l_subreq);
         return 0;
 }
 

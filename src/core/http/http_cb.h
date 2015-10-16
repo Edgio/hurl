@@ -30,7 +30,7 @@
 #include "ndebug.h"
 #include "obj_pool.h"
 #include "evr.h"
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #include <vector>
 
 namespace ns_hlx {

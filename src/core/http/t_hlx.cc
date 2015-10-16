@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    t_http.cc
+//: \file:    t_hlx.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    10/05/2015
@@ -35,7 +35,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include "t_http.h"
+#include "t_hlx.h"
 
 namespace ns_hlx {
 
@@ -81,7 +81,7 @@ typedef struct work_struct {
         nbq *m_out_q;
         http_req *m_req;
         http_resp *m_resp;
-        t_http *m_t_server;
+        t_hlx *m_t_server;
         // TODO Add http parser here???
 
         work_struct():
@@ -103,7 +103,7 @@ private:
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #define COPY_SETTINGS(_field) m_vsconf._field = a_vsconf._field
-t_http::t_http(const vsconf_t &a_vsconf):
+t_hlx::t_hlx(const vsconf_t &a_vsconf):
         m_t_run_thread(),
         m_vsconf(),
         // TODO multi-thread support
@@ -165,7 +165,7 @@ t_http::t_http(const vsconf_t &a_vsconf):
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-t_http::~t_http()
+t_hlx::~t_hlx()
 {
         if(m_evr_loop)
         {
@@ -206,7 +206,7 @@ t_http::~t_http()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::init(void)
+int32_t t_hlx::init(void)
 {
         if(m_is_initd)
         {
@@ -281,7 +281,7 @@ int32_t t_http::init(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::add_listener(listener *a_listener)
+int32_t t_hlx::add_listener(listener *a_listener)
 {
         int32_t l_status;
         l_status = init();
@@ -323,7 +323,7 @@ int32_t t_http::add_listener(listener *a_listener)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::add_subreq(subreq *a_subreq)
+int32_t t_hlx::add_subreq(subreq *a_subreq)
 {
         //NDBG_PRINT("Adding subreq.\n");
         m_subreq_queue.push(a_subreq);
@@ -339,7 +339,7 @@ int32_t t_http::add_subreq(subreq *a_subreq)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::request(subreq *a_subreq, nconn *a_nconn)
+int32_t t_hlx::request(subreq *a_subreq, nconn *a_nconn)
 {
         if(!a_subreq)
         {
@@ -504,7 +504,7 @@ int32_t t_http::request(subreq *a_subreq, nconn *a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::add_work(nconn *a_nconn, http_req *a_req)
+int32_t t_hlx::add_work(nconn *a_nconn, http_req *a_req)
 {
         // -------------------------------------------------
         // TODO block (enqueue) new work on a connection
@@ -538,7 +538,7 @@ int32_t t_http::add_work(nconn *a_nconn, http_req *a_req)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_http::do_work(void *a_work)
+void t_hlx::do_work(void *a_work)
 {
         //NDBG_PRINT("a_work:          %p\n", a_work);
 
@@ -554,7 +554,7 @@ void t_http::do_work(void *a_work)
         http_req *l_req = l_work->m_req;
         http_resp *l_resp = l_work->m_resp;
         nconn *l_nconn = l_work->m_nconn;
-        t_http *l_t_http = l_work->m_t_server;
+        t_hlx *l_t_http = l_work->m_t_server;
 
         l_path.assign(l_req->m_p_url.m_ptr, l_req->m_p_url.m_len);
         //NDBG_PRINT("PATH: %s\n", l_path.c_str());
@@ -653,7 +653,7 @@ do_work_done:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_http::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router)
+nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router)
 {
         nconn *l_nconn;
         int32_t l_status;
@@ -699,7 +699,7 @@ nconn *t_http::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_ur
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int t_http::run(void)
+int t_hlx::run(void)
 {
         int32_t l_pthread_error = 0;
         l_pthread_error = pthread_create(&m_t_run_thread,
@@ -720,7 +720,7 @@ int t_http::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_http::stop(void)
+void t_hlx::stop(void)
 {
         // Cleanup server connection
         //cleanup_connection(m_listening_nconn, NULL, 200);
@@ -738,7 +738,7 @@ void t_http::stop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_http::get_stats_copy(t_stat_t &ao_stat)
+void t_hlx::get_stats_copy(t_stat_t &ao_stat)
 {
         ao_stat = m_stat;
 }
@@ -748,7 +748,7 @@ void t_http::get_stats_copy(t_stat_t &ao_stat)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::evr_loop_file_writeable_cb(void *a_data)
+int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
 {
         //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, a_data);
         if(!a_data)
@@ -760,7 +760,7 @@ int32_t t_http::evr_loop_file_writeable_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_data());
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
-        t_http *l_t_http = static_cast<t_http *>(l_data->m_ctx);
+        t_hlx *l_t_http = static_cast<t_hlx *>(l_data->m_ctx);
 
         if(l_data->m_type == HTTP_DATA_TYPE_SERVER)
         {
@@ -850,7 +850,7 @@ int32_t t_http::evr_loop_file_writeable_cb(void *a_data)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 //uint32_t g_req_num = 0;
-int32_t t_http::evr_loop_file_readable_cb(void *a_data)
+int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
 {
         //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, a_data);
         if(!a_data)
@@ -862,7 +862,7 @@ int32_t t_http::evr_loop_file_readable_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_data());
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
-        t_http *l_t_http = static_cast<t_http *>(l_data->m_ctx);
+        t_hlx *l_t_http = static_cast<t_hlx *>(l_data->m_ctx);
 
         // Cancel last timer
         l_t_http->m_evr_loop->cancel_timer(l_data->m_timer_obj);
@@ -875,7 +875,7 @@ int32_t t_http::evr_loop_file_readable_cb(void *a_data)
         // Check for out q notifications
         // ---------------------------------------
         //NDBG_PRINT("%sREADABLE%s l_nconn->get_idx(): 0x%08X\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_nconn->get_idx());
-        if(l_nconn->get_idx() == t_http::sc_work_q_conn_idx)
+        if(l_nconn->get_idx() == t_hlx::sc_work_q_conn_idx)
         {
                 // while dequeue out q notices...
                 while(!l_t_http->m_out_q.empty())
@@ -1201,7 +1201,7 @@ int32_t t_http::evr_loop_file_readable_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::evr_loop_file_timeout_cb(void *a_data)
+int32_t t_hlx::evr_loop_file_timeout_cb(void *a_data)
 {
         //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
@@ -1209,7 +1209,7 @@ int32_t t_http::evr_loop_file_timeout_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_data());
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
-        t_http *l_t_http = static_cast<t_http *>(l_data->m_ctx);
+        t_hlx *l_t_http = static_cast<t_hlx *>(l_data->m_ctx);
         //NDBG_PRINT("Timer: %p\n",l_data->m_timer_obj);
         if(l_nconn->is_free())
         {
@@ -1249,7 +1249,7 @@ int32_t t_http::evr_loop_file_timeout_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::evr_loop_timer_cb(void *a_data)
+int32_t t_hlx::evr_loop_timer_cb(void *a_data)
 {
         //NDBG_PRINT("%sTIMER%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         if(!a_data)
@@ -1265,7 +1265,7 @@ int32_t t_http::evr_loop_timer_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::evr_loop_file_error_cb(void *a_data)
+int32_t t_hlx::evr_loop_file_error_cb(void *a_data)
 {
         NDBG_PRINT("%sERROR%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
@@ -1273,7 +1273,7 @@ int32_t t_http::evr_loop_file_error_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_data());
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
-        t_http *l_t_http = static_cast<t_http *>(l_data->m_ctx);
+        t_hlx *l_t_http = static_cast<t_hlx *>(l_data->m_ctx);
         //if(l_nconn->is_free())
         //{
         //        return STATUS_OK;
@@ -1301,7 +1301,7 @@ int32_t t_http::evr_loop_file_error_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::try_deq_subreq(void)
+int32_t t_hlx::try_deq_subreq(void)
 {
         while(m_subreq_queue.size() && !m_stopped)
         {
@@ -1359,7 +1359,7 @@ int32_t t_http::try_deq_subreq(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *t_http::t_run(void *a_nothing)
+void *t_hlx::t_run(void *a_nothing)
 {
         int32_t l_status;
         l_status = init();
@@ -1405,7 +1405,7 @@ void *t_http::t_run(void *a_nothing)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::append_summary(http_resp *a_resp)
+int32_t t_hlx::append_summary(http_resp *a_resp)
 {
         uint16_t l_status;
         if(!a_resp)
@@ -1468,7 +1468,7 @@ int32_t t_http::append_summary(http_resp *a_resp)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj, http_data_type_t a_type)
+int32_t t_hlx::cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj, http_data_type_t a_type)
 {
         //NDBG_PRINT("Timer: %p\n", a_timer_obj);
         // Cancel last timer
@@ -1521,7 +1521,7 @@ int32_t t_http::cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_ob
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::handle_req(nconn *a_nconn, url_router *a_url_router, http_req *a_req)
+int32_t t_hlx::handle_req(nconn *a_nconn, url_router *a_url_router, http_req *a_req)
 {
         int32_t l_status = STATUS_OK;
         std::string l_path;
@@ -1616,7 +1616,7 @@ int32_t t_http::handle_req(nconn *a_nconn, url_router *a_url_router, http_req *a
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_http::config_conn(nconn *a_nconn,
+int32_t t_hlx::config_conn(nconn *a_nconn,
                             url_router *a_url_router,
                             http_data_type_t a_type,
                             bool a_save,
@@ -1744,7 +1744,7 @@ int32_t t_http::config_conn(nconn *a_nconn,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_http::add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code)
+void t_hlx::add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code)
 {
         update_stat(m_stat.m_stat_us_connect, a_req_stat.m_tt_connect_us);
         update_stat(m_stat.m_stat_us_first_response, a_req_stat.m_tt_first_read_us);

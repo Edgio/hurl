@@ -30,7 +30,7 @@
 #include "req_stat.h"
 #include "nbq.h"
 
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #include "http_parser/http_parser.h"
 
 #include <string>

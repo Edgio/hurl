@@ -59,17 +59,17 @@ SET(SRCS
     ./support/nbq.cc
     ./http/http.cc
     ./http/http_cb.cc
-    ./http/t_http.cc
+    ./http/hlx.cc
+    ./http/t_hlx.cc
     ./http/http_request_handler.cc
     ./http/subreq.cc
-    ./http/httpd.cc
     ./http/listener.cc
     ./url_router/url_router.cc
 )
 
 # Headers
 SET(HDRS
-    ../../include/hlo/hlx.h
+    ../../include/hlx/hlx.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})
@@ -88,7 +88,7 @@ install(TARGETS hlxcore
 
 # Add install target for header files
 install(FILES ${HDRS}
-  DESTINATION include/hlo
+  DESTINATION include/hlx
   COMPONENT Headers
 )
 

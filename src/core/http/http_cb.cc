@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "http_cb.h"
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #include "ndebug.h"
 #include "nconn.h"
 #include <string.h>

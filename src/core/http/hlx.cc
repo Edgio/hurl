@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    httpd.cc
+//: \file:    hlx.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    05/28/2015
@@ -24,11 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlo/hlx.h"
+#include "hlx/hlx.h"
 #include "ndebug.h"
 #include "ssl_util.h"
 #include "time_util.h"
-#include "../http/t_http.h"
+#include "../http/t_hlx.h"
 #include "resolver.h"
 
 #include <errno.h>
@@ -48,7 +48,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_stats(bool a_val)
+void hlx::set_stats(bool a_val)
 {
         m_stats = a_val;
 }
@@ -59,7 +59,7 @@ void httpd::set_stats(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_show_summary(bool a_val)
+void hlx::set_show_summary(bool a_val)
 {
         m_show_summary = a_val;
 }
@@ -69,7 +69,7 @@ void httpd::set_show_summary(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_verbose(bool a_val)
+void hlx::set_verbose(bool a_val)
 {
         m_verbose = a_val;
 }
@@ -79,7 +79,7 @@ void httpd::set_verbose(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_quiet(bool a_val)
+void hlx::set_quiet(bool a_val)
 {
         m_quiet = a_val;
 }
@@ -89,7 +89,7 @@ void httpd::set_quiet(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_color(bool a_val)
+void hlx::set_color(bool a_val)
 {
         m_color = a_val;
 }
@@ -99,7 +99,7 @@ void httpd::set_color(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_ssl_cipher_list(const std::string &a_cipher_list)
+void hlx::set_ssl_cipher_list(const std::string &a_cipher_list)
 {
         m_ssl_cipher_list = a_cipher_list;
 }
@@ -109,7 +109,7 @@ void httpd::set_ssl_cipher_list(const std::string &a_cipher_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int httpd::set_ssl_options(const std::string &a_ssl_options_str)
+int hlx::set_ssl_options(const std::string &a_ssl_options_str)
 {
         int32_t l_status;
         l_status = get_ssl_options_str_val(a_ssl_options_str, m_ssl_options);
@@ -126,7 +126,7 @@ int httpd::set_ssl_options(const std::string &a_ssl_options_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int httpd::set_ssl_options(long a_ssl_options)
+int hlx::set_ssl_options(long a_ssl_options)
 {
         m_ssl_options = a_ssl_options;
         return HLX_SERVER_STATUS_OK;
@@ -137,7 +137,7 @@ int httpd::set_ssl_options(long a_ssl_options)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_ssl_ca_path(const std::string &a_ssl_ca_path)
+void hlx::set_ssl_ca_path(const std::string &a_ssl_ca_path)
 {
         m_ssl_ca_path = a_ssl_ca_path;
 }
@@ -147,7 +147,7 @@ void httpd::set_ssl_ca_path(const std::string &a_ssl_ca_path)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_ssl_ca_file(const std::string &a_ssl_ca_file)
+void hlx::set_ssl_ca_file(const std::string &a_ssl_ca_file)
 {
         m_ssl_ca_file = a_ssl_ca_file;
 }
@@ -157,7 +157,7 @@ void httpd::set_ssl_ca_file(const std::string &a_ssl_ca_file)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t httpd::add_listener(listener *a_listener)
+int32_t hlx::add_listener(listener *a_listener)
 {
         if(!a_listener)
         {
@@ -165,8 +165,8 @@ int32_t httpd::add_listener(listener *a_listener)
         }
         if(is_running())
         {
-                for(t_http_list_t::iterator i_t = m_t_http_list.begin();
-                    i_t != m_t_http_list.end();
+                for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                    i_t != m_t_hlx_list.end();
                     ++i_t)
                 {
                         if(*i_t)
@@ -221,27 +221,27 @@ static int32_t child_subreq_completion_cb(void *a_ptr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::add_subreq_t(subreq *a_subreq)
+void hlx::add_subreq_t(subreq *a_subreq)
 {
         a_subreq->reset();
 
         // Dupe example
         if(a_subreq->m_type == subreq::SUBREQ_TYPE_DUPE)
         {
-                uint32_t l_num_httpd = (uint32_t)m_t_http_list.size();
-                uint32_t i_httpd_idx = 0;
-                for(t_http_list_t::iterator i_t = m_t_http_list.begin();
-                                i_t != m_t_http_list.end();
-                                ++i_t, ++i_httpd_idx)
+                uint32_t l_num_hlx = (uint32_t)m_t_hlx_list.size();
+                uint32_t i_hlx_idx = 0;
+                for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                                i_t != m_t_hlx_list.end();
+                                ++i_t, ++i_hlx_idx)
                 {
                         subreq *l_subreq = new subreq(*a_subreq);
 
                         // Recalculate num fetches per thread
                         if(l_subreq->get_num_to_request() > 0)
                         {
-                                uint32_t l_num_fetches_per_thread = l_subreq->get_num_to_request() / l_num_httpd;
-                                uint32_t l_remainder_fetches = l_subreq->get_num_to_request() % l_num_httpd;
-                                if (i_httpd_idx == (l_num_httpd - 1))
+                                uint32_t l_num_fetches_per_thread = l_subreq->get_num_to_request() / l_num_hlx;
+                                uint32_t l_remainder_fetches = l_subreq->get_num_to_request() % l_num_hlx;
+                                if (i_hlx_idx == (l_num_hlx - 1))
                                 {
                                         l_num_fetches_per_thread += l_remainder_fetches;
                                 }
@@ -286,11 +286,11 @@ void httpd::add_subreq_t(subreq *a_subreq)
                 // Setup client requests
                 // -------------------------------------------
                 uint32_t i_h_idx = 0;
-                uint32_t l_num_h = m_t_http_list.size();
+                uint32_t l_num_h = m_t_hlx_list.size();
                 uint32_t l_num_s = a_subreq->m_child_list.size();
                 subreq_list_t::const_iterator i_s = a_subreq->m_child_list.begin();
-                for(t_http_list_t::iterator i_h = m_t_http_list.begin();
-                                i_h != m_t_http_list.end();
+                for(t_hlx_list_t::iterator i_h = m_t_hlx_list.begin();
+                                i_h != m_t_hlx_list.end();
                                 ++i_h, ++i_h_idx)
                 {
                         // TODO -would we ever not???
@@ -323,7 +323,7 @@ void httpd::add_subreq_t(subreq *a_subreq)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t httpd::add_subreq(subreq *a_subreq)
+int32_t hlx::add_subreq(subreq *a_subreq)
 {
         if(is_running())
         {
@@ -341,7 +341,7 @@ int32_t httpd::add_subreq(subreq *a_subreq)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_collect_stats(bool a_val)
+void hlx::set_collect_stats(bool a_val)
 {
         m_collect_stats = a_val;
 }
@@ -351,7 +351,7 @@ void httpd::set_collect_stats(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_use_persistent_pool(bool a_val)
+void hlx::set_use_persistent_pool(bool a_val)
 {
         m_use_persistent_pool = a_val;
 }
@@ -361,7 +361,7 @@ void httpd::set_use_persistent_pool(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_sock_opt_no_delay(bool a_val)
+void hlx::set_sock_opt_no_delay(bool a_val)
 {
         m_sock_opt_no_delay = a_val;
 }
@@ -371,7 +371,7 @@ void httpd::set_sock_opt_no_delay(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_sock_opt_send_buf_size(uint32_t a_send_buf_size)
+void hlx::set_sock_opt_send_buf_size(uint32_t a_send_buf_size)
 {
         m_sock_opt_send_buf_size = a_send_buf_size;
 }
@@ -381,7 +381,7 @@ void httpd::set_sock_opt_send_buf_size(uint32_t a_send_buf_size)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
+void hlx::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
 {
         m_sock_opt_recv_buf_size = a_recv_buf_size;
 }
@@ -391,7 +391,7 @@ void httpd::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_split_requests_by_thread(bool a_val)
+void hlx::set_split_requests_by_thread(bool a_val)
 {
         m_split_requests_by_thread = a_val;
 }
@@ -401,7 +401,7 @@ void httpd::set_split_requests_by_thread(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_use_ai_cache(bool a_val)
+void hlx::set_use_ai_cache(bool a_val)
 {
         m_use_ai_cache = a_val;
 }
@@ -411,7 +411,7 @@ void httpd::set_use_ai_cache(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::set_ai_cache(const std::string &a_ai_cache)
+void hlx::set_ai_cache(const std::string &a_ai_cache)
 {
         m_ai_cache = a_ai_cache;
 }
@@ -421,7 +421,7 @@ void httpd::set_ai_cache(const std::string &a_ai_cache)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t httpd::run(void)
+int32_t hlx::run(void)
 {
         //NDBG_PRINT("Running...\n");
 
@@ -435,7 +435,7 @@ int32_t httpd::run(void)
                 }
         }
 
-        if(m_t_http_list.empty())
+        if(m_t_hlx_list.empty())
         {
                 l_status = init_server_list();
                 if(STATUS_OK != l_status)
@@ -451,12 +451,12 @@ int32_t httpd::run(void)
         // -------------------------------------------
         if(m_num_threads == 0)
         {
-                (*(m_t_http_list.begin()))->t_run(NULL);
+                (*(m_t_hlx_list.begin()))->t_run(NULL);
         }
         else
         {
-                for(t_http_list_t::iterator i_t = m_t_http_list.begin();
-                                i_t != m_t_http_list.end();
+                for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                                i_t != m_t_hlx_list.end();
                                 ++i_t)
                 {
                         (*i_t)->run();
@@ -472,11 +472,11 @@ int32_t httpd::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int httpd::stop(void)
+int hlx::stop(void)
 {
         int32_t l_retval = HLX_SERVER_STATUS_OK;
-        for (t_http_list_t::iterator i_t = m_t_http_list.begin();
-                        i_t != m_t_http_list.end();
+        for (t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                        i_t != m_t_hlx_list.end();
                         ++i_t)
         {
                 (*i_t)->stop();
@@ -500,15 +500,15 @@ int httpd::stop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t httpd::wait_till_stopped(void)
+int32_t hlx::wait_till_stopped(void)
 {
         //int32_t l_retval = HLX_SERVER_STATUS_OK;
 
         // -------------------------------------------
         // Join all threads before exit
         // -------------------------------------------
-        for(t_http_list_t::iterator i_server = m_t_http_list.begin();
-           i_server != m_t_http_list.end();
+        for(t_hlx_list_t::iterator i_server = m_t_hlx_list.begin();
+           i_server != m_t_hlx_list.end();
             ++i_server)
         {
                 //if(m_verbose)
@@ -529,10 +529,10 @@ int32_t httpd::wait_till_stopped(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool httpd::is_running(void)
+bool hlx::is_running(void)
 {
-        for (t_http_list_t::iterator i_t = m_t_http_list.begin();
-                        i_t != m_t_http_list.end();
+        for (t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                        i_t != m_t_hlx_list.end();
                         ++i_t)
         {
                 if((*i_t)->is_running())
@@ -546,13 +546,13 @@ bool httpd::is_running(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::get_stats(t_stat_t &ao_all_stats)
+void hlx::get_stats(t_stat_t &ao_all_stats)
 {
         // -------------------------------------------
         // Aggregate
         // -------------------------------------------
-        for(t_http_list_t::const_iterator i_client = m_t_http_list.begin();
-           i_client != m_t_http_list.end();
+        for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
+           i_client != m_t_hlx_list.end();
            ++i_client)
         {
                 // Get stuff from client...
@@ -568,7 +568,7 @@ void httpd::get_stats(t_stat_t &ao_all_stats)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t httpd::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len)
+int32_t hlx::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len)
 {
         t_stat_t l_total;
 
@@ -627,10 +627,10 @@ static void append_to_map(summary_map_t &ao_sum, const summary_map_t &a_append)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::get_summary_info(summary_info_t &ao_summary_info)
+void hlx::get_summary_info(summary_info_t &ao_summary_info)
 {
-        for(t_http_list_t::const_iterator i_t = m_t_http_list.begin();
-            i_t != m_t_http_list.end();
+        for(t_hlx_list_t::const_iterator i_t = m_t_hlx_list.begin();
+            i_t != m_t_hlx_list.end();
             ++i_t)
         {
                 // Consider making getter to grab a copy
@@ -651,7 +651,7 @@ void httpd::get_summary_info(summary_info_t &ao_summary_info)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void httpd::add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat)
+void hlx::add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat)
 {
 
         // Stats
@@ -690,7 +690,7 @@ void httpd::add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_t
 //: \return:  client status indicating success or failure
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int httpd::init(void)
+int hlx::init(void)
 {
         if(true == m_is_initd)
         {
@@ -765,7 +765,7 @@ int httpd::init(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int httpd::init_server_list(void)
+int hlx::init_server_list(void)
 {
         // -------------------------------------------
         // Bury the config into a settings struct
@@ -798,52 +798,52 @@ int httpd::init_server_list(void)
         l_settings.m_resolver = m_resolver;
 
         // -------------------------------------------
-        // Create t_http list...
+        // Create t_hlx list...
         // -------------------------------------------
         for(uint32_t i_server_idx = 0; i_server_idx < m_num_threads; ++i_server_idx)
         {
                 int32_t l_status;
-                t_http *l_t_server = new t_http(l_settings);
+                t_hlx *l_t_hlx = new t_hlx(l_settings);
                 for(listener_list_t::iterator i_t = m_listener_list.begin();
                                 i_t != m_listener_list.end();
                                 ++i_t)
                 {
                         if(*i_t)
                         {
-                                l_status = l_t_server->add_listener((*i_t));
+                                l_status = l_t_hlx->add_listener((*i_t));
                                 if(l_status != STATUS_OK)
                                 {
-                                        delete l_t_server;
-                                        l_t_server = NULL;
+                                        delete l_t_hlx;
+                                        l_t_hlx = NULL;
                                         NDBG_PRINT("Error performing add_listener.\n");
                                         return STATUS_ERROR;
                                 }
                         }
                 }
-                m_t_http_list.push_back(l_t_server);
+                m_t_hlx_list.push_back(l_t_hlx);
         }
         // 0 threads -make a single server
         if(m_num_threads == 0)
         {
                 int32_t l_status;
-                t_http *l_t_server = new t_http(l_settings);
+                t_hlx *l_t_hlx = new t_hlx(l_settings);
                 for(listener_list_t::iterator i_t = m_listener_list.begin();
                                 i_t != m_listener_list.end();
                                 ++i_t)
                 {
                         if(*i_t)
                         {
-                                l_status = l_t_server->add_listener((*i_t));
+                                l_status = l_t_hlx->add_listener((*i_t));
                                 if(l_status != STATUS_OK)
                                 {
-                                        delete l_t_server;
-                                        l_t_server = NULL;
+                                        delete l_t_hlx;
+                                        l_t_hlx = NULL;
                                         NDBG_PRINT("Error performing add_listener.\n");
                                         return STATUS_ERROR;
                                 }
                         }
                 }
-                m_t_http_list.push_back(l_t_server);
+                m_t_hlx_list.push_back(l_t_hlx);
         }
 
         // -------------------------------------------
@@ -863,7 +863,7 @@ int httpd::init_server_list(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-httpd::httpd(void):
+hlx::hlx(void):
         m_verbose(false),
         m_color(false),
         m_quiet(false),
@@ -901,7 +901,7 @@ httpd::httpd(void):
         m_use_persistent_pool(false),
         m_show_summary(false),
         m_start_time_ms(0),
-        m_t_http_list(),
+        m_t_hlx_list(),
         m_evr_loop_type(EVR_LOOP_EPOLL),
         m_is_initd(false)
 {
@@ -912,10 +912,10 @@ httpd::httpd(void):
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-httpd::~httpd()
+hlx::~hlx()
 {
-        for(t_http_list_t::iterator i_t = m_t_http_list.begin();
-                        i_t != m_t_http_list.end();
+        for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                        i_t != m_t_hlx_list.end();
                         ++i_t)
         {
                 if(*i_t)
@@ -923,7 +923,7 @@ httpd::~httpd()
                         delete *i_t;
                 }
         }
-        m_t_http_list.clear();
+        m_t_hlx_list.clear();
         for(listener_list_t::iterator i_t = m_listener_list.begin();
                         i_t != m_listener_list.end();
                         ++i_t)

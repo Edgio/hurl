@@ -20,8 +20,8 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _HLX_HTTPD_H
-#define _HLX_HTTPD_H
+#ifndef _HLX_H
+#define _HLX_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
@@ -80,7 +80,7 @@ typedef enum http_status_enum {
 //: ----------------------------------------------------------------------------
 class nbq;
 class url_router;
-class t_http;
+class t_hlx;
 class resolver;
 class subreq;
 
@@ -460,7 +460,7 @@ private:
 };
 
 //: ----------------------------------------------------------------------------
-//: httpd
+//: hlx
 //: ----------------------------------------------------------------------------
 class listener
 {
@@ -476,7 +476,7 @@ public:
         url_router *get_url_router(void) const { return m_url_router;}
         int32_t init(void);
 
-        // TODO migrate here from httpd object
+        // TODO migrate here from hlx object
 #if 0
         void set_ssl_cipher_list(const std::string &a_cipher_list);
         void set_ssl_ca_path(const std::string &a_ssl_ca_path);
@@ -502,7 +502,7 @@ private:
         scheme_t m_scheme;
         uint16_t m_port;
 
-        // TODO migrate here from httpd object
+        // TODO migrate here from hlx object
 #if 0
         SSL_CTX* m_ssl_ctx;
         std::string m_tls_key;
@@ -520,22 +520,22 @@ private:
 };
 
 //: ----------------------------------------------------------------------------
-//: httpd
+//: hlx
 //: ----------------------------------------------------------------------------
-class httpd
+class hlx
 {
 public:
         //: --------------------------------------------------------------------
         //: Types
         //: --------------------------------------------------------------------
-        typedef std::list <t_http *> t_http_list_t;
+        typedef std::list <t_hlx *> t_hlx_list_t;
         typedef std::list <listener *> listener_list_t;
 
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        httpd();
-        ~httpd();
+        hlx();
+        ~hlx();
 
         // General
         void set_stats(bool a_val);
@@ -590,8 +590,8 @@ public:
 
 private:
         // Disallow copy/assign
-        httpd& operator=(const httpd &);
-        httpd(const httpd &);
+        hlx& operator=(const hlx &);
+        hlx(const hlx &);
 
         // -------------------------------------------------
         // Private methods
@@ -638,7 +638,7 @@ private:
         bool m_use_persistent_pool;
         bool m_show_summary;
         uint64_t m_start_time_ms;
-        t_http_list_t m_t_http_list;
+        t_hlx_list_t m_t_hlx_list;
         int m_evr_loop_type;
         bool m_is_initd;
 };
