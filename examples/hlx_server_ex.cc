@@ -6,7 +6,7 @@
 #include <hlx/hlx.h>
 #include <string.h>
 
-class bananas_getter: public ns_hlx::default_http_request_handler
+class bananas_getter : public ns_hlx::default_http_request_handler
 {
 public:
         // GET
@@ -18,7 +18,6 @@ public:
                 uint32_t l_body_len = strlen("Hello World\n");
                 sprintf(l_len_str, "%u", l_body_len);
                 ao_response.write_status(ns_hlx::HTTP_STATUS_OK);
-                ao_response.write_header("Content-Type", "html/txt");
                 ao_response.write_header("Content-Length", l_len_str);
                 ao_response.write_body("Hello World\n", l_body_len);
                 return 0;
