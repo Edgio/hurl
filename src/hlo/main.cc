@@ -1641,6 +1641,7 @@ int main(int argc, char** argv)
 
         uint64_t l_start_time_ms = hlo_get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
+        l_settings.m_last_display_time_ms = l_start_time_ms;
 
         // -------------------------------------------
         // Run command exec
@@ -1977,14 +1978,12 @@ void display_results_line(settings_struct &a_settings)
 
         // Get stats
         a_settings.m_hlx->get_stats(l_total);
-
         double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         a_settings.m_last_display_time_ms = hlo_get_time_ms();
         *a_settings.m_last_stat = l_total;
-
         if(a_settings.m_color)
         {
                         printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
