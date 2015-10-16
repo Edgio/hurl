@@ -211,7 +211,7 @@ typedef struct settings_struct
                 m_quiet(false),
                 m_show_response_codes(false),
                 m_show_per_interval(false),
-                m_num_parallel(128),
+                m_num_parallel(1),
                 m_hlx(NULL),
                 m_start_time_ms(),
                 m_last_display_time_ms(),
@@ -259,16 +259,28 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 //: Globals
 //: ----------------------------------------------------------------------------
 static ns_hlx::hlx *g_hlx = NULL;
+static bool g_test_finished = false;
+static bool g_cancelled = false;
+static settings_struct_t *g_settings = NULL;
+static uint64_t g_rate_delta_us = 0;
+static uint32_t g_num_threads = 4;
+static int32_t g_num_to_request = -1;
+static uint32_t g_num_requested = 0;
+static uint32_t g_num_completed = 0;
+
+// Path vector support
 static tinymt64_t *g_rand_ptr = NULL;
+static path_vector_t g_path_vector;
+static std::string g_path;
+static uint32_t g_path_vector_last_idx = 0;
+static path_order_t g_path_order = EXPLODED_PATH_ORDER_RANDOM;
+static pthread_mutex_t g_path_vector_mutex;
 
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool g_test_finished = false;
-bool g_cancelled = false;
-settings_struct_t *g_settings = NULL;
 void sig_handler(int signo)
 {
         if (signo == SIGINT)
@@ -444,26 +456,22 @@ void command_exec(settings_struct_t &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-//m_last_get_req_us =
-uint64_t g_rate_delta_us = 0;
-uint32_t g_num_threads = 4;
-int32_t http_completion_cb(void *a_ptr)
+int32_t s_completion_cb(void *a_ptr)
 {
+        ++g_num_completed;
+        if((g_num_to_request != -1) && (g_num_completed >= (uint32_t)g_num_to_request))
+        {
+                g_test_finished = true;
+                g_settings->m_hlx->stop();
+                return 0;
+        }
+
         if(g_rate_delta_us && !g_test_finished)
         {
                 usleep(g_rate_delta_us*g_num_threads);
         }
         return 0;
 }
-
-//: ----------------------------------------------------------------------------
-//: Path vector support
-//: ----------------------------------------------------------------------------
-path_vector_t g_path_vector;
-std::string g_path;
-uint32_t g_path_vector_last_idx = 0;
-path_order_t g_path_order = EXPLODED_PATH_ORDER_RANDOM;
-pthread_mutex_t g_path_vector_mutex;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -845,8 +853,14 @@ const std::string &get_path(void *a_rand)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t create_request(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a_req)
+static int32_t s_create_request_cb(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a_req)
 {
+        if((g_num_to_request != -1) && (g_num_requested >= (uint32_t)g_num_to_request))
+        {
+                return STATUS_ERROR;
+        }
+        ++g_num_requested;
+
         // TODO grab from path...
         std::string l_path_ref = get_path(g_rand_ptr);
 
@@ -955,13 +969,13 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
         fprintf(a_stream, "  -y, --cipher        Cipher --see \"openssl ciphers\" for list.\n");
-        fprintf(a_stream, "  -p, --parallel      Num parallel Default: 64.\n");
+        fprintf(a_stream, "  -p, --parallel      Num parallel. Default: 1.\n");
         fprintf(a_stream, "  -f, --fetches       Num fetches.\n");
         fprintf(a_stream, "  -N, --num_calls     Number of requests per connection\n");
         fprintf(a_stream, "  -k, --keep_alive    Re-use connections for all requests\n");
-        fprintf(a_stream, "  -t, --threads       Number of parallel threads.\n");
+        fprintf(a_stream, "  -t, --threads       Number of parallel threads. Default: 1\n");
         fprintf(a_stream, "  -H, --header        Request headers -can add multiple ie -H<> -H<>...\n");
-        fprintf(a_stream, "  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc\n");
+        fprintf(a_stream, "  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc. Default GET\n");
         fprintf(a_stream, "  -l, --seconds       Run for <N> seconds .\n");
         fprintf(a_stream, "  -A, --rate          Max Request Rate.\n");
         fprintf(a_stream, "  -R, --recv_buffer   Socket receive buffer size.\n");
@@ -1007,19 +1021,19 @@ int main(int argc, char** argv)
         l_hlx->set_split_requests_by_thread(false);
         l_hlx->set_collect_stats(true);
         l_hlx->set_use_ai_cache(true);
-        l_hlx->set_num_threads(4);
+        l_hlx->set_num_threads(1);
+        l_hlx->set_num_parallel(1);
 
         int32_t l_http_load_display = -1;
         int32_t l_http_data_port = -1;
 
-        int l_max_threads = 4;
+        int l_max_threads = 1;
         // TODO Make default definitions
-        int l_start_parallel = 128;
+        int l_start_parallel = 1;
         int l_max_reqs_per_conn = 1;
         bool l_input_flag = false;
         bool l_wildcarding = true;
         UNUSED(l_wildcarding);
-        int32_t l_end_fetches = -1;
 
         // -------------------------------------------------
         // Subrequest settings
@@ -1038,7 +1052,8 @@ int main(int argc, char** argv)
 
         l_subreq->set_num_to_request(-1);
         l_subreq->m_type = ns_hlx::subreq::SUBREQ_TYPE_DUPE;
-        l_subreq->set_create_req_cb(create_request);
+        l_subreq->set_create_req_cb(s_create_request_cb);
+        //l_subreq->set_num_reqs_per_conn(1);
 
         // Initialize rand...
         g_rand_ptr = (tinymt64_t*)malloc(sizeof(tinymt64_t));
@@ -1229,16 +1244,14 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'f':
                 {
-                        //NDBG_PRINT("arg: --fetches: %s\n", optarg);
-                        //l_settings.m_end_type = END_FETCHES;
-                        l_end_fetches = atoi(optarg);
+                        int32_t l_end_fetches = atoi(optarg);
                         if (l_end_fetches < 1)
                         {
                                 printf("Error fetches must be at least 1\n");
                                 return -1;
                         }
                         l_subreq->set_num_to_request(l_end_fetches);
-                        l_hlx->set_stop_on_empty(true);
+                        g_num_to_request = l_end_fetches;
                         break;
                 }
                 // ---------------------------------------
@@ -1246,7 +1259,6 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'N':
                 {
-                        //NDBG_PRINT("arg: --max_reqs_per_conn: %s\n", optarg);
                         l_max_reqs_per_conn = atoi(optarg);
                         if (l_max_reqs_per_conn < 1)
                         {
@@ -1521,12 +1533,6 @@ int main(int argc, char** argv)
                 print_usage(stdout, -1);
         }
 
-        if (l_end_fetches > 0 && l_start_parallel > l_end_fetches)
-        {
-                l_start_parallel = l_end_fetches;
-                l_hlx->set_num_parallel(l_start_parallel);
-        }
-
         // -------------------------------------------
         // Sigint handler3
         // -------------------------------------------
@@ -1553,7 +1559,7 @@ int main(int argc, char** argv)
                         return -1;
                 }
                 // Set callback
-                l_subreq->set_cb(http_completion_cb);
+                l_subreq->set_cb(s_completion_cb);
                 l_status = l_hlx->add_subreq(l_subreq);
                 if(l_status != 0)
                 {
@@ -1571,7 +1577,7 @@ int main(int argc, char** argv)
         // Paths...
         // -------------------------------------------
         std::string l_raw_path = l_subreq->m_path;
-        printf("l_raw_path: %s\n",l_raw_path.c_str());
+        //printf("l_raw_path: %s\n",l_raw_path.c_str());
         if(l_wildcarding)
         {
                 int32_t l_status;

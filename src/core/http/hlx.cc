@@ -248,8 +248,11 @@ void hlx::add_subreq_t(subreq *a_subreq)
                                 //NDBG_PRINT("Num to fetch: %d\n", (int)l_num_fetches_per_thread);
                                 l_subreq->set_num_to_request(l_num_fetches_per_thread);
                         }
-                        a_subreq->m_child_list.push_back(l_subreq);
-                        (*i_t)->add_subreq(l_subreq);
+                        if(l_subreq->get_num_to_request() != 0)
+                        {
+                                a_subreq->m_child_list.push_back(l_subreq);
+                                (*i_t)->add_subreq(l_subreq);
+                        }
                 }
         }
         else if(a_subreq->m_type == subreq::SUBREQ_TYPE_FANOUT && a_subreq->get_host_list().size())
@@ -782,7 +785,6 @@ int hlx::init_server_list(void)
         l_settings.m_num_reqs_per_conn = m_num_reqs_per_conn;
         l_settings.m_collect_stats = m_collect_stats;
         l_settings.m_use_persistent_pool = m_use_persistent_pool;
-        l_settings.m_stop_on_empty = m_stop_on_empty;
         l_settings.m_sock_opt_recv_buf_size = m_sock_opt_recv_buf_size;
         l_settings.m_sock_opt_send_buf_size = m_sock_opt_send_buf_size;
         l_settings.m_sock_opt_no_delay = m_sock_opt_no_delay;
@@ -896,7 +898,6 @@ hlx::hlx(void):
         m_resolver(NULL),
         m_use_ai_cache(true),
         m_ai_cache(),
-        m_stop_on_empty(false),
         m_collect_stats(false),
         m_use_persistent_pool(false),
         m_show_summary(false),

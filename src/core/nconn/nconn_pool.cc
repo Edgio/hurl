@@ -65,11 +65,10 @@ int32_t nconn_pool::get(scheme_t a_scheme, nconn **ao_nconn)
                 init();
         }
 
-        //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: l_nconn: %p m_conn_free_list.size() = %lu\n",
+        //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: l_nconn: %p m_nconn_obj_pool.used_size() = %lu\n",
         //                pthread_self(),
         //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
-        //                ao_nconn, m_conn_idx_free_list.size());
-
+        //                ao_nconn, m_nconn_obj_pool.used_size());
         if((m_pool_size != -1) &&
             m_idle_conn_ncache.size() &&
            (m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size))

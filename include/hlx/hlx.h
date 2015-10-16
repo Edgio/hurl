@@ -564,7 +564,6 @@ public:
         void set_split_requests_by_thread(bool a_val);
         void set_use_ai_cache(bool a_val);
         void set_ai_cache(const std::string &a_ai_cache);
-        void set_stop_on_empty(bool a_val) {m_stop_on_empty = a_val;}
 
         // TODO migrate to listener
 #if 1
@@ -633,7 +632,6 @@ private:
         resolver *m_resolver;
         bool m_use_ai_cache;
         std::string m_ai_cache;
-        bool m_stop_on_empty;
         bool m_collect_stats;
         bool m_use_persistent_pool;
         bool m_show_summary;

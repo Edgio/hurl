@@ -144,7 +144,6 @@ t_hlx::t_hlx(const vsconf_t &a_vsconf):
         COPY_SETTINGS(m_num_reqs_per_conn);
         COPY_SETTINGS(m_collect_stats);
         COPY_SETTINGS(m_use_persistent_pool);
-        COPY_SETTINGS(m_stop_on_empty);
         COPY_SETTINGS(m_sock_opt_recv_buf_size);
         COPY_SETTINGS(m_sock_opt_send_buf_size);
         COPY_SETTINGS(m_sock_opt_no_delay);
@@ -1340,15 +1339,18 @@ int32_t t_hlx::try_deq_subreq(void)
                 }
                 else if(l_status != STATUS_OK)
                 {
-                        NDBG_PRINT("Error performing request\n");
-                        return STATUS_ERROR;
-                }
-                l_subreq->bump_num_requested();
-                //NDBG_PRINT("l_subreq->is_pending_done(): %d\n", l_subreq->is_pending_done());
-                if(l_subreq->is_pending_done())
-                {
-                        //NDBG_PRINT("POP'ing: host: %s\n", l_subreq->m_host.c_str());
+                        //NDBG_PRINT("Error performing request\n");
                         m_subreq_queue.pop();
+                }
+                else
+                {
+                        l_subreq->bump_num_requested();
+                        //NDBG_PRINT("l_subreq->is_pending_done(): %d\n", l_subreq->is_pending_done());
+                        if(l_subreq->is_pending_done())
+                        {
+                                //NDBG_PRINT("POP'ing: host: %s\n", l_subreq->m_host.c_str());
+                                m_subreq_queue.pop();
+                        }
                 }
         }
         return STATUS_OK;
@@ -1387,13 +1389,9 @@ void *t_hlx::t_run(void *a_nothing)
                 if(l_status != STATUS_OK)
                 {
                         NDBG_PRINT("Error performing try_deq_subreq.\n");
-                        return NULL;
+                        //return NULL;
                 }
                 l_status = m_evr_loop->run();
-                if(m_vsconf.m_stop_on_empty && !m_nconn_proxy_pool.num_in_use() && m_subreq_queue.empty())
-                {
-                        break;
-                }
         }
         //NDBG_PRINT("Stopped...\n");
         m_stopped = true;
