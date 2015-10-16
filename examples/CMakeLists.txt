@@ -2,7 +2,7 @@
 # Copyright (C) 2014 Verizon.  All Rights Reserved.
 # All Rights Reserved
 #
-#   Author: Reed P Morrison
+#   Author: Reed P Morrison, David Andrews
 #   Date:   02/07/2014
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,36 +32,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ../include
 )
 
-# add_definitions(-std=c++0x)
-# add_definitions(-Wall)
-# add_definitions(-Werror)
-
-# ============================================================
-# TODO
-# ============================================================
-## Platform-specific executable targets
-#IF(UNIX)
-#    IF(APPLE)
-#        # MacOS Application Bundle
-#        add_executable(hlo MACOSX_BUNDLE ${HDRS} ${SRCS})
-#    ELSE()
-#        IF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD|Solaris|SunOS")
-#            # *BSD or Solaris
-#            add_executable(hlo ${HDRS} ${SRCS})
-#        ELSE()
-#            # Linux
-#            add_executable(hlo ${HDRS} ${SRCS})
-#        ENDIF()
-#    ENDIF()
-#ELSE()
-#    IF(WIN32)
-#        # Windows Executable
-#        add_executable(hlo ${HDRS} ${SRCS})
-#    ENDIF()
-#ENDIF()
-# ============================================================
-# ============================================================
-
 
 # build and install hss
 add_executable(hlx_server_ex hlx_server_ex.cc)
@@ -79,8 +49,3 @@ profiler
 #efence
 #pthread_workqueue
 )
-
-# install(TARGETS hlx_server_ex
-#         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
-#         COMPONENT Executables
-#         )
