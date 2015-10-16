@@ -969,7 +969,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
         fprintf(a_stream, "  -y, --cipher        Cipher --see \"openssl ciphers\" for list.\n");
-        fprintf(a_stream, "  -p, --parallel      Num parallel. Default: 1.\n");
+        fprintf(a_stream, "  -p, --parallel      Num parallel. Default: 100.\n");
         fprintf(a_stream, "  -f, --fetches       Num fetches.\n");
         fprintf(a_stream, "  -N, --num_calls     Number of requests per connection\n");
         fprintf(a_stream, "  -k, --keep_alive    Re-use connections for all requests\n");
@@ -1009,6 +1009,16 @@ void print_usage(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
+        int32_t l_http_load_display = -1;
+        int32_t l_http_data_port = -1;
+
+        int l_max_threads = 1;
+        // TODO Make default definitions
+        int l_start_parallel = 100;
+        int l_max_reqs_per_conn = 1;
+        bool l_input_flag = false;
+        bool l_wildcarding = true;
+
         // Get hlo instance
         settings_struct_t l_settings;
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
@@ -1021,19 +1031,8 @@ int main(int argc, char** argv)
         l_hlx->set_split_requests_by_thread(false);
         l_hlx->set_collect_stats(true);
         l_hlx->set_use_ai_cache(true);
-        l_hlx->set_num_threads(1);
-        l_hlx->set_num_parallel(1);
-
-        int32_t l_http_load_display = -1;
-        int32_t l_http_data_port = -1;
-
-        int l_max_threads = 1;
-        // TODO Make default definitions
-        int l_start_parallel = 1;
-        int l_max_reqs_per_conn = 1;
-        bool l_input_flag = false;
-        bool l_wildcarding = true;
-        UNUSED(l_wildcarding);
+        l_hlx->set_num_threads(l_max_threads);
+        l_hlx->set_num_parallel(l_start_parallel);
 
         // -------------------------------------------------
         // Subrequest settings
