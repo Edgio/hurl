@@ -476,7 +476,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 
         // print out the version information
         fprintf(a_stream, "hle HTTP Parallel Curl.\n");
-        fprintf(a_stream, "Copyright (C) 2014 Edgecast Networks.\n");
+        fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
                         HLE_VERSION_MAJOR,
                         HLE_VERSION_MINOR,
@@ -496,7 +496,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Usage: hle -u [http[s]://]hostname[:port]/path [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help           Display this help and exit.\n");
-        fprintf(a_stream, "  -r, --version        Display the version number and exit.\n");
+        fprintf(a_stream, "  -V, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "URL Options -or without parameter\n");
         fprintf(a_stream, "  -u, --url            URL -REQUIRED (unless running cli: see --cli option).\n");
@@ -523,7 +523,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -O, --ssl_options    SSL Options string.\n");
         // TODO
 #if 0
-        fprintf(a_stream, "  -V, --ssl_verify     Verify server certificate.\n");
+        fprintf(a_stream, "  -K, --ssl_verify     Verify server certificate.\n");
         fprintf(a_stream, "  -N, --ssl_sni        Use SSL SNI.\n");
 #endif
         fprintf(a_stream, "  -F, --ssl_ca_file    SSL CA File.\n");
@@ -608,7 +608,7 @@ int main(int argc, char** argv)
         struct option l_long_options[] =
                 {
                 { "help",           0, 0, 'h' },
-                { "version",        0, 0, 'r' },
+                { "version",        0, 0, 'V' },
                 { "url",            1, 0, 'u' },
                 { "data",           1, 0, 'd' },
                 { "host_file",      1, 0, 'f' },
@@ -626,7 +626,7 @@ int main(int argc, char** argv)
                 { "connect_only",   0, 0, 'C' },
                 { "cipher",         1, 0, 'y' },
                 { "ssl_options",    1, 0, 'O' },
-                { "ssl_verify",     0, 0, 'V' },
+                { "ssl_verify",     0, 0, 'K' },
                 { "ssl_sni",        0, 0, 'N' },
                 { "ssl_ca_file",    1, 0, 'F' },
                 { "ssl_ca_path",    1, 0, 'L' },
@@ -697,9 +697,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hvu:d:f:J:x:y:O:VNF:L:Ip:t:H:X:T:R:S:DA:Crcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hvu:d:f:J:x:y:O:VNF:L:Ip:t:H:X:T:R:S:DA:Crcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -727,7 +727,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // Version
                 // ---------------------------------------
-                case 'r':
+                case 'V':
                 {
                         print_version(stdout, 0);
                         break;
@@ -832,7 +832,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // ssl verify
                 // ---------------------------------------
-                case 'V':
+                case 'K':
                 {
                         // TODO
                         //l_hlx->set_ssl_verify(true);
@@ -871,7 +871,6 @@ int main(int argc, char** argv)
                         l_settings.m_cli = true;
                         break;
                 }
-
                 // ---------------------------------------
                 // parallel
                 // ---------------------------------------

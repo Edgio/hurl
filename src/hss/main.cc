@@ -328,7 +328,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 
         // print out the version information
         fprintf(a_stream, "hss HLO Simpler Server.\n");
-        fprintf(a_stream, "Copyright (C) 2015 Edgecast Networks.\n");
+        fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
                         HSS_VERSION_MAJOR,
                         HSS_VERSION_MINOR,
@@ -349,7 +349,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Usage: hss [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help           Display this help and exit.\n");
-        fprintf(a_stream, "  -v, --version        Display the version number and exit.\n");
+        fprintf(a_stream, "  -V, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Server Options:\n");
@@ -368,7 +368,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Print Options:\n");
-        fprintf(a_stream, "  -r, --verbose        Verbose logging\n");
+        fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --color          Color\n");
         fprintf(a_stream, "  -s, --status         Status -show server statistics\n");
         fprintf(a_stream, "  \n");
@@ -408,7 +408,7 @@ int main(int argc, char** argv)
         struct option l_long_options[] =
                 {
                 { "help",           0, 0, 'h' },
-                { "version",        0, 0, 'v' },
+                { "version",        0, 0, 'V' },
                 { "port",           1, 0, 'p' },
                 { "threads",        1, 0, 't' },
                 { "TLS",            0, 0, 'T' },
@@ -418,7 +418,7 @@ int main(int argc, char** argv)
                 { "tls_options",    1, 0, 'O' },
                 { "tls_ca_file",    1, 0, 'F' },
                 { "tls_ca_path",    1, 0, 'L' },
-                { "verbose",        0, 0, 'r' },
+                { "verbose",        0, 0, 'v' },
                 { "color",          0, 0, 'c' },
                 { "status",         0, 0, 's' },
 #ifdef ENABLE_PROFILER
@@ -441,9 +441,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcsG:H:";
+        char l_short_arg_list[] = "hVp:t:TK:P:y:O:F:L:vcsG:H:";
 #else
-        char l_short_arg_list[] = "hvp:t:TK:P:y:O:F:L:rcs";
+        char l_short_arg_list[] = "hVp:t:TK:P:y:O:F:L:vcs";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -468,7 +468,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // Version
                 // ---------------------------------------
-                case 'v':
+                case 'V':
                 {
                         print_version(stdout, 0);
                         break;
@@ -574,7 +574,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // verbose
                 // ---------------------------------------
-                case 'r':
+                case 'v':
                 {
                         l_settings.m_verbose = true;
                         l_hlx->set_verbose(true);

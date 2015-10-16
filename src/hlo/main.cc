@@ -941,7 +941,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 
         // print out the version information
         fprintf(a_stream, "hlo HTTP Load Tester.\n");
-        fprintf(a_stream, "Copyright (C) 2014 Edgecast Networks.\n");
+        fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
                         HLO_VERSION_MAJOR,
                         HLO_VERSION_MINOR,
@@ -960,7 +960,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Usage: hlo [http[s]://]hostname[:port]/path [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help          Display this help and exit.\n");
-        fprintf(a_stream, "  -r, --version       Display the version number and exit.\n");
+        fprintf(a_stream, "  -V, --version       Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Input Options:\n");
         fprintf(a_stream, "  -w, --no_wildcards  Don't wildcard the url.\n");
@@ -1070,7 +1070,7 @@ int main(int argc, char** argv)
         struct option l_long_options[] =
                 {
                 { "help",         0, 0, 'h' },
-                { "version",      0, 0, 'r' },
+                { "version",      0, 0, 'V' },
                 { "no_wildcards", 0, 0, 'w' },
                 { "data",         1, 0, 'd' },
                 { "cipher",       1, 0, 'y' },
@@ -1133,7 +1133,7 @@ int main(int argc, char** argv)
 
         }
 
-        while ((l_opt = getopt_long_only(argc, argv, "hrkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:", l_long_options, &l_option_index)) != -1)
+        while ((l_opt = getopt_long_only(argc, argv, "hVkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:", l_long_options, &l_option_index)) != -1)
         {
 
                 if (optarg)
@@ -1155,7 +1155,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 // Version
                 // ---------------------------------------
-                case 'r':
+                case 'V':
                 {
                         print_version(stdout, 0);
                         break;
