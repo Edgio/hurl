@@ -275,6 +275,7 @@ static std::string g_path;
 static uint32_t g_path_vector_last_idx = 0;
 static path_order_t g_path_order = EXPLODED_PATH_ORDER_RANDOM;
 static pthread_mutex_t g_path_vector_mutex;
+static pthread_mutex_t g_completion_mutex;
 
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
@@ -458,7 +459,9 @@ void command_exec(settings_struct_t &a_settings)
 //: ----------------------------------------------------------------------------
 int32_t s_completion_cb(void *a_ptr)
 {
+        pthread_mutex_lock(&g_completion_mutex);
         ++g_num_completed;
+        pthread_mutex_unlock(&g_completion_mutex);
         if((g_num_to_request != -1) && (g_num_completed >= (uint32_t)g_num_to_request))
         {
                 g_test_finished = true;
@@ -1060,6 +1063,9 @@ int main(int argc, char** argv)
 
         // Initialize mutex for sequential path requesting
         pthread_mutex_init(&g_path_vector_mutex, NULL);
+
+        // Completion
+        pthread_mutex_init(&g_completion_mutex, NULL);
 
         // -------------------------------------------
         // Get args...
