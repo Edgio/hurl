@@ -1,4 +1,4 @@
-  hlo: HTTP  Server Utilities
+  hlx: HTTP Server Utilities
 =========
 
 ## What are they
