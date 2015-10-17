@@ -2,20 +2,20 @@
 =========
 
 ## What are they
-A few utilities for testing and curling from http servers. 
+A few utilities for testing and curling from http servers.
 
-## *hlo* HTTP Server Load Tester
-*hlo* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hlo* is primarily useful for benchmarking http server applications.
+## *hurl* HTTP Server Load Tester
+*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
 
-* **A little more about URLs Ranges**: 
-*hlo* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hlo* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
-eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html". 
+* **A little more about URLs Ranges**:
+*hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
+eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html".
 
 * **Stats API**:
-If  *hlo* is started with *-P port_number* option,  *hlo* listens on the user specified port for stats requests:
-For example if hlo is run with:
+If  *hurl* is started with *-P port_number* option,  *hurl* listens on the user specified port for stats requests:
+For example if hurl is run with:
 ```bash
-~>hlo "http://127.0.0.1:8089/index.html" -P12345
+~>hurl "http://127.0.0.1:8089/index.html" -P12345
 Running 1 parallel connections with: 1 reqs/conn, 1 threads
 +-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+
 |    Cmpltd /     Total |    IdlKil |    Errors | kBytes Recvd |   Elapsed |       Req/s |      MB/s |
@@ -28,7 +28,7 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 |     15737 /     15737 |         0 |         0 |     13047.57 |     1.20s |   13030.00s |    10.55s |
 ...
 ```
-*hlo* can be queried:
+*hurl* can be queried:
 ```bash
 ~>curl -s http://127.0.0.1:12345 | json_pp
 {
@@ -46,21 +46,21 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 
 ####An example
 ```bash
-hlo "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
+hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 ```
 
 ####Options
 ```bash
-Usage: hlo [http[s]://]hostname[:port]/path [options]
+Usage: hurl [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help          Display this help and exit.
   -r, --version       Display the version number and exit.
-  
+
 Input Options:
   -u, --url_file      URL file.
   -w, --no_wildcards  Don't wildcard the url.
   -d, --data          HTTP body data -supports bodies up to 8k.
-  
+
 Settings:
   -y, --cipher        Cipher --see "openssl ciphers" for list.
   -p, --parallel      Num parallel Default: 64.
@@ -77,25 +77,25 @@ Settings:
   -S, --send_buffer   Socket send buffer size.
   -D, --no_delay      Socket TCP no-delay.
   -T, --timeout       Timeout (seconds).
-  
+
 Print Options:
   -v, --verbose       Verbose logging
   -c, --color         Color
   -q, --quiet         Suppress progress output
   -C, --responses     Display http(s) response codes instead of request statistics
   -L, --responses_per Display http(s) response codes per interval instead of request statistics
-  
+
 Stat Options:
   -P, --data_port     Start HTTP Stats Daemon on port.
   -B, --breakdown     Show breakdown
   -Y, --http_load     Display in http load mode [MODE] -Legacy support
   -G, --gprofile      Google profiler output file
-  
+
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
 ## *hle* Parallel Curl
-*hle* is a parallel curling utility useful for pulling a single url from many different hosts. *hle* supports reading line delimited hosts from stdin, a shell command string, or a file.  
+*hle* is a parallel curling utility useful for pulling a single url from many different hosts. *hle* supports reading line delimited hosts from stdin, a shell command string, or a file.
 
 ####An example
 ```bash
@@ -108,15 +108,15 @@ Usage: hle -u [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help           Display this help and exit.
   -r, --version        Display the version number and exit.
-  
+
 URL Options -or without parameter
   -u, --url            URL -REQUIRED (unless running cli: see --cli option).
   -d, --data           HTTP body data -supports bodies up to 8k.
-  
+
 Hostname Input Options -also STDIN:
   -f, --host_file      Host name file.
   -x, --execute        Script to execute to get host names.
-  
+
 Settings:
   -p, --parallel       Num parallel.
   -t, --threads        Number of parallel threads.
@@ -128,7 +128,7 @@ Settings:
   -D, --no_delay       Socket TCP no-delay.
   -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).
   -C, --connect_only   Only connect -do not send request.
-  
+
 SSL Settings:
   -y, --cipher         Cipher --see "openssl ciphers" for list.
   -O, --ssl_options    SSL Options string.
@@ -136,24 +136,24 @@ SSL Settings:
   -N, --ssl_sni        Use SSL SNI.
   -F, --ssl_ca_file    SSL CA File.
   -L, --ssl_ca_path    SSL CA Path.
-  
+
 Command Line Client:
   -I, --cli            Start interactive command line -URL not required.
-  
+
 Print Options:
   -v, --verbose        Verbose logging
   -c, --color          Color
   -q, --quiet          Suppress output
   -s, --show_progress  Show progress
   -m, --show_summary   Show summary output
-  
+
 Output Options: -defaults to line delimited
   -o, --output         File to write output to. Defaults to stdout
   -l, --line_delimited Output <HOST> <RESPONSE BODY> per line
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
-  
-  
+
+
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
@@ -226,4 +226,3 @@ And optionally install
 cd ./build
 sudo make install
 ```
-

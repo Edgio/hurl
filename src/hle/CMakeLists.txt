@@ -3,7 +3,7 @@
 # All Rights Reserved
 #
 #   Author: Reed P Morrison
-#   Date:   02/07/2014  
+#   Date:   02/07/2014
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -51,20 +51,20 @@ SET(HDRS
 #IF(UNIX)
 #    IF(APPLE)
 #        # MacOS Application Bundle
-#        add_executable(hlo MACOSX_BUNDLE ${HDRS} ${SRCS})
+#        add_executable(hle MACOSX_BUNDLE ${HDRS} ${SRCS})
 #    ELSE()
 #        IF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD|Solaris|SunOS")
 #            # *BSD or Solaris
-#            add_executable(hlo ${HDRS} ${SRCS})
+#            add_executable(hle ${HDRS} ${SRCS})
 #        ELSE()
 #            # Linux
-#            add_executable(hlo ${HDRS} ${SRCS})
+#            add_executable(hle ${HDRS} ${SRCS})
 #        ENDIF()
 #    ENDIF()
 #ELSE()
 #    IF(WIN32)
 #        # Windows Executable
-#        add_executable(hlo ${HDRS} ${SRCS})
+#        add_executable(hle ${HDRS} ${SRCS})
 #    ENDIF()
 #ENDIF()
 # ============================================================

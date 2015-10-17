@@ -3,7 +3,7 @@
 # All Rights Reserved
 #
 #   Author: Reed P Morrison
-#   Date:   02/07/2014  
+#   Date:   02/07/2014
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -25,6 +25,6 @@ cmake_minimum_required(VERSION 2.8.0)
 
 # include source and test directories
 add_subdirectory(core)
-add_subdirectory(hlo)
+add_subdirectory(hurl)
 add_subdirectory(hle)
 add_subdirectory(hss)

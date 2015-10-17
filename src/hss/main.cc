@@ -172,8 +172,8 @@ private:
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-uint64_t hlo_get_time_ms(void);
-uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms);
+uint64_t hss_get_time_ms(void);
+uint64_t hss_get_delta_time_ms(uint64_t a_start_time_ms);
 void display_results_line_desc(settings_struct &a_settings);
 void display_results_line(settings_struct &a_settings);
 
@@ -327,7 +327,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 {
 
         // print out the version information
-        fprintf(a_stream, "hss HLO Simpler Server.\n");
+        fprintf(a_stream, "hss HSS Simpler Server.\n");
         fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
                         HSS_VERSION_MAJOR,
@@ -703,7 +703,7 @@ int main(int argc, char** argv)
         }
 #endif
 
-        uint64_t l_start_time_ms = hlo_get_time_ms();
+        uint64_t l_start_time_ms = hss_get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
 
         // -------------------------------------------
@@ -762,7 +762,7 @@ int main(int argc, char** argv)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hlo_get_time_ms(void)
+uint64_t hss_get_time_ms(void)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -776,7 +776,7 @@ uint64_t hlo_get_time_ms(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms)
+uint64_t hss_get_delta_time_ms(uint64_t a_start_time_ms)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -835,7 +835,7 @@ void display_results_line_desc(settings_struct &a_settings)
 void display_results_line(settings_struct &a_settings)
 {
         ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = hlo_get_time_ms();
+        uint64_t l_cur_time_ms = hss_get_time_ms();
 
         // Get stats
         a_settings.m_hlx->get_stats(l_total);
@@ -846,7 +846,7 @@ void display_results_line(settings_struct &a_settings)
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_written_per_s = ((double)(l_total.m_num_bytes_written - a_settings.m_last_stat->m_num_bytes_written)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = hlo_get_time_ms();
+        a_settings.m_last_display_time_ms = hss_get_time_ms();
         *a_settings.m_last_stat = l_total;
 
         if(a_settings.m_color)
@@ -861,7 +861,7 @@ void display_results_line(settings_struct &a_settings)
                                         ANSI_COLOR_FG_YELLOW, l_kb_read_per_s, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_CYAN, l_kb_written_per_s, ANSI_COLOR_OFF,
                                         l_reqs_per_s,
-                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0);
+                                        ((double)(hss_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0);
         }
         else
         {
@@ -875,7 +875,7 @@ void display_results_line(settings_struct &a_settings)
                                 l_kb_read_per_s,
                                 l_kb_written_per_s,
                                 l_reqs_per_s,
-                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0));
+                                ((double)(hss_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0));
 
         }
 }
