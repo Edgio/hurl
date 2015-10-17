@@ -49,7 +49,9 @@ public:
         int del(int a_fd);
 
 private:
-        DISALLOW_COPY_AND_ASSIGN(evr_select)
+        // Disallow copy/assign
+        evr_select& operator=(const evr_select &);
+        evr_select(const evr_select &);
 
         std::vector<void*> m_conns;
         fd_set m_rfdset;

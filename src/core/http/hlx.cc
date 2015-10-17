@@ -31,11 +31,6 @@
 #include "../http/t_hlx.h"
 #include "resolver.h"
 
-#include <errno.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif

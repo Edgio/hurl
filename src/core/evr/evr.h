@@ -31,9 +31,7 @@
 
 #include <queue> // for std::priority_queue
 #include <vector>
-#include <list>
 
-#include "ndebug.h"
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -42,23 +40,20 @@
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-class conn;
-
-//: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
 typedef enum evr_loop_type
 {
         EVR_LOOP_EPOLL,
         EVR_LOOP_SELECT
+
 } evr_loop_type_t;
 
 typedef enum evr_timer_state
 {
         EVR_TIMER_ACTIVE,
         EVR_TIMER_CANCELLED
+
 } evr_timer_state_t;
 
 typedef enum evr_file_attr
@@ -68,7 +63,8 @@ typedef enum evr_file_attr
         EVR_FILE_ATTR_MASK_STATUS_ERROR = 1 << 2,
         EVR_FILE_ATTR_MASK_RD_HUP = 1 << 3,
         EVR_FILE_ATTR_MASK_HUP = 1 << 4,
-        EVR_FILE_ATTR_MASK_ET = 1 << 5,
+        EVR_FILE_ATTR_MASK_ET = 1 << 5
+
 } evr_file_attr_t;
 
 //: ----------------------------------------------------------------------------

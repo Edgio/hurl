@@ -27,7 +27,6 @@
 #include "nconn_pool.h"
 #include "nconn_tcp.h"
 #include "nconn_ssl.h"
-#include <unordered_map>
 
 namespace ns_hlx {
 

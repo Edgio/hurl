@@ -25,10 +25,13 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
+#include <string>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+#include <stddef.h>
 
 #include <execinfo.h> // support backtrace
 #include <cxxabi.h>   // support demangled symbols

@@ -28,19 +28,13 @@
 #include "http_parser/http_parser.h"
 #include "resolver.h"
 #include "string_util.h"
-#include "nbq.h"
 
-#include <errno.h>
 #include <string.h>
 #include <string>
 
 #include <stdint.h>
 
 #include "hlx/hlx.h"
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#include <inttypes.h>
 
 // json support
 #include "rapidjson/document.h"

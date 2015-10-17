@@ -30,6 +30,7 @@
 #include "ndebug.h"
 #include "time_util.h"
 
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/eventfd.h>
 #include <errno.h>

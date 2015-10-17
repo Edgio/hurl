@@ -49,7 +49,10 @@ public:
         int del(int a_fd);
 
 private:
-        DISALLOW_COPY_AND_ASSIGN(evr_epoll)
+        // Disallow copy/assign
+        evr_epoll& operator=(const evr_epoll &);
+        evr_epoll(const evr_epoll &);
+
         int m_epoll_fd;
 };
 
