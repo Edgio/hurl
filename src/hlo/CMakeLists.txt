@@ -51,20 +51,20 @@ SET(HDRS
 #IF(UNIX)
 #    IF(APPLE)
 #        # MacOS Application Bundle
-#        add_executable(hurl MACOSX_BUNDLE ${HDRS} ${SRCS})
+#        add_executable(hlo MACOSX_BUNDLE ${HDRS} ${SRCS})
 #    ELSE()
 #        IF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD|Solaris|SunOS")
 #            # *BSD or Solaris
-#            add_executable(hurl ${HDRS} ${SRCS})
+#            add_executable(hlo ${HDRS} ${SRCS})
 #        ELSE()
 #            # Linux
-#            add_executable(hurl ${HDRS} ${SRCS})
+#            add_executable(hlo ${HDRS} ${SRCS})
 #        ENDIF()
 #    ENDIF()
 #ELSE()
 #    IF(WIN32)
 #        # Windows Executable
-#        add_executable(hurl ${HDRS} ${SRCS})
+#        add_executable(hlo ${HDRS} ${SRCS})
 #    ENDIF()
 #ENDIF()
 # ============================================================
@@ -72,10 +72,10 @@ SET(HDRS
 
 
 # build and install hl
-add_executable(hurl_cmd ${HDRS} ${SRCS})
-add_dependencies(hurl_cmd hlxcore)
-SET_TARGET_PROPERTIES(hurl_cmd PROPERTIES OUTPUT_NAME "hurl")
-target_link_libraries(hurl_cmd
+add_executable(hlo_cmd ${HDRS} ${SRCS})
+add_dependencies(hlo_cmd hlxcore)
+SET_TARGET_PROPERTIES(hlo_cmd PROPERTIES OUTPUT_NAME "hlo")
+target_link_libraries(hlo_cmd
 ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
 pthread
 rt
@@ -87,7 +87,7 @@ profiler
 #efence
 )
 
-install(TARGETS hurl_cmd
+install(TARGETS hlo_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
         COMPONENT Executables
         )

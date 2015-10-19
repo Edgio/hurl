@@ -4,18 +4,18 @@
 ## What are they
 A few utilities for testing and curling from http servers.
 
-## *hurl* HTTP Server Load Tester
-*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
+## *hlo* HTTP Server Load Tester
+*hlo* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hlo* is primarily useful for benchmarking http server applications.
 
 * **A little more about URLs Ranges**:
-*hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
+*hlo* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hlo* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
 eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html".
 
 * **Stats API**:
-If  *hurl* is started with *-P port_number* option,  *hurl* listens on the user specified port for stats requests:
-For example if hurl is run with:
+If  *hlo* is started with *-P port_number* option,  *hlo* listens on the user specified port for stats requests:
+For example if hlo is run with:
 ```bash
-~>hurl "http://127.0.0.1:8089/index.html" -P12345
+~>hlo "http://127.0.0.1:8089/index.html" -P12345
 Running 1 parallel connections with: 1 reqs/conn, 1 threads
 +-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+
 |    Cmpltd /     Total |    IdlKil |    Errors | kBytes Recvd |   Elapsed |       Req/s |      MB/s |
@@ -28,7 +28,7 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 |     15737 /     15737 |         0 |         0 |     13047.57 |     1.20s |   13030.00s |    10.55s |
 ...
 ```
-*hurl* can be queried:
+*hlo* can be queried:
 ```bash
 ~>curl -s http://127.0.0.1:12345 | json_pp
 {
@@ -46,12 +46,12 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 
 ####An example
 ```bash
-hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
+hlo "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 ```
 
 ####Options
 ```bash
-Usage: hurl [http[s]://]hostname[:port]/path [options]
+Usage: hlo [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help          Display this help and exit.
   -r, --version       Display the version number and exit.

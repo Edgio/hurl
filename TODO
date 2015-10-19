@@ -13,10 +13,10 @@
   e. Catch+unit tests
   f. blackbox tests
 
-3. hurl
-  a. timeout errors with hurl test
+3. hlo
+  a. timeout errors with hlo test
   b. memory leaks?
 
   ->Edge triggered examples:
- hurl "http://127.0.0.1:12345/TEST_FILE" -k -c -t1 -p10 -A10 -T2
+ hlo "http://127.0.0.1:12345/TEST_FILE" -k -c -t1 -p10 -A10 -T2
  hss -p12345 -s -c

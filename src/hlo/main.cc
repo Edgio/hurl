@@ -71,10 +71,10 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 // Version
-#define HURL_VERSION_MAJOR 0
-#define HURL_VERSION_MINOR 0
-#define HURL_VERSION_MACRO 1
-#define HURL_VERSION_PATCH "alpha"
+#define HLO_VERSION_MAJOR 0
+#define HLO_VERSION_MINOR 0
+#define HLO_VERSION_MACRO 1
+#define HLO_VERSION_PATCH "alpha"
 
 //: ----------------------------------------------------------------------------
 //: Status
@@ -240,9 +240,9 @@ private:
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-uint64_t hurl_get_time_us(void);
-uint64_t hurl_get_time_ms(void);
-uint64_t hurl_get_delta_time_ms(uint64_t a_start_time_ms);
+uint64_t hlo_get_time_us(void);
+uint64_t hlo_get_time_ms(void);
+uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms);
 void display_results_line_desc(settings_struct &a_settings);
 void display_results_line(settings_struct &a_settings);
 void display_responses_line_desc(settings_struct &a_settings);
@@ -405,7 +405,7 @@ void command_exec(settings_struct_t &a_settings)
                 // Check for done
                 if(a_settings.m_run_time_ms != -1)
                 {
-                        int32_t l_time_delta_ms = (int32_t)(hurl_get_delta_time_ms(a_settings.m_start_time_ms));
+                        int32_t l_time_delta_ms = (int32_t)(hlo_get_delta_time_ms(a_settings.m_start_time_ms));
                         if(l_time_delta_ms >= a_settings.m_run_time_ms)
                         {
                                 g_test_finished = true;
@@ -943,13 +943,13 @@ void print_version(FILE* a_stream, int a_exit_code)
 {
 
         // print out the version information
-        fprintf(a_stream, "hurl HTTP Load Tester.\n");
+        fprintf(a_stream, "hlo HTTP Load Tester.\n");
         fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
-                        HURL_VERSION_MAJOR,
-                        HURL_VERSION_MINOR,
-                        HURL_VERSION_MACRO,
-                        HURL_VERSION_PATCH);
+                        HLO_VERSION_MAJOR,
+                        HLO_VERSION_MINOR,
+                        HLO_VERSION_MACRO,
+                        HLO_VERSION_PATCH);
         exit(a_exit_code);
 }
 
@@ -960,7 +960,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 void print_usage(FILE* a_stream, int a_exit_code)
 {
-        fprintf(a_stream, "Usage: hurl [http[s]://]hostname[:port]/path [options]\n");
+        fprintf(a_stream, "Usage: hlo [http[s]://]hostname[:port]/path [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help          Display this help and exit.\n");
         fprintf(a_stream, "  -V, --version       Display the version number and exit.\n");
@@ -1022,7 +1022,7 @@ int main(int argc, char** argv)
         bool l_input_flag = false;
         bool l_wildcarding = true;
 
-        // Get hurl instance
+        // Get hlo instance
         settings_struct_t l_settings;
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
         l_settings.m_hlx = l_hlx;
@@ -1044,7 +1044,7 @@ int main(int argc, char** argv)
         l_subreq->set_save_response(false);
 
         // Default headers
-        l_subreq->set_header("User-Agent","hurl Server Load Tester");
+        l_subreq->set_header("User-Agent","hlo Server Load Tester");
         l_subreq->set_header("Accept","*/*");
         //l_subreq->set_header("User-Agent","ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
         //l_subreq->set_header("User-Agent","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
@@ -1059,7 +1059,7 @@ int main(int argc, char** argv)
 
         // Initialize rand...
         g_rand_ptr = (tinymt64_t*)malloc(sizeof(tinymt64_t));
-        tinymt64_init(g_rand_ptr, hurl_get_time_us());
+        tinymt64_init(g_rand_ptr, hlo_get_time_us());
 
         // Initialize mutex for sequential path requesting
         pthread_mutex_init(&g_path_vector_mutex, NULL);
@@ -1640,11 +1640,11 @@ int main(int argc, char** argv)
         l_run_status = l_hlx->run();
         if(0 != l_run_status)
         {
-                printf("Error: performing hurl::run");
+                printf("Error: performing hlo::run");
                 return -1;
         }
 
-        uint64_t l_start_time_ms = hurl_get_time_ms();
+        uint64_t l_start_time_ms = hlo_get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
         l_settings.m_last_display_time_ms = l_start_time_ms;
 
@@ -1666,7 +1666,7 @@ int main(int argc, char** argv)
                 ProfilerStop();
 #endif
 
-        uint64_t l_end_time_ms = hurl_get_time_ms() - l_start_time_ms;
+        uint64_t l_end_time_ms = hlo_get_time_ms() - l_start_time_ms;
 
 
         // -------------------------------------------
@@ -1706,7 +1706,7 @@ int main(int argc, char** argv)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hurl_get_time_ms(void)
+uint64_t hlo_get_time_ms(void)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -1720,7 +1720,7 @@ uint64_t hurl_get_time_ms(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hurl_get_delta_time_ms(uint64_t a_start_time_ms)
+uint64_t hlo_get_delta_time_ms(uint64_t a_start_time_ms)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -1734,7 +1734,7 @@ uint64_t hurl_get_delta_time_ms(uint64_t a_start_time_ms)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hurl_get_time_us(void)
+uint64_t hlo_get_time_us(void)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -1816,14 +1816,14 @@ void display_responses_line_desc(settings_struct &a_settings)
 void display_responses_line(settings_struct &a_settings)
 {
         ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = hurl_get_time_ms();
+        uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
         a_settings.m_hlx->get_stats(l_total);
 
         double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
                               ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = hurl_get_time_ms();
+        a_settings.m_last_display_time_ms = hlo_get_time_ms();
         *(a_settings.m_last_stat) = l_total;
 
         // Aggregate over status code map
@@ -1879,7 +1879,7 @@ void display_responses_line(settings_struct &a_settings)
                 if(a_settings.m_color)
                 {
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
-                                                ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                                 l_reqs_per_s,
                                                 l_total.m_total_reqs,
                                                 l_total.m_num_errors,
@@ -1891,7 +1891,7 @@ void display_responses_line(settings_struct &a_settings)
                 else
                 {
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
-                                        ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
                                         l_total.m_total_reqs,
                                         l_total.m_num_errors,
@@ -1912,7 +1912,7 @@ void display_responses_line(settings_struct &a_settings)
                 if(a_settings.m_color)
                 {
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
-                                                ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                                 l_reqs_per_s,
                                                 l_total.m_total_reqs,
                                                 l_total.m_num_errors,
@@ -1924,7 +1924,7 @@ void display_responses_line(settings_struct &a_settings)
                 else
                 {
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
-                                        ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
                                         l_total.m_total_reqs,
                                         l_total.m_num_errors,
@@ -1979,7 +1979,7 @@ void display_results_line_desc(settings_struct &a_settings)
 void display_results_line(settings_struct &a_settings)
 {
         ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = hurl_get_time_ms();
+        uint64_t l_cur_time_ms = hlo_get_time_ms();
 
         // Get stats
         a_settings.m_hlx->get_stats(l_total);
@@ -1987,7 +1987,7 @@ void display_results_line(settings_struct &a_settings)
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = hurl_get_time_ms();
+        a_settings.m_last_display_time_ms = hlo_get_time_ms();
         *a_settings.m_last_stat = l_total;
         if(a_settings.m_color)
         {
@@ -1997,7 +1997,7 @@ void display_results_line(settings_struct &a_settings)
                                         ANSI_COLOR_FG_MAGENTA, l_total.m_num_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_num_bytes_read))/(1024.0), ANSI_COLOR_OFF,
-                                        ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
+                                        ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
                                         l_kb_per_s/1024.0
                                         );
@@ -2010,7 +2010,7 @@ void display_results_line(settings_struct &a_settings)
                                 l_total.m_num_idle_killed,
                                 l_total.m_num_errors,
                                 ((double)(l_total.m_num_bytes_read))/(1024.0),
-                                ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
+                                ((double)(hlo_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
                                 l_reqs_per_s,
                                 l_kb_per_s/1024.0
                                 );
