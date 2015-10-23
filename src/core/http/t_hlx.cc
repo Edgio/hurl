@@ -311,7 +311,6 @@ int32_t t_hlx::request(subreq &a_subreq, nconn *a_nconn)
         // Assign the request for connection
         l_nconn->set_host(a_subreq.m_host);
 
-        ++a_subreq.m_stat_agg.m_num_conn_started;
         ++m_stat.m_num_conn_started;
 
         // Create request
@@ -844,8 +843,6 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 if((l_data->m_http_req.m_subreq && !l_data->m_http_req.m_subreq->is_pending_done()) &&
                                                    !l_t_http->m_stopped)
                                                 {
-                                                        //++l_subreq->m_stat_agg.m_num_conn_completed;
-
                                                         // Get request time
                                                         if(l_nconn->m_collect_stats_flag)
                                                         {

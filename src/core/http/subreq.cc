@@ -72,7 +72,6 @@ subreq::subreq(std::string a_id):
         m_save_response(true),
         m_body_data(NULL),
         m_body_data_len(0),
-        m_stat_agg(),
         m_multipath(false),
         m_summary_info(),
         m_parent(NULL),
@@ -119,7 +118,6 @@ subreq::subreq(const subreq &a_subreq):
         m_save_response(a_subreq.m_save_response),
         m_body_data(NULL),
         m_body_data_len(0),
-        m_stat_agg(a_subreq.m_stat_agg),
         m_multipath(a_subreq.m_multipath),
         m_summary_info(a_subreq.m_summary_info),
         m_parent(a_subreq.m_parent),
@@ -209,17 +207,6 @@ void subreq::set_response(uint16_t a_response_status, const char *a_response)
                 }
                 m_resp->set_status(a_response_status);
         }
-
-        if(a_response_status == 502)
-        {
-                ++m_stat_agg.m_num_idle_killed;
-        }
-        if(a_response_status >= 500)
-        {
-                ++m_stat_agg.m_num_errors;
-        }
-
-        ++m_stat_agg.m_num_conn_completed;
 }
 
 //: ----------------------------------------------------------------------------

@@ -840,13 +840,8 @@ public:
         bool m_save_response;
         char *m_body_data;
         uint32_t m_body_data_len;
-
-        t_stat_t m_stat_agg;
         bool m_multipath;
-
-        // Summary info
         summary_info_t m_summary_info;
-
         subreq *m_parent;
         pthread_mutex_t m_parent_mutex;
         subreq_list_t m_child_list;
