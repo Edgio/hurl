@@ -57,7 +57,8 @@ SET(SRCS
     ./support/resolver.cc
     ./support/uri.cc
     ./support/nbq.cc
-    ./http/http.cc
+    ./http/http_req.cc
+    ./http/http_resp.cc
     ./http/http_cb.cc
     ./http/hlx.cc
     ./http/t_hlx.cc

@@ -375,8 +375,26 @@ int32_t evr_loop::cancel_timer(evr_timer_event_t *a_timer)
 int32_t evr_loop::signal_control(void)
 {
         int32_t l_status;
-        //NDBG_PRINT("%sSTOP%s: fd[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_control_fd);
+        //NDBG_PRINT("%sSIGNAL%s: fd[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_control_fd);
         l_status = signal_event(m_control_fd);
+        if(l_status != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing signal_event: fd: %d\n", m_control_fd);
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_loop::clear_control(void)
+{
+        int32_t l_status;
+        //NDBG_PRINT("%sSIGNAL%s: fd[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_control_fd);
+        l_status = clear_event(m_control_fd);
         if(l_status != STATUS_OK)
         {
                 NDBG_PRINT("Error performing signal_event: fd: %d\n", m_control_fd);
@@ -402,7 +420,7 @@ int32_t evr_loop::add_event(void *a_data)
         }
 
         int32_t l_status = 0;
-        l_status = m_evr->add(l_fd, EVR_FILE_ATTR_MASK_READ, a_data);
+        l_status = m_evr->add(l_fd, EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET, a_data);
         if(l_status != 0)
         {
                 NDBG_PRINT("Error performing m_evr->add -fd: %d.\n", l_fd);
@@ -432,6 +450,25 @@ int32_t evr_loop::signal_event(int a_fd)
         return STATUS_OK;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_loop::clear_event(int a_fd)
+{
+        // Wake up epoll_wait by writing to control fd
+        uint64_t l_value = 1;
+        ssize_t l_read_status = 0;
+        //NDBG_PRINT("READING\n");
+        l_read_status = read(a_fd, &l_value, sizeof (l_value));
+        if(l_read_status == -1)
+        {
+                NDBG_PRINT("l_write_status: %ld\n", l_read_status);
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
 
 } //namespace ns_hlx {
 

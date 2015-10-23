@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
+#include "nconn.h"
 #include "ndebug.h"
 #include "time_util.h"
 
@@ -37,17 +38,17 @@
 //: Macros
 //: ----------------------------------------------------------------------------
 #define WRITE_STATUS(_status) do { \
-        int32_t _result = ao_response.write_status(_status);\
+        int32_t _result = nwrite_status(a_nconn, _status);\
         if(_result != STATUS_OK) { NDBG_PRINT("Error performing _write_status.\n"); return STATUS_ERROR; }\
 } while(0)
 
 #define WRITE_HEADER(_key, _val) do { \
-        int32_t _status = ao_response.write_header(_key,_val);\
+        int32_t _status = nwrite_header(a_nconn, _key,_val);\
         if(_status != STATUS_OK) { NDBG_PRINT("Error performing _write_header.\n"); return STATUS_ERROR; }\
 } while(0)
 
 #define WRITE_BODY(_data,_len) do { \
-        int32_t _status = ao_response.write_body(body,_len);\
+        int32_t _status = nwrite_body(a_nconn, body,_len);\
         if(_status != STATUS_OK) { NDBG_PRINT("Error performing write_body.\n"); return STATUS_ERROR; }\
 } while(0)
 
@@ -65,31 +66,30 @@ const char *G_RESP_GETFILE_NOT_FOUND = "{ \"errors\": ["
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t http_request_handler::send_not_found(const http_req &a_request, http_resp &ao_response, const char *a_resp_str)
+int32_t http_request_handler::send_not_found(nconn &a_nconn, const http_req &a_request, const char *a_resp_str, http_resp &ao_resp)
 {
-        WRITE_STATUS(HTTP_STATUS_NOT_FOUND);
-        WRITE_HEADER("Server","hss/0.0.1");
-        WRITE_HEADER("Date", get_date_str());
-        WRITE_HEADER("Content-type", "application/json");
+        ao_resp.write_status(HTTP_STATUS_NOT_FOUND);
+        ao_resp.write_header("Server","hss/0.0.1");
+        ao_resp.write_header("Date", get_date_str());
+        ao_resp.write_header("Content-type", "application/json");
         char l_length_str[64];
         sprintf(l_length_str, "%lu", strlen(a_resp_str));
-        WRITE_HEADER("Content-Length", l_length_str);
+        ao_resp.write_header("Content-Length", l_length_str);
         if(a_request.m_supports_keep_alives)
         {
-                WRITE_HEADER("Connection", "keep-alive");
+                ao_resp.write_header("Connection", "keep-alive");
         }
         else
         {
-                WRITE_HEADER("Connection", "close");
+                ao_resp.write_header("Connection", "close");
         }
-
         int32_t l_status;
-        l_status = ao_response.write_body(a_resp_str, strlen(a_resp_str));
+        l_status = ao_resp.write_body(a_resp_str, strlen(a_resp_str));
         if(l_status != STATUS_OK)
         {
                 NDBG_PRINT("Error performing _write_body.\n");
         }
-        return STATUS_OK;
+        return 0;
 }
 
 //: ----------------------------------------------------------------------------
@@ -97,11 +97,13 @@ int32_t http_request_handler::send_not_found(const http_req &a_request, http_res
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t http_request_handler::get_file(const std::string &a_path, const http_req &a_request, http_resp &ao_response)
+int32_t http_request_handler::get_file(nconn &a_nconn,
+                                       http_req &a_request,
+                                       const std::string &a_path,
+                                       http_resp &ao_resp)
 {
         // Make relative...
         std::string l_path = "." + a_path;
-
         // ---------------------------------------
         // Check is a file
         // TODO
@@ -112,18 +114,14 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         if(l_status != 0)
         {
                 //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
-                send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-                // TODO Check response???
-                return STATUS_OK;
+                return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
         }
 
         // Check if is regular file
         if(!(l_stat.st_mode & S_IFREG))
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", l_path.c_str());
-                send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-                // TODO Check response???
-                return STATUS_OK;
+                return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
         }
         // Open file...
         FILE * l_file;
@@ -131,9 +129,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         if (NULL == l_file)
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
-                send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-                // TODO Check response???
-                return STATUS_OK;
+                return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
         }
 
         // Read in file...
@@ -142,9 +138,7 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         if(l_size > 16*1024)
         {
                 //NDBG_PRINT("Error file size exceeds current size limits\n");
-                send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-                // TODO Check response???
-                return STATUS_OK;
+                return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
         }
         char *l_body = (char *)malloc(sizeof(char)*l_size);
 
@@ -155,9 +149,9 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         {
                 //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
                 //                strerror(errno), l_read_size, l_size);
-                send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-                // TODO Check response???
-                goto get_file_done;
+                free(l_body);
+                fclose(l_file);
+                return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
         }
 
         // ---------------------------------------
@@ -167,46 +161,37 @@ int32_t http_request_handler::get_file(const std::string &a_path, const http_req
         if (STATUS_OK != l_status)
         {
                 //NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
-                send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-                // TODO Check response???
-                goto get_file_done;
+                free(l_body);
+                return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
         }
 
-        WRITE_STATUS(HTTP_STATUS_OK);
-        WRITE_HEADER("Server", "hss/0.0.1");
-        WRITE_HEADER("Date", get_date_str());
-        WRITE_HEADER("Content-type", "text/html");
-
+        // Create response
+        ao_resp.write_status(HTTP_STATUS_OK);
+        ao_resp.write_header("Server", "hss/0.0.1");
+        ao_resp.write_header("Date", get_date_str());
+        ao_resp.write_header("Content-type", "text/html");
         char l_length_str[64];
         sprintf(l_length_str, "%d", l_size);
-        WRITE_HEADER("Content-Length", l_length_str);
+        ao_resp.write_header("Content-Length", l_length_str);
 
         // TODO get last modified for file...
-        WRITE_HEADER("Last-Modified", get_date_str());
+        ao_resp.write_header("Last-Modified", get_date_str());
         if(a_request.m_supports_keep_alives)
         {
-                WRITE_HEADER("Connection", "keep-alive");
+                ao_resp.write_header("Connection", "keep-alive");
         }
         else
         {
-                WRITE_HEADER("Connection", "close");
+                ao_resp.write_header("Connection", "close");
         }
+        ao_resp.write_body(l_body, l_size);
 
-        l_status = ao_response.write_body(l_body, l_size);
-        if(l_status != STATUS_OK)
-        {
-                //NDBG_PRINT("Error performing write_body\n");
-                goto get_file_done;
-        }
-
-get_file_done:
         if(l_body)
         {
                 free(l_body);
                 l_body = NULL;
         }
-
-        return STATUS_OK;
+        return 0;
 }
 
 //: ----------------------------------------------------------------------------
@@ -234,12 +219,9 @@ default_http_request_handler::~default_http_request_handler()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t default_http_request_handler::do_get(const url_param_map_t &a_url_param_map,
-                                             http_req &a_request,
-                                             http_resp &ao_response)
+int32_t default_http_request_handler::do_get(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp)
 {
-        send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-        return STATUS_OK;
+        return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
 }
 
 //: ----------------------------------------------------------------------------
@@ -247,12 +229,9 @@ int32_t default_http_request_handler::do_get(const url_param_map_t &a_url_param_
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t default_http_request_handler::do_post(const url_param_map_t &a_url_param_map,
-                                              http_req &a_request,
-                                              http_resp &ao_response)
+int32_t default_http_request_handler::do_post(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp)
 {
-        send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-        return STATUS_OK;
+        return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
 }
 
 //: ----------------------------------------------------------------------------
@@ -260,12 +239,9 @@ int32_t default_http_request_handler::do_post(const url_param_map_t &a_url_param
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t default_http_request_handler::do_put(const url_param_map_t &a_url_param_map,
-                                             http_req &a_request,
-                                             http_resp &ao_response)
+int32_t default_http_request_handler::do_put(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp)
 {
-        send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-        return STATUS_OK;
+        return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
 }
 
 //: ----------------------------------------------------------------------------
@@ -273,12 +249,9 @@ int32_t default_http_request_handler::do_put(const url_param_map_t &a_url_param_
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t default_http_request_handler::do_delete(const url_param_map_t &a_url_param_map,
-                                                http_req &a_request,
-                                                http_resp &ao_response)
+int32_t default_http_request_handler::do_delete(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp)
 {
-        send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-        return STATUS_OK;
+        return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
 }
 
 //: ----------------------------------------------------------------------------
@@ -286,12 +259,9 @@ int32_t default_http_request_handler::do_delete(const url_param_map_t &a_url_par
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t default_http_request_handler::do_default(const url_param_map_t &a_url_param_map,
-                                                 http_req &a_request,
-                                                 http_resp &ao_response)
+int32_t default_http_request_handler::do_default(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp)
 {
-        send_not_found(a_request, ao_response, G_RESP_GETFILE_NOT_FOUND);
-        return STATUS_OK;
+        return send_not_found(a_nconn, a_request, G_RESP_GETFILE_NOT_FOUND, ao_resp);
 }
 
 } //namespace ns_hlx {

@@ -28,7 +28,6 @@
 #include "nbq.h"
 #include "evr.h"
 #include "time_util.h"
-#include "http_cb.h"
 
 #include <errno.h>
 #include <string.h>
@@ -99,7 +98,7 @@ state_top:
         case NC_STATE_CONNECTING:
         {
                 int32_t l_status;
-                //NDBG_PRINT("connect...\n");
+                //NDBG_PRINT("%sconnect%s... host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_host.c_str());
                 l_status = ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
@@ -121,13 +120,6 @@ state_top:
                 }
                 if(m_connect_only)
                 {
-                        // TODO -this aint cool...
-                        // Set state to 200
-                        http_resp *l_rx = &((static_cast<http_data_t *>(m_data))->m_http_resp);
-                        if(l_rx)
-                        {
-                                l_rx->set_status(200);
-                        }
                         m_nc_state = NC_STATE_DONE;
                 }
                 goto state_top;
@@ -367,10 +359,10 @@ int32_t nconn::nc_write(void)
         // -------------------------------------------------
         int32_t l_bytes_written;
         do {
-                //NDBG_PRINT("%sTRY_WRITE%s: m_out_q->read_ptr(): %p m_out_q->read_avail(): %d\n",
+                //NDBG_PRINT("%sTRY_WRITE%s: m_out_q->b_read_ptr(): %p m_out_q->b_read_avail(): %d\n",
                 //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-                //                m_out_q->read_ptr(),
-                //                m_out_q->read_avail());
+                //                m_out_q->b_read_ptr(),
+                //                m_out_q->b_read_avail());
                 l_bytes_written = ncwrite(m_out_q->b_read_ptr(), m_out_q->b_read_avail());
                 //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
                 if(l_bytes_written < 0)

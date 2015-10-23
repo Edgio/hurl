@@ -151,7 +151,7 @@ int32_t listener::init(void)
         m_fd = create_tcp_server_socket(m_port);
         if(m_fd == STATUS_ERROR)
         {
-            NDBG_PRINT("Error performing create_tcp_server_socket with port number = %d", m_port);
+            NDBG_PRINT("Error performing create_tcp_server_socket with port number = %d\n", m_port);
             return HLX_SERVER_STATUS_ERROR;
         }
         m_is_initd = true;

@@ -147,9 +147,11 @@ class stats_getter: public ns_hlx::default_http_request_handler
 {
 public:
         // GET
-        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map,
+        int32_t do_get(ns_hlx::hlx &a_hlx,
+                       ns_hlx::nconn &a_nconn,
                        ns_hlx::http_req &a_request,
-                       ns_hlx::http_resp &ao_response)
+                       const ns_hlx::url_param_map_t &a_url_param_map,
+                       ns_hlx::http_resp &ao_resp)
         {
                 // Process request
                 if(!m_hlx)
@@ -158,19 +160,16 @@ public:
                 }
                 char l_char_buf[2048];
                 m_hlx->get_stats_json(l_char_buf, 2048);
-
                 char l_len_str[64];
                 uint32_t l_body_len = strlen(l_char_buf);
                 sprintf(l_len_str, "%u", l_body_len);
-
-                ao_response.write_status(ns_hlx::HTTP_STATUS_OK);
-                ao_response.write_header("Content-Type", "application/json");
-                ao_response.write_header("Access-Control-Allow-Origin", "*");
-                ao_response.write_header("Access-Control-Allow-Credentials", "true");
-                ao_response.write_header("Access-Control-Max-Age", "86400");
-                ao_response.write_header("Content-Length", l_len_str);
-                ao_response.write_body(l_char_buf, l_body_len);
-
+                ao_resp.write_status(ns_hlx::HTTP_STATUS_OK);
+                ao_resp.write_header("Content-Type", "application/json");
+                ao_resp.write_header("Access-Control-Allow-Origin", "*");
+                ao_resp.write_header("Access-Control-Allow-Credentials", "true");
+                ao_resp.write_header("Access-Control-Max-Age", "86400");
+                ao_resp.write_header("Content-Length", l_len_str);
+                ao_resp.write_body(l_char_buf, l_body_len);
                 return STATUS_OK;
         }
         // hlx client
@@ -457,7 +456,9 @@ void command_exec(settings_struct_t &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t s_completion_cb(void *a_ptr)
+static int32_t s_completion_cb(ns_hlx::nconn &a_nconn,
+                               ns_hlx::subreq &a_subreq,
+                               ns_hlx::http_resp &a_subreq_resp)
 {
         pthread_mutex_lock(&g_completion_mutex);
         ++g_num_completed;
@@ -856,7 +857,7 @@ const std::string &get_path(void *a_rand)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_create_request_cb(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a_req)
+static int32_t s_create_request_cb(ns_hlx::subreq &a_subreq, ns_hlx::http_req &a_req)
 {
         if((g_num_to_request != -1) && (g_num_requested >= (uint32_t)g_num_to_request))
         {
@@ -873,16 +874,16 @@ static int32_t s_create_request_cb(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a
         {
                 l_path_ref = "/";
         }
-        if(!(a_subreq->m_query.empty()))
+        if(!(a_subreq.m_query.empty()))
         {
                 l_path_ref += "?";
-                l_path_ref += a_subreq->m_query;
+                l_path_ref += a_subreq.m_query;
         }
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %.500s HTTP/1.1", a_subreq->m_verb.c_str(), l_path_ref.c_str());
+                        "%s %.500s HTTP/1.1", a_subreq.m_verb.c_str(), l_path_ref.c_str());
 
-        a_req->write_request_line(l_buf, l_len);
+        a_req.write_request_line(l_buf, l_len);
 
         // -------------------------------------------
         // Add repo headers
@@ -890,8 +891,8 @@ static int32_t s_create_request_cb(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a
         bool l_specd_host = false;
 
         // Loop over reqlet map
-        for(ns_hlx::kv_map_list_t::const_iterator i_hl = a_subreq->m_headers.begin();
-            i_hl != a_subreq->m_headers.end();
+        for(ns_hlx::kv_map_list_t::const_iterator i_hl = a_subreq.m_headers.begin();
+            i_hl != a_subreq.m_headers.end();
             ++i_hl)
         {
                 if(i_hl->first.empty() || i_hl->second.empty())
@@ -902,7 +903,7 @@ static int32_t s_create_request_cb(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
-                        a_req->write_header(i_hl->first.c_str(), i_v->c_str());
+                        a_req.write_header(i_hl->first.c_str(), i_v->c_str());
                         if (strcasecmp(i_hl->first.c_str(), "host") == 0)
                         {
                                 l_specd_host = true;
@@ -915,20 +916,20 @@ static int32_t s_create_request_cb(ns_hlx::subreq *a_subreq, ns_hlx::http_req *a
         // -------------------------------------------
         if (!l_specd_host)
         {
-                a_req->write_header("Host", a_subreq->m_host.c_str());
+                a_req.write_header("Host", a_subreq.m_host.c_str());
         }
 
         // -------------------------------------------
         // body
         // -------------------------------------------
-        if(a_subreq->m_body_data && a_subreq->m_body_data_len)
+        if(a_subreq.m_body_data && a_subreq.m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                a_req->write_body(a_subreq->m_body_data, a_subreq->m_body_data_len);
+                a_req.write_body(a_subreq.m_body_data, a_subreq.m_body_data_len);
         }
         else
         {
-                a_req->write_body(NULL, 0);
+                a_req.write_body(NULL, 0);
         }
 
         return STATUS_OK;
@@ -1040,22 +1041,23 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Subrequest settings
         // -------------------------------------------------
-        ns_hlx::subreq *l_subreq = new ns_hlx::subreq("MY_COOL_ID");
-        l_subreq->set_save_response(false);
+
+        ns_hlx::subreq &l_subreq = l_hlx->create_subreq("MY_COOL_ID");
+        l_subreq.set_save_response(false);
 
         // Default headers
-        l_subreq->set_header("User-Agent","hlo Server Load Tester");
-        l_subreq->set_header("Accept","*/*");
-        //l_subreq->set_header("User-Agent","ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
-        //l_subreq->set_header("User-Agent","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-        //l_subreq->set_header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-        //l_subreq->set_header("Accept","gzip,deflate");
-        //l_subreq->set_header("Connection","keep-alive");
+        l_subreq.set_header("User-Agent","hlo Server Load Tester");
+        l_subreq.set_header("Accept","*/*");
+        //l_subreq.set_header("User-Agent","ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
+        //l_subreq.set_header("User-Agent","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
+        //l_subreq.set_header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        //l_subreq.set_header("Accept","gzip,deflate");
+        //l_subreq.set_header("Connection","keep-alive");
 
-        l_subreq->set_num_to_request(-1);
-        l_subreq->m_type = ns_hlx::subreq::SUBREQ_TYPE_DUPE;
-        l_subreq->set_create_req_cb(s_create_request_cb);
-        //l_subreq->set_num_reqs_per_conn(1);
+        l_subreq.set_num_to_request(-1);
+        l_subreq.m_type = ns_hlx::subreq::SUBREQ_TYPE_DUPE;
+        l_subreq.set_create_req_cb(s_create_request_cb);
+        //l_subreq.set_num_reqs_per_conn(1);
 
         // Initialize rand...
         g_rand_ptr = (tinymt64_t*)malloc(sizeof(tinymt64_t));
@@ -1184,7 +1186,7 @@ int main(int argc, char** argv)
                         // If a_data starts with @ assume file
                         if(l_argument[0] == '@')
                         {
-                                l_status = read_file(l_argument.data() + 1, &(l_subreq->m_body_data), &(l_subreq->m_body_data_len));
+                                l_status = read_file(l_argument.data() + 1, &(l_subreq.m_body_data), &(l_subreq.m_body_data_len));
                                 if(l_status != 0)
                                 {
                                         printf("Error reading body data from file: %s\n", l_argument.c_str() + 1);
@@ -1193,15 +1195,15 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                                l_subreq->m_body_data_len = l_argument.length() + 1;
-                                l_subreq->m_body_data = (char *)malloc(sizeof(char)*l_subreq->m_body_data_len);
-                                memcpy(l_subreq->m_body_data,l_argument.c_str(), l_subreq->m_body_data_len);
+                                l_subreq.m_body_data_len = l_argument.length() + 1;
+                                l_subreq.m_body_data = (char *)malloc(sizeof(char)*l_subreq.m_body_data_len);
+                                memcpy(l_subreq.m_body_data,l_argument.c_str(), l_subreq.m_body_data_len);
                         }
 
                         // Add content length
                         char l_len_str[64];
-                        sprintf(l_len_str, "%u", l_subreq->m_body_data_len);
-                        l_subreq->set_header("Content-Length", l_len_str);
+                        sprintf(l_len_str, "%u", l_subreq.m_body_data_len);
+                        l_subreq.set_header("Content-Length", l_len_str);
                         break;
                 }
                 // ---------------------------------------
@@ -1217,14 +1219,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        std::string l_cipher_str = l_argument;
-                        if (strcasecmp(l_cipher_str.c_str(), "fastsec") == 0)
-                                l_cipher_str = "RC4-MD5";
-                        else if (strcasecmp(l_cipher_str.c_str(), "highsec") == 0)
-                                l_cipher_str = "DES-CBC3-SHA";
-                        else if (strcasecmp(l_cipher_str.c_str(), "paranoid") == 0)
-                                l_cipher_str = "AES256-SHA";
-                        l_hlx->set_ssl_cipher_list(l_cipher_str);
+                        l_hlx->set_ssl_cipher_list(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1255,7 +1250,7 @@ int main(int argc, char** argv)
                                 printf("Error fetches must be at least 1\n");
                                 return -1;
                         }
-                        l_subreq->set_num_to_request(l_end_fetches);
+                        l_subreq.set_num_to_request(l_end_fetches);
                         g_num_to_request = l_end_fetches;
                         break;
                 }
@@ -1270,7 +1265,7 @@ int main(int argc, char** argv)
                                 printf("Error num-calls must be at least 1");
                                 return -1;
                         }
-                        l_subreq->set_num_reqs_per_conn(l_max_reqs_per_conn);
+                        l_subreq.set_num_reqs_per_conn(l_max_reqs_per_conn);
                         break;
                 }
                 // ---------------------------------------
@@ -1280,7 +1275,7 @@ int main(int argc, char** argv)
                 {
                         if(l_max_reqs_per_conn == 1)
                         {
-                                l_subreq->set_num_reqs_per_conn(-1);
+                                l_subreq.set_num_reqs_per_conn(-1);
                         }
                         break;
                 }
@@ -1306,7 +1301,7 @@ int main(int argc, char** argv)
                 case 'H':
                 {
                         int32_t l_status;
-                        l_status = l_subreq->set_header(l_argument);
+                        l_status = l_subreq.set_header(l_argument);
                         if (l_status != 0)
                         {
                                 printf("Error performing set_header: %s\n", l_argument.c_str());
@@ -1324,7 +1319,7 @@ int main(int argc, char** argv)
                                 printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
                                 return -1;
                         }
-                        l_subreq->set_verb(l_argument);
+                        l_subreq.set_verb(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1423,7 +1418,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return -1;
                         }
-                        l_subreq->set_timeout_s(l_subreq_timeout_s);
+                        l_subreq.set_timeout_s(l_subreq_timeout_s);
                         break;
                 }
                 // ---------------------------------------
@@ -1440,8 +1435,8 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
+                        l_subreq.set_save_response(true);
                         l_hlx->set_verbose(true);
-                        l_subreq->set_save_response(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1459,7 +1454,6 @@ int main(int argc, char** argv)
                 case 'q':
                 {
                         l_settings.m_quiet = true;
-                        l_hlx->set_quiet(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1557,14 +1551,14 @@ int main(int argc, char** argv)
                 //printf("Adding url: %s\n", l_url.c_str());
                 int32_t l_status;
                 // Set url
-                l_status = l_subreq->init_with_url(l_url);
+                l_status = l_subreq.init_with_url(l_url);
                 if(l_status != 0)
                 {
                         printf("Error: performing init_with_url: %s\n", l_url.c_str());
                         return -1;
                 }
                 // Set callback
-                l_subreq->set_cb(s_completion_cb);
+                l_subreq.set_completion_cb(s_completion_cb);
                 l_status = l_hlx->add_subreq(l_subreq);
                 if(l_status != 0)
                 {
@@ -1581,7 +1575,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Paths...
         // -------------------------------------------
-        std::string l_raw_path = l_subreq->m_path;
+        std::string l_raw_path = l_subreq.m_path;
         //printf("l_raw_path: %s\n",l_raw_path.c_str());
         if(l_wildcarding)
         {
@@ -1594,11 +1588,11 @@ int main(int argc, char** argv)
                 }
                 if(g_path_vector.size() > 1)
                 {
-                        l_subreq->m_multipath = true;
+                        l_subreq.m_multipath = true;
                 }
                 else
                 {
-                        l_subreq->m_multipath = false;
+                        l_subreq.m_multipath = false;
                 }
         }
         else
@@ -2189,12 +2183,12 @@ void display_results_http_load_style(settings_struct &a_settings,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subreq *a_subreq, const std::string &a_url)
+int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subreq &a_subreq, const std::string &a_url)
 {
-        ns_hlx::subreq *l_subreq = new ns_hlx::subreq(*a_subreq);
+        ns_hlx::subreq *l_subreq = new ns_hlx::subreq(a_subreq);
         l_subreq->init_with_url(a_url);
         //printf("Adding url: %s\n", a_url.c_str());
-        a_hlx->add_subreq(l_subreq);
+        a_hlx->add_subreq(*l_subreq);
         return 0;
 }
 

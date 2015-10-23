@@ -59,9 +59,6 @@ public:
         resolver();
         ~resolver();
         int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
-        void set_verbose(bool a_val) { m_verbose = a_val;}
-        void set_color(bool a_val) { m_color = a_val;}
-        void set_timeout_s(int32_t a_val) {m_timeout_s = a_val;}
         int32_t cached_resolve(std::string &a_host,
                                uint16_t a_port,
                                host_info_t &a_host_info,
@@ -79,14 +76,10 @@ private:
         // Private members
         // -------------------------------------------------
         bool m_is_initd;
-        bool m_verbose;
-        bool m_color;
-        uint32_t m_timeout_s;
         uint32_t m_use_cache;
         pthread_mutex_t m_cache_mutex;
         ai_cache_map_t m_ai_cache_map;
         std::string m_ai_cache_file;
-
 };
 
 } //namespace ns_hlx {

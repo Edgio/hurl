@@ -32,20 +32,27 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ../include
 )
 
+# ----------------------------------------------------------
+# basic
+# ----------------------------------------------------------
+add_executable(basic basic.cc)
+add_dependencies(basic hlxcore)
+SET_TARGET_PROPERTIES(basic PROPERTIES OUTPUT_NAME "basic")
+target_link_libraries(basic ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a pthread rt ssl crypto tcmalloc)
 
-# build and install hss
-add_executable(hlx_server_ex hlx_server_ex.cc)
-add_dependencies(hlx_server_ex hlxcore)
-SET_TARGET_PROPERTIES(hlx_server_ex PROPERTIES OUTPUT_NAME "hlx_server_ex")
-target_link_libraries(hlx_server_ex
-${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
-pthread
-rt
-ssl
-crypto
-tcmalloc
-profiler
-#asan
-#efence
-#pthread_workqueue
-)
+# ----------------------------------------------------------
+# subreq
+# ----------------------------------------------------------
+add_executable(subreq subreq.cc)
+add_dependencies(subreq hlxcore)
+SET_TARGET_PROPERTIES(subreq PROPERTIES OUTPUT_NAME "subreq")
+target_link_libraries(subreq ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a pthread rt ssl crypto tcmalloc)
+
+# ----------------------------------------------------------
+# fanout
+# ----------------------------------------------------------
+add_executable(fanout fanout.cc)
+add_dependencies(fanout hlxcore)
+SET_TARGET_PROPERTIES(fanout PROPERTIES OUTPUT_NAME "fanout")
+target_link_libraries(fanout ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a pthread rt ssl crypto tcmalloc)
+

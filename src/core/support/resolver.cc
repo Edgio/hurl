@@ -54,12 +54,6 @@
                 char _buf[1024];\
                 sprintf(_buf, __VA_ARGS__);\
                 ao_error = _buf;\
-                if(m_verbose)\
-                {\
-                        fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
-                        fprintf(stdout, __VA_ARGS__);               \
-                        fflush(stdout); \
-                }\
         }while(0)
 
 namespace ns_hlx {
@@ -71,9 +65,6 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 resolver::resolver(void):
         m_is_initd(false),
-        m_verbose(false),
-        m_color(false),
-        m_timeout_s(5),
         m_use_cache(false),
         m_cache_mutex(),
         m_ai_cache_map(),

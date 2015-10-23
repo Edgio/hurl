@@ -452,17 +452,12 @@ state_top:
                 }
                 case ECONNREFUSED:
                 {
-                        //if(m_verbose)
-                        //{
-                        //        NCONN_ERROR("HOST[%s]: Error Connection refused. Reason: %s\n", m_host.c_str(), strerror(errno));
-                        //}
                         return NC_STATUS_ERROR;
                 }
                 case EAGAIN:
                 case EINPROGRESS:
                 {
                         //NDBG_PRINT("Error Connection in progress. Reason: %s\n", strerror(errno));
-
                         // Set to writeable and try again
                         if (0 != a_evr_loop->mod_fd(m_fd,
                                                     EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,

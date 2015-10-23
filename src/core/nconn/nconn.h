@@ -65,13 +65,10 @@ do { \
         char _buf[1024];\
         sprintf(_buf, __VA_ARGS__);\
         m_last_error = _buf;\
-        if(m_verbose)\
-        {\
-                fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
-                fprintf(stdout, __VA_ARGS__);\
-                fprintf(stdout, "\n");\
-                fflush(stdout); \
-        }\
+        fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
+        fprintf(stdout, __VA_ARGS__);\
+        fprintf(stdout, "\n");\
+        fflush(stdout); \
 } while(0)
 #else
 #define NCONN_ERROR(...)\

@@ -48,7 +48,6 @@ void hlx::set_stats(bool a_val)
         m_stats = a_val;
 }
 
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -57,36 +56,6 @@ void hlx::set_stats(bool a_val)
 void hlx::set_show_summary(bool a_val)
 {
         m_show_summary = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::set_verbose(bool a_val)
-{
-        m_verbose = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::set_quiet(bool a_val)
-{
-        m_quiet = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::set_color(bool a_val)
-{
-        m_color = a_val;
 }
 
 //: ----------------------------------------------------------------------------
@@ -187,21 +156,20 @@ int32_t hlx::add_listener(listener *a_listener)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t child_subreq_completion_cb(void *a_ptr)
+static int32_t child_subreq_completion_cb(nconn &a_nconn,
+                                          subreq &a_subreq,
+                                          http_resp &a_resp)
 {
-        //NDBG_PRINT("child_subreq_completion_cb: %p\n", a_ptr);
-        subreq *l_subreq = static_cast <subreq *>(a_ptr);
-        if(!l_subreq)
+        //NDBG_PRINT("child_subreq_completion_cb\n");
+        if(a_subreq.m_parent)
         {
-                return -1;
-        }
-        if(l_subreq->m_parent)
-        {
-                l_subreq->m_parent->bump_num_completed();
+                pthread_mutex_lock(&(a_subreq.m_parent->m_parent_mutex));
+                a_subreq.m_parent->bump_num_completed();
+                pthread_mutex_unlock(&(a_subreq.m_parent->m_parent_mutex));
                 //NDBG_PRINT("num_completed: %d\n", l_subreq->m_parent->m_num_completed);
-                if(l_subreq->m_parent->is_done())
+                if(a_subreq.m_parent->is_done())
                 {       int32_t l_status;
-                        l_status = l_subreq->m_parent->m_cb(l_subreq->m_parent);
+                        l_status = a_subreq.m_parent->m_completion_cb(a_nconn, *a_subreq.m_parent, *a_subreq.get_resp());
                         if(l_status != 0)
                         {
                                 // Do stuff???
@@ -216,12 +184,39 @@ static int32_t child_subreq_completion_cb(void *a_ptr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::add_subreq_t(subreq *a_subreq)
+static int32_t child_subreq_error_cb(nconn &a_nconn, subreq &a_subreq)
 {
-        a_subreq->reset();
+        //NDBG_PRINT("child_subreq_completion_cb\n");
+        if(a_subreq.m_parent)
+        {
+                pthread_mutex_lock(&(a_subreq.m_parent->m_parent_mutex));
+                a_subreq.m_parent->bump_num_completed();
+                pthread_mutex_unlock(&(a_subreq.m_parent->m_parent_mutex));
+                //NDBG_PRINT("num_completed: %d\n", l_subreq->m_parent->m_num_completed);
+                if(a_subreq.m_parent->is_done())
+                {       int32_t l_status;
+                        l_status = a_subreq.m_parent->m_completion_cb(a_nconn, *a_subreq.m_parent, *a_subreq.get_resp());
+                        if(l_status != 0)
+                        {
+                                // Do stuff???
+                        }
+                }
+
+        }
+        return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx::add_subreq_t(subreq &a_subreq)
+{
+        a_subreq.reset();
 
         // Dupe example
-        if(a_subreq->m_type == subreq::SUBREQ_TYPE_DUPE)
+        if(a_subreq.m_type == subreq::SUBREQ_TYPE_DUPE)
         {
                 uint32_t l_num_hlx = (uint32_t)m_t_hlx_list.size();
                 uint32_t i_hlx_idx = 0;
@@ -229,7 +224,7 @@ void hlx::add_subreq_t(subreq *a_subreq)
                                 i_t != m_t_hlx_list.end();
                                 ++i_t, ++i_hlx_idx)
                 {
-                        subreq *l_subreq = new subreq(*a_subreq);
+                        subreq *l_subreq = new subreq(a_subreq);
 
                         // Recalculate num fetches per thread
                         if(l_subreq->get_num_to_request() > 0)
@@ -245,21 +240,24 @@ void hlx::add_subreq_t(subreq *a_subreq)
                         }
                         if(l_subreq->get_num_to_request() != 0)
                         {
-                                a_subreq->m_child_list.push_back(l_subreq);
-                                (*i_t)->add_subreq(l_subreq);
+                                a_subreq.m_child_list.push_back(l_subreq);
+                                (*i_t)->add_subreq(*l_subreq);
                         }
                 }
         }
-        else if(a_subreq->m_type == subreq::SUBREQ_TYPE_FANOUT && a_subreq->get_host_list().size())
+        else if(a_subreq.m_type == subreq::SUBREQ_TYPE_FANOUT && a_subreq.get_host_list().size())
         {
                 // Create the child subreq's
-                if(a_subreq->m_child_list.empty())
+                if(a_subreq.m_child_list.empty())
                 {
-                        for(host_list_t::const_iterator i_h = a_subreq->get_host_list().begin();
-                            i_h != a_subreq->get_host_list().end();
+                        // Create parent mutex
+                        pthread_mutex_init(&(a_subreq.m_parent_mutex), NULL);
+
+                        for(host_list_t::const_iterator i_h = a_subreq.get_host_list().begin();
+                            i_h != a_subreq.get_host_list().end();
                             ++i_h)
                         {
-                                subreq *l_subreq = new subreq(*a_subreq);
+                                subreq *l_subreq = new subreq(a_subreq);
                                 l_subreq->set_num_to_request(1);
                                 l_subreq->m_host = i_h->m_host;
                                 if(!i_h->m_hostname.empty())
@@ -274,19 +272,20 @@ void hlx::add_subreq_t(subreq *a_subreq)
                                 {
                                         l_subreq->m_where = i_h->m_where;
                                 }
-                                l_subreq->m_parent = a_subreq;
-                                l_subreq->set_cb(child_subreq_completion_cb);
-                                a_subreq->m_child_list.push_back(l_subreq);
+                                l_subreq->m_parent = &a_subreq;
+                                l_subreq->set_completion_cb(child_subreq_completion_cb);
+                                l_subreq->set_error_cb(child_subreq_error_cb);
+                                a_subreq.m_child_list.push_back(l_subreq);
                         }
                 }
-                //NDBG_PRINT("a_subreq->m_child_list.size(): %d\n", (int)a_subreq->m_child_list.size());
+                //NDBG_PRINT("a_subreq.m_child_list.size(): %d\n", (int)a_subreq.m_child_list.size());
                 // -------------------------------------------
                 // Setup client requests
                 // -------------------------------------------
                 uint32_t i_h_idx = 0;
                 uint32_t l_num_h = m_t_hlx_list.size();
-                uint32_t l_num_s = a_subreq->m_child_list.size();
-                subreq_list_t::const_iterator i_s = a_subreq->m_child_list.begin();
+                uint32_t l_num_s = a_subreq.m_child_list.size();
+                subreq_list_t::const_iterator i_s = a_subreq.m_child_list.begin();
                 for(t_hlx_list_t::iterator i_h = m_t_hlx_list.begin();
                                 i_h != m_t_hlx_list.end();
                                 ++i_h, ++i_h_idx)
@@ -304,15 +303,15 @@ void hlx::add_subreq_t(subreq *a_subreq)
                         {
                                 //NDBG_PRINT("i_dx: %u\n", i_dx);
                                 (*i_s)->reset();
-                                (*i_h)->add_subreq(*i_s);
+                                (*i_h)->add_subreq(*(*i_s));
                                 ++i_s;
                         }
                 }
         }
-        else if(a_subreq->m_type == subreq::SUBREQ_TYPE_NONE)
+        else if(a_subreq.m_type == subreq::SUBREQ_TYPE_NONE)
         {
                 // TODO hash by host to thread...
-                //(*i_t)->add_subreq(a_subreq);
+                 (*(m_t_hlx_list.begin()))->add_subreq(a_subreq);
         }
 }
 
@@ -321,7 +320,7 @@ void hlx::add_subreq_t(subreq *a_subreq)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::add_subreq(subreq *a_subreq)
+int32_t hlx::add_subreq(subreq &a_subreq)
 {
         if(is_running())
         {
@@ -329,9 +328,20 @@ int32_t hlx::add_subreq(subreq *a_subreq)
         }
         else
         {
-                m_subreq_queue.push(a_subreq);
+                m_subreq_queue.push(&a_subreq);
         }
         return HLX_SERVER_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+subreq &hlx::create_subreq(const char *a_label)
+{
+        subreq *l_subreq = new subreq(a_label);
+        return *l_subreq;
 }
 
 //: ----------------------------------------------------------------------------
@@ -435,7 +445,7 @@ int32_t hlx::run(void)
 
         if(m_t_hlx_list.empty())
         {
-                l_status = init_server_list();
+                l_status = init_t_hlx_list();
                 if(STATUS_OK != l_status)
                 {
                         return HLX_SERVER_STATUS_ERROR;
@@ -500,26 +510,14 @@ int hlx::stop(void)
 //: ----------------------------------------------------------------------------
 int32_t hlx::wait_till_stopped(void)
 {
-        //int32_t l_retval = HLX_SERVER_STATUS_OK;
-
-        // -------------------------------------------
         // Join all threads before exit
-        // -------------------------------------------
         for(t_hlx_list_t::iterator i_server = m_t_hlx_list.begin();
            i_server != m_t_hlx_list.end();
             ++i_server)
         {
-                //if(m_verbose)
-                //{
-                //      NDBG_PRINT("joining...\n");
-                //}
                 pthread_join(((*i_server)->m_t_run_thread), NULL);
-
         }
-        //return l_retval;
-
         return HLX_SERVER_STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -534,9 +532,35 @@ bool hlx::is_running(void)
                         ++i_t)
         {
                 if((*i_t)->is_running())
+                {
                         return true;
+                }
         }
         return false;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+http_resp *hlx::create_response(nconn &a_nconn)
+{
+        http_resp *l_resp = new http_resp();
+        nbq *l_out_q = a_nconn.get_out_q();
+        l_resp->set_q(l_out_q);
+        l_out_q->reset_write();
+        return l_resp;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t hlx::queue_response(nconn &a_nconn, http_resp *a_resp)
+{
+        return 0;
 }
 
 //: ----------------------------------------------------------------------------
@@ -763,15 +787,14 @@ int hlx::init(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::init_server_list(void)
+int hlx::init_t_hlx_list(void)
 {
         // -------------------------------------------
         // Bury the config into a settings struct
         // -------------------------------------------
-        vsconf_t l_settings;
+        t_hlx_conf_t l_settings;
         l_settings.m_verbose = m_verbose;
         l_settings.m_color = m_color;
-        l_settings.m_quiet = m_quiet;
         l_settings.m_show_summary = m_show_summary;
         l_settings.m_evr_loop_type = (evr_loop_type_t)m_evr_loop_type;
         l_settings.m_num_parallel = m_num_parallel;
@@ -793,6 +816,7 @@ int hlx::init_server_list(void)
         l_settings.m_ssl_ca_path = m_ssl_ca_path;
         l_settings.m_ssl_client_ctx = m_ssl_client_ctx;
         l_settings.m_resolver = m_resolver;
+        l_settings.m_hlx = this;
 
         // -------------------------------------------
         // Create t_hlx list...
@@ -848,7 +872,7 @@ int hlx::init_server_list(void)
         // -------------------------------------------
         while(m_subreq_queue.size())
         {
-                add_subreq_t(m_subreq_queue.front());
+                add_subreq_t(*(m_subreq_queue.front()));
                 m_subreq_queue.pop();
         }
 
@@ -863,7 +887,6 @@ int hlx::init_server_list(void)
 hlx::hlx(void):
         m_verbose(false),
         m_color(false),
-        m_quiet(false),
         m_stats(false),
         m_num_threads(1),
 

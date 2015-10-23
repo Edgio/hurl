@@ -27,76 +27,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "http_parser.h"
-#include "ndebug.h"
-#include "obj_pool.h"
-#include "evr.h"
-#include "hlx/hlx.h"
-#include <vector>
+#include <stdint.h>
 
 namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-class nconn;
-
-//: ----------------------------------------------------------------------------
-//:
-//: ----------------------------------------------------------------------------
-typedef enum type_enum {
-
-        HTTP_DATA_TYPE_NONE = 0,
-        HTTP_DATA_TYPE_CLIENT,
-        HTTP_DATA_TYPE_SERVER,
-
-} http_data_type_t;
-
-//: ----------------------------------------------------------------------------
-//: Connection data
-//: ----------------------------------------------------------------------------
-typedef struct http_data_struct {
-
-        bool m_verbose;
-        bool m_color;
-        nconn *m_nconn;
-        http_req m_http_req;
-        http_resp m_http_resp;
-        void *m_ctx;
-        evr_timer_event_t *m_timer_obj;
-        http_parser_settings m_http_parser_settings;
-        http_parser m_http_parser;
-        bool m_save;
-        http_data_type_t m_type;
-        bool m_supports_keep_alives;
-        uint16_t m_status_code;
-        url_router *m_url_router;
-        uint64_t m_idx;
-
-        uint64_t get_idx(void) {return m_idx;}
-        void set_idx(uint64_t a_idx) {m_idx = a_idx;}
-
-        http_data_struct(void):
-                m_verbose(false),
-                m_color(false),
-                m_nconn(NULL),
-                m_http_req(),
-                m_http_resp(),
-                m_ctx(NULL),
-                m_timer_obj(NULL),
-                m_http_parser_settings(),
-                m_http_parser(),
-                m_save(false),
-                m_type(HTTP_DATA_TYPE_NONE),
-                m_supports_keep_alives(false),
-                m_status_code(0),
-                m_url_router(NULL),
-                m_idx(0)
-        {};
-
-private:
-        DISALLOW_COPY_AND_ASSIGN(http_data_struct)
-} http_data_t;
-typedef obj_pool <http_data_t> http_data_pool_t;
 
 //: ----------------------------------------------------------------------------
 //: Callbacks

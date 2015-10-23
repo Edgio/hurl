@@ -416,78 +416,77 @@ int32_t get_ssl_options_str_val(const std::string a_options_str, long &ao_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t get_ssl_session_info(SSL *a_ssl, std::string &ao_protocol, std::string &ao_cipher)
+const char *get_ssl_info_cipher_str(SSL *a_ssl)
 {
+        if(!a_ssl)
+        {
+            return NULL;
+        }
+        return SSL_get_cipher_name(a_ssl);
+}
 
-        // TODO Alternative???
-#if 0
-        const char* cipher_name = SSL_get_cipher_name(a_ssl);
-        const char* cipher_version = SSL_get_cipher_version(a_ssl);
-        NDBG_PRINT("got ssl m_cipher %s %s\n", cipher_name, cipher_version);
-#endif
-
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t get_ssl_info_protocol_num(SSL *a_ssl)
+{
+        if(!a_ssl)
+        {
+            return -1;
+        }
         SSL_SESSION *m_ssl_session = SSL_get_session(a_ssl);
         if(!m_ssl_session)
         {
-                return STATUS_ERROR;
+                return -1;
         }
+        return m_ssl_session->ssl_version;
+}
 
-        // -------------------------------------------------
-        // Get protocol version
-        // -------------------------------------------------
-        switch(m_ssl_session->ssl_version)
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const char *get_ssl_info_protocol_str(int32_t a_version)
+{
+        switch(a_version)
         {
         case SSL2_VERSION:
         {
-                ao_protocol = "SSLv2";
-                break;
+                return "SSLv2";
         }
         case SSL3_VERSION:
         {
-                ao_protocol = "SSLv3";
-                break;
+                return "SSLv3";
         }
         case TLS1_2_VERSION:
         {
-                ao_protocol = "TLSv1.2";
-                break;
+                return "TLSv1.2";
         }
         case TLS1_1_VERSION:
         {
-                ao_protocol = "TLSv1.1";
-                break;
+                return "TLSv1.1";
         }
         case TLS1_VERSION:
         {
-                ao_protocol = "TLSv1";
-                break;
+                return "TLSv1";
         }
         case DTLS1_VERSION:
         {
-                ao_protocol = "DTLSv1";
-                break;
+                return "DTLSv1";
         }
         case DTLS1_BAD_VER:
         {
-                ao_protocol = "DTLSv1-bad";
-                break;
+                return "DTLSv1-bad";
         }
         default:
         {
-                ao_protocol = "unknown";
-                break;
+                return "unknown";
         }
         }
-
-        // -------------------------------------------------
-        // Get cipher
-        // -------------------------------------------------
-        if (m_ssl_session->cipher != NULL)
-        {
-                ao_cipher = m_ssl_session->cipher->name;
-        }
-
-        return STATUS_OK;
+        return NULL;
 }
 
 } //namespace ns_hlx {

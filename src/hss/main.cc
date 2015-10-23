@@ -118,11 +118,13 @@
 class file_getter: public ns_hlx::default_http_request_handler
 {
         // GET
-        int32_t do_get(const ns_hlx::url_param_map_t &a_url_param_map,
+        int32_t do_get(ns_hlx::hlx &a_hlx,
+                       ns_hlx::nconn &a_nconn,
                        ns_hlx::http_req &a_request,
-                       ns_hlx::http_resp &ao_response)
+                       const ns_hlx::url_param_map_t &a_url_param_map,
+                       ns_hlx::http_resp &ao_resp)
         {
-                return get_file(a_request.get_url_path(), a_request, ao_response);
+                return get_file(a_nconn, a_request, a_request.get_url_path(), ao_resp);
         }
 };
 
@@ -525,20 +527,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        std::string l_cipher_str = l_argument;
-                        if (strcasecmp(l_cipher_str.c_str(), "fastsec") == 0)
-                        {
-                                l_cipher_str = "RC4-MD5";
-                        }
-                        else if (strcasecmp(l_cipher_str.c_str(), "highsec") == 0)
-                        {
-                                l_cipher_str = "DES-CBC3-SHA";
-                        }
-                        else if (strcasecmp(l_cipher_str.c_str(), "paranoid") == 0)
-                        {
-                                l_cipher_str = "AES256-SHA";
-                        }
-                        l_hlx->set_ssl_cipher_list(l_cipher_str);
+                        l_hlx->set_ssl_cipher_list(l_argument);
                         break;
                 }
                 // ---------------------------------------

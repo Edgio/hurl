@@ -74,6 +74,10 @@ public:
                 OPT_SSL_TLS_KEY = 1301,
                 OPT_SSL_TLS_CRT = 1302,
 
+                // SSL info
+                OPT_SSL_INFO_PROTOCOL_STR = 1400,
+                OPT_SSL_INFO_CIPHER_STR = 1401,
+
                 OPT_SSL_SENTINEL = 1999
 
         } ssl_opt_t;
@@ -94,6 +98,8 @@ public:
           m_ssl_opt_cipher_str(""),
           m_tls_key(""),
           m_tls_crt(""),
+          m_ssl_info_protocol_str(NULL),
+          m_ssl_info_cipher_str(NULL),
           m_ssl_state(SSL_STATE_FREE)
           {
                 m_scheme = SCHEME_SSL;
@@ -179,6 +185,8 @@ private:
         std::string m_ssl_opt_cipher_str;
         std::string m_tls_key;
         std::string m_tls_crt;
+        const char *m_ssl_info_protocol_str;
+        const char *m_ssl_info_cipher_str;
         ssl_state_t m_ssl_state;
 };
 

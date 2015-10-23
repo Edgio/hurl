@@ -31,9 +31,6 @@
 #include "ssl_util.h"
 #include "ndebug.h"
 
-// TODO Look into removing...
-#include "http_cb.h"
-
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -444,11 +441,11 @@ int32_t nconn_ssl::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 {
         int32_t l_status;
         l_status = nconn_tcp::get_opt(a_opt, a_buf, a_len);
-        if(l_status != NC_STATUS_OK)
+        if((l_status != NC_STATUS_OK) && (l_status != NC_STATUS_UNSUPPORTED))
         {
                 return NC_STATUS_ERROR;
         }
-        if(l_status == STATUS_OK)
+        if(l_status == NC_STATUS_OK)
         {
                 return NC_STATUS_OK;
         }
@@ -458,10 +455,22 @@ int32_t nconn_ssl::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
         case OPT_SSL_TLS_KEY:
         {
                 // TODO
+                break;
         }
         case OPT_SSL_TLS_CRT:
         {
                 // TODO
+                break;
+        }
+        case OPT_SSL_INFO_CIPHER_STR:
+        {
+                *a_buf = (void *)m_ssl_info_cipher_str;
+                break;
+        }
+        case OPT_SSL_INFO_PROTOCOL_STR:
+        {
+                *a_buf = (void *)m_ssl_info_protocol_str;
+                break;
         }
         default:
         {
@@ -749,7 +758,6 @@ int32_t nconn_ssl::ncconnect(evr_loop *a_evr_loop)
 ncconnect_state_top:
         //NDBG_PRINT("%sSSL_CONNECT%s: STATE[%d]\n",
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_ssl_state);
-
         switch (m_ssl_state)
         {
         // -------------------------------------------------
@@ -761,10 +769,6 @@ ncconnect_state_top:
                 l_status = nconn_tcp::ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        //if(m_verbose)
-                        //{
-                        //        NDBG_PRINT("Error performing ncconnect\n");
-                        //}
                         return NC_STATUS_ERROR;
                 }
 
@@ -826,14 +830,6 @@ ncconnect_state_top:
                         NCONN_ERROR("HOST[%s]: Error: Couldn't add socket file descriptor", m_host.c_str());
                         return NC_STATUS_ERROR;
                 }
-
-                // TODO Stats???
-                //if(m_collect_stats_flag)
-                //{
-                //        m_stat.m_tt_connect_us = get_delta_time_us(m_connect_start_time_us);
-                //        m_last_connect_time_us = m_stat.m_tt_connect_us;
-                //}
-
                 goto ncconnect_state_top;
         }
         // -------------------------------------------------
@@ -857,40 +853,9 @@ ncconnect_state_top:
                 X509_print_fp(stdout, l_cert);
 #endif
 
-                // -----------------------------------------
-                // Store protocol and cipher
-                // -----------------------------------------
-                // SSL-Session:
-                //    Protocol  : TLSv1
-                //    Cipher    : ECDHE-RSA-AES256-SHA
-                // -----------------------------------------
-                // TODO Only store in some mode???
-                // might be slow
-                if(m_data)
-                {
-                        http_data_t *l_data = static_cast<http_data_t *>(m_data);
-                        if(l_data->m_save)
-                        {
-                                http_resp *l_rx = &(l_data->m_http_resp);
-                                if(l_rx)
-                                {
-                                        // Get protocol
-                                        std::string l_protocol;
-                                        std::string l_cipher;
-                                        int32_t l_status;
-                                        l_status = get_ssl_session_info(m_ssl, l_protocol, l_cipher);
-                                        if(l_status != STATUS_OK)
-                                        {
-                                                // do nothing
-                                        }
-                                        l_rx->m_conn_info["Protocol"] = l_protocol;
-                                        l_rx->m_conn_info["Cipher"] = l_cipher;
-                                        // TODO REMOVE
-                                        //NDBG_PRINT("%sncconnect%s: Protocol: %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_protocol.c_str());
-                                        //NDBG_PRINT("%sncconnect%s: Cipher:   %s\n",ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_cipher.c_str());
-                                }
-                        }
-                }
+                int32_t l_protocol_num = get_ssl_info_protocol_num(m_ssl);
+                m_ssl_info_cipher_str = get_ssl_info_cipher_str(m_ssl);
+                m_ssl_info_protocol_str = get_ssl_info_protocol_str(l_protocol_num);
                 if(m_ssl_opt_verify)
                 {
                         int32_t l_status = 0;
@@ -902,28 +867,6 @@ ncconnect_state_top:
                                 return NC_STATUS_ERROR;
                         }
                 }
-#if 0
-                // -------------------------------------------
-                // Send request
-                // -------------------------------------------
-                if(!m_connect_only)
-                {
-                        int32_t l_request_status = STATUS_OK;
-                        //NDBG_PRINT("%sSEND_REQUEST%s\n", ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF);
-                        l_request_status = send_request(false);
-                        if(l_request_status != STATUS_OK)
-                        {
-                                NCONN_ERROR("HOST[%s]: Error: performing send_request", m_host.c_str());
-                                return NC_STATUS_ERROR;
-                        }
-                }
-                // connect only -we outtie!
-                else
-                {
-                        m_ssl_state = SSL_STATE_DONE;
-                }
-#endif
-
                 break;
         }
         // -------------------------------------------------

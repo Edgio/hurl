@@ -175,7 +175,9 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t http_completion_cb(void *a_ptr)
+static int32_t s_completion_cb(ns_hlx::nconn &a_nconn,
+                               ns_hlx::subreq &a_subreq,
+                               ns_hlx::http_resp &a_resp)
 {
         g_test_finished = true;
         return 0;
@@ -255,7 +257,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         int l_status;
 
         //printf("Adding subreq\n\n");
-        l_status = a_settings.m_hlx->add_subreq(a_settings.m_subreq);
+        l_status = a_settings.m_hlx->add_subreq(*(a_settings.m_subreq));
         if(l_status != HLX_SERVER_STATUS_OK)
         {
                 printf("Error: performing add_subreq.\n");
@@ -282,7 +284,6 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         case 'q':
                         {
                                 g_test_finished = true;
-                                g_cancelled = true;
                                 a_settings.m_hlx->stop();
                                 //l_sent_stop = true;
                                 break;
@@ -595,9 +596,8 @@ int main(int argc, char** argv)
         //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
         l_subreq->set_header("Connection", "keep-alive");
-        l_subreq->set_cb(http_completion_cb);
-        l_subreq->set_num_reqs_per_conn(-1);
-        l_subreq->m_keepalive = true;
+        l_subreq->set_completion_cb(s_completion_cb);
+        l_subreq->set_keepalive(true);
 
         // -------------------------------------------
         // Get args...
@@ -799,20 +799,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        std::string l_cipher_str = l_argument;
-                        if (strcasecmp(l_cipher_str.c_str(), "fastsec") == 0)
-                        {
-                                l_cipher_str = "RC4-MD5";
-                        }
-                        else if (strcasecmp(l_cipher_str.c_str(), "highsec") == 0)
-                        {
-                                l_cipher_str = "DES-CBC3-SHA";
-                        }
-                        else if (strcasecmp(l_cipher_str.c_str(), "paranoid") == 0)
-                        {
-                                l_cipher_str = "AES256-SHA";
-                        }
-                        l_hlx->set_ssl_cipher_list(l_cipher_str);
+                        l_hlx->set_ssl_cipher_list(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1016,7 +1003,6 @@ int main(int argc, char** argv)
                 case 'q':
                 {
                         l_settings.m_quiet = true;
-                        l_hlx->set_quiet(true);
                         break;
                 }
                 // ---------------------------------------

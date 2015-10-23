@@ -25,9 +25,11 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "http_cb.h"
+#include "http_data.h"
 #include "hlx/hlx.h"
 #include "ndebug.h"
 #include "nconn.h"
+
 #include <string.h>
 
 //: ----------------------------------------------------------------------------
@@ -70,19 +72,10 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len)
         //m_read_buf_idx += l_bytes_read;
         if(l_parse_status < (size_t)a_len)
         {
-                //if(m_verbose)
-                //{
-                //        NCONN_ERROR("HOST[%s]: Error: parse error.  Reason: %s: %s\n",
-                //                        m_host.c_str(),
-                //                        //"","");
-                //                        http_errno_name((enum http_errno)m_http_parser.http_errno),
-                //                        http_errno_description((enum http_errno)m_http_parser.http_errno));
-                //        //NDBG_PRINT("%s: %sl_bytes_read%s[%d] <= 0 total = %u idx = %u\n",
-                //        //              m_host.c_str(),
-                //        //              ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read, l_total_bytes_read, m_read_buf_idx);
-                //        //ns_hlx::mem_display((const uint8_t *)m_read_buf + m_read_buf_idx, l_bytes_read);
-                //
-                //}
+                NDBG_PRINT("Error: parse error.  Reason: %s: %s\n",
+                           //"","");
+                           http_errno_name((enum http_errno)l_data->m_http_parser.http_errno),
+                           http_errno_description((enum http_errno)l_data->m_http_parser.http_errno));
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -97,10 +90,6 @@ int hp_on_message_begin(http_parser* a_parser)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                NDBG_OUTPUT(": message begin\n");
-        }
         return 0;
 }
 
@@ -113,17 +102,6 @@ int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                if(l_data->m_color)
-                {
-                        NDBG_OUTPUT(": url:    %s%.*s%s\n", ANSI_COLOR_FG_YELLOW, (int)a_length, a_at, ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        NDBG_OUTPUT(": url:    %.*s\n", (int)a_length, a_at);
-                }
-        }
         if(l_data->m_save && l_data->m_type == HTTP_DATA_TYPE_SERVER)
         {
                 l_data->m_http_req.m_p_url.m_ptr = a_at;
@@ -141,27 +119,6 @@ int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                if(l_data->m_color)
-                {
-                        NDBG_OUTPUT(": status: %s%.*s%s --STATUS = HTTP %d.%d METHOD[%d] %d--\n",
-                                        ANSI_COLOR_FG_YELLOW, (int)a_length, a_at, ANSI_COLOR_OFF,
-                                        a_parser->http_major,
-                                        a_parser->http_minor,
-                                        a_parser->method,
-                                        a_parser->status_code);
-                }
-                else
-                {
-                        NDBG_OUTPUT(": status: %.*s --STATUS = HTTP %d.%d METHOD[%d] %d--\n",
-                                        (int)a_length, a_at,
-                                        a_parser->http_major,
-                                        a_parser->http_minor,
-                                        a_parser->method,
-                                        a_parser->status_code);
-                }
-        }
         l_data->m_status_code = a_parser->status_code;
         if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
         {
@@ -184,17 +141,6 @@ int hp_on_header_field(http_parser* a_parser, const char *a_at, size_t a_length)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                if(l_data->m_color)
-                {
-                        NDBG_OUTPUT(": field:  %s%.*s%s\n", ANSI_COLOR_FG_BLUE, (int)a_length, a_at, ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        NDBG_OUTPUT(": field:  %.*s\n", (int)a_length, a_at);
-                }
-        }
         if(l_data->m_save)
         {
                 cr_struct l_cr;
@@ -221,17 +167,6 @@ int hp_on_header_value(http_parser* a_parser, const char *a_at, size_t a_length)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                if(l_data->m_color)
-                {
-                        NDBG_OUTPUT(": value:  %s%.*s%s\n", ANSI_COLOR_FG_GREEN, (int)a_length, a_at, ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        NDBG_OUTPUT(": value:  %.*s\n", (int)a_length, a_at);
-                }
-        }
         if(l_data->m_save)
         {
                 cr_struct l_cr;
@@ -258,15 +193,6 @@ int hp_on_headers_complete(http_parser* a_parser)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                NDBG_OUTPUT(": headers_complete\n");
-                NDBG_OUTPUT("http_major: %d\n", a_parser->http_major);
-                NDBG_OUTPUT("http_minor: %d\n", a_parser->http_minor);
-                NDBG_OUTPUT("status_code: %d\n", a_parser->status_code);
-                NDBG_OUTPUT("method: %d\n", a_parser->method);
-                NDBG_OUTPUT("http_errno: %d\n", a_parser->http_errno);
-        }
         if(l_data->m_save && l_data->m_type == HTTP_DATA_TYPE_SERVER)
         {
                 l_data->m_http_req.m_http_major = a_parser->http_major;
@@ -285,17 +211,6 @@ int hp_on_body(http_parser* a_parser, const char *a_at, size_t a_length)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                if(l_data->m_color)
-                {
-                        NDBG_OUTPUT(": body:  %s%.*s%s\n", ANSI_COLOR_FG_YELLOW, (int)a_length, a_at, ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        NDBG_OUTPUT(": body:  %.*s\n", (int)a_length, a_at);
-                }
-        }
         if(l_data->m_save)
         {
                 if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
@@ -335,16 +250,6 @@ int hp_on_message_complete(http_parser* a_parser)
 {
         http_data_t *l_data = static_cast <http_data_t *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_data);
-        if(l_data->m_verbose)
-        {
-                NDBG_OUTPUT(": message complete\n");
-        }
-        //NDBG_PRINT("CONN[%u--%d] m_request_start_time_us: %" PRIu64 " m_tt_completion_us: %" PRIu64 "\n",
-        //              l_data->m_connection_id,
-        //              l_data->m_fd,
-        //              l_data->m_request_start_time_us,
-        //              l_data->m_stat.m_tt_completion_us);
-        //if(!l_data->m_stat.m_connect_start_time_us) abort();
         if(http_should_keep_alive(a_parser))
         {
                 l_data->m_supports_keep_alives = true;

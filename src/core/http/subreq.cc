@@ -62,7 +62,8 @@ subreq::subreq(std::string a_id):
         m_timeout_s(10),
         m_keepalive(false),
         m_connect_only(false),
-        m_cb(NULL),
+        m_error_cb(NULL),
+        m_completion_cb(NULL),
         m_create_req_cb(create_request),
         m_where(),
         m_scheme(),
@@ -75,9 +76,12 @@ subreq::subreq(std::string a_id):
         m_multipath(false),
         m_summary_info(),
         m_parent(NULL),
+        m_parent_mutex(),
         m_child_list(),
         m_is_resolved_flag(),
         m_resp(NULL),
+        m_req_nconn(NULL),
+        m_req_resp(NULL),
         m_num_reqs_per_conn(1),
         m_num_to_request(1),
         m_num_requested(0),
@@ -105,7 +109,8 @@ subreq::subreq(const subreq &a_subreq):
         m_timeout_s(a_subreq.m_timeout_s),
         m_keepalive(a_subreq.m_keepalive),
         m_connect_only(a_subreq.m_connect_only),
-        m_cb(a_subreq.m_cb),
+        m_error_cb(a_subreq.m_error_cb),
+        m_completion_cb(a_subreq.m_completion_cb),
         m_create_req_cb(a_subreq.m_create_req_cb),
         m_where(a_subreq.m_where),
         m_scheme(a_subreq.m_scheme),
@@ -118,9 +123,12 @@ subreq::subreq(const subreq &a_subreq):
         m_multipath(a_subreq.m_multipath),
         m_summary_info(a_subreq.m_summary_info),
         m_parent(a_subreq.m_parent),
+        m_parent_mutex(a_subreq.m_parent_mutex),
         m_child_list(),
         m_is_resolved_flag(a_subreq.m_is_resolved_flag),
         m_resp(a_subreq.m_resp),
+        m_req_nconn(a_subreq.m_req_nconn),
+        m_req_resp(a_subreq.m_req_resp),
         m_num_reqs_per_conn(a_subreq.m_num_reqs_per_conn),
         m_num_to_request(a_subreq.m_num_to_request),
         m_num_requested(a_subreq.m_num_requested),
@@ -277,6 +285,7 @@ int subreq::set_host_list(const host_list_t &a_host_list)
         m_host_list.clear();
         m_host_list = a_host_list;
         m_num_to_request = m_host_list.size();
+        m_type = SUBREQ_TYPE_FANOUT;
         return HLX_SERVER_STATUS_OK;
 }
 
@@ -301,8 +310,37 @@ int subreq::set_server_list(const server_list_t &a_server_list)
                 l_host.m_where = "";
                 m_host_list.push_back(l_host);
         }
+        m_type = SUBREQ_TYPE_FANOUT;
         m_num_to_request = m_host_list.size();
         return HLX_SERVER_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subreq::set_keepalive(bool a_val)
+{
+        m_keepalive = a_val;
+        if(m_keepalive)
+        {
+                set_header("Connection", "keep-alive");
+                if(m_num_reqs_per_conn == 1)
+                {
+                        set_num_reqs_per_conn(-1);
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool subreq::get_keepalive(void)
+{
+        return m_keepalive;
 }
 
 //: ----------------------------------------------------------------------------
@@ -492,9 +530,9 @@ int32_t subreq::init_with_url(const std::string &a_url)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subreq::create_request(subreq *a_subreq, http_req *a_req)
+int32_t subreq::create_request(subreq &a_subreq, http_req &a_req)
 {
-        std::string l_path_ref = a_subreq->m_path;
+        std::string l_path_ref = a_subreq.m_path;
 
         char l_buf[2048];
         int32_t l_len = 0;
@@ -502,16 +540,16 @@ int32_t subreq::create_request(subreq *a_subreq, http_req *a_req)
         {
                 l_path_ref = "/";
         }
-        if(!(a_subreq->m_query.empty()))
+        if(!(a_subreq.m_query.empty()))
         {
                 l_path_ref += "?";
-                l_path_ref += a_subreq->m_query;
+                l_path_ref += a_subreq.m_query;
         }
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %.500s HTTP/1.1", a_subreq->m_verb.c_str(), l_path_ref.c_str());
+                        "%s %.500s HTTP/1.1", a_subreq.m_verb.c_str(), l_path_ref.c_str());
 
-        a_req->write_request_line(l_buf, l_len);
+        a_req.write_request_line(l_buf, l_len);
 
         // -------------------------------------------
         // Add repo headers
@@ -519,8 +557,8 @@ int32_t subreq::create_request(subreq *a_subreq, http_req *a_req)
         bool l_specd_host = false;
 
         // Loop over reqlet map
-        for(kv_map_list_t::const_iterator i_hl = a_subreq->m_headers.begin();
-            i_hl != a_subreq->m_headers.end();
+        for(kv_map_list_t::const_iterator i_hl = a_subreq.m_headers.begin();
+            i_hl != a_subreq.m_headers.end();
             ++i_hl)
         {
                 if(i_hl->first.empty() || i_hl->second.empty())
@@ -531,7 +569,7 @@ int32_t subreq::create_request(subreq *a_subreq, http_req *a_req)
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
-                        a_req->write_header(i_hl->first.c_str(), i_v->c_str());
+                        a_req.write_header(i_hl->first.c_str(), i_v->c_str());
                         if (strcasecmp(i_hl->first.c_str(), "host") == 0)
                         {
                                 l_specd_host = true;
@@ -544,20 +582,20 @@ int32_t subreq::create_request(subreq *a_subreq, http_req *a_req)
         // -------------------------------------------
         if (!l_specd_host)
         {
-                a_req->write_header("Host", a_subreq->m_host.c_str());
+                a_req.write_header("Host", a_subreq.m_host.c_str());
         }
 
         // -------------------------------------------
         // body
         // -------------------------------------------
-        if(a_subreq->m_body_data && a_subreq->m_body_data_len)
+        if(a_subreq.m_body_data && a_subreq.m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                a_req->write_body(a_subreq->m_body_data, a_subreq->m_body_data_len);
+                a_req.write_body(a_subreq.m_body_data, a_subreq.m_body_data_len);
         }
         else
         {
-                a_req->write_body(NULL, 0);
+                a_req.write_body(NULL, 0);
         }
 
         return STATUS_OK;
@@ -630,7 +668,7 @@ std::string subreq::dump_all_responses_line_dl(bool a_color,
             ++i_rx, ++l_cur_reqlet)
         {
 
-                http_resp *l_resp = (*i_rx)->get_http_resp();
+                http_resp *l_resp = (*i_rx)->get_resp();
                 if(!l_resp)
                 {
                         continue;
@@ -758,7 +796,7 @@ std::string subreq::dump_all_responses_json(int a_part_map)
             ++i_rx)
         {
 
-                http_resp *l_resp = (*i_rx)->get_http_resp();
+                http_resp *l_resp = (*i_rx)->get_resp();
                 if(!l_resp)
                 {
                         continue;
@@ -836,14 +874,21 @@ std::string subreq::dump_all_responses_json(int a_part_map)
                         }
                 }
 
-                // Connection info
-                //if(a_part_map & PART_HEADERS)
-                for(conn_info_t::const_iterator i_key = l_resp->m_conn_info.begin();
-                    i_key != l_resp->m_conn_info.end();
-                    ++i_key)
+                // ---------------------------------------------------
+                // SSL connection info
+                // ---------------------------------------------------
+                // TODO Add flag -only add to output if flag
+                // ---------------------------------------------------
+                if(l_resp->m_ssl_info_cipher_str)
                 {
-                        l_obj.AddMember(rapidjson::Value(i_key->first.c_str(), l_js_allocator).Move(),
-                                        rapidjson::Value(i_key->second.c_str(), l_js_allocator).Move(),
+                        l_obj.AddMember(rapidjson::Value("Cipher", l_js_allocator).Move(),
+                                        rapidjson::Value(l_resp->m_ssl_info_cipher_str, l_js_allocator).Move(),
+                                        l_js_allocator);
+                }
+                if(l_resp->m_ssl_info_cipher_str)
+                {
+                        l_obj.AddMember(rapidjson::Value("Protocol", l_js_allocator).Move(),
+                                        rapidjson::Value(l_resp->m_ssl_info_protocol_str, l_js_allocator).Move(),
                                         l_js_allocator);
                 }
 

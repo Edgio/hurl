@@ -83,6 +83,8 @@ class url_router;
 class t_hlx;
 class resolver;
 class subreq;
+class hlx;
+class nconn;
 
 //: ----------------------------------------------------------------------------
 //: Structs
@@ -142,7 +144,6 @@ typedef std::list <host_t> host_list_t;
 typedef std::list <cr_t> cr_list_t;
 typedef std::list <std::string> str_list_t;
 typedef std::map <std::string, str_list_t> kv_map_list_t;
-typedef std::map <std::string, std::string> conn_info_t;
 typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
 typedef std::map <std::string, uint32_t> summary_map_t;
 typedef std::queue <subreq *> subreq_queue_t;
@@ -281,6 +282,8 @@ public:
         http_req();
         ~http_req();
         void clear(void);
+        void show(void);
+        void show_headers(void);
 
         // Get parsed results
         // TODO -copy for now -zero copy later???
@@ -288,6 +291,9 @@ public:
         const std::string &get_body(void);
         void set_q(nbq *a_q) { m_q = a_q;}
         nbq *get_q(void) { return m_q;}
+        void set_conn(nconn *a_nconn) { m_nconn = a_nconn;}
+        nconn *get_conn(void) { return m_nconn;}
+
         const std::string &get_url_path(void);
 
         // Write parts
@@ -336,6 +342,7 @@ private:
         kv_map_list_t m_headers;
         std::string m_body;
         nbq *m_q;
+        nconn *m_nconn;
 
         // Parsed members
         bool m_url_parsed;
@@ -355,6 +362,8 @@ public:
         http_resp();
         ~http_resp();
         void clear(void);
+        void show(void);
+        void show_headers(void);
 
         // -------------------------------------------------
         // Public members
@@ -386,8 +395,8 @@ public:
         cr_t m_p_body;
         bool m_complete;
 
-        // TODO Hack to support getting connection meta
-        conn_info_t m_conn_info;
+        const char *m_ssl_info_protocol_str;
+        const char *m_ssl_info_cipher_str;
 
 private:
         // Disallow copy/assign
@@ -419,17 +428,17 @@ public:
         http_request_handler(void) {};
         virtual ~http_request_handler(){};
 
-        virtual int32_t do_get(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_post(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_put(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_delete(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
-        virtual int32_t do_default(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response) = 0;
+        virtual int32_t do_get(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp) = 0;
+        virtual int32_t do_post(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp) = 0;
+        virtual int32_t do_put(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp) = 0;
+        virtual int32_t do_delete(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp) = 0;
+        virtual int32_t do_default(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp) = 0;
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        int32_t get_file(const std::string &a_path, const http_req &a_request, http_resp &ao_response);
-        int32_t send_not_found(const http_req &a_request, http_resp &ao_response, const char *a_resp_str);
+        int32_t get_file(nconn &a_nconn, http_req &a_request, const std::string &a_path, http_resp &ao_resp);
+        int32_t send_not_found(nconn &a_nconn, const http_req &a_request, const char *a_resp_str, http_resp &ao_resp);
 private:
         // Disallow copy/assign
         http_request_handler& operator=(const http_request_handler &);
@@ -448,11 +457,11 @@ public:
         default_http_request_handler(void);
         ~default_http_request_handler();
 
-        int32_t do_get(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
-        int32_t do_post(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
-        int32_t do_put(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
-        int32_t do_delete(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
-        int32_t do_default(const url_param_map_t &a_url_param_map, http_req &a_request, http_resp &ao_response);
+        int32_t do_get(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp);
+        int32_t do_post(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp);
+        int32_t do_put(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp);
+        int32_t do_delete(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp);
+        int32_t do_default(hlx &a_hlx, nconn &a_nconn, http_req &a_request, const url_param_map_t &a_url_param_map, http_resp &ao_resp);
 private:
         // Disallow copy/assign
         default_http_request_handler& operator=(const default_http_request_handler &);
@@ -538,10 +547,9 @@ public:
         ~hlx();
 
         // General
+        void set_verbose(bool a_val) {m_verbose = a_val;}
+        void set_color(bool a_val) {m_color = a_val;}
         void set_stats(bool a_val);
-        void set_verbose(bool a_val);
-        void set_color(bool a_val);
-        void set_quiet(bool a_val);
 
         // Settings
         void set_num_threads(uint32_t a_num_threads) {m_num_threads = a_num_threads;}
@@ -549,7 +557,8 @@ public:
         void set_num_reqs_per_conn(int32_t a_num_reqs_per_conn) {m_num_reqs_per_conn = a_num_reqs_per_conn;}
         void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
         int32_t add_listener(listener *a_listener);
-        int32_t add_subreq(subreq *a_subreq);
+        subreq &create_subreq(const char *a_label);
+        int32_t add_subreq(subreq &a_subreq);
 
         void set_collect_stats(bool a_val);
         void set_use_persistent_pool(bool a_val);
@@ -582,6 +591,10 @@ public:
         int32_t wait_till_stopped(void);
         bool is_running(void);
 
+        // Responses
+        http_resp *create_response(nconn &a_nconn);
+        int32_t queue_response(nconn &a_nconn, http_resp *a_resp);
+
         // Stats
         void get_stats(t_stat_t &ao_all_stats);
         int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
@@ -596,16 +609,15 @@ private:
         // Private methods
         // -------------------------------------------------
         int init(void);
-        int init_server_list(void);
+        int init_t_hlx_list(void);
         void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
-        void add_subreq_t(subreq *a_subreq);
+        void add_subreq_t(subreq &a_subreq);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
         bool m_verbose;
         bool m_color;
-        bool m_quiet;
         bool m_stats;
         uint32_t m_num_threads;
         int32_t m_num_parallel;
@@ -718,8 +730,9 @@ public:
         // ---------------------------------------
         // Callbacks
         // ---------------------------------------
-        typedef int32_t (*cb_t)(void *);
-        typedef int32_t (*create_req_cb_t)(subreq *, http_req *);
+        typedef int32_t (*error_cb_t)(nconn &, subreq &);
+        typedef int32_t (*completion_cb_t)(nconn &, subreq &, http_resp &);
+        typedef int32_t (*create_req_cb_t)(subreq &, http_req &);
 
         // -------------------------------------------------
         // Public methods
@@ -737,7 +750,8 @@ public:
         void set_save_response(bool a_val) {m_save_response = a_val;}
         void set_verb(const std::string &a_verb) {m_verb = a_verb;}
         void set_timeout_s(int32_t a_timeout_s) {m_timeout_s = a_timeout_s;}
-        void set_cb(cb_t a_cb) {m_cb = a_cb;}
+        void set_error_cb(error_cb_t a_cb) {m_error_cb = a_cb;}
+        void set_completion_cb(completion_cb_t a_cb) {m_completion_cb = a_cb;}
         void set_create_req_cb(create_req_cb_t a_cb) {m_create_req_cb = a_cb;}
         void set_num_to_request(int32_t a_val) {m_num_to_request = a_val;}
         int32_t get_num_to_request(void) {return m_num_to_request;}
@@ -748,6 +762,10 @@ public:
         void bump_num_completed(void) {++m_num_completed;}
         int32_t get_num_completed(void) {return m_num_completed;}
         void set_connect_only(bool a_val) {m_connect_only = a_val;}
+        bool get_connect_only(void) {return m_connect_only;}
+        void set_keepalive(bool a_val);
+        bool get_keepalive(void);
+
 
         // Headers
         int set_header(const std::string &a_header);
@@ -758,9 +776,19 @@ public:
         int set_host_list(const host_list_t &a_host_list);
         int set_server_list(const server_list_t &a_server_list);
 
-        void set_http_resp(http_resp *a_resp) {m_resp = a_resp;}
-        http_resp *get_http_resp(void) {return m_resp;}
+        // Resp
+        void set_resp(http_resp *a_resp) {m_resp = a_resp;}
+        http_resp *get_resp(void) {return m_resp;}
 
+        // Requester connection
+        void set_req_conn(nconn *a_nconn) {m_req_nconn = a_nconn;}
+        nconn *get_req_conn(void) {return m_req_nconn;}
+
+        // Requester response
+        void set_req_resp(http_resp *a_resp) {m_req_resp = a_resp;}
+        http_resp *get_req_resp(void) {return m_req_resp;}
+
+        // Host list
         const host_list_t &get_host_list(void) const {return m_host_list;}
 
         bool is_done(void)
@@ -784,7 +812,7 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        static int32_t create_request(subreq *a_subreq, http_req *a_req);
+        static int32_t create_request(subreq &a_subreq, http_req &a_req);
 
         // -------------------------------------------------
         // Public members
@@ -802,7 +830,8 @@ public:
         int32_t m_timeout_s;
         bool m_keepalive;
         bool m_connect_only;
-        cb_t m_cb;
+        error_cb_t m_error_cb;
+        completion_cb_t m_completion_cb;
         create_req_cb_t m_create_req_cb;
         std::string m_where;
         scheme_t m_scheme;
@@ -819,6 +848,7 @@ public:
         summary_info_t m_summary_info;
 
         subreq *m_parent;
+        pthread_mutex_t m_parent_mutex;
         subreq_list_t m_child_list;
 
 #if 0
@@ -846,6 +876,10 @@ private:
         // Resp object
         http_resp *m_resp;
 
+        // Requester connection
+        nconn *m_req_nconn;
+        http_resp *m_req_resp;
+
         int32_t m_num_reqs_per_conn;
         int32_t m_num_to_request;
         sig_atomic_t m_num_requested;
@@ -855,6 +889,15 @@ private:
         host_list_t m_host_list;
 
 };
+
+//: ----------------------------------------------------------------------------
+//: Response writing...
+//: ----------------------------------------------------------------------------
+nbq *nget_out_q(nconn &a_nconn);
+int32_t nwrite_status(nconn &a_nconn, http_status_t a_status);
+int32_t nwrite_header(nconn &a_nconn, const char *a_key, uint32_t a_key_len, const char *a_val, uint32_t a_val_len);
+int32_t nwrite_header(nconn &a_nconn, const char *a_key, const char *a_val);
+int32_t nwrite_body(nconn &a_nconn, const char *a_body, uint32_t a_body_len);
 
 //: ----------------------------------------------------------------------------
 //: \details: Update stat with new value

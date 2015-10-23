@@ -73,6 +73,9 @@ public:
         void reset_write(void);
         void reset(void);
 
+        // Print
+        void print(void);
+
         // Block Writing...
         char *   b_write_ptr(void) {return m_cur_block_write_ptr;}
         uint32_t b_write_avail(void) {return m_cur_block_write_avail;}
