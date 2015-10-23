@@ -6,7 +6,7 @@
 #include <hlx/hlx.h>
 #include <string.h>
 
-class bananas_getter : public ns_hlx::default_http_request_handler
+class bananas_getter: public ns_hlx::default_http_request_handler
 {
 public:
         // GET
@@ -32,8 +32,8 @@ int main(void)
         l_listener->add_endpoint("/bananas", new bananas_getter());
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
         l_hlx->add_listener(l_listener);
-        l_hlx->set_num_threads(16);
+        // Run in foreground w/ threads == 0
+        l_hlx->set_num_threads(0);
         l_hlx->run();
-        l_hlx->wait_till_stopped();
         return 0;
 }
