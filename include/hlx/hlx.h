@@ -891,15 +891,6 @@ private:
 };
 
 //: ----------------------------------------------------------------------------
-//: Response writing...
-//: ----------------------------------------------------------------------------
-nbq *nget_out_q(nconn &a_nconn);
-int32_t nwrite_status(nconn &a_nconn, http_status_t a_status);
-int32_t nwrite_header(nconn &a_nconn, const char *a_key, uint32_t a_key_len, const char *a_val, uint32_t a_val_len);
-int32_t nwrite_header(nconn &a_nconn, const char *a_key, const char *a_val);
-int32_t nwrite_body(nconn &a_nconn, const char *a_body, uint32_t a_body_len);
-
-//: ----------------------------------------------------------------------------
 //: \details: Update stat with new value
 //: \return:  n/a
 //: \param:   ao_stat stat to be updated
