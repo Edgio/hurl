@@ -200,7 +200,7 @@ int main(void)
 ```
 #####Build with:
 ```bash
-g++ hlx_server_ex.cc -lhlxcore -lssl -lcrypto -lpthread -o hlx_server_ex
+g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
 ```
 #####Running:
 ```bash
