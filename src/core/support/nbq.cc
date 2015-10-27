@@ -98,9 +98,9 @@ int32_t nbq::read(char *a_buf, uint32_t a_len)
                 uint32_t l_read_avail = b_read_avail();
                 uint32_t l_read_size = (l_left > l_read_avail)?l_read_avail:l_left;
 
-                NDBG_PRINT("l_left:       %u\n", l_left);
-                NDBG_PRINT("l_read_avail: %u\n", l_read_avail);
-                NDBG_PRINT("l_read_size:  %u\n", l_read_size);
+                //NDBG_PRINT("l_left:       %u\n", l_left);
+                //NDBG_PRINT("l_read_avail: %u\n", l_read_avail);
+                //NDBG_PRINT("l_read_size:  %u\n", l_read_size);
 
                 memcpy(l_buf, b_read_ptr(), l_read_size);
                 b_read_incr(l_read_size);
