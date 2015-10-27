@@ -412,6 +412,7 @@ int32_t t_hlx::start_subrequest(subreq &a_subreq, nconn &a_nconn)
                 a_subreq.set_response(500, "Performing nc_run_state_machine");
                 //if(m_settings.m_show_summary) append_summary(a_subreq.get_http_resp());
                 cleanup_connection(a_nconn, l_data->m_timer_obj, l_data->m_type);
+                l_data->m_timer_obj = NULL;
                 return STATUS_OK;
         }
         return STATUS_OK;
@@ -590,6 +591,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
 
         // Cancel last timer
         l_t_hlx->m_evr_loop->cancel_timer(l_data->m_timer_obj);
+        l_data->m_timer_obj = NULL;
 
         // Get timeout ms
         uint32_t l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
@@ -609,6 +611,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                         }
                 }
                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                l_data->m_timer_obj = NULL;
                 return STATUS_ERROR;
         }
 
@@ -634,6 +637,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                                 if(l_complete)
                                 {
                                         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                        l_data->m_timer_obj = NULL;
                                         return STATUS_OK;
                                 }
                         }
@@ -641,6 +645,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                 else if(l_data->m_type == HTTP_DATA_TYPE_SERVER)
                 {
                         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                        l_data->m_timer_obj = NULL;
                         return STATUS_OK;
                 }
                 return STATUS_OK;
@@ -671,6 +676,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
 
         // Cancel last timer
         l_t_hlx->m_evr_loop->cancel_timer(l_data->m_timer_obj);
+        l_data->m_timer_obj = NULL;
 
         int32_t l_status = STATUS_OK;
 
@@ -728,6 +734,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         if(l_status == nconn::NC_STATUS_EOF)
                         {
                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                l_data->m_timer_obj = NULL;
                                 return STATUS_OK;
                         }
                         if(l_data->m_http_req.m_subreq)
@@ -758,6 +765,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                         if(l_complete)
                                         {
                                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                                l_data->m_timer_obj = NULL;
                                                 return STATUS_OK;
                                         }
                                 }
@@ -768,6 +776,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                         ++(l_t_hlx->m_stat.m_num_errors);
                                         if(l_t_hlx->m_conf.m_show_summary) l_t_hlx->append_summary(l_nconn, &l_data->m_http_resp);
                                         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                        l_data->m_timer_obj = NULL;
                                         return STATUS_ERROR;
                                 }
                                 else
@@ -795,11 +804,13 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 //l_subreq->set_response(l_http_resp->get_status(), "");
                                                 if(l_t_hlx->m_conf.m_show_summary) l_t_hlx->append_summary(l_nconn, &l_data->m_http_resp);
                                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                                l_data->m_timer_obj = NULL;
                                                 return STATUS_OK;
                                         }
 
                                         // Cancel last timer
                                         l_t_hlx->m_evr_loop->cancel_timer(l_data->m_timer_obj);
+                                        l_data->m_timer_obj = NULL;
                                         uint64_t l_last_connect_us = l_nconn->m_stat.m_tt_connect_us;
                                         l_nconn->reset_stats();
                                         l_nconn->m_stat.m_tt_connect_us = l_last_connect_us;
@@ -831,6 +842,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                                 ++(l_t_hlx->m_stat.m_num_errors);
                                                                 if(l_t_hlx->m_conf.m_show_summary) l_t_hlx->append_summary(l_nconn, &l_data->m_http_resp);
                                                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                                                l_data->m_timer_obj = NULL;
                                                                 return STATUS_ERROR;
                                                         }
                                                         l_data->m_http_req.m_subreq->bump_num_requested();
@@ -843,6 +855,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 {
                                                         if(l_t_hlx->m_conf.m_show_summary) l_t_hlx->append_summary(l_nconn, &l_data->m_http_resp);
                                                         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                                        l_data->m_timer_obj = NULL;
                                                 }
                                         }
                                         else
@@ -854,6 +867,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                         ++(l_t_hlx->m_stat.m_num_errors);
                                                         if(l_t_hlx->m_conf.m_show_summary) l_t_hlx->append_summary(l_nconn, &l_data->m_http_resp);
                                                         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                                        l_data->m_timer_obj = NULL;
                                                         return STATUS_ERROR;
                                                 }
                                         }
@@ -876,11 +890,13 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         {
                                 //NDBG_PRINT("cleanup\n");
                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                l_data->m_timer_obj = NULL;
                                 return STATUS_OK;
                         }
                         else if(l_status == STATUS_ERROR)
                         {
                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                l_data->m_timer_obj = NULL;
                                 return STATUS_ERROR;
                         }
 
@@ -902,6 +918,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 {
                                         //NDBG_PRINT("Error performing handle_req\n");
                                         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                        l_data->m_timer_obj = NULL;
                                         return STATUS_ERROR;
                                 }
                                 l_data->m_http_req.clear();
@@ -966,6 +983,7 @@ int32_t t_hlx::evr_loop_file_timeout_cb(void *a_data)
         }
         l_t_hlx->append_summary(l_nconn, NULL);
         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+        l_data->m_timer_obj = NULL;
         return STATUS_OK;
 }
 
@@ -1019,6 +1037,7 @@ int32_t t_hlx::evr_loop_file_error_cb(void *a_data)
         }
         l_t_hlx->append_summary(l_nconn, NULL);
         l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+        l_data->m_timer_obj = NULL;
         return STATUS_OK;
 }
 
