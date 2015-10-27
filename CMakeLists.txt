@@ -23,9 +23,6 @@
 project(hlo)
 cmake_minimum_required(VERSION 2.8.0)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/.")
-include(FindASan)
-
 # Set install prefix
 SET(CMAKE_INSTALL_PREFIX "/usr")
 
