@@ -452,7 +452,8 @@ int32_t nconn::nc_set_accepting(evr_loop *a_evr_loop, int a_fd)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_cleanup()
 {
-        //NDBG_PRINT("%s--CONN--%s last_state: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_nc_state);
+        //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_nc_state, this);
+        //NDBG_PRINT_BT();
         int32_t l_status;
         l_status = nccleanup();
         m_nc_state = NC_STATE_FREE;
@@ -462,12 +463,9 @@ int32_t nconn::nc_cleanup()
                 NDBG_PRINT("Error performing nccleanup.\n");
                 return STATUS_ERROR;
         }
-
-        // Set data to null
         m_data = NULL;
         m_in_q = NULL;
         m_out_q = NULL;
-
         return STATUS_OK;
 }
 
@@ -502,6 +500,7 @@ nconn::nconn(void):
         {
                 stat_init(m_stat);
         }
+        //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, m_nc_state, this);
 }
 
 //: ----------------------------------------------------------------------------
@@ -511,6 +510,7 @@ nconn::nconn(void):
 //: ----------------------------------------------------------------------------
 nconn::~nconn(void)
 {
+        //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_nc_state, this);
 }
 
 } // ns_hlx

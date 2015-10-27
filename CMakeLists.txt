@@ -23,15 +23,21 @@
 project(hlo)
 cmake_minimum_required(VERSION 2.8.0)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/.")
+include(FindASan)
+
 # Set install prefix
 SET(CMAKE_INSTALL_PREFIX "/usr")
 
 # Build options
 option(GCC_OPTIONS    "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
+option(FORTIFY        "Fortify Source GCC options" OFF)
 option(DEBUG_MODE     "Compile in debug mode." OFF)
-option(BUILD_TESTS    "Build the unit tests." OFF)
-#option(BUILD_PROFILE  "Enable google cpu and heap profiler support" OFF)
-#option(BUILD_TCMALLOC "Build with tcmalloc" ON)
+option(BUILD_TESTS    "Build the unit tests." ON)
+option(BUILD_TCMALLOC "Build with tcmalloc" ON)
+option(BUILD_PROFILER "Enable google cpu and heap profiler support" OFF)
+option(BUILD_EFENCE   "Build with tcmalloc" OFF)
+option(BUILD_ASAN     "Build with Address Sanitizer" OFF)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -39,10 +45,45 @@ option(BUILD_TESTS    "Build the unit tests." OFF)
 add_definitions(-std=c++0x)
 add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 #add_definitions(-pedantic)
-#add_definitions(-D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now)
 
-# Address sanitizer options
-#add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+# ------------------------------------------------------------------------------
+# Libraries options
+# ------------------------------------------------------------------------------
+set(LIBRARIES ${LIBRARIES} pthread rt ssl crypto)
+
+# ------------------------------------------------------------------------------
+# Display the current settings
+# ------------------------------------------------------------------------------
+message(STATUS "Build Configuration:")
+message("")
+message("    Build Option                               Variable                Value                 ")
+message("    ------------------------------------------------------------------------------------------")
+message("    Debug mode:                                " "DEBUG_MODE              " ${DEBUG_MODE})
+message("    Fortify Source:                            " "FORTIFY                 " ${FORTIFY})
+message("    Build unit tests:                          " "BUILD_TESTS             " ${BUILD_TESTS})
+message("    Install path:                              " "INSTALL_PREFIX          " ${CMAKE_INSTALL_PREFIX})
+message("    Enable google cpu/heap profiler support:   " "BUILD_PROFILER          " ${BUILD_PROFILER})
+message("    Build with tcmalloc:                       " "BUILD_TCMALLOC          " ${BUILD_TCMALLOC})
+message("    Build with efence:                         " "BUILD_EFENCE            " ${BUILD_EFENCE})
+message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
+message("")
+
+if (FORTIFY)
+  add_definitions(-D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now)
+endif()
+
+if (BUILD_PROFILER)
+  add_definitions(-DENABLE_PROFILER=1)
+  set(LIBRARIES ${LIBRARIES} tcmalloc profiler)
+elseif(BUILD_TCMALLOC)
+  set(LIBRARIES ${LIBRARIES} tcmalloc)
+elseif(BUILD_EFENCE)
+  set(LIBRARIES ${LIBRARIES} efence)
+elseif(BUILD_ASAN)
+  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+  set(LIBRARIES ${LIBRARIES} asan)
+  set(DEBUG_MODE ON)
+endif()
 
 # ------------------------------------------------------------------------------
 # Optional flags
@@ -53,29 +94,18 @@ else()
   add_definitions(-O2)
 endif()
 
-# ------------------------------------------------------------------------------
-# Display the current settings
-# ------------------------------------------------------------------------------
-message(STATUS "Build Configuration:")
-message("")
-message("    Build Option                               Variable                Value                 ")
-message("    ------------------------------------------------------------------------------------------")
-message("    Debug mode:                                " "DEBUG_MODE              " ${DEBUG_MODE})
-message("    Build unit tests:                          " "BUILD_TESTS             " ${BUILD_TESTS})
-message("    Install path:                              " "INSTALL_PREFIX          " ${CMAKE_INSTALL_PREFIX})
-message("")
 
 # ------------------------------------------------------------------------------
 # include source and test directories
 # ------------------------------------------------------------------------------
 add_subdirectory(src)
+add_subdirectory(examples)
 
 if (BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
 
-add_subdirectory(examples)
 
 # ------------------------------------------------------------------------------
 # Debian Package Support

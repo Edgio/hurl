@@ -35,7 +35,7 @@ add_library(compiled_catch STATIC catch.hpp _catch.cc)
 SET(SRCS wb_nbq.cc ../../src/core/support/nbq.cc ../../src/core/ndebug/ndebug.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../src/core/support/ ../../src/core/ndebug/)
 add_executable(wb_nbq ${HDRS} ${SRCS})
-target_link_libraries(wb_nbq compiled_catch)
+target_link_libraries(wb_nbq compiled_catch ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_nbq PROPERTIES OUTPUT_NAME "wb_nbq")
 add_test(nbq wb_nbq)
 
@@ -45,6 +45,16 @@ add_test(nbq wb_nbq)
 SET(SRCS wb_url_router.cc ../../src/core/url_router/url_router.cc ../../src/core/ndebug/ndebug.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../src/core/url_router/ ../../src/core/ndebug/)
 add_executable(wb_url_router ${HDRS} ${SRCS})
-target_link_libraries(wb_url_router compiled_catch)
+target_link_libraries(wb_url_router compiled_catch ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_url_router PROPERTIES OUTPUT_NAME "wb_url_router")
 add_test(url_router wb_url_router)
+
+# ------------------------------------------------
+# wb_nlru
+# ------------------------------------------------
+SET(SRCS wb_nlru.cc ../../src/core/url_router/url_router.cc ../../src/core/ndebug/ndebug.cc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../src/core/url_router/ ../../src/core/ndebug/)
+add_executable(wb_nlru ${HDRS} ${SRCS})
+target_link_libraries(wb_nlru compiled_catch ${LIBRARIES})
+SET_TARGET_PROPERTIES(wb_nlru PROPERTIES OUTPUT_NAME "wb_nlru")
+add_test(nlru wb_nlru)

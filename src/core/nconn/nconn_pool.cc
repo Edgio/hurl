@@ -57,7 +57,7 @@ nconn *nconn_pool::create_conn(scheme_t a_scheme)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_pool::get(scheme_t a_scheme, nconn **ao_nconn)
+nconn *nconn_pool::get(scheme_t a_scheme)
 {
         if(!m_initd)
         {
@@ -80,7 +80,7 @@ int32_t nconn_pool::get(scheme_t a_scheme, nconn **ao_nconn)
         {
                 // TODO REMOVE
                 //NDBG_PRINT("%sEAGAIN%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
-                return nconn::NC_STATUS_AGAIN;
+                return NULL;
         }
 
         // -----------------------------------------
@@ -109,15 +109,14 @@ int32_t nconn_pool::get(scheme_t a_scheme, nconn **ao_nconn)
                 if(!l_nconn)
                 {
                         NDBG_PRINT("Error performing create_conn\n");
-                        return nconn::NC_STATUS_ERROR;
+                        return NULL;
                 }
                 m_nconn_obj_pool.add(l_nconn);
         }
 
         //NDBG_PRINT("%sGET_CONNECTION%s: ERASED[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
-        *ao_nconn = l_nconn;
-        return nconn::NC_STATUS_OK;
+        return l_nconn;
 }
 
 //: ----------------------------------------------------------------------------
@@ -125,7 +124,7 @@ int32_t nconn_pool::get(scheme_t a_scheme, nconn **ao_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_pool::get_try_idle(const std::string &a_host, scheme_t a_scheme, nconn **ao_nconn)
+nconn *nconn_pool::get_idle(const std::string &a_host, scheme_t a_scheme)
 {
         //NDBG_PRINT("%sGET_CONNECTION%s: a_host: %s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_host.c_str());
         if(!m_initd)
@@ -149,22 +148,17 @@ int32_t nconn_pool::get_try_idle(const std::string &a_host, scheme_t a_scheme, n
         // Try grab from conn cache
         // ---------------------------------------
         //NDBG_PRINT("%sGET_CONNECTION%s: m_idle_conn_ncache.size(): %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (int)m_idle_conn_ncache.size());
+        //NDBG_PRINT("%sGET_CONNECTION%s: l_label:                   %s\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_label.c_str());
         // Lookup label
-        nconn* const*l_nconn_lkp = m_idle_conn_ncache.get(l_label);
+        //NDBG_PRINT(" ::NCACHE::%sINSERT%s: LABEL[%s] --size: %d\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF, l_label.c_str(), (int)m_idle_conn_ncache.size());
+        nconn* l_nconn_lkp = m_idle_conn_ncache.get(l_label);
         if(l_nconn_lkp)
         {
-                *ao_nconn = const_cast<nconn *>(*l_nconn_lkp);
-                return nconn::NC_STATUS_OK;
+                //NDBG_PRINT("%sGET_IDLE%s: a_nconn: %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_nconn_lkp);
+                //NDBG_PRINT(" ::NCACHE::%sINSERT%s: LABEL[%s] --size: %d\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF, l_label.c_str(), (int)m_idle_conn_ncache.size());
+                return l_nconn_lkp;
         }
-
-        int32_t l_status;
-        l_status = get(a_scheme, ao_nconn);
-        if(l_status != nconn::NC_STATUS_OK)
-        {
-                return nconn::NC_STATUS_AGAIN;
-        }
-
-        return nconn::NC_STATUS_OK;
+        return NULL;
 }
 
 //: ----------------------------------------------------------------------------
@@ -174,7 +168,7 @@ int32_t nconn_pool::get_try_idle(const std::string &a_host, scheme_t a_scheme, n
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::add_idle(nconn *a_nconn)
 {
-        //NDBG_PRINT("%sADD_IDLE%s: a_nconn: %p -- hash: %lu\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_nconn, a_nconn->m_hash);
+        //NDBG_PRINT("%sADD_IDLE%s: a_nconn: %p\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, a_nconn);
         if(!m_initd)
         {
                 init();
@@ -198,7 +192,7 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
         }
         l_label += a_nconn->m_host;
         id_t l_id = m_idle_conn_ncache.insert(l_label, a_nconn);
-        //NDBG_PRINT(" ::NCACHE::%sINSERT%s: SET_ID[%d]\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_id);
+        //NDBG_PRINT(" ::NCACHE::%sINSERT%s: LABEL[%s] --size: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_label.c_str(), (int)m_idle_conn_ncache.size());
         a_nconn->set_id(l_id);
         return STATUS_OK;
 }
@@ -240,9 +234,9 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
 //: ----------------------------------------------------------------------------
 int nconn_pool::delete_cb(void* o_1, void *a_2)
 {
-        NDBG_PRINT("::NCACHE::%sDELETE%s: %p %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, o_1, a_2);
+        //NDBG_PRINT("::NCACHE::%sDELETE%s: %p %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, o_1, a_2);
         nconn_pool *l_nconn_pool = reinterpret_cast<nconn_pool *>(o_1);
-        nconn *l_nconn = *(reinterpret_cast<nconn **>(a_2));
+        nconn *l_nconn = reinterpret_cast<nconn *>(a_2);
         int32_t l_status = l_nconn_pool->cleanup(l_nconn);
         if(l_status != STATUS_OK)
         {
@@ -304,7 +298,7 @@ void nconn_pool::init(void)
 //: ----------------------------------------------------------------------------
 nconn_pool::nconn_pool(int32_t a_size):
                        m_nconn_obj_pool(),
-                       m_idle_conn_ncache(a_size, NCACHE_LRU),
+                       m_idle_conn_ncache(a_size),
                        m_initd(false),
                        m_pool_size(a_size)
 {

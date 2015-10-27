@@ -42,63 +42,19 @@
 #include <openssl/crypto.h>
 
 //: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
-static pthread_mutex_t *g_lock_cs;
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file, int a_line)
-{
-#if 0
-        fprintf(stdout,"thread=%4d mode=%s lock=%s %s:%d\n",
-                        (int)CRYPTO_thread_id(),
-                        (mode&CRYPTO_LOCK)?"l":"u",
-                                        (type&CRYPTO_READ)?"r":"w",a_file,a_line);
-#endif
-
-#if 0
-        if (CRYPTO_LOCK_SSL_CERT == type)
-                fprintf(stdout,"(t,m,f,l) %ld %d %s %d\n",
-                                CRYPTO_thread_id(),
-                                a_mode,a_file,a_line);
-#endif
-
-        if (a_mode & CRYPTO_LOCK)
-        {
-                pthread_mutex_lock(&(g_lock_cs[a_type]));
-        } else
-        {
-                pthread_mutex_unlock(&(g_lock_cs[a_type]));
-
-        }
-
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static unsigned long pthreads_thread_id(void)
-{
-        unsigned long ret;
-
-        ret=(unsigned long)pthread_self();
-        return(ret);
-
-}
-
-//: ----------------------------------------------------------------------------
 //:
 //: ----------------------------------------------------------------------------
 struct CRYPTO_dynlock_value
 {
         pthread_mutex_t mutex;
 };
+
+namespace ns_hlx {
+
+//: ----------------------------------------------------------------------------
+//: Globals
+//: ----------------------------------------------------------------------------
+static pthread_mutex_t *g_lock_cs;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -151,6 +107,51 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file, int a_line)
+{
+#if 0
+        fprintf(stdout,"thread=%4d mode=%s lock=%s %s:%d\n",
+                        (int)CRYPTO_thread_id(),
+                        (mode&CRYPTO_LOCK)?"l":"u",
+                                        (type&CRYPTO_READ)?"r":"w",a_file,a_line);
+#endif
+
+#if 0
+        if (CRYPTO_LOCK_SSL_CERT == type)
+                fprintf(stdout,"(t,m,f,l) %ld %d %s %d\n",
+                                CRYPTO_thread_id(),
+                                a_mode,a_file,a_line);
+#endif
+
+        if (a_mode & CRYPTO_LOCK)
+        {
+                pthread_mutex_lock(&(g_lock_cs[a_type]));
+        } else
+        {
+                pthread_mutex_unlock(&(g_lock_cs[a_type]));
+
+        }
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static unsigned long pthreads_thread_id(void)
+{
+        unsigned long ret;
+
+        ret=(unsigned long)pthread_self();
+        return(ret);
+
+}
+//: ----------------------------------------------------------------------------
 //: \details: OpenSSL can safely be used in multi-threaded applications provided
 //:           that at least two callback functions are set, locking_function and
 //:           threadid_func this function sets those two callbacks.
@@ -162,21 +163,16 @@ static void init_ssl_locking(void)
         int l_num_locks = CRYPTO_num_locks();
         g_lock_cs = (pthread_mutex_t *)OPENSSL_malloc(l_num_locks * sizeof(pthread_mutex_t));
         //g_lock_cs =(pthread_mutex_t*)malloc(        l_num_locks * sizeof(pthread_mutex_t));
-
         for (int i=0; i<l_num_locks; ++i)
         {
                 pthread_mutex_init(&(g_lock_cs[i]),NULL);
         }
-
         CRYPTO_set_id_callback(pthreads_thread_id);
         CRYPTO_set_locking_callback(pthreads_locking_callback);
         CRYPTO_set_dynlock_create_callback(dyn_create_function);
         CRYPTO_set_dynlock_lock_callback(dyn_lock_function);
         CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
-
 }
-
-namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: \details: Initialize OpenSSL

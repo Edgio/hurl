@@ -75,17 +75,7 @@ SET(HDRS
 add_executable(hle_cmd ${HDRS} ${SRCS})
 add_dependencies(hle_cmd hlxcore)
 SET_TARGET_PROPERTIES(hle_cmd PROPERTIES OUTPUT_NAME "hle")
-target_link_libraries(hle_cmd
-${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
-pthread
-rt
-ssl
-crypto
-tcmalloc
-profiler
-#asan
-#efence
-)
+target_link_libraries(hle_cmd ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 install(TARGETS hle_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/

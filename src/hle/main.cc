@@ -58,7 +58,6 @@
 #include <inttypes.h>
 
 // Profiler
-#define ENABLE_PROFILER 1
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
 #endif

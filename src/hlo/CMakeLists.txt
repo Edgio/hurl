@@ -75,17 +75,7 @@ SET(HDRS
 add_executable(hlo_cmd ${HDRS} ${SRCS})
 add_dependencies(hlo_cmd hlxcore)
 SET_TARGET_PROPERTIES(hlo_cmd PROPERTIES OUTPUT_NAME "hlo")
-target_link_libraries(hlo_cmd
-${CMAKE_BINARY_DIR}/src/core/libhlxcore.a
-pthread
-rt
-crypto
-ssl
-tcmalloc
-profiler
-#asan
-#efence
-)
+target_link_libraries(hlo_cmd ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 install(TARGETS hlo_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/

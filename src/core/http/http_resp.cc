@@ -247,9 +247,12 @@ const std::string &http_resp::get_body(void)
         {
                 return m_body;
         }
-
-        // Else parse...
-        m_body.assign(m_p_body.m_ptr, m_p_body.m_len);
+        //NDBG_PRINT("m_p_body.m_ptr: %p len: %u\n", m_p_body.m_ptr, m_p_body.m_len);
+        if(m_p_body.m_ptr && m_p_body.m_len)
+        {
+                // Else parse...
+                m_body.assign(m_p_body.m_ptr, m_p_body.m_len);
+        }
         return m_body;
 }
 

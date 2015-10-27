@@ -279,7 +279,7 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
         //NDBG_PRINT("%swrite%s: buf: %p fd: %d len: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
-        //                l_buf + l_bytes_written, m_fd, a_buf_len - l_bytes_written);
+        //                a_buf, m_fd, a_buf_len);
         //mem_display((const uint8_t*)(a_buf), (uint32_t)(a_buf_len));
         l_status = send(m_fd, a_buf, a_buf_len, MSG_NOSIGNAL);
         //NDBG_PRINT("write: status: %d\n", l_status);

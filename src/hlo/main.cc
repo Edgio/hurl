@@ -57,7 +57,6 @@
 #include <inttypes.h>
 
 // Profiler
-#define ENABLE_PROFILER 1
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
 #endif
@@ -998,7 +997,9 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Stat Options:\n");
         fprintf(a_stream, "  -P, --data_port     Start HTTP Stats Daemon on port.\n");
         fprintf(a_stream, "  -Y, --http_load     Display in http load mode [MODE] -Legacy support\n");
+#ifdef ENABLE_PROFILER
         fprintf(a_stream, "  -G, --gprofile      Google profiler output file\n");
+#endif
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running long jobs consider enabling tcp_tw_reuse -eg:\n");
         fprintf(a_stream, "echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse\n");
@@ -1104,8 +1105,9 @@ int main(int argc, char** argv)
                 { "responses_per",0, 0, 'L' },
                 { "http_load",    1, 0, 'Y' },
                 { "data_port",    1, 0, 'P' },
+#ifdef ENABLE_PROFILER
                 { "gprofile",     1, 0, 'G' },
-
+#endif
                 // list sentinel
                 { 0, 0, 0, 0 }
         };
@@ -1116,7 +1118,9 @@ int main(int argc, char** argv)
         // arg...
         // -------------------------------------------
         std::string l_url;
+#ifdef ENABLE_PROFILER
         std::string l_gprof_file;
+#endif
         bool is_opt = false;
 
         for(int i_arg = 1; i_arg < argc; ++i_arg) {
@@ -1141,7 +1145,13 @@ int main(int argc, char** argv)
 
         }
 
-        while ((l_opt = getopt_long_only(argc, argv, "hVkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:", l_long_options, &l_option_index)) != -1)
+#ifdef ENABLE_PROFILER
+        char l_short_arg_list[] = "hVkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:";
+#else
+        char l_short_arg_list[] = "hVkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:";
+#endif
+
+        while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
 
                 if (optarg)
@@ -1206,6 +1216,7 @@ int main(int argc, char** argv)
                         l_subreq.set_header("Content-Length", l_len_str);
                         break;
                 }
+#ifdef ENABLE_PROFILER
                 // ---------------------------------------
                 // Google Profiler Output File
                 // ---------------------------------------
@@ -1214,6 +1225,7 @@ int main(int argc, char** argv)
                         l_gprof_file = l_argument;
                         break;
                 }
+#endif
                 // ---------------------------------------
                 // cipher
                 // ---------------------------------------

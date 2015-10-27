@@ -558,6 +558,8 @@ public:
         void set_start_time_ms(uint64_t a_start_time_ms) {m_start_time_ms = a_start_time_ms;}
         int32_t add_listener(listener *a_listener);
         subreq &create_subreq(const char *a_label);
+        subreq &create_subreq(const subreq &a_subreq);
+
         int32_t add_subreq(subreq &a_subreq);
 
         void set_collect_stats(bool a_val);
@@ -752,6 +754,7 @@ public:
         void set_timeout_s(int32_t a_timeout_s) {m_timeout_s = a_timeout_s;}
         void set_error_cb(error_cb_t a_cb) {m_error_cb = a_cb;}
         void set_completion_cb(completion_cb_t a_cb) {m_completion_cb = a_cb;}
+        void set_child_completion_cb(completion_cb_t a_cb) {m_child_completion_cb = a_cb;}
         void set_create_req_cb(create_req_cb_t a_cb) {m_create_req_cb = a_cb;}
         void set_num_to_request(int32_t a_val) {m_num_to_request = a_val;}
         int32_t get_num_to_request(void) {return m_num_to_request;}
@@ -765,7 +768,6 @@ public:
         bool get_connect_only(void) {return m_connect_only;}
         void set_keepalive(bool a_val);
         bool get_keepalive(void);
-
 
         // Headers
         int set_header(const std::string &a_header);
@@ -832,6 +834,7 @@ public:
         bool m_connect_only;
         error_cb_t m_error_cb;
         completion_cb_t m_completion_cb;
+        completion_cb_t m_child_completion_cb;
         create_req_cb_t m_create_req_cb;
         std::string m_where;
         scheme_t m_scheme;

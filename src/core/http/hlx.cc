@@ -135,7 +135,7 @@ int32_t hlx::add_listener(listener *a_listener)
                 {
                         if(*i_t)
                         {
-                                int32_t l_status = (*i_t)->add_listener(a_listener);
+                                int32_t l_status = (*i_t)->add_listener(*a_listener);
                                 if(l_status != STATUS_OK)
                                 {
                                         NDBG_PRINT("Error performing add_listener.\n");
@@ -160,6 +160,16 @@ static int32_t child_subreq_completion_cb(nconn &a_nconn,
                                           subreq &a_subreq,
                                           http_resp &a_resp)
 {
+        if(a_subreq.m_child_completion_cb)
+        {
+                int32_t l_status;
+                l_status = a_subreq.m_child_completion_cb(a_nconn, *a_subreq.m_parent, *a_subreq.get_resp());
+                if(l_status != 0)
+                {
+                        // Do stuff???
+                }
+        }
+
         //NDBG_PRINT("child_subreq_completion_cb\n");
         if(a_subreq.m_parent)
         {
@@ -194,14 +204,14 @@ static int32_t child_subreq_error_cb(nconn &a_nconn, subreq &a_subreq)
                 pthread_mutex_unlock(&(a_subreq.m_parent->m_parent_mutex));
                 //NDBG_PRINT("num_completed: %d\n", l_subreq->m_parent->m_num_completed);
                 if(a_subreq.m_parent->is_done())
-                {       int32_t l_status;
+                {
+                        int32_t l_status;
                         l_status = a_subreq.m_parent->m_completion_cb(a_nconn, *a_subreq.m_parent, *a_subreq.get_resp());
                         if(l_status != 0)
                         {
                                 // Do stuff???
                         }
                 }
-
         }
         return 0;
 }
@@ -224,24 +234,24 @@ void hlx::add_subreq_t(subreq &a_subreq)
                                 i_t != m_t_hlx_list.end();
                                 ++i_t, ++i_hlx_idx)
                 {
-                        subreq *l_subreq = new subreq(a_subreq);
+                        subreq &l_subreq = create_subreq(a_subreq);
 
                         // Recalculate num fetches per thread
-                        if(l_subreq->get_num_to_request() > 0)
+                        if(l_subreq.get_num_to_request() > 0)
                         {
-                                uint32_t l_num_fetches_per_thread = l_subreq->get_num_to_request() / l_num_hlx;
-                                uint32_t l_remainder_fetches = l_subreq->get_num_to_request() % l_num_hlx;
+                                uint32_t l_num_fetches_per_thread = l_subreq.get_num_to_request() / l_num_hlx;
+                                uint32_t l_remainder_fetches = l_subreq.get_num_to_request() % l_num_hlx;
                                 if (i_hlx_idx == (l_num_hlx - 1))
                                 {
                                         l_num_fetches_per_thread += l_remainder_fetches;
                                 }
                                 //NDBG_PRINT("Num to fetch: %d\n", (int)l_num_fetches_per_thread);
-                                l_subreq->set_num_to_request(l_num_fetches_per_thread);
+                                l_subreq.set_num_to_request(l_num_fetches_per_thread);
                         }
-                        if(l_subreq->get_num_to_request() != 0)
+                        if(l_subreq.get_num_to_request() != 0)
                         {
-                                a_subreq.m_child_list.push_back(l_subreq);
-                                (*i_t)->add_subreq(*l_subreq);
+                                a_subreq.m_child_list.push_back(&l_subreq);
+                                (*i_t)->add_subreq(l_subreq);
                         }
                 }
         }
@@ -257,25 +267,29 @@ void hlx::add_subreq_t(subreq &a_subreq)
                             i_h != a_subreq.get_host_list().end();
                             ++i_h)
                         {
-                                subreq *l_subreq = new subreq(a_subreq);
-                                l_subreq->set_num_to_request(1);
-                                l_subreq->m_host = i_h->m_host;
+                                subreq &l_subreq = create_subreq(a_subreq);
+                                l_subreq.set_num_to_request(1);
+                                l_subreq.m_host = i_h->m_host;
                                 if(!i_h->m_hostname.empty())
                                 {
-                                        l_subreq->m_hostname = i_h->m_hostname;
+                                        l_subreq.m_hostname = i_h->m_hostname;
                                 }
                                 if(!i_h->m_id.empty())
                                 {
-                                        l_subreq->m_id = i_h->m_id;
+                                        l_subreq.m_id = i_h->m_id;
                                 }
                                 if(!i_h->m_where.empty())
                                 {
-                                        l_subreq->m_where = i_h->m_where;
+                                        l_subreq.m_where = i_h->m_where;
                                 }
-                                l_subreq->m_parent = &a_subreq;
-                                l_subreq->set_completion_cb(child_subreq_completion_cb);
-                                l_subreq->set_error_cb(child_subreq_error_cb);
-                                a_subreq.m_child_list.push_back(l_subreq);
+                                l_subreq.m_parent = &a_subreq;
+                                l_subreq.set_completion_cb(child_subreq_completion_cb);
+                                l_subreq.set_error_cb(child_subreq_error_cb);
+                                if(a_subreq.m_child_completion_cb)
+                                {
+                                        l_subreq.set_child_completion_cb(a_subreq.m_child_completion_cb);
+                                }
+                                a_subreq.m_child_list.push_back(&l_subreq);
                         }
                 }
                 //NDBG_PRINT("a_subreq.m_child_list.size(): %d\n", (int)a_subreq.m_child_list.size());
@@ -331,6 +345,17 @@ int32_t hlx::add_subreq(subreq &a_subreq)
                 m_subreq_queue.push(&a_subreq);
         }
         return HLX_SERVER_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+subreq &hlx::create_subreq(const subreq &a_subreq)
+{
+        subreq *l_subreq = new subreq(a_subreq);
+        return *l_subreq;
 }
 
 //: ----------------------------------------------------------------------------
@@ -831,7 +856,7 @@ int hlx::init_t_hlx_list(void)
                 {
                         if(*i_t)
                         {
-                                l_status = l_t_hlx->add_listener((*i_t));
+                                l_status = l_t_hlx->add_listener(*(*i_t));
                                 if(l_status != STATUS_OK)
                                 {
                                         delete l_t_hlx;
@@ -854,7 +879,7 @@ int hlx::init_t_hlx_list(void)
                 {
                         if(*i_t)
                         {
-                                l_status = l_t_hlx->add_listener((*i_t));
+                                l_status = l_t_hlx->add_listener(*(*i_t));
                                 if(l_status != STATUS_OK)
                                 {
                                         delete l_t_hlx;

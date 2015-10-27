@@ -74,7 +74,7 @@ public:
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_s(void) { return m_conf.m_timeout_s;};
         void get_stats_copy(t_stat_t &ao_stat);
-        int32_t add_listener(listener *a_listener);
+        int32_t add_listener(listener &a_listener);
         int32_t add_subreq(subreq &a_subreq);
 
         // -------------------------------------------------
@@ -108,7 +108,7 @@ private:
                 return reinterpret_cast<t_hlx *>(a_context)->t_run(NULL);
         }
 
-        int32_t cleanup_connection(nconn *a_nconn, evr_timer_event_t *a_timer_obj, http_data_type_t a_type);
+        int32_t cleanup_connection(nconn &a_nconn, evr_timer_event_t *a_timer_obj, http_data_type_t a_type);
         int32_t handle_req(nconn &a_nconn, url_router *a_url_router, http_req &a_req, http_resp &ao_resp);
 
         // Initialize
@@ -116,15 +116,22 @@ private:
 
         // Get new client connection
         nconn *get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router);
-        int32_t config_conn(nconn *a_nconn,
+        int32_t config_conn(nconn &a_nconn,
                             url_router *a_url_router,
                             http_data_type_t a_type,
                             bool a_save,
                             bool a_connect_only);
-        int32_t request(subreq &a_subreq, nconn *a_nconn = NULL);
+        int32_t config_data(nconn &a_nconn,
+                            url_router *a_url_router,
+                            http_data_type_t a_type,
+                            bool a_save,
+                            bool a_connect_only);
+        int32_t start_subrequest(subreq &a_subreq, nconn &a_nconn);
+        nconn * get_proxy_conn(subreq &a_subreq);
         int32_t try_deq_subreq(void);
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
         int32_t append_summary(nconn *a_nconn, http_resp *a_resp);
+        bool subreq_complete(subreq &a_subreq, nconn &a_nconn);
 
         // -------------------------------------------------
         // Private members
