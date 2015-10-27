@@ -44,11 +44,19 @@ public:
                 }
 
                 char l_len_str[64];
-                sprintf(l_len_str, "%lu", a_subreq_resp.get_body().length());
+                char *l_buf = NULL;
+                uint32_t l_len;
+                a_subreq_resp.get_body(&l_buf, l_len);
+                sprintf(l_len_str, "%u", l_len);
                 ns_hlx::http_resp &l_resp = *(a_subreq.get_req_resp());
                 l_resp.write_status(ns_hlx::HTTP_STATUS_OK);
                 l_resp.write_header("Content-Length", l_len_str);
-                l_resp.write_body(a_subreq_resp.get_body().c_str(), a_subreq_resp.get_body().length());
+                l_resp.write_body(l_buf, l_len);
+                if(l_buf)
+                {
+                        free(l_buf);
+                        l_buf = NULL;
+                }
                 return 0;
         }
 };
@@ -60,8 +68,8 @@ int main(void)
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
         l_hlx->add_listener(l_listener);
         l_hlx->set_num_threads(0);
-        l_hlx->set_verbose(true);
-        l_hlx->set_color(true);
+        //l_hlx->set_verbose(true);
+        //l_hlx->set_color(true);
         l_hlx->set_use_persistent_pool(true);
         l_hlx->run();
 }

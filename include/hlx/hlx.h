@@ -375,7 +375,7 @@ public:
         // Get parsed results
         // TODO -copy for now -zero copy later???
         const kv_map_list_t &get_headers(void);
-        const std::string &get_body(void);
+        int32_t get_body(char **a_buf, uint32_t &a_len);
 
         void set_q(nbq *a_q) { m_q = a_q;}
         nbq *get_q(void) { return m_q;}

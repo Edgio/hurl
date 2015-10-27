@@ -35,13 +35,11 @@ public:
         {
                 // https://api.twitter.com/1.1/statuses/lookup.json
                 ns_hlx::subreq &l_subreq = a_hlx.create_subreq("fanout_subreq");
-                //l_subreq.init_with_url("https://blorp/");
-                l_subreq.init_with_url("http://blorp:8089/");
+                l_subreq.init_with_url("https://blorp/");
                 ns_hlx::server_list_t l_server_list;
-                //l_server_list.push_back("www.yahoo.com");
-                l_server_list.push_back("127.0.0.1");
-                //l_server_list.push_back("www.google.com");
-                //l_server_list.push_back("www.reddit.com");
+                l_server_list.push_back("www.yahoo.com");
+                l_server_list.push_back("www.google.com");
+                l_server_list.push_back("www.reddit.com");
                 l_subreq.set_server_list(l_server_list);
                 l_subreq.set_child_completion_cb(child_completion_cb);
                 l_subreq.set_completion_cb(completion_cb);
@@ -50,7 +48,7 @@ public:
                 l_subreq.set_req_conn(&a_nconn);
                 l_subreq.set_req_resp(&ao_resp);
                 l_subreq.set_keepalive(true);
-                //l_subreq.set_num_reqs_per_conn(100);
+                l_subreq.set_num_reqs_per_conn(100);
                 a_hlx.add_subreq(l_subreq);
                 return 0;
         }
@@ -76,7 +74,6 @@ public:
                         return -1;
                 }
 
-#if 1
                 std::string l_all_resp = a_subreq.dump_all_responses(false,
                                                                      false,
                                                                      ns_hlx::subreq::OUTPUT_LINE_DELIMITED,
@@ -85,12 +82,8 @@ public:
                                                                    | ns_hlx::subreq::PART_STATUS_CODE
                                                                    | ns_hlx::subreq::PART_HEADERS
                                                                    | ns_hlx::subreq::PART_BODY);
-#else
-                std::string l_all_resp = "DERP";
-#endif
                 char l_len_str[64];
                 sprintf(l_len_str, "%lu", l_all_resp.length());
-
                 ns_hlx::http_resp &l_resp = *(a_subreq.get_req_resp());
                 l_resp.write_status(ns_hlx::HTTP_STATUS_OK);
                 l_resp.write_header("Content-Length", l_len_str);

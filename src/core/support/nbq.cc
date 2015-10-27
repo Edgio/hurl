@@ -97,6 +97,11 @@ int32_t nbq::read(char *a_buf, uint32_t a_len)
         {
                 uint32_t l_read_avail = b_read_avail();
                 uint32_t l_read_size = (l_left > l_read_avail)?l_read_avail:l_left;
+
+                NDBG_PRINT("l_left:       %u\n", l_left);
+                NDBG_PRINT("l_read_avail: %u\n", l_read_avail);
+                NDBG_PRINT("l_read_size:  %u\n", l_read_size);
+
                 memcpy(l_buf, b_read_ptr(), l_read_size);
                 b_read_incr(l_read_size);
                 l_left -= l_read_size;
@@ -256,6 +261,7 @@ void nbq::b_read_incr(uint32_t a_len)
         //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %u l_avail: %d m_total_read_avail: %d\n", ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
         m_total_read_avail -= a_len;
         l_avail -= a_len;
+        m_cur_block_read_ptr += a_len;
         //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %u l_avail: %d m_total_read_avail: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
         if(!l_avail && m_total_read_avail)
         {
@@ -277,7 +283,7 @@ int32_t nbq::b_read_avail(void)
         }
         else
         {
-                return (*m_cur_read_block)->m_len;
+                return (*m_cur_read_block)->m_len - (m_cur_block_read_ptr - (*m_cur_read_block)->m_data);
         }
 }
 

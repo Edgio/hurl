@@ -742,17 +742,24 @@ std::string subreq::dump_all_responses_line_dl(bool a_color,
                 {
                         if(l_fbf) {ARESP(", "); l_fbf = false;}
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const std::string &l_body = l_resp->get_body();
-                        if(!l_body.empty())
+                        char *l_body_buf = NULL;
+                        uint32_t l_body_len;
+                        l_resp->get_body(&l_body_buf, l_body_len);
+                        if(l_body_len)
                         {
                                 sprintf(l_buf, "\"%sbody%s\": %s",
                                                 l_body_color.c_str(), l_off_color.c_str(),
-                                                l_body.c_str());
+                                                l_body_buf);
                         }
                         else
                         {
                                 sprintf(l_buf, "\"%sbody%s\": \"NO_RESPONSE\"",
                                                 l_body_color.c_str(), l_off_color.c_str());
+                        }
+                        if(l_body_buf)
+                        {
+                                free(l_body_buf);
+                                l_body_buf = NULL;
                         }
                         ARESP(l_buf);
                         l_fbf = true;
@@ -886,14 +893,16 @@ std::string subreq::dump_all_responses_json(int a_part_map)
                 {
 
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const std::string &l_body = l_resp->get_body();
-                        if(!l_body.empty())
+                        char *l_body_buf = NULL;
+                        uint32_t l_body_len;
+                        l_resp->get_body(&l_body_buf, l_body_len);
+                        if(l_body_len)
                         {
                                 // Append json
                                 if(l_content_type_json)
                                 {
                                         rapidjson::Document l_doc_body;
-                                        l_doc_body.Parse(l_body.c_str());
+                                        l_doc_body.Parse(l_body_buf);
                                         l_obj.AddMember("body",
                                                         rapidjson::Value(l_doc_body, l_js_allocator).Move(),
                                                         l_js_allocator);
@@ -901,12 +910,17 @@ std::string subreq::dump_all_responses_json(int a_part_map)
                                 }
                                 else
                                 {
-                                        JS_ADD_MEMBER("body", l_body.c_str());
+                                        JS_ADD_MEMBER("body", l_body_buf);
                                 }
                         }
                         else
                         {
                                 JS_ADD_MEMBER("body", "NO_RESPONSE");
+                        }
+                        if(l_body_buf)
+                        {
+                                free(l_body_buf);
+                                l_body_buf = NULL;
                         }
                 }
 

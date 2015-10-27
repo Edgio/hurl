@@ -241,19 +241,18 @@ const kv_map_list_t &http_resp::get_headers(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &http_resp::get_body(void)
+int32_t http_resp::get_body(char **a_buf, uint32_t &a_len)
 {
-        if(!m_body.empty())
-        {
-                return m_body;
-        }
-        //NDBG_PRINT("m_p_body.m_ptr: %p len: %u\n", m_p_body.m_ptr, m_p_body.m_len);
-        if(m_p_body.m_ptr && m_p_body.m_len)
-        {
-                // Else parse...
-                m_body.assign(m_p_body.m_ptr, m_p_body.m_len);
-        }
-        return m_body;
+        // Read from offset
+        a_len = m_p_body.m_len;
+        m_q->reset_read();
+        uint32_t l_offset = (uint32_t)(m_p_body.m_ptr - m_q->b_read_ptr());
+        m_q->b_read_incr(l_offset);
+        NDBG_PRINT("MQ_READ: l_offset: %u\n", l_offset);
+        NDBG_PRINT("MQ_READ: a_len:    %u\n", a_len);
+        *a_buf = (char *)malloc(sizeof(char)*a_len);
+        m_q->read(*a_buf, a_len);
+        return a_len;
 }
 
 } //namespace ns_hlx {

@@ -1156,7 +1156,11 @@ int32_t t_hlx::append_summary(nconn *a_nconn, http_resp *a_resp)
                 (l_status == 901) ||
                 (l_status == 902))
         {
-                const std::string &l_body = a_resp->get_body();
+                char *l_buf = NULL;
+                uint32_t l_len;
+                a_resp->get_body(&l_buf, l_len);
+                std::string l_body;
+                l_body.assign(l_buf, l_len);
                 // Missing ca
                 if(l_body.find("unable to get local issuer certificate") != std::string::npos)
                 {
@@ -1173,6 +1177,11 @@ int32_t t_hlx::append_summary(nconn *a_nconn, http_resp *a_resp)
                         ++m_summary_info.m_ssl_error_self_signed;
                 }
                 ++m_summary_info.m_error_conn;
+                if(l_buf)
+                {
+                        free(l_buf);
+                        l_buf = NULL;
+                }
         }
         else if(l_status == 200)
         {
