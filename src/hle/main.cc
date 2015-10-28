@@ -1244,7 +1244,7 @@ int main(int argc, char** argv)
                         if(l_doc[i_record].HasMember("id")) l_host.m_id = l_doc[i_record]["id"].GetString();
                         else l_host.m_id = "NO_ID";
 
-                        if(l_doc[i_record].HasMember("where")) l_host.m_hostname = l_doc[i_record]["where"].GetString();
+                        if(l_doc[i_record].HasMember("where")) l_host.m_where = l_doc[i_record]["where"].GetString();
                         else l_host.m_where = "NO_WHERE";
 
                         l_host_list.push_back(l_host);
