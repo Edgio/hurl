@@ -798,8 +798,6 @@ std::string subreq::dump_all_responses_json(int a_part_map)
                         continue;
                 }
                 const kv_map_list_t &l_headers = l_resp->get_headers();
-
-
                 rapidjson::Value l_obj;
                 l_obj.SetObject();
                 bool l_content_type_json = false;
@@ -894,7 +892,7 @@ std::string subreq::dump_all_responses_json(int a_part_map)
 
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
                         char *l_body_buf = NULL;
-                        uint32_t l_body_len;
+                        uint32_t l_body_len = 0;
                         l_resp->get_body(&l_body_buf, l_body_len);
                         if(l_body_len)
                         {

@@ -243,6 +243,11 @@ const kv_map_list_t &http_resp::get_headers(void)
 //: ----------------------------------------------------------------------------
 int32_t http_resp::get_body(char **a_buf, uint32_t &a_len)
 {
+        if(!m_q)
+        {
+                a_len = 0;
+                return 0;
+        }
         // Read from offset
         a_len = m_p_body.m_len;
         m_q->reset_read();
