@@ -534,7 +534,7 @@ int32_t subreq::create_request(subreq &a_subreq, http_req &a_req)
                 l_path_ref += "?";
                 l_path_ref += a_subreq.m_query;
         }
-        //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
+        //NDBG_PRINT("HOST: %s PATH: %s\n", a_subreq.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
                         "%s %.500s HTTP/1.1", a_subreq.m_verb.c_str(), l_path_ref.c_str());
 
@@ -571,7 +571,14 @@ int32_t subreq::create_request(subreq &a_subreq, http_req &a_req)
         // -------------------------------------------
         if (!l_specd_host)
         {
-                a_req.write_header("Host", a_subreq.m_host.c_str());
+                if(!a_subreq.m_hostname.empty())
+                {
+                        a_req.write_header("Host", a_subreq.m_hostname.c_str());
+                }
+                else
+                {
+                        a_req.write_header("Host", a_subreq.m_host.c_str());
+                }
         }
 
         // -------------------------------------------
@@ -840,6 +847,10 @@ std::string subreq::dump_all_responses_json(int a_part_map)
                         if(!(*i_rx)->m_where.empty())
                         {
                                 JS_ADD_MEMBER("where", (*i_rx)->m_where.c_str());
+                        }
+                        if(!(*i_rx)->m_port != 0)
+                        {
+                                l_obj.AddMember("port", (*i_rx)->m_port, l_js_allocator);
                         }
                 }
 

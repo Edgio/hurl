@@ -1227,26 +1227,21 @@ int main(int argc, char** argv)
                                                 l_host_file_json_str.c_str());
                                 return STATUS_ERROR;
                         }
-
                         ns_hlx::host_t l_host;
-
                         // "host" : "coolhost.com:443",
                         // "hostname" : "coolhost.com",
                         // "id" : "DE4D",
                         // "where" : "my_house"
-
                         if(l_doc[i_record].HasMember("host")) l_host.m_host = l_doc[i_record]["host"].GetString();
                         else l_host.m_host = "NO_HOST";
-
                         if(l_doc[i_record].HasMember("hostname")) l_host.m_hostname = l_doc[i_record]["hostname"].GetString();
                         else l_host.m_hostname = "NO_HOSTNAME";
-
                         if(l_doc[i_record].HasMember("id")) l_host.m_id = l_doc[i_record]["id"].GetString();
                         else l_host.m_id = "NO_ID";
-
                         if(l_doc[i_record].HasMember("where")) l_host.m_where = l_doc[i_record]["where"].GetString();
                         else l_host.m_where = "NO_WHERE";
-
+                        if(l_doc[i_record].HasMember("port")) l_host.m_port = l_doc[i_record]["port"].GetUint();
+                        else l_host.m_port = 80;
                         l_host_list.push_back(l_host);
                 }
 

@@ -124,12 +124,14 @@ typedef struct host_struct {
         std::string m_id;
         std::string m_where;
         std::string m_url;
+        uint16_t m_port;
         host_struct():
                 m_host(),
                 m_hostname(),
                 m_id(),
                 m_where(),
-                m_url()
+                m_url(),
+                m_port(0)
         {};
 } host_t;
 

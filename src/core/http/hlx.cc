@@ -282,6 +282,11 @@ void hlx::add_subreq_t(subreq &a_subreq)
                                 {
                                         l_subreq.m_where = i_h->m_where;
                                 }
+                                if(i_h->m_port != 0)
+                                {
+                                        l_subreq.m_port = i_h->m_port;
+                                }
+
                                 l_subreq.m_parent = &a_subreq;
                                 l_subreq.set_completion_cb(child_subreq_completion_cb);
                                 l_subreq.set_error_cb(child_subreq_error_cb);

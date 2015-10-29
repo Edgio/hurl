@@ -962,7 +962,7 @@ int32_t t_hlx::evr_loop_file_timeout_cb(void *a_data)
         http_data_t *l_data = static_cast<http_data_t *>(l_nconn->get_data());
         CHECK_FOR_NULL_ERROR(l_data->m_ctx);
         t_hlx *l_t_hlx = static_cast<t_hlx *>(l_data->m_ctx);
-        //NDBG_PRINT("Timer: %p\n",l_data->m_timer_obj);
+        //NDBG_PRINT("%sTIMEOUT%s HOST: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_nconn->m_host.c_str());
         if(l_nconn->is_free())
         {
                 return STATUS_OK;
