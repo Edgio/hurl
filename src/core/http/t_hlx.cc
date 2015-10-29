@@ -404,7 +404,7 @@ int32_t t_hlx::start_subrequest(subreq &a_subreq, nconn &a_nconn)
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_subreq.m_host.c_str(), a_nconn.get_data());
         l_status = a_nconn.nc_run_state_machine(m_evr_loop, nconn::NC_MODE_WRITE);
         a_nconn.bump_num_requested();
-        if(l_status == STATUS_ERROR)
+        if(l_status == nconn::NC_STATUS_ERROR)
         {
                 //NDBG_PRINT("Error: Performing nc_run_state_machine. l_status: %d\n", l_status);
                 //++(m_num_error);
@@ -598,7 +598,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
 
         int32_t l_status = STATUS_OK;
         l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop, nconn::NC_MODE_WRITE);
-        if(l_status == STATUS_ERROR)
+        if(l_status == nconn::NC_STATUS_ERROR)
         {
                 if(l_data->m_type == HTTP_DATA_TYPE_CLIENT)
                 {
@@ -685,11 +685,11 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         {
                 // Returns new client fd on success
                 l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop, nconn::NC_MODE_NONE);
-                if(l_status < 0)
+                if(l_status == nconn::NC_STATUS_ERROR)
                 {
-                        //NDBG_PRINT("Error: performing run_state_machine\n");
                         return STATUS_ERROR;
                 }
+
                 int l_fd = l_status;
                 // Get new connected client conn
                 nconn *l_new_nconn = NULL;
@@ -747,7 +747,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         //NDBG_PRINT("l_http_resp->m_complete: %d\n", l_data->m_http_resp.m_complete);
                         if((l_nconn->is_done()) ||
                            (l_data->m_http_resp.m_complete) ||
-                           (l_status == STATUS_ERROR))
+                           (l_status == nconn::NC_STATUS_ERROR))
                         {
                                 //NDBG_PRINT("l_done: %d -- l_status: %d --proxy size: %d\n", l_done, l_status, (int)l_t_hlx->m_nconn_proxy_pool.get_nconn_obj_pool().used_size());
                                 // Get request time
@@ -757,20 +757,14 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 }
                                 l_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_data->m_status_code);
                                 l_nconn->reset_stats();
+                                if(l_status == nconn::NC_STATUS_ERROR)
+                                {
 
-                                // Subrequest...
-                                if(l_data->m_http_req.m_subreq)
-                                {
-                                        bool l_complete = l_t_hlx->subreq_complete(*l_data->m_http_req.m_subreq, *l_nconn);
-                                        if(l_complete)
+                                        // Subrequest...
+                                        if(l_data->m_http_req.m_subreq)
                                         {
-                                                l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
-                                                l_data->m_timer_obj = NULL;
-                                                return STATUS_OK;
+                                                l_data->m_http_req.m_subreq->m_error_cb(*l_nconn, *(l_data->m_http_req.m_subreq));
                                         }
-                                }
-                                if(l_status == STATUS_ERROR)
-                                {
                                         //NDBG_PRINT("Error: performing run_state_machine l_status: %d\n", l_status);
                                         //l_subreq->set_response(901, l_nconn->m_last_error.c_str());
                                         ++(l_t_hlx->m_stat.m_num_errors);
@@ -781,6 +775,18 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 }
                                 else
                                 {
+                                        // Subrequest...
+                                        if(l_data->m_http_req.m_subreq)
+                                        {
+                                                bool l_complete = l_t_hlx->subreq_complete(*l_data->m_http_req.m_subreq, *l_nconn);
+                                                if(l_complete)
+                                                {
+                                                        l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
+                                                        l_data->m_timer_obj = NULL;
+                                                        return STATUS_OK;
+                                                }
+                                        }
+
                                         // Display...
                                         if(l_t_hlx->m_conf.m_verbose)
                                         {
@@ -893,7 +899,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 l_data->m_timer_obj = NULL;
                                 return STATUS_OK;
                         }
-                        else if(l_status == STATUS_ERROR)
+                        else if(l_status == nconn::NC_STATUS_ERROR)
                         {
                                 l_t_hlx->cleanup_connection(*l_nconn, l_data->m_timer_obj, l_data->m_type);
                                 l_data->m_timer_obj = NULL;
@@ -1220,6 +1226,9 @@ int32_t t_hlx::append_summary(nconn *a_nconn, http_resp *a_resp)
                 void *l_protocol;
                 a_nconn->get_opt(nconn_ssl::OPT_SSL_INFO_PROTOCOL_STR, &l_protocol, NULL);
                 a_resp->m_ssl_info_protocol_str = (const char *)l_protocol;
+
+                //NDBG_PRINT("(const char *)l_cipher:   %s\n", (const char *)l_cipher);
+                //NDBG_PRINT("(const char *)l_protocol: %s\n", (const char *)l_protocol);
 
                 // TODO Flag for summary???
                 // Add to summary...

@@ -848,7 +848,7 @@ std::string subreq::dump_all_responses_json(int a_part_map)
                         {
                                 JS_ADD_MEMBER("where", (*i_rx)->m_where.c_str());
                         }
-                        if(!(*i_rx)->m_port != 0)
+                        if((*i_rx)->m_port != 0)
                         {
                                 l_obj.AddMember("port", (*i_rx)->m_port, l_js_allocator);
                         }

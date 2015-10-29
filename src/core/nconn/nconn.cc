@@ -60,7 +60,7 @@ state_top:
                 if(l_status != NC_STATUS_OK)
                 {
                         NDBG_PRINT("Error performing ncsetup\n");
-                        return STATUS_ERROR;
+                        return NC_STATUS_ERROR;
                 }
 
                 // TODO -check for errors
@@ -85,7 +85,7 @@ state_top:
                 if(l_status < 0)
                 {
                         //NDBG_PRINT("Error performing ncaccept\n");
-                        return STATUS_ERROR;
+                        return NC_STATUS_ERROR;
                 }
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status);
                 // Returning client fd
@@ -103,7 +103,7 @@ state_top:
                 if(l_status == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing ncconnect for host: %s.\n", m_host.c_str());
-                        return STATUS_ERROR;
+                        return NC_STATUS_ERROR;
                 }
                 if(is_connecting())
                 {
@@ -135,12 +135,12 @@ state_top:
                 if(l_status == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing ncaccept\n");
-                        return STATUS_ERROR;
+                        return NC_STATUS_ERROR;
                 }
                 if(is_accepting())
                 {
                         //NDBG_PRINT("Still connecting...\n");
-                        return STATUS_OK;
+                        return NC_STATUS_OK;
                 }
                 m_nc_state = NC_STATE_CONNECTED;
                 goto state_top;
@@ -151,7 +151,7 @@ state_top:
         // -------------------------------------------------
         case NC_STATE_CONNECTED:
         {
-                int32_t l_status = STATUS_OK;
+                int32_t l_status = NC_STATUS_OK;
                 int32_t l_bytes = 0;
                 switch(a_mode)
                 {
@@ -162,7 +162,7 @@ state_top:
                         if(l_status == NC_STATUS_ERROR)
                         {
                                 //NDBG_PRINT("Error performing nc_read -host: %s\n", m_host.c_str());
-                                return STATUS_ERROR;
+                                return NC_STATUS_ERROR;
                         }
                         else if(l_status == NC_STATUS_EOF)
                         {
@@ -195,7 +195,7 @@ state_top:
                         if(l_status == NC_STATUS_ERROR)
                         {
                                 //NDBG_PRINT("Error performing nc_write\n");
-                                return STATUS_ERROR;
+                                return NC_STATUS_ERROR;
                         }
                         else if(l_status == NC_STATUS_EOF)
                         {
@@ -235,7 +235,7 @@ state_top:
                 break;
         }
         }
-        return STATUS_OK;
+        return NC_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

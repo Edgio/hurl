@@ -232,12 +232,12 @@ int32_t nconn_ssl::ssl_connect(void)
                 }
                 }
 
-
                 //ERR_print_errors_fp(stderr);
                 return NC_STATUS_ERROR;
         }
-        else if(1 == l_status)
+        else if(l_status == 1)
         {
+                //NDBG_PRINT("CONNECTED\n");
                 m_ssl_state = SSL_STATE_CONNECTED;
         }
 
@@ -815,7 +815,7 @@ ncconnect_state_top:
                         }
                         return NC_STATUS_OK;
                 }
-                else if(NC_STATUS_OK != l_status)
+                else if(l_status != NC_STATUS_OK)
                 {
                         return NC_STATUS_ERROR;
                 }
@@ -856,6 +856,10 @@ ncconnect_state_top:
                 int32_t l_protocol_num = get_ssl_info_protocol_num(m_ssl);
                 m_ssl_info_cipher_str = get_ssl_info_cipher_str(m_ssl);
                 m_ssl_info_protocol_str = get_ssl_info_protocol_str(l_protocol_num);
+
+                //NDBG_PRINT("m_ssl_info_cipher_str:   %s\n", m_ssl_info_cipher_str);
+                //NDBG_PRINT("m_ssl_info_protocol_str: %s\n", m_ssl_info_protocol_str);
+
                 if(m_ssl_opt_verify)
                 {
                         int32_t l_status = 0;
