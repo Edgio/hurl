@@ -1217,7 +1217,7 @@ int32_t t_hlx::append_summary(nconn *a_nconn, http_resp *a_resp)
                 ++m_summary_info.m_error_unknown;
         }
 
-        if((l_status < 900) && a_nconn && a_nconn->m_scheme == SCHEME_SSL)
+        if((l_status == 200) && a_nconn && a_nconn->m_scheme == SCHEME_SSL)
         {
                 void *l_cipher;
                 a_nconn->get_opt(nconn_ssl::OPT_SSL_INFO_CIPHER_STR, &l_cipher, NULL);
