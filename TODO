@@ -1,23 +1,16 @@
 0. Mac OS X support -evr_kqueue + eventfd analog.
 
 1. hle
-  a. fix addr resolution errors showing up as "successful" results.
-  b. verify hostnames
-  c. cert expiration error messages.
+  a. verify hostnames
+  b. cert expiration error messages.
 
 2. hlx_server.
   a. access logs
   b. http_req splitting -if read overlaps
   c. fix bad request -ie if requesting over ssl and listening on raw -or vice versa
-  d. disallow enqueue'ing multiple requests for the same conn
-  e. Catch+unit tests
-  f. blackbox tests
 
 3. hlo
   a. timeout errors with hlo test
   b. memory leaks?
-
-  ->Edge triggered examples:
- hlo "http://127.0.0.1:12345/TEST_FILE" -k -c -t1 -p10 -A10 -T2
- hss -p12345 -s -c
+  c. override User-Agent -not working -just appends...
 
