@@ -32,7 +32,6 @@
 #include <errno.h>
 #include <string.h>
 
-
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -40,7 +39,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode)
+int32_t nconn::nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode, nbq *a_in_q, nbq *a_out_q)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d --START\n",
         //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
@@ -98,11 +97,11 @@ state_top:
         case NC_STATE_CONNECTING:
         {
                 int32_t l_status;
-                //NDBG_PRINT("%sconnect%s... host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_host.c_str());
+                //NDBG_PRINT("%sConnecting%s: host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
                 l_status = ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        //NDBG_PRINT("Error performing ncconnect for host: %s.\n", m_host.c_str());
+                        //NDBG_PRINT("Error performing ncconnect for host: %s.\n", m_label.c_str());
                         return NC_STATUS_ERROR;
                 }
                 if(is_connecting())
@@ -110,7 +109,7 @@ state_top:
                         //NDBG_PRINT("Still connecting...\n");
                         return NC_STATUS_AGAIN;
                 }
-                //NDBG_PRINT("Connected: %s\n", m_host.c_str());
+                //NDBG_PRINT("%sConnected%s: host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
                 // Returning client fd
                 // If OK -change state to connected???
                 m_nc_state = NC_STATE_CONNECTED;
@@ -157,11 +156,11 @@ state_top:
                 {
                 case NC_MODE_READ:
                 {
-                        l_status = nc_read();
+                        l_status = nc_read(a_in_q);
                         //NDBG_PRINT("l_status: %d\n", l_status);
                         if(l_status == NC_STATUS_ERROR)
                         {
-                                //NDBG_PRINT("Error performing nc_read -host: %s\n", m_host.c_str());
+                                //NDBG_PRINT("Error performing nc_read -host: %s\n", m_label.c_str());
                                 return NC_STATUS_ERROR;
                         }
                         else if(l_status == NC_STATUS_EOF)
@@ -191,7 +190,7 @@ state_top:
                 }
                 case NC_MODE_WRITE:
                 {
-                        l_status = nc_write();
+                        l_status = nc_write(a_out_q);
                         if(l_status == NC_STATUS_ERROR)
                         {
                                 //NDBG_PRINT("Error performing nc_write\n");
@@ -243,12 +242,12 @@ state_top:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_read(void)
+int32_t nconn::nc_read(nbq *a_in_q)
 {
         //NDBG_PRINT("%sTRY_READ%s: \n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
-        if(!m_in_q)
+        if(!a_in_q)
         {
-                NDBG_PRINT("Error m_in_q == NULL\n");
+                NDBG_PRINT("Error a_in_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -260,18 +259,18 @@ int32_t nconn::nc_read(void)
         int32_t l_bytes_read = 0;
         int32_t l_total_read = 0;
         do {
-                if(m_in_q->b_write_avail() <= 0)
+                if(a_in_q->b_write_avail() <= 0)
                 {
-                        int32_t l_status = m_in_q->b_write_add_avail();
+                        int32_t l_status = a_in_q->b_write_add_avail();
                         if(l_status <= 0)
                         {
                                 NDBG_PRINT("Error performing b_write_add_avail\n");
                                 return NC_STATUS_ERROR;
                         }
                 }
-                uint32_t l_read_size = m_in_q->b_write_avail();
+                uint32_t l_read_size = a_in_q->b_write_avail();
                 //NDBG_PRINT("%sTRY_READ%s: l_read_size: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_read_size);
-                char *l_buf = m_in_q->b_write_ptr();
+                char *l_buf = a_in_q->b_write_ptr();
                 //NDBG_PRINT("%sTRY_READ%s: m_out_q->read_ptr(): %p m_out_q->read_avail(): %d\n",
                 //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
                 //                l_buf,
@@ -309,17 +308,18 @@ int32_t nconn::nc_read(void)
                 if(l_bytes_read > 0)
                 {
                         l_total_read += l_bytes_read;
+
                         //ns_hlx::mem_display((uint8_t *)(l_buf), l_bytes_read);
-                        m_in_q->b_write_incr(l_bytes_read);
                         if(m_read_cb)
                         {
-                                int32_t l_status = m_read_cb(m_data, l_buf, l_bytes_read);
+                                int32_t l_status = m_read_cb(m_data, l_buf, l_bytes_read, a_in_q->get_cur_write_offset());
                                 if(l_status != STATUS_OK)
                                 {
                                         NDBG_PRINT("Error performing m_read_cb\n");
                                         return NC_STATUS_ERROR;
                                 }
                         }
+                        a_in_q->b_write_incr(l_bytes_read);
                 }
                 //???
                 if((uint32_t)l_bytes_read < l_read_size)
@@ -336,16 +336,16 @@ int32_t nconn::nc_read(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_write(void)
+int32_t nconn::nc_write(nbq *a_out_q)
 {
         //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
-        if(!m_out_q)
+        if(!a_out_q)
         {
-                NDBG_PRINT("Error m_out_q == NULL\n");
+                NDBG_PRINT("Error a_out_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
 
-        if(!m_out_q->read_avail())
+        if(!a_out_q->read_avail())
         {
                 //NDBG_PRINT("Error l_write_size == %d\n", m_out_q->read_avail());
                 return 0;
@@ -363,7 +363,7 @@ int32_t nconn::nc_write(void)
                 //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                 //                m_out_q->b_read_ptr(),
                 //                m_out_q->b_read_avail());
-                l_bytes_written = ncwrite(m_out_q->b_read_ptr(), m_out_q->b_read_avail());
+                l_bytes_written = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
                 //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
                 if(l_bytes_written < 0)
                 {
@@ -373,7 +373,8 @@ int32_t nconn::nc_write(void)
                 if(m_write_cb &&
                   (l_bytes_written > 0))
                 {
-                        int32_t l_status = m_write_cb(m_data, m_out_q->b_read_ptr(), l_bytes_written);
+                        // TODO Unused???
+                        int32_t l_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_bytes_written, 0);
                         if(l_status != STATUS_OK)
                         {
                                 NDBG_PRINT("Error performing m_read_cb\n");
@@ -381,8 +382,8 @@ int32_t nconn::nc_write(void)
                         }
                 }
                 // and not error?
-                m_out_q->b_read_incr(l_bytes_written);
-        } while(l_bytes_written > 0 && m_out_q->read_avail());
+                a_out_q->b_read_incr(l_bytes_written);
+        } while(l_bytes_written > 0 && a_out_q->read_avail());
         return l_bytes_written;
 }
 
@@ -464,8 +465,6 @@ int32_t nconn::nc_cleanup()
                 return STATUS_ERROR;
         }
         m_data = NULL;
-        m_in_q = NULL;
-        m_out_q = NULL;
         return STATUS_OK;
 }
 
@@ -475,25 +474,23 @@ int32_t nconn::nc_cleanup()
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 nconn::nconn(void):
-              m_scheme(SCHEME_NONE),
-              m_host(),
-              m_stat(),
-              m_collect_stats_flag(false),
-              m_data(NULL),
-              m_connect_start_time_us(0),
-              m_request_start_time_us(0),
-              m_last_error(""),
-              m_host_info(),
-              m_num_reqs_per_conn(-1),
-              m_num_reqs(0),
-              m_connect_only(false),
-              m_in_q(NULL),
-              m_out_q(NULL),
-              m_nc_state(NC_STATE_FREE),
-              m_id(0),
-              m_idx(0),
-              m_read_cb(NULL),
-              m_write_cb(NULL)
+      m_scheme(SCHEME_NONE),
+      m_label(),
+      m_stat(),
+      m_collect_stats_flag(false),
+      m_data(NULL),
+      m_connect_start_time_us(0),
+      m_request_start_time_us(0),
+      m_last_error(""),
+      m_host_info(),
+      m_num_reqs_per_conn(-1),
+      m_num_reqs(0),
+      m_connect_only(false),
+      m_nc_state(NC_STATE_FREE),
+      m_id(0),
+      m_idx(0),
+      m_read_cb(NULL),
+      m_write_cb(NULL)
 {
         // Set stats
         if(m_collect_stats_flag)

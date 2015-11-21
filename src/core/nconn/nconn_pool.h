@@ -56,7 +56,7 @@ public:
         nconn_pool(int32_t a_size);
         ~nconn_pool();
         nconn * get(scheme_t a_scheme);
-        nconn * get_idle(const std::string &a_host, scheme_t a_scheme);
+        nconn * get_idle(const std::string &a_label);
         nconn *create_conn(scheme_t a_scheme);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);

@@ -21,7 +21,7 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 #ifndef URL_PARAM_MAP_T
 #define URL_PARAM_MAP_T
-typedef std::map <std::string, std::string> url_param_map_t;
+typedef std::map <std::string, std::string> url_pmap_t;
 #endif
 
 class node;
@@ -42,7 +42,7 @@ public:
         // Public members
         // -------------------------------------------------
         int32_t add_route(const std::string &a_route, const void *a_data);
-        const void *find_route(const std::string &a_route, url_param_map_t &ao_url_param_map);
+        const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
         void display(void);
 
 private:

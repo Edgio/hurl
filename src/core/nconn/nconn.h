@@ -29,6 +29,7 @@
 #include "ndebug.h"
 #include "req_stat.h"
 #include "nbq.h"
+#include "resolver.h"
 
 #include "hlx/hlx.h"
 #include "http_parser/http_parser.h"
@@ -94,7 +95,6 @@ class nconn
 {
 public:
         typedef enum status_enum {
-
                 NC_STATUS_FREE = -1,
                 NC_STATUS_OK = -2,
                 NC_STATUS_AGAIN = -3,
@@ -102,21 +102,18 @@ public:
                 NC_STATUS_UNSUPPORTED = -5,
                 NC_STATUS_EOF = -6,
                 NC_STATUS_NONE = -7
-
         } status_t;
 
         typedef enum mode_enum {
-
                 NC_MODE_READ = 0,
                 NC_MODE_WRITE,
                 NC_MODE_NONE
-
         } mode_t;
 
         // -------------------------------------------------
         // Successful read/write callbacks
         // -------------------------------------------------
-        typedef int32_t (*nconn_cb_t)(void *, char *, uint32_t);
+        typedef int32_t (*nconn_cb_t)(void *, char *, uint32_t, uint64_t);
 
         // -------------------------------------------------
         // Public methods
@@ -135,9 +132,14 @@ public:
         // Getters
         uint64_t get_id(void) {return m_id;}
         uint32_t get_idx(void) {return m_idx;}
+        const std::string &get_label(void) {return m_label;}
+        scheme_t get_scheme(void) {return m_scheme;}
+        bool get_collect_stats_flag(void) {return m_collect_stats_flag;}
+        uint64_t get_request_start_time_us(void) {return m_request_start_time_us;}
+        uint64_t get_stat_tt_connect_us(void) {return m_stat.m_tt_connect_us;}
 
         // Setters
-        void set_host(const std::string &a_host) {m_host = a_host;}
+        void set_label(const std::string &a_label) {m_label = a_label;}
         void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
         void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;}
@@ -146,12 +148,10 @@ public:
         void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
         void set_read_cb(nconn_cb_t a_cb) {m_read_cb = a_cb;}
         void set_write_cb(nconn_cb_t a_cb) {m_write_cb = a_cb;}
-
-        // Q's
-        void set_in_q(nbq *a_q) { m_in_q = a_q;};
-        void set_out_q(nbq *a_q) { m_out_q = a_q;};
-        nbq *get_in_q(void) { return m_in_q;};
-        nbq *get_out_q(void) { return m_out_q;};
+        void set_collect_stats_flag(bool a_val) {m_collect_stats_flag = a_val;}
+        void set_request_start_time_us(uint64_t a_val) {m_request_start_time_us = a_val;}
+        void set_stat_tt_completion_us(uint64_t a_val){ m_stat.m_tt_completion_us = a_val;}
+        void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
 
         // State
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
@@ -160,9 +160,9 @@ public:
         bool can_reuse(void);
 
         // Running
-        int32_t nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode);
-        int32_t nc_read(void);
-        int32_t nc_write(void);
+        int32_t nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
+        int32_t nc_read(nbq *a_in_q);
+        int32_t nc_write(nbq *a_out_q);
         int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
         int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
@@ -178,18 +178,6 @@ public:
         virtual bool is_accepting(void) = 0;
         virtual bool is_free(void) = 0;
 
-        // -------------------------------------------------
-        // Public members
-        // -------------------------------------------------
-        // TODO hide this!
-        scheme_t m_scheme;
-        std::string m_host;
-        req_stat_t m_stat;
-        bool m_collect_stats_flag;
-        void *m_data;
-        uint64_t m_connect_start_time_us;
-        uint64_t m_request_start_time_us;
-        std::string m_last_error;
 protected:
         // -------------------------------------------------
         // Protected Virtual methods
@@ -206,13 +194,18 @@ protected:
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
+        scheme_t m_scheme;
+        std::string m_label;
+        req_stat_t m_stat;
+        bool m_collect_stats_flag;
+        void *m_data;
+        uint64_t m_connect_start_time_us;
+        uint64_t m_request_start_time_us;
+        std::string m_last_error;
         host_info_t m_host_info;
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;
-
-        nbq *m_in_q;
-        nbq *m_out_q;
 
 private:
         // ---------------------------------------

@@ -52,11 +52,48 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nbq::write(const char *a_buf, uint32_t a_len)
+nbq::nbq(uint32_t a_bsize):
+        m_cur_write_offset(0),
+        m_cur_block_write_ptr(NULL),
+        m_cur_block_write_avail(0),
+        m_cur_write_block(),
+        m_cur_read_offset(0),
+        m_cur_block_read_ptr(NULL),
+        m_cur_read_block(),
+        m_total_read_avail(0),
+        m_bsize(a_bsize),
+        m_q()
+{
+        //NDBG_PRINT("%sCONSTR%s: this: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, this);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nbq::~nbq(void)
+{
+        //NDBG_PRINT("%sDELETE%s: this: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, this);
+        for(nb_list_t::iterator i_block = m_q.begin(); i_block != m_q.end(); ++i_block)
+        {
+                if(*i_block)
+                {
+                        delete *i_block;
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int64_t nbq::write(const char *a_buf, uint64_t a_len)
 {
         CHECK_FOR_NULL_AND_LEN(a_buf, a_len);
-        uint32_t l_left = a_len;
-        uint32_t l_written = 0;
+        uint64_t l_left = a_len;
+        uint64_t l_written = 0;
         const char *l_buf = a_buf;
         while(l_left)
         {
@@ -86,26 +123,31 @@ int32_t nbq::write(const char *a_buf, uint32_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nbq::read(char *a_buf, uint32_t a_len)
+int64_t nbq::read(char *a_buf, uint64_t a_len)
 {
-        CHECK_FOR_NULL_AND_LEN(a_buf, a_len);
-        uint32_t l_read = 0;
+        if(!a_len)
+        {
+                return 0;
+        }
+        uint64_t l_read = 0;
         char *l_buf = a_buf;
-        uint32_t l_total_read_avail = read_avail();
-        uint32_t l_left = (a_len > l_total_read_avail)?l_total_read_avail:a_len;
+        uint64_t l_total_read_avail = read_avail();
+        uint64_t l_left = (a_len > l_total_read_avail)?l_total_read_avail:a_len;
         while(l_left)
         {
                 uint32_t l_read_avail = b_read_avail();
                 uint32_t l_read_size = (l_left > l_read_avail)?l_read_avail:l_left;
-
                 //NDBG_PRINT("l_left:       %u\n", l_left);
                 //NDBG_PRINT("l_read_avail: %u\n", l_read_avail);
                 //NDBG_PRINT("l_read_size:  %u\n", l_read_size);
-
-                memcpy(l_buf, b_read_ptr(), l_read_size);
+                if(l_buf)
+                {
+                        //NDBG_PRINT("l_buf: %p b_read_ptr(): %p l_read_size: %u\n", l_buf, b_read_ptr(), l_read_size);
+                        memcpy(l_buf, b_read_ptr(), l_read_size);
+                        l_buf += l_read_size;
+                }
                 b_read_incr(l_read_size);
                 l_left -= l_read_size;
-                l_buf += l_read_size;
                 l_read += l_read_size;
         }
         return l_read;
@@ -116,8 +158,46 @@ int32_t nbq::read(char *a_buf, uint32_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+uint64_t nbq::read_seek(uint64_t a_off)
+{
+        uint64_t l_d = 0;
+        if(a_off > m_cur_read_offset)
+        {
+                l_d = a_off - m_cur_read_offset;
+        }
+        else if(a_off < m_cur_read_offset)
+        {
+                reset_read();
+                l_d = m_cur_read_offset;
+        }
+        if(l_d)
+        {
+                // fast fwd
+                read(NULL, l_d);
+                // TODO check for errors?
+        }
+        return a_off;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t nbq::read_from(uint64_t a_off, char *a_buf, uint64_t a_len)
+{
+        read_seek(a_off);
+        return read(a_buf, a_len);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void nbq::reset_read(void)
 {
+        m_cur_read_offset = 0;
         m_cur_read_block = m_q.begin();
         m_cur_block_read_ptr = NULL;
         m_total_read_avail = 0;
@@ -138,6 +218,7 @@ void nbq::reset_write(void)
 {
         if(!m_q.empty())
         {
+                m_cur_write_offset = 0;
                 m_cur_write_block = m_q.begin();
                 m_cur_block_write_avail = (*m_cur_write_block)->m_len;
                 m_cur_block_write_ptr = (*m_cur_write_block)->m_data;
@@ -161,10 +242,12 @@ void nbq::reset(void)
                 }
         }
         m_q.clear();
+        m_cur_write_offset = 0;
+        m_cur_write_block = m_q.begin();
         m_cur_block_write_ptr = NULL;
         m_cur_block_write_avail = 0;
-        m_cur_write_block = m_q.begin();
         m_cur_block_read_ptr = NULL;
+        m_cur_read_offset = 0;
         m_cur_read_block = m_q.begin();
         m_total_read_avail = 0;
 }
@@ -231,6 +314,7 @@ void nbq::b_write_incr(uint32_t a_len)
         //                a_len,
         //                (int)m_cur_block_write_avail, m_cur_block_write_ptr, (int)m_total_read_avail);
 
+        m_cur_write_offset += a_len;
         m_cur_block_write_avail -= a_len;
         m_cur_block_write_ptr += a_len;
         m_total_read_avail += a_len;
@@ -262,11 +346,13 @@ void nbq::b_read_incr(uint32_t a_len)
         m_total_read_avail -= a_len;
         l_avail -= a_len;
         m_cur_block_read_ptr += a_len;
+        m_cur_read_offset += a_len;
         //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %u l_avail: %d m_total_read_avail: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
         if(!l_avail && m_total_read_avail)
         {
                 ++m_cur_read_block;
                 m_cur_block_read_ptr = (*m_cur_read_block)->m_data;
+                m_cur_read_offset += a_len;
         }
 }
 
@@ -301,41 +387,6 @@ void nbq::b_display_all(void)
                 NDBG_OUTPUT("| Block: %d\n", i_block_num);
                 NDBG_OUTPUT("+------------------------------------+\n");
                 mem_display((const uint8_t *)((*i_block)->m_data), (*i_block)->m_len);
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-nbq::nbq(uint32_t a_bsize):
-        m_cur_block_write_ptr(NULL),
-        m_cur_block_write_avail(0),
-        m_cur_write_block(),
-        m_cur_block_read_ptr(NULL),
-        m_cur_read_block(),
-        m_total_read_avail(0),
-        m_bsize(a_bsize),
-        m_q()
-{
-        //NDBG_PRINT("%sCONSTR%s: this: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, this);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-nbq::~nbq(void)
-{
-        //NDBG_PRINT("%sDELETE%s: this: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, this);
-        for(nb_list_t::iterator i_block = m_q.begin(); i_block != m_q.end(); ++i_block)
-        {
-                if(*i_block)
-                {
-                        delete *i_block;
-                }
         }
 }
 
@@ -387,6 +438,38 @@ nb_struct::~nb_struct()
                 m_data = NULL;
         }
         m_len = 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: Utils...
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+char *copy_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
+{
+        char *l_buf = (char *)malloc(sizeof(char)*a_len + 1);
+        a_nbq.read_from(a_off, l_buf, a_len);
+        l_buf[a_len] = '\0';
+        return l_buf;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void print_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
+{
+        char *l_buf = copy_part(a_nbq, a_off, a_len);
+        NDBG_OUTPUT("%.*s", (int)a_len, l_buf);
+        if(l_buf)
+        {
+                free(l_buf);
+                l_buf = NULL;
+        }
 }
 
 } // ns_hlx

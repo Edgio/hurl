@@ -46,6 +46,8 @@ public:
                 OPT_TCP_SEND_BUF_SIZE = 1,
                 OPT_TCP_NO_DELAY = 2,
 
+                OPT_TCP_FD = 100,
+
                 OPT_TCP_SENTINEL = 999
         } tcp_opt_t;
 

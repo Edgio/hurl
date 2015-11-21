@@ -20,7 +20,7 @@
 # ------------------------------------------------------------------------------
 
 # Project setup
-project(hlo)
+project(hlx_examples)
 cmake_minimum_required(VERSION 2.6.0)
 
 # header files to install
@@ -55,3 +55,11 @@ add_executable(fanout fanout.cc)
 add_dependencies(fanout hlxcore)
 SET_TARGET_PROPERTIES(fanout PROPERTIES OUTPUT_NAME "fanout")
 target_link_libraries(fanout ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+
+# ----------------------------------------------------------
+# file_server
+# ----------------------------------------------------------
+#add_executable(file_server file_server.cc)
+#add_dependencies(file_server hlxcore)
+#SET_TARGET_PROPERTIES(file_server PROPERTIES OUTPUT_NAME "file_server")
+#target_link_libraries(file_server ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})

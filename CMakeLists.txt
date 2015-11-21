@@ -20,7 +20,7 @@
 # ------------------------------------------------------------------------------
 
 # Project setup
-project(hlo)
+project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
 # Set install prefix
@@ -110,8 +110,8 @@ endif()
 EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_VERSION "1.3.0-${DISTRIBUTION}")
-SET(CPACK_PACKAGE_FILE_NAME "hlo-${CPACK_DEBIAN_PACKAGE_VERSION}-Linux")
-SET(CPACK_DEBIAN_PACKAGE_NAME "hlo")
+SET(CPACK_PACKAGE_FILE_NAME "hlx-${CPACK_DEBIAN_PACKAGE_VERSION}-Linux")
+SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")

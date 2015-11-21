@@ -75,19 +75,19 @@ TEST_CASE( "url router test", "[url_router]" )
                 };
                 for(uint32_t i_find = 0; i_find < ARRAY_SIZE(l_find_ptr_pairs); ++i_find)
                 {
-                        ns_hlx::url_param_map_t l_url_param_map;
+                        ns_hlx::url_pmap_t l_url_pmap;
                         const void *l_found = NULL;
                         std::string l_request_route;
                         l_request_route = l_find_ptr_pairs[i_find].m_route;
                         INFO("Finding route: " << l_request_route);
-                        l_found = l_url_router.find_route(l_request_route, l_url_param_map);
+                        l_found = l_url_router.find_route(l_request_route, l_url_pmap);
                         REQUIRE((l_found == l_find_ptr_pairs[i_find].m_data));
 
                         // TODO Check for parameters
                         //if(l_found != NULL)
                         //{
-                        //        for(ns_hlx::url_param_map_t::const_iterator i_param = l_url_param_map.begin();
-                        //                        i_param != l_url_param_map.end();
+                        //        for(ns_hlx::url_pmap_t::const_iterator i_param = l_url_pmap.begin();
+                        //                        i_param != l_url_pmap.end();
                         //                        ++i_param)
                         //        {
                         //                printf(": Parameter: %s: %s\n", i_param->first.c_str(), i_param->second.c_str());
@@ -103,12 +103,12 @@ TEST_CASE( "url router test", "[url_router]" )
                 };
                 for(uint32_t i_find = 0; i_find < ARRAY_SIZE(l_find_ptr_pairs); ++i_find)
                 {
-                        ns_hlx::url_param_map_t l_url_param_map;
+                        ns_hlx::url_pmap_t l_url_pmap;
                         const void *l_found = NULL;
                         std::string l_request_route;
                         l_request_route = l_find_ptr_pairs[i_find].m_route;
                         INFO("Finding route: " << l_request_route);
-                        l_found = l_url_router.find_route(l_request_route, l_url_param_map);
+                        l_found = l_url_router.find_route(l_request_route, l_url_pmap);
                         REQUIRE((l_found == NULL));
                 }
         }

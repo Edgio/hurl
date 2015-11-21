@@ -61,12 +61,17 @@ public:
         nbq(uint32_t a_bsize);
         ~nbq();
 
+        // Getters
+        uint64_t get_cur_write_offset(void) { return m_cur_write_offset;}
+
         // Writing...
-        int32_t write(const char *a_buf, uint32_t a_len);
+        int64_t write(const char *a_buf, uint64_t a_len);
 
         // Reading
-        int32_t read(char *a_buf, uint32_t a_len);
-        uint32_t read_avail(void) {return m_total_read_avail;}
+        int64_t read(char *a_buf, uint64_t a_len);
+        uint64_t read_seek(uint64_t a_off);
+        uint64_t read_from(uint64_t a_off, char *a_buf, uint64_t a_len);
+        uint64_t read_avail(void) {return m_total_read_avail;}
 
         // Resetting...
         void reset_read(void);
@@ -99,16 +104,18 @@ private:
         // Private members
         // -------------------------------------------------
         // Write...
+        uint64_t m_cur_write_offset;
         char *m_cur_block_write_ptr;
         uint32_t m_cur_block_write_avail;
         nb_list_t::iterator m_cur_write_block;
 
         // Read...
+        uint64_t m_cur_read_offset;
         char *m_cur_block_read_ptr;
         nb_list_t::iterator m_cur_read_block;
 
         // Totals
-        uint32_t m_total_read_avail;
+        uint64_t m_total_read_avail;
 
         // Block size
         uint32_t m_bsize;
@@ -116,6 +123,12 @@ private:
         // Block list
         nb_list_t m_q;
 };
+
+//: ----------------------------------------------------------------------------
+//: Utils
+//: ----------------------------------------------------------------------------
+char *copy_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len);
+void print_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len);
 
 } // ns_hlx
 

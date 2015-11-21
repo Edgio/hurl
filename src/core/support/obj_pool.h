@@ -101,9 +101,10 @@ public:
                         if(*i_obj)
                         {
                                 delete *i_obj;
+                                *i_obj = NULL;
                         }
-                        *i_obj = NULL;
                 }
+                m_obj_vec.clear();
         }
 
         //void set_delete_cb(delete_cb_t a_delete_cb, void *a_o_1)

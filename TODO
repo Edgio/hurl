@@ -1,16 +1,24 @@
-0. Mac OS X support -evr_kqueue + eventfd analog.
+0. General
+  a. Mac OS X support -evr_kqueue + eventfd analog.
+  b. Fix stats stdev/var -very busted atm.
 
-1. hle
-  a. verify hostnames
-  b. cert expiration error messages.
+1. phurl
+  a. fix addr resolution errors showing up as "successful" results.
+  b. verify hostnames
+  c. cert expiration error messages.
 
-2. hlx_server.
+2. hlx.
   a. access logs
   b. http_req splitting -if read overlaps
   c. fix bad request -ie if requesting over ssl and listening on raw -or vice versa
 
-3. hlo
-  a. timeout errors with hlo test
+3. hurl
+  a. timeout errors with hurl test
   b. memory leaks?
   c. override User-Agent -not working -just appends...
+
+  ->Edge triggered examples:
+ hurl "http://127.0.0.1:12345/TEST_FILE" -k -c -t1 -p10 -A10 -T2
+ hss -p12345 -s -c
+  
 

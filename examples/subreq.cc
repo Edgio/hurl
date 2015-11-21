@@ -1,72 +1,71 @@
 //: ----------------------------------------------------------------------------
 //: hlx_server example:
 //: compile with:
-//:   g++ hlx_server_ex.cc -lhlxcore -lssl -lcrypto -lpthread -o hlx_server_ex
+//:   g++ subreq.cc -lhlxcore -lssl -lcrypto -lpthread -o subreq
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>
 
-class twootter_getter: public ns_hlx::default_http_request_handler
+class twootter_getter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        int32_t do_get(ns_hlx::hlx &a_hlx,
-                       ns_hlx::nconn &a_nconn,
-                       ns_hlx::http_req &a_request,
-                       const ns_hlx::url_param_map_t &a_url_param_map,
-                       ns_hlx::http_resp &ao_resp)
+        ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
+                                ns_hlx::hconn &a_hconn,
+                                ns_hlx::rqst &a_rqst,
+                                const ns_hlx::url_pmap_t &a_url_pmap)
         {
-                // https://api.twitter.com/1.1/statuses/lookup.json
-                ns_hlx::subreq &l_subreq = a_hlx.create_subreq("twootter_subreq");
-                l_subreq.init_with_url("https://api.twitter.com/1.1/statuses/lookup.json");
-                //l_subreq.init_with_url("http://127.0.0.1:8089/TEST_FILE");
-                l_subreq.set_completion_cb(completion_cb);
-                l_subreq.set_header("User-Agent", "hlx");
-                l_subreq.set_header("Accept", "*/*");
-                l_subreq.set_req_conn(&a_nconn);
-                l_subreq.set_req_resp(&ao_resp);
-                l_subreq.set_keepalive(true);
-                l_subreq.set_num_reqs_per_conn(100);
-                a_hlx.add_subreq(l_subreq);
-                return 0;
+                ns_hlx::subr &l_subr = a_hlx.create_subr();
+                l_subr.init_with_url("https://api.twitter.com/1.1/statuses/lookup.json");
+                l_subr.set_completion_cb(s_completion_cb);
+                l_subr.set_header("User-Agent", "hlx");
+                l_subr.set_header("Accept", "*/*");
+                l_subr.set_keepalive(true);
+                a_hlx.queue_subr(&a_hconn, l_subr);
+                return ns_hlx::H_RESP_DONE;
         }
 
         // Completion
-        static int32_t completion_cb(ns_hlx::nconn &a_nconn,
-                                     ns_hlx::subreq &a_subreq,
-                                     ns_hlx::http_resp &a_subreq_resp)
+        static int32_t s_completion_cb(ns_hlx::hlx &a_hlx,
+                                       ns_hlx::subr &a_subr,
+                                       ns_hlx::nconn &a_nconn,
+                                       ns_hlx::resp &a_resp)
         {
-                ns_hlx::nconn *l_req_nconn = a_subreq.get_req_conn();
-                if(!l_req_nconn)
-                {
-                        printf("Error getting subrequest requester connection.\n");
-                        return -1;
-                }
-
-                char l_len_str[64];
+                // Get body of resp
                 char *l_buf = NULL;
-                uint32_t l_len;
-                a_subreq_resp.get_body(&l_buf, l_len);
-                sprintf(l_len_str, "%u", l_len);
-                ns_hlx::http_resp &l_resp = *(a_subreq.get_req_resp());
-                l_resp.write_status(ns_hlx::HTTP_STATUS_OK);
-                l_resp.write_header("Content-Length", l_len_str);
-                l_resp.write_body(l_buf, l_len);
+                uint64_t l_len;
+                a_resp.get_body_allocd(&l_buf, l_len);
+
+                // Create length string
+                char l_len_str[64];
+                sprintf(l_len_str, "%lu", l_len);
+
+                // Create resp
+                ns_hlx::api_resp &l_api_resp = a_hlx.create_api_resp();
+                l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
+                l_api_resp.set_header("Content-Length", l_len_str);
+                l_api_resp.set_body_data(l_buf, l_len);
+
+                // Queue
+                a_hlx.queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
+
+                // Free memory
                 if(l_buf)
                 {
                         free(l_buf);
                         l_buf = NULL;
                 }
+
                 return 0;
         }
 };
 
 int main(void)
 {
-        ns_hlx::listener *l_listener = new ns_hlx::listener(12345, ns_hlx::SCHEME_TCP);
-        l_listener->add_endpoint("/twootter", new twootter_getter());
+        ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
+        l_lsnr->add_endpoint("/twootter", new twootter_getter());
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->add_listener(l_listener);
+        l_hlx->add_lsnr(l_lsnr);
         l_hlx->set_num_threads(0);
         //l_hlx->set_verbose(true);
         //l_hlx->set_color(true);

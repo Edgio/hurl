@@ -350,7 +350,7 @@ public:
         edge *find_edge(node *a_node, const pattern_t &a_pattern);
         edge *append_edge(node *a_node, const pattern_t &a_pattern);
         void append_edge(edge *a_edge);
-        const void *find_route(const std::string &a_route, url_param_map_t &ao_url_param_map);
+        const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
         void display(uint32_t a_indent);
 
         // -------------------------------------------------
@@ -384,7 +384,7 @@ public:
         edge(const pattern_t &a_pattern, node *a_child);
         ~edge();
         node *branch(uint32_t a_offset);
-        bool match_route(const std::string &a_route, url_param_map_t &ao_url_param_map, std::string &ao_suffix);
+        bool match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std::string &ao_suffix);
 
         // -------------------------------------------------
         // Public members
@@ -460,7 +460,7 @@ node *edge::branch(uint32_t a_offset)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool edge::match_route(const std::string &a_route, url_param_map_t &ao_url_param_map, std::string &ao_suffix)
+bool edge::match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std::string &ao_suffix)
 {
 
         //NDBG_PRINT("%sMATCH_ROUTE%s: route: %s edge: %s\n",
@@ -486,7 +486,7 @@ bool edge::match_route(const std::string &a_route, url_param_map_t &ao_url_param
                         }
                         std::string l_val = std::string(l_route_ptr, i_char);
                         //NDBG_PRINT("%sSETKX%s:       %s %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, i_part->m_str.c_str(), l_val.c_str());
-                        ao_url_param_map[i_part->m_str] = l_val;
+                        ao_url_pmap[i_part->m_str] = l_val;
                         l_route_ptr += i_char;
                 }
                 else if(i_part->m_type == PART_TYPE_STRING)
@@ -954,14 +954,14 @@ void node::display(uint32_t a_indent)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const void *node::find_route(const std::string &a_route, url_param_map_t &ao_url_param_map)
+const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap)
 {
         //NDBG_PRINT("Find route: %s\n", a_route.c_str());
 
         for(edge_list_t::const_iterator i_edge = m_edge_list.begin(); i_edge != m_edge_list.end(); ++i_edge)
         {
 
-                url_param_map_t l_url_param_map;
+                url_pmap_t l_url_param_map;
 
                 std::string l_suffix;
                 const void *l_data;
@@ -983,11 +983,11 @@ const void *node::find_route(const std::string &a_route, url_param_map_t &ao_url
                         if(!l_suffix.length())
                         {
                                 // TODO better way to update map???
-                                for(url_param_map_t::const_iterator i_arg = l_url_param_map.begin();
+                                for(url_pmap_t::const_iterator i_arg = l_url_param_map.begin();
                                                 i_arg != l_url_param_map.end();
                                                 ++i_arg)
                                 {
-                                        ao_url_param_map[i_arg->first] = i_arg->second;
+                                        ao_url_pmap[i_arg->first] = i_arg->second;
                                         //NDBG_PRINT("Parameter: %s: %s\n", i_arg->first.c_str(), i_arg->second.c_str());
                                 }
 
@@ -1000,11 +1000,11 @@ const void *node::find_route(const std::string &a_route, url_param_map_t &ao_url
                         {
 
                                 // TODO better way to update map???
-                                for(url_param_map_t::const_iterator i_arg = l_url_param_map.begin();
+                                for(url_pmap_t::const_iterator i_arg = l_url_param_map.begin();
                                                 i_arg != l_url_param_map.end();
                                                 ++i_arg)
                                 {
-                                        ao_url_param_map[i_arg->first] = i_arg->second;
+                                        ao_url_pmap[i_arg->first] = i_arg->second;
                                         //NDBG_PRINT("Parameter: %s: %s\n", i_arg->first.c_str(), i_arg->second.c_str());
                                 }
 
@@ -1079,14 +1079,14 @@ int32_t url_router::add_route(const std::string &a_route, const void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const void *url_router::find_route(const std::string &a_route, url_param_map_t &ao_url_param_map)
+const void *url_router::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap)
 {
         const void *l_data = NULL;
         if(!m_root_node)
         {
                 return NULL;
         }
-        l_data = m_root_node->find_route(a_route, ao_url_param_map);
+        l_data = m_root_node->find_route(a_route, ao_url_pmap);
         return l_data;
 }
 

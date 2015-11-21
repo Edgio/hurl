@@ -1,37 +1,39 @@
 //: ----------------------------------------------------------------------------
 //: hlx_server example:
 //: compile with:
-//:   g++ hlx_server_ex.cc -lhlxcore -lssl -lcrypto -lpthread -o hlx_server_ex
+//:   g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>
 
-class bananas_getter: public ns_hlx::default_http_request_handler
+class bananas_getter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        int32_t do_get(ns_hlx::hlx &a_hlx,
-                       ns_hlx::nconn &a_nconn,
-                       ns_hlx::http_req &a_request,
-                       const ns_hlx::url_param_map_t &a_url_param_map,
-                       ns_hlx::http_resp &ao_resp)
+        ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
+                                ns_hlx::hconn &a_hconn,
+                                ns_hlx::rqst &a_rqst,
+                                const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 char l_len_str[64];
                 uint32_t l_body_len = strlen("Hello World\n");
                 sprintf(l_len_str, "%u", l_body_len);
-                ao_resp.write_status(ns_hlx::HTTP_STATUS_OK);
-                ao_resp.write_header("Content-Length", l_len_str);
-                ao_resp.write_body("Hello World\n", l_body_len);
-                return 0;
+                ns_hlx::api_resp &l_api_resp = a_hlx.create_api_resp();
+                l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
+                l_api_resp.set_header("Content-Length", l_len_str);
+                l_api_resp.set_body_data("Hello World\n", l_body_len);
+                a_hlx.queue_api_resp(a_hconn, l_api_resp);
+                return ns_hlx::H_RESP_DONE;
         }
 };
 
 int main(void)
 {
-        ns_hlx::listener *l_listener = new ns_hlx::listener(13345, ns_hlx::SCHEME_TCP);
-        l_listener->add_endpoint("/bananas", new bananas_getter());
+        ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(13345, ns_hlx::SCHEME_TCP);
+        ns_hlx::rqst_h *l_rqst_h = new bananas_getter();
+        l_lsnr->add_endpoint("/bananas", l_rqst_h);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->add_listener(l_listener);
+        l_hlx->add_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
         l_hlx->set_num_threads(0);
         l_hlx->run();

@@ -4,18 +4,18 @@
 ## What are they
 A few utilities for testing and curling from http servers.
 
-## *hlo* HTTP Server Load Tester
-*hlo* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hlo* is primarily useful for benchmarking http server applications.
+## *hurl* HTTP Server Load Tester
+*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
 
 * **A little more about URLs Ranges**:
-*hlo* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hlo* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
+*hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
 eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html".
 
 * **Stats API**:
-If  *hlo* is started with *-P port_number* option,  *hlo* listens on the user specified port for stats requests:
-For example if hlo is run with:
+If  *hurl* is started with *-P port_number* option,  *hurl* listens on the user specified port for stats requests:
+For example if hurl is run with:
 ```bash
-~>hlo "http://127.0.0.1:8089/index.html" -P12345
+~>hurl "http://127.0.0.1:8089/index.html" -P12345
 Running 1 parallel connections with: 1 reqs/conn, 1 threads
 +-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+
 |    Cmpltd /     Total |    IdlKil |    Errors | kBytes Recvd |   Elapsed |       Req/s |      MB/s |
@@ -28,7 +28,7 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 |     15737 /     15737 |         0 |         0 |     13047.57 |     1.20s |   13030.00s |    10.55s |
 ...
 ```
-*hlo* can be queried:
+*hurl* can be queried:
 ```bash
 ~>curl -s http://127.0.0.1:12345 | json_pp
 {
@@ -46,12 +46,12 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 
 ####An example
 ```bash
-hlo "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
+hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 ```
 
 ####Options
 ```bash
-Usage: hlo [http[s]://]hostname[:port]/path [options]
+Usage: hurl [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help          Display this help and exit.
   -r, --version       Display the version number and exit.
@@ -94,17 +94,17 @@ Stat Options:
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
-## *hle* Parallel Curl
-*hle* is a parallel curling utility useful for pulling a single url from many different hosts. *hle* supports reading line delimited hosts from stdin, a shell command string, or a file.
+## *phurl* Parallel Curl
+*phurl* is a parallel curling utility useful for pulling a single url from many different hosts. *phurl* supports reading line delimited hosts from stdin, a shell command string, or a file.
 
 ####An example
 ```bash
-printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | hle -p2 -t3 -u"https://bloop.com/" -s -c -T5
+printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"https://bloop.com/" -s -c -T5
 ```
 
 ####Options
 ```bash
-Usage: hle -u [http[s]://]hostname[:port]/path [options]
+Usage: phurl -u [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help           Display this help and exit.
   -r, --version        Display the version number and exit.
@@ -166,32 +166,34 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 #include <hlx/hlx.h>
 #include <string.h>
 
-class bananas_getter: public ns_hlx::default_http_request_handler
+class bananas_getter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        int32_t do_get(ns_hlx::hlx &a_hlx,
-                       ns_hlx::nconn &a_nconn,
-                       ns_hlx::http_req &a_request,
-                       const ns_hlx::url_param_map_t &a_url_param_map,
-                       ns_hlx::http_resp &ao_resp)
+        ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
+                                ns_hlx::hconn &a_hconn,
+                                ns_hlx::rqst &a_rqst,
+                                const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 char l_len_str[64];
                 uint32_t l_body_len = strlen("Hello World\n");
                 sprintf(l_len_str, "%u", l_body_len);
-                ao_resp.write_status(ns_hlx::HTTP_STATUS_OK);
-                ao_resp.write_header("Content-Length", l_len_str);
-                ao_resp.write_body("Hello World\n", l_body_len);
-                return 0;
+                ns_hlx::api_resp &l_api_resp = a_hlx.create_api_resp();
+                l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
+                l_api_resp.set_header("Content-Length", l_len_str);
+                l_api_resp.set_body_data("Hello World\n", l_body_len);
+                a_hlx.queue_api_resp(a_hconn, l_api_resp);
+                return ns_hlx::H_RESP_DONE;
         }
 };
 
 int main(void)
 {
-        ns_hlx::listener *l_listener = new ns_hlx::listener(13345, ns_hlx::SCHEME_TCP);
-        l_listener->add_endpoint("/bananas", new bananas_getter());
+        ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(13345, ns_hlx::SCHEME_TCP);
+        ns_hlx::rqst_h *l_rqst_h = new bananas_getter();
+        l_lsnr->add_endpoint("/bananas", l_rqst_h);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->add_listener(l_listener);
+        l_hlx->add_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
         l_hlx->set_num_threads(0);
         l_hlx->run();

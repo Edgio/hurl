@@ -106,12 +106,22 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
 //: ----------------------------------------------------------------------------
 evr_loop::~evr_loop(void)
 {
+        // Clean out timer q
+        while(!m_timer_pq.empty())
+        {
+                evr_timer_event_t *l_timer_event = m_timer_pq.top();
+                if(l_timer_event)
+                {
+                        delete l_timer_event;
+                        l_timer_event = NULL;
+                }
+                m_timer_pq.pop();
+        }
         if(m_epoll_event_vector)
         {
                 free(m_epoll_event_vector);
                 m_epoll_event_vector = NULL;
         }
-
         if(m_evr)
         {
                 delete m_evr;
