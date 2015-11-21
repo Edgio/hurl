@@ -244,7 +244,7 @@ public:
 
 int main(void)
 {
-        ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(13345, ns_hlx::SCHEME_TCP);
+        ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         l_lsnr->add_endpoint("/fanout", new fanout_getter());
         l_lsnr->add_endpoint("/quit", new quitter());
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
