@@ -9,7 +9,6 @@
 #include <list>
 //#include <google/profiler.h>
 
-
 typedef std::set <uint64_t> resp_uid_set_t;
 
 typedef struct host_struct {
@@ -185,8 +184,8 @@ public:
                     ++i_resp)
                 {
                         char *l_status_buf = NULL;
-                        asprintf(&l_status_buf, "STATUS: %u\n", (*i_resp)->m_resp->get_status());
-                        strncat(l_buf, l_status_buf, 2048);
+                        int l_as_len = asprintf(&l_status_buf, "STATUS: %u\n", (*i_resp)->m_resp->get_status());
+                        strncat(l_buf, l_status_buf, l_as_len);
                         free(l_status_buf);
                 }
                 uint64_t l_len = strnlen(l_buf, 2048);
