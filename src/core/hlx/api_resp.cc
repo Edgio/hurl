@@ -95,6 +95,19 @@ int32_t nbq_write_header(nbq &ao_q,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t nbq_write_header(nbq &ao_q,
+                         const char *a_key_buf,
+                         const char *a_val_buf)
+{
+        nbq_write_header(ao_q, a_key_buf, strlen(a_key_buf), a_val_buf, strlen(a_val_buf));
+        return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
         ao_q.write("\r\n", strlen("\r\n"));

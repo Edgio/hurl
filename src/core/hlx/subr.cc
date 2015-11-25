@@ -411,7 +411,7 @@ void subr::reset_label(void)
         }
         m_server_label += m_host;
         char l_port_str[16];
-        snprintf(l_port_str, 16, "%u", m_port);
+        snprintf(l_port_str, 16, ":%u", m_port);
         m_server_label += l_port_str;
 }
 

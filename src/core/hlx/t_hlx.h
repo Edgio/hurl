@@ -46,7 +46,9 @@
 namespace ns_hlx {
 
 typedef obj_pool <hconn> hconn_pool_t;
-typedef std::queue<hconn *> hconn_queue_t;
+typedef obj_pool <resp> resp_pool_t;
+typedef obj_pool <rqst> rqst_pool_t;
+typedef obj_pool <nbq> nbq_pool_t;
 class url_router;
 
 //: ----------------------------------------------------------------------------
@@ -80,6 +82,7 @@ public:
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t add_subr(subr &a_subr);
         int32_t queue_output(hconn &a_hconn);
+        int32_t queue_api_resp(api_resp &a_api_resp, hconn &a_hconn);
 
         // -------------------------------------------------
         // Public members
@@ -149,10 +152,12 @@ private:
         scheme_t m_scheme;
         listening_nconn_list_t m_listening_nconn_list;
         subr_queue_t m_subr_queue;
-        hconn_queue_t m_hconn_output_queue;
 
         default_rqst_h m_default_rqst_h;
         hconn_pool_t m_hconn_pool;
+        resp_pool_t m_resp_pool;
+        rqst_pool_t m_rqst_pool;
+        nbq_pool_t m_nbq_pool;
         t_stat_t m_stat;
 
         // Subrequest support

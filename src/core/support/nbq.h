@@ -66,6 +66,7 @@ public:
 
         // Writing...
         int64_t write(const char *a_buf, uint64_t a_len);
+        int64_t write_fd(int a_fd, uint64_t a_len);
 
         // Reading
         int64_t read(char *a_buf, uint64_t a_len);
@@ -77,6 +78,9 @@ public:
         void reset_read(void);
         void reset_write(void);
         void reset(void);
+
+        // Shrink -free all read blocks
+        void shrink(void);
 
         // Print
         void print(void);
@@ -94,6 +98,11 @@ public:
 
         // Debugging display all
         void     b_display_all(void);
+
+        // For use with obj pool
+        uint64_t get_idx(void) {return m_idx;}
+        void set_idx(uint64_t a_idx) {m_idx = a_idx;}
+
 private:
         // -------------------------------------------------
         // Private methods
@@ -122,6 +131,10 @@ private:
 
         // Block list
         nb_list_t m_q;
+
+        // For use with obj pool
+        uint64_t m_idx;
+
 };
 
 //: ----------------------------------------------------------------------------

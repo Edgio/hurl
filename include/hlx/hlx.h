@@ -231,6 +231,7 @@ public:
         // API Responses
         api_resp &create_api_resp(void);
         int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
+        int32_t queue_resp(hconn &a_hconn);
 
         // Running...
         int32_t run(void);
@@ -320,6 +321,8 @@ public:
         nbq *get_q(void);
         char *get_body_allocd(char **ao_buf, uint64_t &ao_len);
         kv_map_list_t *get_headers_allocd();
+        uint64_t get_idx(void);
+        void set_idx(uint64_t a_idx);
 
         // Setters
         void set_q(nbq *a_q);
@@ -354,6 +357,7 @@ protected:
         // -------------------------------------------------
         type_t m_type;
         nbq *m_q;
+        uint64_t m_idx;
 
 private:
         // -------------------------------------------------
@@ -737,6 +741,7 @@ private:
 int32_t nbq_write_request_line(nbq &ao_q, const char *a_buf, uint32_t a_len);
 int32_t nbq_write_status(nbq &ao_q, http_status_t a_status);
 int32_t nbq_write_header(nbq &ao_q, const char *a_key_buf, uint32_t a_key_len, const char *a_val_buf, uint32_t a_val_len);
+int32_t nbq_write_header(nbq &ao_q, const char *a_key_buf, const char *a_val_buf);
 int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len);
 
 //: ----------------------------------------------------------------------------

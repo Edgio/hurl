@@ -1036,7 +1036,18 @@ node::node():
 //: -----------------------------------------------------------------------------
 node::~node()
 {
-
+        // Walk the edge list deleting any nodes
+        for(edge_list_t::iterator i_e = m_edge_list.begin(); i_e != m_edge_list.end(); ++i_e)
+        {
+                if(*i_e)
+                {
+                        if((*i_e)->m_child)
+                        {
+                                delete (*i_e)->m_child;
+                        }
+                        delete *i_e;
+                }
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -1118,7 +1129,10 @@ url_router::url_router(void):
 //: ----------------------------------------------------------------------------
 url_router::~url_router(void)
 {
-
+        if(m_root_node)
+        {
+                delete m_root_node;
+        }
 }
 
 

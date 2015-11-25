@@ -1,24 +1,7 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2015 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    main.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    05/28/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
+//: file server example:
+//: compile with:
+//:   g++ files.cc -lhlxcore -lssl -lcrypto -lpthread -o files
 //: ----------------------------------------------------------------------------
 
 //: ----------------------------------------------------------------------------
@@ -122,7 +105,8 @@ class file_getter: public ns_hlx::default_rqst_h
                                 ns_hlx::rqst &a_rqst,
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
-                return get_file(a_hconn, a_rqst, a_rqst.get_path(), ao_api_resp);
+                //printf("GET_PATH: %s\n", a_rqst.get_path().c_str());
+                return get_file(a_hlx, a_hconn, a_rqst, a_rqst.get_path());
         }
 };
 
@@ -327,7 +311,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 {
 
         // print out the version information
-        fprintf(a_stream, "hss HSS Simpler Server.\n");
+        fprintf(a_stream, "hlx Simple File Server.\n");
         fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
                         HSS_VERSION_MAJOR,
@@ -353,7 +337,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "Server Options:\n");
-        fprintf(a_stream, "  -p, --port           Server port -defaults to 23456.\n");
+        fprintf(a_stream, "  -p, --port           Server port -defaults to 12345.\n");
         fprintf(a_stream, "  -t, --threads        Number of server threads.\n");
         fprintf(a_stream, "  \n");
 
@@ -375,9 +359,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Debug Options:\n");
         fprintf(a_stream, "  -G, --gprofile       Google cpu profiler output file\n");
         fprintf(a_stream, "  -H, --hprofile       Google heap profiler output file\n");
-#endif
-
         fprintf(a_stream, "\n");
+#endif
 
         exit(a_exit_code);
 
@@ -428,7 +411,7 @@ int main(int argc, char** argv)
         std::string l_gprof_file;
         std::string l_hprof_file;
         bool l_show_status = false;
-        uint16_t l_server_port = 23456;
+        uint16_t l_server_port = 12345;
         ns_hlx::scheme_t l_scheme = ns_hlx::SCHEME_TCP;
         std::string l_tls_key;
         std::string l_tls_crt;
@@ -719,7 +702,11 @@ int main(int argc, char** argv)
                 delete l_hlx;
                 l_hlx = NULL;
         }
-
+        if(l_file_getter)
+        {
+                delete l_file_getter;
+                l_file_getter = NULL;
+        }
         return 0;
 
 }

@@ -230,7 +230,7 @@ int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tcp::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
@@ -280,7 +280,7 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
         //NDBG_PRINT("%swrite%s: buf: %p fd: %d len: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
@@ -290,9 +290,24 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
         //NDBG_PRINT("write: status: %d\n", l_status);
         if(l_status < 0)
         {
-                NDBG_PRINT("LABEL[%s]: Error: performing write.  Reason: %s.\n", m_label.c_str(), strerror(errno));
-                //NCONN_ERROR("LABEL[%s]: Error: performing write.  Reason: %s.\n", m_label.c_str(), strerror(errno));
-                return NC_STATUS_ERROR;
+                if(errno == EAGAIN)
+                {
+                        // Add to writeable
+                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                                    EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                                    this))
+                        {
+                                //NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                return NC_STATUS_ERROR;
+                        }
+                        return NC_STATUS_AGAIN;
+                }
+                else
+                {
+                        //NDBG_PRINT("LABEL[%s]: Error: performing write.  Reason: %s.\n", m_label.c_str(), strerror(errno));
+                        //NCONN_ERROR("LABEL[%s]: Error: performing write.  Reason: %s.\n", m_label.c_str(), strerror(errno));
+                        return NC_STATUS_ERROR;
+                }
         }
         // TODO REMOVE
         //else if((uint32_t)l_status < a_buf_len)
@@ -350,13 +365,13 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
         const int flags = fcntl(m_fd, F_GETFL, 0);
         if (flags == -1)
         {
-                NCONN_ERROR("LABEL[%s]: Error getting flags for fd. Reason: %s\n", m_label.c_str(), strerror(errno));
+                //NCONN_ERROR("LABEL[%s]: Error getting flags for fd. Reason: %s\n", m_label.c_str(), strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
         if (fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
-                NCONN_ERROR("LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n", m_label.c_str(), strerror(errno));
+                //NCONN_ERROR("LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n", m_label.c_str(), strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
@@ -364,7 +379,7 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
                                     EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                     this))
         {
-                NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                //NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
                 return NC_STATUS_ERROR;
         }
 

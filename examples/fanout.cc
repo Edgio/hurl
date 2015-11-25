@@ -1,5 +1,5 @@
 //: ----------------------------------------------------------------------------
-//: hlx_server example:
+//: fanout example:
 //: compile with:
 //:   g++ fanout.cc -lhlxcore -lssl -lcrypto -lpthread -o fanout
 //: ----------------------------------------------------------------------------
@@ -211,7 +211,6 @@ public:
                 m_subr_template(),
                 m_host_list()
         {
-
                 // Setup host list
                 host_t l_host;
                 l_host.m_host = "www.yahoo.com";

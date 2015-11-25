@@ -67,6 +67,7 @@ public:
                 idx_t l_idx = m_obj_vec.size() - 1;
                 a_obj->set_idx(l_idx);
                 m_used_idx_set.insert(l_idx);
+
         }
         void release(_Tp *a_obj)
         {

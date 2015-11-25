@@ -28,6 +28,10 @@
 //: ----------------------------------------------------------------------------
 #include "http_parser.h"
 #include "evr.h"
+
+// TODO TEST
+#include "file.h"
+
 #include "hlx/hlx.h"
 #include "ndebug.h"
 
@@ -76,6 +80,9 @@ public:
         subr *m_subr;
         uint64_t m_idx;
 
+        // TODO Test
+        filesender *m_fs;
+
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
 
@@ -96,7 +103,10 @@ public:
                 m_in_q(NULL),
                 m_out_q(NULL),
                 m_subr(NULL),
-                m_idx(0)
+                m_idx(0),
+
+                // TODO TEST
+                m_fs(NULL)
         {};
 
 private:

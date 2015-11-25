@@ -69,6 +69,56 @@ namespace ns_hlx {
         } while(0);
 
 //: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+typedef obj_pool <nbq> nbq_pool_t;
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+template <typename T> bool get_from_pool_if_null(T* &ao_obj, obj_pool<T> &a_pool)
+{
+        bool l_new = false;
+        if(!ao_obj)
+        {
+                // TODO Make function
+                ao_obj = a_pool.get_free();
+                if(!ao_obj)
+                {
+                        ao_obj = new T();
+                        a_pool.add(ao_obj);
+                        l_new = true;
+                }
+        }
+        return l_new;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+template <>
+bool get_from_pool_if_null<nbq>(nbq* &ao_obj, obj_pool<nbq> &a_pool)
+{
+        bool l_new = false;
+        if(!ao_obj)
+        {
+                // TODO Make function
+                ao_obj = a_pool.get_free();
+                if(!ao_obj)
+                {
+                        ao_obj = new nbq(16384);
+                        a_pool.add(ao_obj);
+                        l_new = true;
+                }
+        }
+        return l_new;
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -84,9 +134,11 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_scheme(SCHEME_TCP),
         m_listening_nconn_list(),
         m_subr_queue(),
-        m_hconn_output_queue(),
         m_default_rqst_h(),
         m_hconn_pool(),
+        m_resp_pool(),
+        m_rqst_pool(),
+        m_nbq_pool(),
         m_stat(),
         m_subr_q_fd(-1),
         m_subr_q_nconn(NULL),
@@ -120,29 +172,15 @@ t_hlx::~t_hlx()
                         *i_conn = NULL;
                 }
         }
-        while(m_hconn_pool.free_size())
+        while(!m_subr_queue.empty())
         {
-                hconn *l_hconn = m_hconn_pool.get_free();
-                if(l_hconn)
+                subr *l_subr = m_subr_queue.front();
+                if(l_subr)
                 {
-                        if(l_hconn->m_hmsg)
-                        {
-                                delete l_hconn->m_hmsg;
-                                l_hconn->m_hmsg = NULL;
-                        }
-                        if(l_hconn->m_in_q)
-                        {
-                                delete l_hconn->m_in_q;
-                                l_hconn->m_in_q = NULL;
-                        }
-                        if(l_hconn->m_out_q)
-                        {
-                                delete l_hconn->m_out_q;
-                                l_hconn->m_out_q = NULL;
-                        }
+                        delete l_subr;
                 }
+                m_subr_queue.pop();
         }
-        m_listening_nconn_list.clear();
 }
 
 //: ----------------------------------------------------------------------------
@@ -254,6 +292,21 @@ int32_t t_hlx::add_subr(subr &a_subr)
         return STATUS_OK;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_hlx::queue_api_resp(api_resp &a_api_resp, hconn &a_hconn)
+{
+        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool))
+        {
+                a_hconn.m_out_q->reset_write();
+        }
+        a_api_resp.serialize(*a_hconn.m_out_q);
+        evr_loop_file_writeable_cb(a_hconn.m_nconn);
+        return STATUS_OK;
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -262,12 +315,7 @@ int32_t t_hlx::add_subr(subr &a_subr)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::queue_output(hconn &a_hconn)
 {
-        //NDBG_PRINT("Adding subreq.\n");
-        m_hconn_output_queue.push(&a_hconn);
-        if(m_evr_loop)
-        {
-                m_evr_loop->signal_control();
-        }
+        evr_loop_file_writeable_cb(a_hconn.m_nconn);
         return STATUS_OK;
 }
 
@@ -289,7 +337,7 @@ nconn *t_hlx::get_proxy_conn(const host_info_t &a_host_info,
         l_nconn = m_nconn_proxy_pool.get_idle(a_label);
         if(!l_nconn)
         {
-                // Try get a new connection
+                // Try get a connection
                 l_nconn = m_nconn_proxy_pool.get(a_scheme);
                 if(!l_nconn)
                 {
@@ -330,36 +378,43 @@ int32_t t_hlx::start_subr(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
         //                a_subr.get_label().c_str(),
         //                &a_nconn);
-        if(!a_hconn.m_hmsg)
+        resp *l_resp = static_cast<resp *>(a_hconn.m_hmsg);
+        if(a_subr.get_detach_resp())
         {
-                // TODO Reuse from pool ???
-                a_hconn.m_hmsg = new resp();
+                if(!l_resp)
+                {
+                        l_resp = new resp();
+                }
+                else
+                {
+                        l_resp->clear();
+                }
         }
         else
         {
-                a_hconn.m_hmsg->clear();
+                if(!get_from_pool_if_null(l_resp, m_resp_pool))
+                {
+                        l_resp->clear();
+                }
         }
+        a_hconn.m_hmsg = l_resp;
 
         // Create request
         if(!a_subr.get_connect_only())
         {
-                // -----------------------------------------------------------
-                // TODO create q pool... -this is gonna leak...
-                // -----------------------------------------------------------
-                if(!a_hconn.m_in_q)
+                if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool))
                 {
-                        a_hconn.m_in_q = new nbq(16384);
-                }
-                else
-                {
-                        // Reset in data
                         a_hconn.m_in_q->reset_write();
                 }
+
                 a_hconn.m_hmsg->set_q(a_hconn.m_in_q);
 
                 if(!a_hconn.m_out_q)
                 {
-                        a_hconn.m_out_q = new nbq(16384);
+                        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool))
+                        {
+                                a_hconn.m_out_q->reset_write();
+                        }
                         subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
                         if(l_create_req_cb)
                         {
@@ -461,34 +516,18 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
         l_nconn->set_data(l_hconn);
         l_nconn->set_read_cb(http_parse);
         l_hconn->m_nconn = l_nconn;
+        rqst *l_rqst = static_cast<rqst *>(l_hconn->m_hmsg);
+        if(!get_from_pool_if_null(l_rqst, m_rqst_pool))
+        {
+                l_rqst->clear();
+        }
+        l_hconn->m_hmsg = l_rqst;
 
-        // -----------------------------------------------------------
-        // TODO create q pool... -this is gonna leak...
-        // -----------------------------------------------------------
-        if(!l_hconn->m_hmsg)
+        if(!get_from_pool_if_null(l_hconn->m_in_q, m_nbq_pool))
         {
-                // TODO Reuse from pool ???
-                l_hconn->m_hmsg = new rqst();
-        }
-        else
-        {
-                l_hconn->m_hmsg->clear();
-        }
-
-        // -----------------------------------------------------------
-        // TODO create q pool... -this is gonna leak...
-        // -----------------------------------------------------------
-        if(!l_hconn->m_in_q)
-        {
-                l_hconn->m_in_q = new nbq(16384);
-        }
-        else
-        {
-                // Reset in data
                 l_hconn->m_in_q->reset_write();
         }
         l_hconn->m_hmsg->set_q(l_hconn->m_in_q);
-
         ++m_stat.m_cur_conn_count;
         ++m_stat.m_num_conn_started;
         return l_nconn;
@@ -573,6 +612,14 @@ bool t_hlx::subr_complete(hconn &a_hconn)
                 a_hconn.m_hmsg = NULL;
                 a_hconn.m_in_q = NULL;
         }
+        else
+        {
+                if(a_hconn.m_subr->get_type() != SUBR_TYPE_DUPE)
+                {
+                        delete a_hconn.m_subr;
+                        a_hconn.m_subr = NULL;
+                }
+        }
         return l_complete;
 }
 
@@ -608,56 +655,95 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
         l_hconn->m_timer_obj = NULL;
 
         // Get timeout ms
-        uint32_t l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
-
-        int32_t l_status = STATUS_OK;
-        l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop, nconn::NC_MODE_WRITE, l_hconn->m_in_q, l_hconn->m_out_q);
-        if(l_status == nconn::NC_STATUS_ERROR)
-        {
-                if((l_hconn->m_type == DATA_TYPE_CLIENT) &&
-                    l_hconn->m_subr)
-                {
-                        subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
-                        if(l_error_cb)
-                        {
-                                l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_hconn->m_subr, *l_nconn);
-                        }
-                }
-                l_t_hlx->cleanup_hconn(*l_hconn);
-                return STATUS_ERROR;
-        }
-
-        if((l_hconn->m_type == DATA_TYPE_CLIENT) &&
-            l_hconn->m_subr)
+        uint32_t l_timeout_ms = 0;
+        if(l_hconn->m_subr)
         {
                 l_timeout_ms = l_hconn->m_subr->get_timeout_s()*1000;
-                // Get request time
-                if(!l_nconn->get_request_start_time_us() && l_nconn->get_collect_stats_flag())
-                {
-                        l_nconn->set_request_start_time_us(get_time_us());
-                }
         }
-        if(l_nconn->is_done())
+        else
         {
-                if((l_hconn->m_type == DATA_TYPE_CLIENT) &&
-                    l_hconn->m_hmsg &&
-                   (l_hconn->m_hmsg->get_type() == hmsg::TYPE_RESP) &&
-                    l_hconn->m_subr)
+                l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
+        }
+
+        int32_t l_status = STATUS_OK;
+        do {
+                l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop, nconn::NC_MODE_WRITE, l_hconn->m_in_q, l_hconn->m_out_q);
+                //NDBG_PRINT("l_status: %d\n", l_status);
+                if(l_hconn->m_fs)
                 {
-                        bool l_complete = l_t_hlx->subr_complete(*l_hconn);
-                        if(l_complete)
+                        if(!l_hconn->m_out_q->read_avail())
                         {
-                                l_t_hlx->cleanup_hconn(*l_hconn);
-                                return STATUS_OK;
+                                l_hconn->m_fs->fsread(*(l_hconn->m_out_q), 32768);
+                                if(l_hconn->m_fs->fsdone())
+                                {
+                                        delete l_hconn->m_fs;
+                                        l_hconn->m_fs = NULL;
+                                }
                         }
                 }
-                else if(l_hconn->m_type == DATA_TYPE_SERVER)
+                else if(l_hconn->m_subr)
+                {
+                        // Get request time
+                        if(!l_nconn->get_request_start_time_us() && l_nconn->get_collect_stats_flag())
+                        {
+                                l_nconn->set_request_start_time_us(get_time_us());
+                        }
+                        if(l_status == nconn::NC_STATUS_ERROR)
+                        {
+                                subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
+                                if(l_error_cb)
+                                {
+                                        l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_hconn->m_subr, *l_nconn);
+                                }
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_ERROR;
+                        }
+                        else if(l_nconn->is_done())
+                        {
+                                bool l_complete = l_t_hlx->subr_complete(*l_hconn);
+                                if(l_complete)
+                                {
+                                        l_t_hlx->cleanup_hconn(*l_hconn);
+                                        return STATUS_OK;
+                                }
+                                else
+                                {
+                                        return STATUS_OK;
+                                }
+                        }
+                } else
+                {
+                        if(l_status == nconn::NC_STATUS_ERROR)
+                        {
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_ERROR;
+                        }
+                }
+
+                if(l_nconn->is_done() || (l_status == nconn::NC_STATUS_EOF))
                 {
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_OK;
                 }
-                return STATUS_OK;
-        }
+
+                if(!l_hconn->m_out_q->read_avail() && (l_hconn->m_type == DATA_TYPE_SERVER))
+                {
+                        if(!l_hconn->m_hmsg->m_supports_keep_alives)
+                        {
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_OK;
+                        }
+                        // No data left to send
+                        break;
+                }
+                else
+                {
+                        if(l_status == 0)
+                        {
+                                break;
+                        }
+                }
+        } while((l_status != nconn::NC_STATUS_AGAIN) && (!l_t_hlx->m_stopped));
 
         // Add idle timeout
         l_t_hlx->m_evr_loop->add_timer(l_timeout_ms, evr_loop_file_timeout_cb, l_nconn, &(l_hconn->m_timer_obj));
@@ -709,14 +795,9 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         return STATUS_ERROR;
                 }
 
-                // Setup input q
-                if(l_hconn->m_in_q)
+                if(!get_from_pool_if_null(l_hconn->m_in_q, l_t_hlx->m_nbq_pool))
                 {
                         l_hconn->m_in_q->reset();
-                }
-                else
-                {
-                        l_hconn->m_in_q = new nbq(16384);
                 }
 
                 // Set connected
@@ -735,8 +816,17 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         //NDBG_PRINT("nconn host: %s --l_hconn->m_type: %d\n", l_nconn->m_host.c_str(), l_hconn->m_type);
 
         // Get timeout ms
-        uint32_t l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
-        if(l_hconn->m_type == DATA_TYPE_CLIENT && l_hconn->m_subr)
+        uint32_t l_timeout_ms = 0;
+        if(l_hconn->m_subr)
+        {
+                l_timeout_ms = l_hconn->m_subr->get_timeout_s()*1000;
+        }
+        else
+        {
+                l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
+        }
+
+        if(l_hconn->m_subr)
         {
                 resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
                 int32_t l_status = STATUS_OK;
@@ -754,7 +844,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         }
                         if(l_status == nconn::NC_STATUS_EOF)
                         {
-                                goto hconn_cleanup_ok;
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_OK;
                         }
 
                         l_timeout_ms = l_hconn->m_subr->get_timeout_s()*1000;
@@ -784,7 +875,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                         }
                                         l_resp->set_status(901);
                                         ++(l_t_hlx->m_stat.m_num_errors);
-                                        goto hconn_cleanup_error;
+                                        l_t_hlx->cleanup_hconn(*l_hconn);
+                                        return STATUS_ERROR;
                                 }
                                 else
                                 {
@@ -793,7 +885,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                         bool l_complete = l_t_hlx->subr_complete(*l_hconn);
                                         if(l_complete)
                                         {
-                                                goto hconn_cleanup_ok;
+                                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                                return STATUS_OK;
                                         }
                                         // Display...
                                         if(l_t_hlx->m_t_conf->m_verbose)
@@ -816,7 +909,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 {
                                                         //++(l_t_client->m_num_error);
                                                 }
-                                                goto hconn_cleanup_ok;
+                                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                                return STATUS_OK;
                                         }
 
                                         // Cancel last timer
@@ -831,11 +925,13 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                         // connection.
                                         // NOTE:
                                         // This is an optimization meant for load
-                                        // testing -whereas pool is used if hlx_client
-                                        // used as client proxy.
+                                        // testing -whereas pool is used if hlx
+                                        // used as proxy.
                                         // -------------------------------------------
                                         //NDBG_PRINT("l_t_hlx->m_t_conf->m_use_persistent_pool: %d\n", l_t_hlx->m_t_conf->m_use_persistent_pool);
-                                        if(!l_t_hlx->m_t_conf->m_use_persistent_pool)
+                                        if(l_hconn->m_subr &&
+                                           (l_hconn->m_subr->get_type() == SUBR_TYPE_DUPE) &&
+                                           !l_t_hlx->m_t_conf->m_use_persistent_pool)
                                         {
                                                 if((!l_subr_is_pending_done) &&
                                                    !l_t_hlx->m_stopped)
@@ -851,7 +947,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                         {
                                                                 //NDBG_PRINT("Error: performing request\n");
                                                                 ++(l_t_hlx->m_stat.m_num_errors);
-                                                                goto hconn_cleanup_error;
+                                                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                                                return STATUS_ERROR;
                                                         }
                                                         l_hconn->m_subr->bump_num_requested();
                                                         if(l_hconn->m_subr->get_is_pending_done())
@@ -861,7 +958,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 }
                                                 else
                                                 {
-                                                        goto hconn_cleanup_ok;
+                                                        l_t_hlx->cleanup_hconn(*l_hconn);
+                                                        return STATUS_OK;
                                                 }
                                         }
                                         else
@@ -871,7 +969,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 {
                                                         //NDBG_PRINT("Error: performing l_t_client->m_nconn_pool.add_idle l_status: %d\n", l_status);
                                                         ++(l_t_hlx->m_stat.m_num_errors);
-                                                        goto hconn_cleanup_error;
+                                                        l_t_hlx->cleanup_hconn(*l_hconn);
+                                                        return STATUS_ERROR;
                                                 }
                                         }
                                         return STATUS_OK;
@@ -880,7 +979,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         }
                 } while((l_status != nconn::NC_STATUS_AGAIN) && (!l_t_hlx->m_stopped));
         }
-        else if(l_hconn->m_type == DATA_TYPE_SERVER)
+        else
         {
                 do {
                         l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop, nconn::NC_MODE_READ, l_hconn->m_in_q, l_hconn->m_out_q);
@@ -891,11 +990,13 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         //NDBG_PRINT("l_status: %d\n", l_status);
                         if(l_status == nconn::NC_STATUS_EOF)
                         {
-                                goto hconn_cleanup_ok;
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_OK;
                         }
                         else if(l_status == nconn::NC_STATUS_ERROR)
                         {
-                                goto hconn_cleanup_error;
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_ERROR;
                         }
 
                         //NDBG_PRINT("l_hconn->m_hmsg->m_complete: %d\n", l_hconn->m_hmsg->m_complete);
@@ -913,7 +1014,8 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 if(l_t_hlx->handle_req(*l_hconn, l_hconn->m_url_router) != STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error performing handle_req\n");
-                                        goto hconn_cleanup_error;
+                                        l_t_hlx->cleanup_hconn(*l_hconn);
+                                        return STATUS_ERROR;
                                 }
 
                                 l_hconn->m_hmsg->clear();
@@ -931,16 +1033,6 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
 
         // Normal return
         return l_retval;
-
-        // OK Return with cleanup
-hconn_cleanup_ok:
-        l_t_hlx->cleanup_hconn(*l_hconn);
-        return STATUS_OK;
-
-        // ERROR Return with cleanup
-hconn_cleanup_error:
-        l_t_hlx->cleanup_hconn(*l_hconn);
-        return STATUS_ERROR;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1166,20 +1258,6 @@ void *t_hlx::t_run(void *a_nothing)
                         //NDBG_PRINT("Error performing try_deq_subr.\n");
                         //return NULL;
                 }
-
-                // -----------------------------------------
-                // Output
-                // -----------------------------------------
-                while(!m_hconn_output_queue.empty())
-                {
-                        hconn *l_hconn = m_hconn_output_queue.front();
-                        m_hconn_output_queue.pop();
-                        if(l_hconn && l_hconn->m_nconn)
-                        {
-                                evr_loop_file_writeable_cb(l_hconn->m_nconn);
-                        }
-                }
-
                 l_status = m_evr_loop->run();
         }
         //NDBG_PRINT("Stopped...\n");
@@ -1299,12 +1377,6 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 a_hconn.m_timer_obj = NULL;
         }
 
-        if(a_hconn.m_hmsg)
-        {
-                delete a_hconn.m_hmsg;
-                a_hconn.m_hmsg = NULL;
-        }
-
         //NDBG_PRINT("%sADDING_BACK%s: %u a_nconn: %p type: %d\n",
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
         //           (uint32_t)a_nconn.get_idx(), &a_nconn, a_type);
@@ -1319,6 +1391,10 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                         return STATUS_ERROR;
                 }
 
+                if(a_hconn.m_hmsg)
+                {
+                        m_rqst_pool.release(static_cast<rqst *>(a_hconn.m_hmsg));
+                }
                 //NDBG_PRINT("m_nconn_pool size: %d\n", (int)m_nconn_pool.get_nconn_obj_pool().used_size());
                 //NDBG_PRINT("m_idle size:       %u\n", (int)m_nconn_pool.num_idle());
         }
@@ -1330,6 +1406,10 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 {
                         return STATUS_ERROR;
                 }
+                if(a_hconn.m_hmsg)
+                {
+                        m_resp_pool.release(static_cast<resp *>(a_hconn.m_hmsg));
+                }
                 //NDBG_PRINT("m_nconn_proxy_pool size: %d\n", (int)m_nconn_proxy_pool.get_nconn_obj_pool().used_size());
                 //NDBG_PRINT("m_idle size:       %u\n", (int)m_nconn_proxy_pool.num_idle());
         }
@@ -1337,13 +1417,11 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
 
         if(a_hconn.m_in_q)
         {
-                delete a_hconn.m_in_q;
-                a_hconn.m_in_q = NULL;
+                m_nbq_pool.release(a_hconn.m_in_q);
         }
         if(a_hconn.m_out_q)
         {
-                delete a_hconn.m_out_q;
-                a_hconn.m_out_q = NULL;
+                m_nbq_pool.release(a_hconn.m_out_q);
         }
 
         m_hconn_pool.release(&a_hconn);
@@ -1366,6 +1444,10 @@ int32_t t_hlx::handle_req(hconn &a_hconn, url_router *a_url_router)
         if(!a_url_router)
         {
                 return STATUS_ERROR;
+        }
+        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool))
+        {
+                a_hconn.m_out_q->reset_write();
         }
         url_pmap_t l_pmap;
         //NDBG_PRINT("a_req.get_path: %s\n", l_rqst->get_path().c_str());

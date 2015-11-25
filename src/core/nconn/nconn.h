@@ -161,8 +161,8 @@ public:
 
         // Running
         int32_t nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
-        int32_t nc_read(nbq *a_in_q);
-        int32_t nc_write(nbq *a_out_q);
+        int32_t nc_read(evr_loop *a_evr_loop, nbq *a_in_q);
+        int32_t nc_write(evr_loop *a_evr_loop, nbq *a_out_q);
         int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
         int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
@@ -183,8 +183,8 @@ protected:
         // Protected Virtual methods
         // -------------------------------------------------
         virtual int32_t ncsetup(evr_loop *a_evr_loop) = 0;
-        virtual int32_t ncread(char *a_buf, uint32_t a_buf_len) = 0;
-        virtual int32_t ncwrite(char *a_buf, uint32_t a_buf_len) = 0;
+        virtual int32_t ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len) = 0;
+        virtual int32_t ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len) = 0;
         virtual int32_t ncaccept(evr_loop *a_evr_loop) = 0;
         virtual int32_t ncconnect(evr_loop *a_evr_loop) = 0;
         virtual int32_t nccleanup(void) = 0;

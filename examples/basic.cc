@@ -1,5 +1,5 @@
 //: ----------------------------------------------------------------------------
-//: hlx_server example:
+//: basic example:
 //: compile with:
 //:   g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
 //: ----------------------------------------------------------------------------
@@ -27,15 +27,34 @@ public:
         }
 };
 
+class quitter: public ns_hlx::default_rqst_h
+{
+public:
+        // GET
+        ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
+                                ns_hlx::hconn &a_hconn,
+                                ns_hlx::rqst &a_rqst,
+                                const ns_hlx::url_pmap_t &a_url_pmap)
+        {
+                a_hlx.stop();
+                return ns_hlx::H_RESP_DONE;
+        }
+};
+
 int main(void)
 {
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::rqst_h *l_rqst_h = new bananas_getter();
+        ns_hlx::rqst_h *l_rqst_h_quit = new quitter();
         l_lsnr->add_endpoint("/bananas", l_rqst_h);
+        l_lsnr->add_endpoint("/quit", l_rqst_h_quit);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
         l_hlx->add_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
         l_hlx->set_num_threads(0);
         l_hlx->run();
+        if(l_hlx) {delete l_hlx; l_hlx = NULL;}
+        if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
+        if(l_rqst_h_quit) {delete l_rqst_h_quit; l_rqst_h_quit = NULL;}
         return 0;
 }

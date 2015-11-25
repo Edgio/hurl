@@ -1650,10 +1650,11 @@ int main(int argc, char** argv)
                 }
         }
 
-        //if(l_settings.m_verbose)
-        //{
-        //      printf("Cleanup\n");
-        //}
+        if(l_subr)
+        {
+                delete l_subr;
+                l_subr = NULL;
+        }
 
         return 0;
 
@@ -2045,7 +2046,6 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
                                 }
                         }
                 }
-
                 // ---------------------------------------------------
                 // SSL connection info
                 // ---------------------------------------------------
@@ -2118,6 +2118,11 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
 
                 l_js_array.PushBack(l_obj, l_js_allocator);
 
+                if(l_headers)
+                {
+                        delete l_headers;
+                        l_headers = NULL;
+                }
         }
 
         // TODO -Can I just create an array -do I have to stick in a document?

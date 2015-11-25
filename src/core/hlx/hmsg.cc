@@ -44,7 +44,8 @@ hmsg::hmsg(void):
         m_complete(false),
         m_supports_keep_alives(false),
         m_type(TYPE_NONE),
-        m_q(NULL)
+        m_q(NULL),
+        m_idx(0)
 {
 
 }
@@ -110,7 +111,6 @@ char *hmsg::get_body_allocd(char **ao_buf, uint64_t &ao_len)
         return *ao_buf;
 }
 
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -150,6 +150,26 @@ kv_map_list_t *hmsg::get_headers_allocd(void)
                 }
         }
         return l_kv_map_list;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t hmsg::get_idx(void)
+{
+        return m_idx;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hmsg::set_idx(uint64_t a_idx)
+{
+        m_idx = a_idx;
 }
 
 //: ----------------------------------------------------------------------------

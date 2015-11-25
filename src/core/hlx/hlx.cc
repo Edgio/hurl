@@ -264,6 +264,7 @@ void hlx::add_subr_t(subr &a_subr)
                                 (*i_t)->add_subr(l_subr);
                         }
                 }
+                delete &a_subr;
         }
         else if(a_subr.get_type() == SUBR_TYPE_NONE)
         {
@@ -344,22 +345,25 @@ int32_t hlx::queue_api_resp(hconn &a_hconn, api_resp &a_api_resp)
         {
             return HLX_STATUS_ERROR;
         }
-
-        if(!a_hconn.m_out_q)
-        {
-                a_hconn.m_out_q = new nbq(4096);
-        }
-        a_api_resp.serialize(*a_hconn.m_out_q);
-
-        // Signal
-        a_hconn.m_t_hlx->queue_output(a_hconn);
-
-        // delete a_api_resp
+        a_hconn.m_t_hlx->queue_api_resp(a_api_resp, a_hconn);
         delete &a_api_resp;
         return HLX_STATUS_OK;
 }
 
-
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t hlx::queue_resp(hconn &a_hconn)
+{
+        if(!a_hconn.m_t_hlx)
+        {
+            return HLX_STATUS_ERROR;
+        }
+        a_hconn.m_t_hlx->queue_output(a_hconn);
+        return HLX_STATUS_OK;
+}
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

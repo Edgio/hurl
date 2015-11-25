@@ -25,12 +25,13 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nbq.h"
+#include "ndebug.h"
+
 #include <string.h>
 #include <stdlib.h>
-
+#include <unistd.h>
 #include <iterator>
 
-#include "ndebug.h"
 
 namespace ns_hlx {
 
@@ -62,7 +63,8 @@ nbq::nbq(uint32_t a_bsize):
         m_cur_read_block(),
         m_total_read_avail(0),
         m_bsize(a_bsize),
-        m_q()
+        m_q(),
+        m_idx(0)
 {
         //NDBG_PRINT("%sCONSTR%s: this: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, this);
 }
@@ -109,11 +111,56 @@ int64_t nbq::write(const char *a_buf, uint64_t a_len)
                 //NDBG_PRINT("l_left: %u\n", l_left);
                 uint32_t l_write_avail = b_write_avail();
                 uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
+                //NDBG_PRINT("WRITIN bytes: %d\n", l_write);
+                //mem_display((const uint8_t *)l_buf, l_write);
                 memcpy(b_write_ptr(), l_buf, l_write);
                 b_write_incr(l_write);
                 l_left -= l_write;
                 l_buf += l_write;
                 l_written += l_write;
+        }
+        return l_written;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int64_t nbq::write_fd(int a_fd, uint64_t a_len)
+{
+        if(!a_len)
+        {
+                return 0;
+        }
+        uint64_t l_left = a_len;
+        uint64_t l_written = 0;
+        while(l_left)
+        {
+                if(b_write_avail() <= 0)
+                {
+                        int32_t l_status = b_write_add_avail();
+                        if(l_status <= 0)
+                        {
+                                // TODO error...
+                                return -1;
+                        }
+                }
+                //NDBG_PRINT("l_left: %u\n", l_left);
+                uint32_t l_write_avail = b_write_avail();
+                uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
+                ssize_t l_status = ::read(a_fd, b_write_ptr(), l_write);
+                if(l_status < 0)
+                {
+                        return STATUS_ERROR;
+                }
+                if(l_status == 0)
+                {
+                        break;
+                }
+                b_write_incr(l_status);
+                l_left -= l_status;
+                l_written += l_status;
         }
         return l_written;
 }
@@ -250,6 +297,24 @@ void nbq::reset(void)
         m_cur_read_offset = 0;
         m_cur_read_block = m_q.begin();
         m_total_read_avail = 0;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: Free all read
+//: \return:  NA
+//: \param:   NA
+//: ----------------------------------------------------------------------------
+void nbq::shrink(void)
+{
+        while(m_q.begin() != m_cur_read_block)
+        {
+                nb_t &l_nb = *(m_q.front());
+                m_q.pop_front();
+                m_cur_write_offset -= l_nb.m_len;
+                m_cur_read_offset -= l_nb.m_len;
+                delete &l_nb;
+        }
 }
 
 //: ----------------------------------------------------------------------------

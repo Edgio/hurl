@@ -41,12 +41,12 @@ SET_TARGET_PROPERTIES(basic PROPERTIES OUTPUT_NAME "basic")
 target_link_libraries(basic ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
-# subreq
+# subrequest
 # ----------------------------------------------------------
-add_executable(subreq subreq.cc)
-add_dependencies(subreq hlxcore)
-SET_TARGET_PROPERTIES(subreq PROPERTIES OUTPUT_NAME "subreq")
-target_link_libraries(subreq ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+add_executable(subrequest subrequest.cc)
+add_dependencies(subrequest hlxcore)
+SET_TARGET_PROPERTIES(subrequest PROPERTIES OUTPUT_NAME "subrequest")
+target_link_libraries(subrequest ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
 # fanout
@@ -57,9 +57,9 @@ SET_TARGET_PROPERTIES(fanout PROPERTIES OUTPUT_NAME "fanout")
 target_link_libraries(fanout ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
-# file_server
+# files
 # ----------------------------------------------------------
-#add_executable(file_server file_server.cc)
-#add_dependencies(file_server hlxcore)
-#SET_TARGET_PROPERTIES(file_server PROPERTIES OUTPUT_NAME "file_server")
-#target_link_libraries(file_server ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+add_executable(files files.cc)
+add_dependencies(files hlxcore)
+SET_TARGET_PROPERTIES(files PROPERTIES OUTPUT_NAME "files")
+target_link_libraries(files ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})

@@ -77,8 +77,8 @@ protected:
         int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
         int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t ncsetup(evr_loop *a_evr_loop);
-        int32_t ncread(char *a_buf, uint32_t a_buf_len);
-        int32_t ncwrite(char *a_buf, uint32_t a_buf_len);
+        int32_t ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len);
+        int32_t ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len);
         int32_t ncaccept(evr_loop *a_evr_loop);
         int32_t ncconnect(evr_loop *a_evr_loop);
         int32_t nccleanup(void);

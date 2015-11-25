@@ -27,7 +27,9 @@
 #include "hlx/hlx.h"
 #include "nconn.h"
 #include "ndebug.h"
+#include "file.h"
 #include "time_util.h"
+#include "hconn.h"
 
 #include <inttypes.h>
 #include <string.h>
@@ -84,91 +86,59 @@ h_resp_t rqst_h::get_file(hlx &a_hlx,
                           rqst &a_rqst,
                           const std::string &a_path)
 {
+        if(!a_hconn.m_out_q)
+        {
+                // TODO 5xx's for errors?
+                return send_not_found(a_hlx, a_hconn, a_rqst);
+        }
+
         // Make relative...
         std::string l_path = "." + a_path;
-        // ---------------------------------------
-        // Check is a file
-        // TODO
-        // ---------------------------------------
-        struct stat l_stat;
-        int32_t l_status = STATUS_OK;
-        l_status = stat(l_path.c_str(), &l_stat);
-        if(l_status != 0)
+
+        filesender *l_fs = new filesender();
+        int l_status = l_fs->fsinit(l_path.c_str());
+        if(l_status != STATUS_OK)
         {
-                //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
+                delete l_fs;
+                // TODO 5xx's for errors?
                 return send_not_found(a_hlx, a_hconn, a_rqst);
         }
 
-        // Check if is regular file
-        if(!(l_stat.st_mode & S_IFREG))
-        {
-                //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", l_path.c_str());
-                return send_not_found(a_hlx, a_hconn, a_rqst);
-        }
-        // Open file...
-        FILE * l_file;
-        l_file = fopen(l_path.c_str(),"r");
-        if (NULL == l_file)
-        {
-                //NDBG_PRINT("Error opening file: %s.  Reason: %s\n", l_path.c_str(), strerror(errno));
-                return send_not_found(a_hlx, a_hconn, a_rqst);
-        }
-
-        // Read in file...
-        int32_t l_size = l_stat.st_size;
-        // Bounds check -remove later
-        if(l_size > 16*1024)
-        {
-                //NDBG_PRINT("Error file size exceeds current size limits\n");
-                return send_not_found(a_hlx, a_hconn, a_rqst);
-        }
-        char *l_body = (char *)malloc(sizeof(char)*l_size);
-
-        // TODO loop....
-        int32_t l_read_size;
-        l_read_size = fread(l_body, 1, l_size, l_file);
-        if(l_read_size != l_size)
-        {
-                //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
-                //                strerror(errno), l_read_size, l_size);
-                free(l_body);
-                fclose(l_file);
-                return send_not_found(a_hlx, a_hconn, a_rqst);
-        }
+        a_hconn.m_fs = l_fs;
+        nbq &l_q = *(a_hconn.m_out_q);
 
         // ---------------------------------------
-        // Close file...
+        // Write headers
         // ---------------------------------------
-        l_status = fclose(l_file);
-        if (STATUS_OK != l_status)
-        {
-                //NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
-                free(l_body);
-                return send_not_found(a_hlx, a_hconn, a_rqst);
-        }
-
-        // Create response
-        api_resp &l_api_resp = a_hlx.create_api_resp();
-        l_api_resp.set_status(HTTP_STATUS_OK);
-        l_api_resp.set_header("Server", "hss/0.0.1");
-        l_api_resp.set_header("Date", get_date_str());
-        l_api_resp.set_header("Content-type", "text/html");
+        nbq_write_status(l_q, HTTP_STATUS_OK);
+        nbq_write_header(l_q, "Server", "hss/0.0.1");
+        nbq_write_header(l_q, "Date", get_date_str());
+        nbq_write_header(l_q, "Content-type", "text/html");
         char l_length_str[64];
-        sprintf(l_length_str, "%d", l_size);
-        l_api_resp.set_header("Content-Length", l_length_str);
+        sprintf(l_length_str, "%lu", l_fs->fssize());
+        nbq_write_header(l_q, "Content-Length", l_length_str);
 
         // TODO get last modified for file...
-        l_api_resp.set_header("Last-Modified", get_date_str());
+        nbq_write_header(l_q, "Last-Modified", get_date_str());
         if(a_rqst.m_supports_keep_alives)
         {
-                l_api_resp.set_header("Connection", "keep-alive");
+                nbq_write_header(l_q, "Connection", "keep-alive");
         }
         else
         {
-                l_api_resp.set_header("Connection", "close");
+                nbq_write_header(l_q, "Connection", "close");
         }
-        l_api_resp.set_body_data(l_body, l_size);
-        a_hlx.queue_api_resp(a_hconn, l_api_resp);
+        l_q.write("\r\n", strlen("\r\n"));
+
+        // Read up to 32k
+        uint32_t l_read = 32678;
+        if(l_fs->fssize() < l_read)
+        {
+                l_read = l_fs->fssize();
+        }
+        l_fs->fsread(l_q, l_read);
+
+        a_hlx.queue_resp(a_hconn);
         return H_RESP_DONE;
 }
 

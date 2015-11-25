@@ -523,7 +523,7 @@ int32_t nconn_tls::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tls::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
@@ -582,7 +582,7 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
         l_status = SSL_write(m_tls, a_buf, a_buf_len);

@@ -58,6 +58,7 @@ SET(SRCS
     ./support/base64.cc
     ./support/uri.cc
     ./support/nbq.cc
+    ./support/file.cc
     ./dns/resolver.cc
     ./hlx/hmsg.cc
     ./hlx/rqst.cc
