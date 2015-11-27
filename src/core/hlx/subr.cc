@@ -741,15 +741,17 @@ int subr::set_header(const std::string &a_header)
         if(l_status != 0)
         {
                 // If verbose???
-                //printf("Error header string[%s] is malformed\n", a_header.c_str());
-                return -1;
+                NDBG_PRINT("Error header string[%s] is malformed\n", a_header.c_str());
+                return STATUS_ERROR;
         }
         l_status = set_header(l_header_key, l_header_val);
+        if(l_status != STATUS_OK)
         {
                 // If verbose???
-                //printf("Error header string[%s] is malformed\n", a_header.c_str());
-                return -1;
+                NDBG_PRINT("Error performing set header with key: %s value: %s\n", l_header_key.c_str(), l_header_val.c_str());
+                return STATUS_ERROR;
         }
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -770,7 +772,7 @@ int subr::set_header(const std::string &a_key, const std::string &a_val)
                 l_list.push_back(a_val);
                 m_headers[a_key] = l_list;
         }
-        return 0;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
