@@ -184,37 +184,52 @@ int32_t nconn_tls::tls_connect(void)
                 case SSL_ERROR_WANT_X509_LOOKUP:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP", m_label.c_str());
+                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
                 }
 
                 // look at error stack/return value/errno
                 case SSL_ERROR_SYSCALL:
                 {
-                        if(l_status == 0) {
+                        if(l_status == 0)
+                        {
                                 NCONN_ERROR("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol",
                                                 m_label.c_str(),
                                                 ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
-                        } else if(l_status == -1) {
+                                //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol\n",
+                                //                m_label.c_str(),
+                                //                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
+
+                        }
+                        else if(l_status == -1)
+                        {
                                 NCONN_ERROR("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s",
                                                 m_label.c_str(),
                                                 ERR_get_error(), ERR_error_string(ERR_get_error(), NULL),
                                                 strerror(errno));
+                                //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s\n",
+                                //                m_label.c_str(),
+                                //                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL),
+                                //                strerror(errno));
                         }
                         break;
                 }
                 case SSL_ERROR_ZERO_RETURN:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_ZERO_RETURN", m_label.c_str());
+                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_ZERO_RETURN\n", m_label.c_str());
                         break;
                 }
                 case SSL_ERROR_WANT_CONNECT:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_CONNECT", m_label.c_str());
+                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_CONNECT\n", m_label.c_str());
                         break;
                 }
                 case SSL_ERROR_WANT_ACCEPT:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_ACCEPT", m_label.c_str());
+                        //sNDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_ACCEPT\n", m_label.c_str());
                         break;
                 }
                 }
@@ -382,6 +397,11 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
         case OPT_TLS_VERIFY_ALLOW_SELF_SIGNED:
         {
                 memcpy(&m_tls_opt_verify_allow_self_signed, a_buf, sizeof(bool));
+                break;
+        }
+        case OPT_TLS_SNI:
+        {
+                m_tls_opt_tlsext_hostname.assign((char *)a_buf, a_len);
                 break;
         }
         case OPT_TLS_CA_FILE:
@@ -752,6 +772,7 @@ ncconnect_state_top:
                 l_status = nconn_tcp::ncconnect(a_evr_loop);
                 if(l_status == NC_STATUS_ERROR)
                 {
+                        //NDBG_PRINT("Error performing nconn_tcp::ncconnect\n");
                         return NC_STATUS_ERROR;
                 }
 
@@ -783,6 +804,7 @@ ncconnect_state_top:
                                                             this))
                                 {
                                         NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                        //NDBG_PRINT("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -793,6 +815,7 @@ ncconnect_state_top:
                                                             this))
                                 {
                                         NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                        //NDBG_PRINT("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -800,6 +823,7 @@ ncconnect_state_top:
                 }
                 else if(l_status != NC_STATUS_OK)
                 {
+                        //NDBG_PRINT("Error performing tls_connect\n");
                         return NC_STATUS_ERROR;
                 }
 
@@ -824,10 +848,10 @@ ncconnect_state_top:
                 {
                         int32_t l_status = 0;
                         // Do verify
-                        char *l_hostname = NULL;
-                        l_status = validate_server_certificate(m_tls, l_hostname, (!m_tls_opt_verify_allow_self_signed));
-                        if(l_status != NC_STATUS_OK)
+                        l_status = validate_server_certificate(m_tls, NULL, (!m_tls_opt_verify_allow_self_signed));
+                        if(l_status != 0)
                         {
+                                //NDBG_PRINT("Error validate_server_certificate failed\n");
                                 return NC_STATUS_ERROR;
                         }
                 }
@@ -838,7 +862,7 @@ ncconnect_state_top:
         // -------------------------------------------------
         default:
         {
-                NDBG_PRINT("State error: %d\n", m_tls_state);
+                //NDBG_PRINT("State error: %d\n", m_tls_state);
                 return NC_STATUS_ERROR;
         }
         }

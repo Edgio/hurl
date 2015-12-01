@@ -30,7 +30,8 @@
 #include "time_util.h"
 #include "stat_util.h"
 #include "t_hlx.h"
-#include "resolver.h"
+#include "nresolver.h"
+#include "nconn_tcp.h"
 
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
@@ -50,6 +51,7 @@ hlx::hlx(void):
         m_num_threads(1),
         m_lsnr_list(),
         m_subr_queue(),
+        m_nresolver(NULL),
         m_use_ai_cache(true),
         m_ai_cache(),
         m_start_time_ms(0),
@@ -98,10 +100,10 @@ hlx::~hlx()
                 SSL_CTX_free(m_t_conf->m_tls_client_ctx);
                 m_t_conf->m_tls_client_ctx = NULL;
         }
-        if(m_t_conf->m_resolver)
+        if(m_nresolver)
         {
-                delete m_t_conf->m_resolver;
-                m_t_conf->m_resolver = NULL;
+                delete m_nresolver;
+                m_nresolver = NULL;
         }
 
         if(m_t_conf)
@@ -235,7 +237,6 @@ int32_t hlx::add_lsnr(lsnr *a_lsnr)
 //: ----------------------------------------------------------------------------
 void hlx::add_subr_t(subr &a_subr)
 {
-        // Dupe example
         if(a_subr.get_type() == SUBR_TYPE_DUPE)
         {
                 uint32_t l_num_hlx = (uint32_t)m_t_hlx_list.size();
@@ -282,11 +283,35 @@ void hlx::add_subr_t(subr &a_subr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void hlx::queue_subr(subr *a_subr)
+{
+        m_subr_queue.push(a_subr);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t hlx::queue_subr(hconn *a_hconn, subr &a_subr)
 {
+        int32_t l_status;
+        if(!m_is_initd)
+        {
+                l_status = init();
+                if(HLX_STATUS_OK != l_status)
+                {
+                        return HLX_STATUS_ERROR;
+                }
+        }
         if(a_hconn)
         {
                 a_subr.set_requester_hconn(a_hconn);
+        }
+
+        if(!m_nresolver)
+        {
+                return HLX_STATUS_ERROR;
         }
         if(is_running())
         {
@@ -294,7 +319,7 @@ int32_t hlx::queue_subr(hconn *a_hconn, subr &a_subr)
         }
         else
         {
-                m_subr_queue.push(&a_subr);
+                queue_subr(&a_subr);
         }
         return HLX_STATUS_OK;
 }
@@ -756,10 +781,50 @@ int hlx::set_tls_client_ctx_options(const std::string &a_tls_options_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void hlx::set_tls_verify(bool a_val)
+{
+        m_t_conf->m_tls_client_verify = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx::set_tls_sni(bool a_val)
+{
+        m_t_conf->m_tls_client_sni = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx::set_tls_self_ok(bool a_val)
+{
+        m_t_conf->m_tls_client_self_ok = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int hlx::set_tls_client_ctx_options(long a_tls_options)
 {
         m_t_conf->m_tls_client_ctx_options = a_tls_options;
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nresolver *hlx::get_nresolver(void)
+{
+        return m_nresolver;
 }
 
 //: ----------------------------------------------------------------------------
@@ -813,13 +878,13 @@ int hlx::init(void)
                 return HLX_STATUS_OK;
         }
 
-        m_t_conf->m_resolver = new resolver();
+        m_nresolver = new nresolver();
 
         // -------------------------------------------
         // Init resolver with cache
         // -------------------------------------------
         int32_t l_ldb_init_status;
-        l_ldb_init_status = m_t_conf->m_resolver->init(m_ai_cache, m_use_ai_cache);
+        l_ldb_init_status = m_nresolver->init(m_ai_cache, m_use_ai_cache);
         if(STATUS_OK != l_ldb_init_status)
         {
                 NDBG_PRINT("Error performing resolver init with ai_cache: %s\n", m_ai_cache.c_str());

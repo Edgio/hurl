@@ -31,7 +31,6 @@
 #include "time_util.h"
 #include "stat_util.h"
 #include "url_router.h"
-#include "resolver.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -324,7 +323,7 @@ int32_t t_hlx::queue_output(hconn &a_hconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_hlx::get_proxy_conn(const host_info_t &a_host_info,
+nconn *t_hlx::get_proxy_conn(const host_info_s *a_host_info,
                              const std::string &a_label,
                              scheme_t a_scheme,
                              bool a_save,
@@ -726,7 +725,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                         return STATUS_OK;
                 }
 
-                if(!l_hconn->m_out_q->read_avail() && (l_hconn->m_type == DATA_TYPE_SERVER))
+                if(l_hconn->m_out_q && !l_hconn->m_out_q->read_avail() && (l_hconn->m_type == DATA_TYPE_SERVER))
                 {
                         if(!l_hconn->m_hmsg->m_supports_keep_alives)
                         {
@@ -880,6 +879,11 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 }
                                 else
                                 {
+                                        if(l_nconn->get_connect_only() && l_hconn->m_hmsg)
+                                        {
+                                                resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
+                                                l_resp->set_status(200);
+                                        }
                                         bool l_subr_is_done = l_hconn->m_subr->get_is_done();
                                         bool l_subr_is_pending_done = l_hconn->m_subr->get_is_pending_done();
                                         bool l_complete = l_t_hlx->subr_complete(*l_hconn);
@@ -1140,32 +1144,41 @@ int32_t t_hlx::try_deq_subr(void)
                 subr *l_subr = m_subr_queue.front();
                 // Only run on resolved
                 int32_t l_status;
-                host_info_t l_host_info;
                 std::string l_error;
 
-                if(m_t_conf->m_resolver == NULL)
+                const host_info_s *l_host_info = l_subr->get_host_info();
+                if(!l_host_info)
                 {
-                        NDBG_PRINT("Error resolver == NULL\n");
-                        return STATUS_ERROR;
-                }
-                l_status = m_t_conf->m_resolver->cached_resolve(l_subr->get_host(),l_subr->get_port(), l_host_info, l_error);
-                if(l_status != STATUS_OK)
-                {
-                        ++m_stat.m_num_errors;
-                        l_subr->bump_num_requested();
-                        l_subr->bump_num_completed();
-                        subr::error_cb_t l_error_cb = l_subr->get_error_cb();
-                        if(l_error_cb)
+                        nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
+                        if(!l_nresolver)
                         {
-                                nconn_tcp l_nconn;
-                                l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
+                                NDBG_PRINT("Error no resolver\n");
+                                return STATUS_ERROR;
                         }
-                        m_subr_queue.pop();
-                        continue;
+
+                        // sync dns
+                        l_host_info = l_nresolver->lookup_sync(l_subr->get_host(), l_subr->get_port());
+                        if(!l_host_info)
+                        {
+                                NDBG_PRINT("Error l_host_info null\n");
+                                ++m_stat.m_num_errors;
+                                l_subr->bump_num_requested();
+                                l_subr->bump_num_completed();
+                                subr::error_cb_t l_error_cb = l_subr->get_error_cb();
+                                if(l_error_cb)
+                                {
+                                        nconn_tcp l_nconn;
+                                        l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
+                                }
+                                m_subr_queue.pop();
+                                continue;
+                        }
+                        l_subr->set_host_info(l_host_info);
+                        ++(m_stat.m_num_resolved);
                 }
-                ++(m_stat.m_num_resolved);
+
                 nconn *l_nconn = NULL;
-                l_nconn = get_proxy_conn(l_host_info,
+                l_nconn = get_proxy_conn(l_subr->get_host_info(),
                                          l_subr->get_label(),
                                          l_subr->get_scheme(),
                                          l_subr->get_save(),
@@ -1177,7 +1190,6 @@ int32_t t_hlx::try_deq_subr(void)
                         m_subr_queue.push(l_subr);
                         continue;
                 }
-
                 hconn *l_hconn = static_cast<hconn *>(l_nconn->get_data());
                 if(l_hconn)
                 {
@@ -1216,6 +1228,7 @@ int32_t t_hlx::try_deq_subr(void)
                                 m_subr_queue.pop();
                         }
                 }
+
         }
         return STATUS_OK;
 }
@@ -1587,10 +1600,14 @@ int32_t t_hlx::config_conn(nconn &a_nconn,
                                                nconn_tls::OPT_TLS_CTX,
                                                m_t_conf->m_tls_client_ctx,
                                                sizeof(m_t_conf->m_tls_client_ctx));
-                        T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
-                                               nconn_tls::OPT_TLS_VERIFY,
-                                               &(m_t_conf->m_tls_client_verify),
-                                               sizeof(m_t_conf->m_tls_client_verify));
+                        //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        //                       nconn_tls::OPT_TLS_VERIFY,
+                        //                       &(m_t_conf->m_tls_client_verify),
+                        //                       sizeof(m_t_conf->m_tls_client_verify));
+                        //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        //                       nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED,
+                        //                       &(m_t_conf->m_tls_client_self_ok),
+                        //                       sizeof(m_t_conf->m_tls_client_self_ok));
                         //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
                         //                           nconn_tls::OPT_TLS_OPTIONS,
                         //                           &(m_t_conf->m_tls_client_ctx_options),

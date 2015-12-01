@@ -56,7 +56,6 @@ typedef struct t_conf
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
-        resolver *m_resolver;
         hlx *m_hlx;
 
         // TLS Config
@@ -77,6 +76,7 @@ typedef struct t_conf
         std::string m_tls_client_ctx_ca_path;
         bool m_tls_client_verify;
         bool m_tls_client_sni;
+        bool m_tls_client_self_ok;
 
         // ---------------------------------
         // Defaults...
@@ -93,7 +93,6 @@ typedef struct t_conf
                 m_sock_opt_recv_buf_size(0),
                 m_sock_opt_send_buf_size(0),
                 m_sock_opt_no_delay(false),
-                m_resolver(NULL),
                 m_hlx(NULL),
                 m_tls_server_ctx(NULL),
                 m_tls_server_ctx_key(),
@@ -108,7 +107,8 @@ typedef struct t_conf
                 m_tls_client_ctx_ca_file(),
                 m_tls_client_ctx_ca_path(),
                 m_tls_client_verify(false),
-                m_tls_client_sni(false)
+                m_tls_client_sni(false),
+                m_tls_client_self_ok(false)
         {}
 
 private:

@@ -69,7 +69,9 @@ subr::subr(void):
         m_data(NULL),
         m_detach_resp(false),
         m_uid(0),
-        m_requester_hconn(NULL)
+        m_requester_hconn(NULL),
+        m_host_info(NULL),
+        m_t_hlx(NULL)
 {
 }
 
@@ -109,7 +111,9 @@ subr::subr(const subr &a_subr):
         m_data(a_subr.m_data),
         m_detach_resp(a_subr.m_detach_resp),
         m_uid(a_subr.m_uid),
-        m_requester_hconn(a_subr.m_requester_hconn)
+        m_requester_hconn(a_subr.m_requester_hconn),
+        m_host_info(a_subr.m_host_info),
+        m_t_hlx(a_subr.m_t_hlx)
 {
 }
 
@@ -384,6 +388,26 @@ hconn *subr::get_requester_hconn(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+const host_info_s *subr::get_host_info(void)
+{
+        return m_host_info;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+t_hlx *subr::get_t_hlx(void)
+{
+        return m_t_hlx;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void subr::reset_label(void)
 {
         switch(m_scheme)
@@ -638,6 +662,26 @@ void subr::set_uid(uint64_t a_uid)
 void subr::set_requester_hconn(hconn *a_hconn)
 {
         m_requester_hconn = a_hconn;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_host_info(const host_info_s *a_host_info)
+{
+        m_host_info = a_host_info;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_t_hlx(t_hlx *a_t_hlx)
+{
+        m_t_hlx = a_t_hlx;
 }
 
 //: ----------------------------------------------------------------------------

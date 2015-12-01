@@ -27,14 +27,14 @@ cmake_minimum_required(VERSION 2.8.0)
 SET(CMAKE_INSTALL_PREFIX "/usr")
 
 # Build options
-option(GCC_OPTIONS    "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
-option(FORTIFY        "Fortify Source GCC options" OFF)
-option(DEBUG_MODE     "Compile in debug mode." OFF)
-option(BUILD_TESTS    "Build the unit tests." ON)
-option(BUILD_TCMALLOC "Build with tcmalloc" ON)
-option(BUILD_PROFILER "Enable google cpu and heap profiler support" OFF)
-option(BUILD_EFENCE   "Build with tcmalloc" OFF)
-option(BUILD_ASAN     "Build with Address Sanitizer" OFF)
+option(GCC_OPTIONS      "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
+option(FORTIFY          "Fortify Source GCC options" OFF)
+option(DEBUG_MODE       "Compile in debug mode." OFF)
+option(BUILD_TESTS      "Build the unit tests." ON)
+option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
+option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
+option(BUILD_EFENCE     "Build with tcmalloc" OFF)
+option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -91,7 +91,6 @@ else()
   add_definitions(-O2)
 endif()
 
-
 # ------------------------------------------------------------------------------
 # include source and test directories
 # ------------------------------------------------------------------------------
@@ -102,7 +101,6 @@ if (BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
-
 
 # ------------------------------------------------------------------------------
 # Debian Package Support
@@ -115,10 +113,22 @@ SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
-SET(CPACK_DEBIAN_PACKAGE_DEPENDS "google-perftools, libssl1.0.0")
+
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0")
+if (BUILD_TCMALLOC)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} google-perftools)
+endif()
+if (BUILD_DNS_C_ARES)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libc-ares2)
+endif()
 
 # cpack doesn't actually use the following, but the build.sh command does
-SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libgoogle-perftools-dev, libssl-dev")
+
+SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev")
+
+if (BUILD_TCMALLOC)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libgoogle-perftools-dev)
+endif()
 
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 INCLUDE(CPack)

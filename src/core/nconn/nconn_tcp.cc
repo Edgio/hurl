@@ -326,9 +326,9 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
 int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
 {
         // Make a socket.
-        m_fd = socket(m_host_info.m_sock_family,
-                      m_host_info.m_sock_type,
-                      m_host_info.m_sock_protocol);
+        m_fd = socket(m_host_info->m_sock_family,
+                      m_host_info->m_sock_type,
+                      m_host_info->m_sock_protocol);
 
         //NDBG_OUTPUT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
 
@@ -433,9 +433,8 @@ int32_t nconn_tcp::ncconnect(evr_loop *a_evr_loop)
 
 state_top:
         l_connect_status = connect(m_fd,
-                                   (struct sockaddr*) &(m_host_info.m_sa),
-                                   (m_host_info.m_sa_len));
-
+                                   ((struct sockaddr*) &(m_host_info->m_sa)),
+                                   (m_host_info->m_sa_len));
         // TODO REMOVE
         //NDBG_PRINT_BT();
         //NDBG_PRINT("%sCONNECT%s[%3d]: Retry: %d Status %3d. Reason[%d]: %s\n",

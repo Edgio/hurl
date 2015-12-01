@@ -547,8 +547,8 @@ int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
                         int err = X509_STORE_CTX_get_error(store);
                         sprintf(gts_last_tls_error, "tls_cert_verify_callback Error[%d].  Reason: %s",
                               err, X509_verify_cert_error_string(err));
-                        //NDBG_PRINT("tls_cert_verify_callback Error[%d].  Reason: %s\n",
-                        //      err, X509_verify_cert_error_string(err));
+                        NDBG_PRINT("tls_cert_verify_callback Error[%d].  Reason: %s\n",
+                              err, X509_verify_cert_error_string(err));
                 }
         }
         return ok;
@@ -650,7 +650,7 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
         l_cert = SSL_get_peer_certificate(a_tls);
         if(NULL == l_cert)
         {
-                NDBG_PRINT("LABEL[%s]: SSL_get_peer_certificate error.  tls: %p", a_host, (void *)a_tls);
+                //NDBG_PRINT("LABEL[%s]: SSL_get_peer_certificate error.  tls: %p", a_host, (void *)a_tls);
                 return -1;
         }
 
@@ -669,6 +669,7 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                                 X509_free(l_cert);
                                 l_cert = NULL;
                         }
+                        //NDBG_PRINT("Error hostname match failed.\n");
                         return -1;
                 }
         }
@@ -697,19 +698,21 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                                         X509_free(l_cert);
                                         l_cert = NULL;
                                 }
+                                //NDBG_PRINT("Error self-signed.\n");
                                 return -1;
                         }
                 }
 
-                NDBG_PRINT("LABEL[%s]: SSL_get_verify_result[%ld]: %s",
-                      a_host,
-                      l_tls_verify_result,
-                      X509_verify_cert_error_string(l_tls_verify_result));
+                //NDBG_PRINT("LABEL[%s]: SSL_get_verify_result[%ld]: %s",
+                //      a_host,
+                //      l_tls_verify_result,
+                //      X509_verify_cert_error_string(l_tls_verify_result));
                 if(NULL != l_cert)
                 {
                         X509_free(l_cert);
                         l_cert = NULL;
                 }
+                //NDBG_PRINT("Error\n");
                 return -1;
         }
 

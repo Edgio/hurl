@@ -721,6 +721,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Hostname Input Options -also STDIN:\n");
         fprintf(a_stream, "  -f, --host_file      Host name file.\n");
+        fprintf(a_stream, "  -J, --host_json      Host listing json format.\n");
         fprintf(a_stream, "  -x, --execute        Script to execute to get host names.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
@@ -738,10 +739,10 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "SSL Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
         fprintf(a_stream, "  -O, --ssl_options    SSL Options string.\n");
-        // TODO
 #if 0
         fprintf(a_stream, "  -K, --ssl_verify     Verify server certificate.\n");
         fprintf(a_stream, "  -N, --ssl_sni        Use SSL SNI.\n");
+        fprintf(a_stream, "  -B, --ssl_self_ok    Allow self-signed certificates.\n");
 #endif
         fprintf(a_stream, "  -F, --ssl_ca_file    SSL CA File.\n");
         fprintf(a_stream, "  -L, --ssl_ca_path    SSL CA Path.\n");
@@ -844,6 +845,7 @@ int main(int argc, char** argv)
                 { "ssl_options",    1, 0, 'O' },
                 { "ssl_verify",     0, 0, 'K' },
                 { "ssl_sni",        0, 0, 'N' },
+                { "ssl_self_ok",    0, 0, 'B' },
                 { "ssl_ca_file",    1, 0, 'F' },
                 { "ssl_ca_path",    1, 0, 'L' },
                 { "cli",            0, 0, 'I' },
@@ -912,9 +914,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -1041,8 +1043,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'K':
                 {
-                        // TODO
-                        //l_hlx->set_tls_verify(true);
+                        l_hlx->set_tls_verify(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1050,8 +1051,15 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'N':
                 {
-                        // TODO
-                        //l_hlx->set_tls_sni_verify(true);
+                        l_hlx->set_tls_sni(true);
+                        break;
+                }
+                // ---------------------------------------
+                // ssl self signed
+                // ---------------------------------------
+                case 'B':
+                {
+                        l_hlx->set_tls_self_ok(true);
                         break;
                 }
                 // ---------------------------------------

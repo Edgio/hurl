@@ -59,7 +59,7 @@ SET(SRCS
     ./support/uri.cc
     ./support/nbq.cc
     ./support/file.cc
-    ./dns/resolver.cc
+    ./dns/nresolver.cc
     ./hlx/hmsg.cc
     ./hlx/rqst.cc
     ./hlx/resp.cc

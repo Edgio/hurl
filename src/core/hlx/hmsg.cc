@@ -106,6 +106,11 @@ nbq *hmsg::get_q(void)
 //: ----------------------------------------------------------------------------
 char *hmsg::get_body_allocd(char **ao_buf, uint64_t &ao_len)
 {
+        if(!m_q)
+        {
+                ao_len = 0;
+                return NULL;
+        }
         *ao_buf = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
         ao_len = m_p_body.m_len + 1;
         return *ao_buf;

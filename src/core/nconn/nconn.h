@@ -29,7 +29,7 @@
 #include "ndebug.h"
 #include "req_stat.h"
 #include "nbq.h"
-#include "resolver.h"
+#include "nresolver.h"
 
 #include "hlx/hlx.h"
 #include "http_parser/http_parser.h"
@@ -137,12 +137,13 @@ public:
         bool get_collect_stats_flag(void) {return m_collect_stats_flag;}
         uint64_t get_request_start_time_us(void) {return m_request_start_time_us;}
         uint64_t get_stat_tt_connect_us(void) {return m_stat.m_tt_connect_us;}
+        bool get_connect_only(void) { return m_connect_only;}
 
         // Setters
         void set_label(const std::string &a_label) {m_label = a_label;}
         void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
-        void set_host_info(host_info_t a_host_info) {m_host_info = a_host_info;}
+        void set_host_info(const host_info_s *a_host_info) {m_host_info = a_host_info;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
         void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
         void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
@@ -202,7 +203,7 @@ protected:
         uint64_t m_connect_start_time_us;
         uint64_t m_request_start_time_us;
         std::string m_last_error;
-        host_info_t m_host_info;
+        const host_info_s* m_host_info;
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;

@@ -98,18 +98,16 @@ typedef enum {
 class nbq;
 class url_router;
 class t_hlx;
-class resolver;
-class hlx;
 class nconn;
 class hconn;
-class rqst;
-class resp;
 class t_conf;
 class lsnr;
 class subr;
 class api_resp;
 struct t_stat_struct;
 typedef t_stat_struct t_stat_t;
+struct host_info_s;
+class nresolver;
 
 //: ----------------------------------------------------------------------------
 //: Structs
@@ -238,6 +236,8 @@ public:
         int32_t stop(void);
         int32_t wait_till_stopped(void);
         bool is_running(void);
+        void add_subr_t(subr &a_subr);
+        void queue_subr(subr *a_subr);
 
         // Stats
         void get_stats(t_stat_t &ao_all_stats);
@@ -250,6 +250,9 @@ public:
         int set_tls_server_ctx_options(long a_tls_options);
         void set_tls_server_ctx_key(const std::string &a_tls_key);
         void set_tls_server_ctx_crt(const std::string &a_tls_crt);
+        void set_tls_verify(bool a_val);
+        void set_tls_sni(bool a_val);
+        void set_tls_self_ok(bool a_val);
 
         // Client ctx
         void set_tls_client_ctx_cipher_list(const std::string &a_cipher_list);
@@ -257,6 +260,9 @@ public:
         void set_tls_client_ctx_ca_file(const std::string &a_tls_ca_file);
         int set_tls_client_ctx_options(const std::string &a_tls_options_str);
         int set_tls_client_ctx_options(long a_tls_options);
+
+        // Resolver
+        nresolver *get_nresolver(void);
 
 private:
         // Disallow copy/assign
@@ -269,29 +275,23 @@ private:
         int init(void);
         int init_t_hlx_list(void);
         void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
-        void add_subr_t(subr &a_subr);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
         t_conf *m_t_conf;
-
         bool m_stats;
         uint32_t m_num_threads;
         lsnr_list_t m_lsnr_list;
         subr_queue_t m_subr_queue;
-
-        // Resolver settings
+        nresolver *m_nresolver;
         bool m_use_ai_cache;
         std::string m_ai_cache;
         uint64_t m_start_time_ms;
         t_hlx_list_t m_t_hlx_list;
         t_hlx_list_t::iterator m_t_hlx_subr_iter;
         bool m_is_initd;
-
-        // subr id's
         uint64_atomic_t m_cur_subr_uid;
-
 };
 
 //: ----------------------------------------------------------------------------
@@ -594,6 +594,8 @@ public:
         bool get_detach_resp(void);
         uint64_t get_uid(void);
         hconn *get_requester_hconn(void);
+        const host_info_s *get_host_info(void);
+        t_hlx *get_t_hlx(void);
 
         // Setters
         void set_scheme(scheme_t a_scheme);
@@ -616,6 +618,8 @@ public:
         void set_detach_resp(bool a_val);
         void set_uid(uint64_t a_uid);
         void set_requester_hconn(hconn *a_hconn);
+        void set_host_info(const host_info_s *a_host_info);
+        void set_t_hlx(t_hlx *a_t_hlx);
 
         // Request Parts
         // Getters
@@ -689,10 +693,13 @@ private:
         bool m_detach_resp;
         uint64_t m_uid;
         hconn *m_requester_hconn;
+        const host_info_s *m_host_info;
+        t_hlx *m_t_hlx;
+
 };
 
 //: ----------------------------------------------------------------------------
-//: subr
+//: api_resp
 //: ----------------------------------------------------------------------------
 class api_resp
 {

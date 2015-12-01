@@ -65,7 +65,8 @@ public:
 
                 // Verify options
                 OPT_TLS_VERIFY = 1100,
-                OPT_TLS_VERIFY_ALLOW_SELF_SIGNED = 1101,
+                OPT_TLS_SNI = 1102,
+                OPT_TLS_VERIFY_ALLOW_SELF_SIGNED = 1103,
 
                 // CA options
                 OPT_TLS_CA_FILE = 1201,
