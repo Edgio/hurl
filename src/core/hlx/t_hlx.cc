@@ -1160,7 +1160,7 @@ int32_t t_hlx::try_deq_subr(void)
                         l_host_info = l_nresolver->lookup_sync(l_subr->get_host(), l_subr->get_port());
                         if(!l_host_info)
                         {
-                                NDBG_PRINT("Error l_host_info null\n");
+                                //NDBG_PRINT("Error l_host_info null\n");
                                 ++m_stat.m_num_errors;
                                 l_subr->bump_num_requested();
                                 l_subr->bump_num_completed();
