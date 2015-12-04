@@ -1731,23 +1731,27 @@ void display_status_line(settings_struct_t &a_settings)
         ns_hlx::t_stat_t l_total;
         a_settings.m_hlx->get_stats(l_total);
         uint32_t l_num_done = l_total.m_total_reqs;
+        uint32_t l_num_resolve_active = l_total.m_num_resolve_active;
+        uint32_t l_num_resolve_req = l_total.m_num_resolve_req;
         uint32_t l_num_resolved = l_total.m_num_resolved;
         uint32_t l_num_get = l_total.m_num_conn_started;
         uint32_t l_num_rx = a_settings.m_total_reqs;
         uint32_t l_num_error = l_total.m_num_errors;
         if(a_settings.m_color)
         {
-                printf("Done/Req'd/Resolved/Total/Error %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s\n",
+                printf("Done/Req'd/Resolved/Total/Error %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s\n",
                                 ANSI_COLOR_FG_GREEN, l_num_done, ANSI_COLOR_OFF,
                                 ANSI_COLOR_FG_YELLOW, l_num_get, ANSI_COLOR_OFF,
                                 ANSI_COLOR_FG_MAGENTA, l_num_resolved, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_WHITE, l_num_resolve_active, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_CYAN, l_num_resolve_req, ANSI_COLOR_OFF,
                                 ANSI_COLOR_FG_BLUE, l_num_rx, ANSI_COLOR_OFF,
                                 ANSI_COLOR_FG_RED, l_num_error, ANSI_COLOR_OFF);
         }
         else
         {
-                printf("Done/Req'd/Resolved/Total/Error %8u / %8u / %8u / %8u / %8u\n",
-                                l_num_done, l_num_get, l_num_resolved, l_num_rx, l_num_error);
+                printf("Done/Req'd/Resolved/Total/Error %8u / %8u / %8u / %8u / %8u / %8u / %8u\n",
+                                l_num_done, l_num_get, l_num_resolved, l_num_resolve_active, l_num_resolve_req, l_num_rx, l_num_error);
         }
 }
 

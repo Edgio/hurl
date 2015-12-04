@@ -133,11 +133,32 @@ int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
 
         int l_opt = 1;
         ioctl(m_fd, FIONBIO, &l_opt);
-#if 0
+
+        // Add to event handler
+        if (0 != a_evr_loop->add_fd(a_val,
+                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
+                                    this))
+        {
+                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                return NC_STATUS_ERROR;
+        }
+
+        return NC_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_tcp::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
+{
+        m_fd = a_val;
+        m_tcp_state = TCP_STATE_LISTENING;
         // -------------------------------------------
+        // Get/set flags for setting non-blocking
         // Can set with set_sock_opt???
         // -------------------------------------------
-        // Set the file descriptor to no-delay mode.
         const int flags = fcntl(m_fd, F_GETFL, 0);
         if (flags == -1)
         {
@@ -150,17 +171,15 @@ int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
                 NCONN_ERROR("LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n", m_label.c_str(), strerror(errno));
                 return NC_STATUS_ERROR;
         }
-#endif
 
         // Add to event handler
         if (0 != a_evr_loop->add_fd(a_val,
-                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
+                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                     this))
         {
                 NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                 return NC_STATUS_ERROR;
         }
-
         return NC_STATUS_OK;
 }
 
@@ -331,7 +350,6 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
                       m_host_info->m_sock_protocol);
 
         //NDBG_OUTPUT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
-
         if (m_fd < 0)
         {
                 NCONN_ERROR("LABEL[%s]: Error creating socket. Reason: %s\n", m_label.c_str(), strerror(errno));

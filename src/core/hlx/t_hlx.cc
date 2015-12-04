@@ -24,6 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "t_hlx.h"
 #include "ndebug.h"
 #include "nbq.h"
 #include "nconn_tcp.h"
@@ -35,7 +36,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-#include "t_hlx.h"
+#include <fcntl.h>
 
 namespace ns_hlx {
 
@@ -139,10 +140,17 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_rqst_pool(),
         m_nbq_pool(),
         m_stat(),
-        m_subr_q_fd(-1),
-        m_subr_q_nconn(NULL),
+        m_subr_q_mutex(),
+#ifdef ASYNC_DNS_SUPPORT
+        m_async_dns_is_initd(false),
+        m_async_dns_ctx(NULL),
+        m_async_dns_fd(-1),
+        m_async_dns_nconn(NULL),
+        m_lookup_job_q(),
+#endif
         m_is_initd(false)
 {
+        pthread_mutex_init(&m_subr_q_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -152,11 +160,6 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
 //: ----------------------------------------------------------------------------
 t_hlx::~t_hlx()
 {
-        if(m_subr_q_nconn)
-        {
-                delete m_subr_q_nconn;
-                m_subr_q_nconn = NULL;
-        }
         if(m_evr_loop)
         {
                 delete m_evr_loop;
@@ -180,6 +183,17 @@ t_hlx::~t_hlx()
                 }
                 m_subr_queue.pop();
         }
+
+#ifdef ASYNC_DNS_SUPPORT
+        if(m_t_conf && m_t_conf->m_hlx && m_t_conf->m_hlx->get_nresolver())
+        {
+                m_t_conf->m_hlx->get_nresolver()->destroy_async(m_async_dns_ctx, m_async_dns_fd);
+                if(m_async_dns_nconn)
+                {
+                        delete m_async_dns_nconn;
+                }
+        }
+#endif
 }
 
 //: ----------------------------------------------------------------------------
@@ -202,20 +216,6 @@ int32_t t_hlx::init(void)
                                   // TODO Need to make epoll vector resizeable...
                                   512,
                                   false);
-
-        // ---------------------------------------
-        // Subrequest support
-        // Fake nconn -for subreq notifications
-        // ---------------------------------------
-        m_subr_q_nconn = m_nconn_pool.create_conn(SCHEME_TCP);
-        m_subr_q_nconn->set_idx(sc_subr_q_conn_idx);
-        m_subr_q_fd = m_evr_loop->add_event(m_subr_q_nconn);
-        if(m_subr_q_fd == STATUS_ERROR)
-        {
-                NDBG_PRINT("Error performing m_evr_loop->add_event\n");
-                return STATUS_ERROR;
-        }
-
         m_is_initd = true;
         return STATUS_OK;
 }
@@ -250,12 +250,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
         hconn *l_hconn = get_hconn(a_lsnr.get_url_router(), DATA_TYPE_SERVER, false);
         if(!l_hconn)
         {
-                if(l_nconn)
-                {
-                        delete l_nconn;
-                        l_nconn = NULL;
-                }
-                NDBG_PRINT("Error: performing config_conn\n");
+                NDBG_PRINT("Error: performing get_hconn\n");
                 return STATUS_ERROR;
         }
         l_nconn->set_data(l_hconn);
@@ -283,7 +278,9 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
 int32_t t_hlx::add_subr(subr &a_subr)
 {
         //NDBG_PRINT("Adding subreq.\n");
+        pthread_mutex_lock(&m_subr_q_mutex);
         m_subr_queue.push(&a_subr);
+        pthread_mutex_unlock(&m_subr_q_mutex);
         if(m_evr_loop)
         {
                 m_evr_loop->signal_control();
@@ -767,13 +764,54 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_hconn->m_t_hlx);
         t_hlx *l_t_hlx = static_cast<t_hlx *>(l_hconn->m_t_hlx);
 
+        int32_t l_status = STATUS_OK;
+        int32_t l_retval = STATUS_OK;
+
+        // -------------------------------------------------
+        // Resolver
+        // -------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+        if(l_nconn->get_id() == nresolver::S_RESOLVER_ID)
+        {
+                if(!l_t_hlx->m_t_conf ||
+                   !(l_t_hlx->m_t_conf->m_hlx) ||
+                   !(l_t_hlx->m_t_conf->m_hlx->get_nresolver()) ||
+                   !(l_t_hlx->m_async_dns_ctx))
+                {
+
+                        return STATUS_ERROR;
+                }
+                nresolver *l_nresolver = static_cast<nresolver *>(l_t_hlx->m_t_conf->m_hlx->get_nresolver());
+                l_status = l_nresolver->handle_io(l_t_hlx->m_async_dns_ctx);
+                if(l_status != STATUS_OK)
+                {
+                        return STATUS_ERROR;
+                }
+                std::string l_unused;
+                l_status = l_nresolver->lookup_async(l_t_hlx->m_async_dns_ctx,
+                                                     l_unused,
+                                                     0,
+                                                     subr_resolved_cb,
+                                                     NULL,
+                                                     l_t_hlx->m_stat.m_num_resolve_active,
+                                                     l_t_hlx->m_lookup_job_q);
+                if(l_status != STATUS_OK)
+                {
+                        return STATUS_ERROR;
+                }
+                return STATUS_OK;
+        }
+#endif
+
+
+
         // Cancel last timer
         l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
         l_hconn->m_timer_obj = NULL;
 
-        int32_t l_retval = STATUS_OK;
-        int32_t l_status = STATUS_OK;
-
+        // -------------------------------------------------
+        // Server -incoming client connections
+        // -------------------------------------------------
         //NDBG_PRINT("%sREADABLE%s l_nconn->is_listening(): %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_nconn->is_listening());
         if(l_nconn->is_listening())
         {
@@ -825,6 +863,9 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                 l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
         }
 
+        // -------------------------------------------------
+        // Subrequests
+        // -------------------------------------------------
         if(l_hconn->m_subr)
         {
                 resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
@@ -983,6 +1024,10 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         }
                 } while((l_status != nconn::NC_STATUS_AGAIN) && (!l_t_hlx->m_stopped));
         }
+
+        // -------------------------------------------------
+        // handle client connections
+        // -------------------------------------------------
         else
         {
                 do {
@@ -1132,6 +1177,51 @@ int32_t t_hlx::evr_loop_file_error_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+int32_t t_hlx::subr_resolved_cb(const host_info_s *a_host_info, void *a_data)
+{
+        //NDBG_PRINT("%sRESOLVE_CB%s: HERE\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF);
+        subr *l_subr = static_cast<subr *>(a_data);
+        if(!l_subr)
+        {
+                NDBG_PRINT("Error subr == NULL\n");
+                return STATUS_ERROR;
+        }
+        t_hlx *l_t_hlx = l_subr->get_t_hlx();
+        if(!l_t_hlx)
+        {
+                NDBG_PRINT("Error l_t_hlx == NULL\n");
+                // TODO Cleanup subr???
+                return STATUS_ERROR;
+        }
+        if(!a_host_info)
+        {
+                //NDBG_PRINT("Error a_host_info == NULL\n");
+                //NDBG_PRINT("Error l_host_info null\n");
+                ++(l_t_hlx->m_stat.m_num_errors);
+                l_subr->bump_num_requested();
+                l_subr->bump_num_completed();
+                subr::error_cb_t l_error_cb = l_subr->get_error_cb();
+                if(l_error_cb)
+                {
+                        nconn_tcp l_nconn;
+                        l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_subr, l_nconn);
+                }
+                return STATUS_OK;
+        }
+        //NDBG_PRINT("l_subr: %p\n", l_subr);
+        l_subr->set_host_info(a_host_info);
+        ++(l_t_hlx->m_stat.m_num_resolved);
+        l_t_hlx->add_subr(*l_subr);
+        return STATUS_OK;
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t t_hlx::try_deq_subr(void)
 {
         //NDBG_PRINT("Dequeue: m_subr_queue.size(): %d\n", (int)m_subr_queue.size());
@@ -1147,6 +1237,7 @@ int32_t t_hlx::try_deq_subr(void)
                 std::string l_error;
 
                 const host_info_s *l_host_info = l_subr->get_host_info();
+                //NDBG_PRINT("l_host_info: %p\n", l_host_info);
                 if(!l_host_info)
                 {
                         nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
@@ -1156,25 +1247,69 @@ int32_t t_hlx::try_deq_subr(void)
                                 return STATUS_ERROR;
                         }
 
-                        // sync dns
-                        l_host_info = l_nresolver->lookup_sync(l_subr->get_host(), l_subr->get_port());
-                        if(!l_host_info)
+                        // Try fast
+                        l_host_info = l_nresolver->lookup_tryfast(l_subr->get_host(), l_subr->get_port());
+                        //NDBG_PRINT("%sl_host_info%s: %p\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, l_host_info);
+                        if(l_host_info)
                         {
-                                //NDBG_PRINT("Error l_host_info null\n");
-                                ++m_stat.m_num_errors;
-                                l_subr->bump_num_requested();
-                                l_subr->bump_num_completed();
-                                subr::error_cb_t l_error_cb = l_subr->get_error_cb();
-                                if(l_error_cb)
-                                {
-                                        nconn_tcp l_nconn;
-                                        l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
-                                }
-                                m_subr_queue.pop();
-                                continue;
+                                l_subr->set_host_info(l_host_info);
                         }
-                        l_subr->set_host_info(l_host_info);
-                        ++(m_stat.m_num_resolved);
+                        else
+                        {
+#ifdef ASYNC_DNS_SUPPORT
+                                // If try fast fails lookup async
+                                l_subr->set_t_hlx(this);
+
+                                if(!m_async_dns_is_initd)
+                                {
+                                        l_status = init_async_dns();
+                                        if(l_status != STATUS_OK)
+                                        {
+                                                return STATUS_ERROR;
+                                        }
+                                }
+
+                                ++(m_stat.m_num_resolve_req);
+                                l_status = l_nresolver->lookup_async(m_async_dns_ctx,
+                                                                     l_subr->get_host(),
+                                                                     l_subr->get_port(),
+                                                                     subr_resolved_cb,
+                                                                     l_subr,
+                                                                     m_stat.m_num_resolve_active,
+                                                                     m_lookup_job_q);
+                                if(l_status != STATUS_OK)
+                                {
+                                        pthread_mutex_lock(&m_subr_q_mutex);
+                                        m_subr_queue.pop();
+                                        pthread_mutex_unlock(&m_subr_q_mutex);
+                                        continue;
+                                }
+                                pthread_mutex_lock(&m_subr_q_mutex);
+                                m_subr_queue.pop();
+                                pthread_mutex_unlock(&m_subr_q_mutex);
+                                continue;
+#else
+                                // sync dns
+                                l_host_info = l_nresolver->lookup_sync(l_subr->get_host(), l_subr->get_port());
+                                if(!l_host_info)
+                                {
+                                        //NDBG_PRINT("Error l_host_info null\n");
+                                        ++m_stat.m_num_errors;
+                                        l_subr->bump_num_requested();
+                                        l_subr->bump_num_completed();
+                                        subr::error_cb_t l_error_cb = l_subr->get_error_cb();
+                                        if(l_error_cb)
+                                        {
+                                                nconn_tcp l_nconn;
+                                                l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
+                                        }
+                                        m_subr_queue.pop();
+                                        continue;
+                                }
+                                l_subr->set_host_info(l_host_info);
+                                ++(m_stat.m_num_resolved);
+#endif
+                        }
                 }
 
                 nconn *l_nconn = NULL;
@@ -1186,8 +1321,10 @@ int32_t t_hlx::try_deq_subr(void)
                 if(!l_nconn)
                 {
                         // Push to back
+                        pthread_mutex_lock(&m_subr_q_mutex);
                         m_subr_queue.pop();
                         m_subr_queue.push(l_subr);
+                        pthread_mutex_unlock(&m_subr_q_mutex);
                         continue;
                 }
                 hconn *l_hconn = static_cast<hconn *>(l_nconn->get_data());
@@ -1216,16 +1353,20 @@ int32_t t_hlx::try_deq_subr(void)
                 if(l_status != STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing request\n");
+                        pthread_mutex_lock(&m_subr_q_mutex);
                         m_subr_queue.pop();
+                        pthread_mutex_unlock(&m_subr_q_mutex);
                 }
                 else
                 {
                         l_subr->bump_num_requested();
-                        //NDBG_PRINT("l_subr->is_pending_done(): %d\n", l_subr->is_pending_done());
+                        //NDBG_PRINT("l_subr->is_pending_done(): %d\n", l_subr->get_is_pending_done());
                         if(l_subr->get_is_pending_done())
                         {
-                                //NDBG_PRINT("POP'ing: host: %s\n", l_subr->m_host.c_str());
+                                //NDBG_PRINT("POP'ing: host: %s\n", l_subr->get_label().c_str());
+                                pthread_mutex_lock(&m_subr_q_mutex);
                                 m_subr_queue.pop();
+                                pthread_mutex_unlock(&m_subr_q_mutex);
                         }
                 }
 
@@ -1389,7 +1530,6 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 m_evr_loop->cancel_timer(a_hconn.m_timer_obj);
                 a_hconn.m_timer_obj = NULL;
         }
-
         //NDBG_PRINT("%sADDING_BACK%s: %u a_nconn: %p type: %d\n",
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
         //           (uint32_t)a_nconn.get_idx(), &a_nconn, a_type);
@@ -1397,24 +1537,20 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         // Add back to free list
         if(a_hconn.m_type == DATA_TYPE_SERVER)
         {
-                //NDBG_PRINT("m_nconn_pool size: %d\n", (int)m_nconn_pool.get_nconn_obj_pool().used_size());
-                //NDBG_PRINT("m_idle size:       %u\n", (int)m_nconn_pool.num_idle());
                 if(STATUS_OK != m_nconn_pool.release(a_hconn.m_nconn))
                 {
                         return STATUS_ERROR;
                 }
+                a_hconn.m_nconn = NULL;
 
                 if(a_hconn.m_hmsg)
                 {
                         m_rqst_pool.release(static_cast<rqst *>(a_hconn.m_hmsg));
+                        a_hconn.m_hmsg = NULL;
                 }
-                //NDBG_PRINT("m_nconn_pool size: %d\n", (int)m_nconn_pool.get_nconn_obj_pool().used_size());
-                //NDBG_PRINT("m_idle size:       %u\n", (int)m_nconn_pool.num_idle());
         }
         else if(a_hconn.m_type == DATA_TYPE_CLIENT)
         {
-                //NDBG_PRINT("m_nconn_proxy_pool size: %d\n", (int)m_nconn_proxy_pool.get_nconn_obj_pool().used_size());
-                //NDBG_PRINT("m_idle size:       %u\n", (int)m_nconn_proxy_pool.num_idle());
                 if(STATUS_OK != m_nconn_proxy_pool.release(a_hconn.m_nconn))
                 {
                         return STATUS_ERROR;
@@ -1422,26 +1558,22 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 if(a_hconn.m_hmsg)
                 {
                         m_resp_pool.release(static_cast<resp *>(a_hconn.m_hmsg));
+                        a_hconn.m_hmsg = NULL;
                 }
-                //NDBG_PRINT("m_nconn_proxy_pool size: %d\n", (int)m_nconn_proxy_pool.get_nconn_obj_pool().used_size());
-                //NDBG_PRINT("m_idle size:       %u\n", (int)m_nconn_proxy_pool.num_idle());
         }
-        a_hconn.m_nconn = NULL;
-
         if(a_hconn.m_in_q)
         {
                 m_nbq_pool.release(a_hconn.m_in_q);
+                a_hconn.m_in_q = NULL;
         }
         if(a_hconn.m_out_q)
         {
                 m_nbq_pool.release(a_hconn.m_out_q);
+                a_hconn.m_out_q = NULL;
         }
-
         m_hconn_pool.release(&a_hconn);
-
         --m_stat.m_cur_conn_count;
         ++m_stat.m_num_conn_completed;
-
         return STATUS_OK;
 }
 
@@ -1453,6 +1585,10 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
 int32_t t_hlx::handle_req(hconn &a_hconn, url_router *a_url_router)
 {
         rqst *l_rqst = static_cast<rqst *>(a_hconn.m_hmsg);
+        if(!l_rqst)
+        {
+                return STATUS_ERROR;
+        }
         // TODO Null check...
         if(!a_url_router)
         {
@@ -1688,5 +1824,62 @@ void t_hlx::add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code
         //NDBG_PRINT("%sSTATUS_CODE%s: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);
         ++m_stat.m_status_code_count_map[a_status_code];
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+int32_t t_hlx::init_async_dns(void)
+{
+        if(m_async_dns_is_initd)
+        {
+                return STATUS_OK;
+        }
+        if(!m_t_conf || !(m_t_conf->m_hlx) || !m_t_conf->m_hlx->get_nresolver())
+        {
+                return STATUS_ERROR;
+        }
+        nresolver *l_nresolver = NULL;
+        l_nresolver = m_t_conf->m_hlx->get_nresolver();
+        //NDBG_PRINT("Initializing...\n");
+        int32_t l_status;
+        l_status = l_nresolver->init_async(&m_async_dns_ctx, m_async_dns_fd);
+        if(l_status != STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
+        //NDBG_PRINT("m_async_dns_ctx: %p\n", m_async_dns_ctx);
+        // close fd on exec
+        //l_status = fcntl(m_fd, F_SETFD, FD_CLOEXEC);
+        //if (l_status == -1)
+        //{
+        //        NDBG_PRINT("Error fcntl(FD_CLOEXEC) failed: %s\n", strerror(errno));
+        //        return STATUS_ERROR;
+        //}
+        // Set non-blocking
+        l_status = fcntl(m_async_dns_fd, F_SETFL, O_NONBLOCK | O_RDWR);
+        if (l_status == -1)
+        {
+                NDBG_PRINT("Error fcntl(FD_CLOEXEC) failed: %s\n", strerror(errno));
+                return STATUS_ERROR;
+        }
+        // Create fake connection object to work with hlx event handlers
+        m_async_dns_nconn = new nconn_tcp();
+        m_async_dns_nconn->set_id(nresolver::S_RESOLVER_ID);
+        m_async_dns_nconn->nc_set_listening_nb(m_evr_loop, m_async_dns_fd);
+        hconn *l_hconn = get_hconn(NULL, DATA_TYPE_SERVER, false);
+        if(!l_hconn)
+        {
+                NDBG_PRINT("Error: performing config_conn\n");
+                return STATUS_ERROR;
+        }
+        l_hconn->m_nconn = m_async_dns_nconn;
+        m_async_dns_nconn->set_data(l_hconn);
+        m_async_dns_is_initd = true;
+        return STATUS_OK;
+}
+#endif
 
 } //namespace ns_hlx {

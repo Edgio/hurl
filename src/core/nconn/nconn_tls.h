@@ -127,6 +127,7 @@ protected:
         int32_t ncconnect(evr_loop *a_evr_loop);
         int32_t nccleanup(void);
         int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val);
         int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
 
 private:

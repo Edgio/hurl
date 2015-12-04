@@ -28,6 +28,8 @@
 #include "nbq.h"
 #include "ndebug.h"
 
+#include <string.h>
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -40,7 +42,7 @@ rqst::rqst(void):
         m_url(),
         m_p_url(),
         m_method(),
-        m_path()
+        m_path("")
 {
         m_type = hmsg::TYPE_RQST;
 }
@@ -76,11 +78,15 @@ const std::string &rqst::get_path()
 {
         if(m_path.empty())
         {
-                char *l_path = copy_part(*m_q, m_p_url.m_off, m_p_url.m_len);
-                if(l_path)
+                if(m_q && m_p_url.m_off && m_p_url.m_len)
                 {
-                        m_path = l_path;
-                        free(l_path);
+                        char *l_path = NULL;
+                        l_path = copy_part(*m_q, m_p_url.m_off, m_p_url.m_len);
+                        if(l_path && strlen(l_path))
+                        {
+                                m_path = l_path;
+                                free(l_path);
+                        }
                 }
         }
         return m_path;

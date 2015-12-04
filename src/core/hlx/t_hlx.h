@@ -34,6 +34,8 @@
 #include "obj_pool.h"
 #include "t_conf.h"
 #include "hlx/hlx.h"
+#include "hlx/stat.h"
+#include "nresolver.h"
 
 #include <queue>
 
@@ -61,12 +63,6 @@ public:
         // Types
         // -------------------------------------------------
         typedef std::list <nconn *> listening_nconn_list_t;
-
-        // -------------------------------------------------
-        // const
-        // -------------------------------------------------
-        // Subreq support
-        static const uint32_t sc_subr_q_conn_idx = 0xFFFFFFFE;
 
         // -------------------------------------------------
         // Public methods
@@ -98,6 +94,11 @@ public:
         static int32_t evr_loop_file_error_cb(void *a_data);
         static int32_t evr_loop_file_timeout_cb(void *a_data);
         static int32_t evr_loop_timer_cb(void *a_data);
+
+        // Resolver callback
+#ifdef ASYNC_DNS_SUPPORT
+        static int32_t subr_resolved_cb(const host_info_s *a_host_info, void *a_data);
+#endif
 
 private:
         // -------------------------------------------------
@@ -140,6 +141,10 @@ private:
         bool subr_complete(hconn &a_hconn);
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
 
+#ifdef ASYNC_DNS_SUPPORT
+        int32_t init_async_dns(void);
+#endif
+
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
@@ -159,10 +164,15 @@ private:
         rqst_pool_t m_rqst_pool;
         nbq_pool_t m_nbq_pool;
         t_stat_t m_stat;
+        pthread_mutex_t m_subr_q_mutex;
 
-        // Subrequest support
-        int m_subr_q_fd;
-        nconn *m_subr_q_nconn;
+#ifdef ASYNC_DNS_SUPPORT
+        bool m_async_dns_is_initd;
+        void *m_async_dns_ctx;
+        int m_async_dns_fd;
+        nconn *m_async_dns_nconn;
+        nresolver::lookup_job_q_t m_lookup_job_q;
+#endif
 
         // is initialized flag
         bool m_is_initd;

@@ -515,7 +515,12 @@ nb_struct::~nb_struct()
 //: ----------------------------------------------------------------------------
 char *copy_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
 {
-        char *l_buf = (char *)malloc(sizeof(char)*a_len + 1);
+        char *l_buf = NULL;
+        l_buf = (char *)calloc(1, sizeof(char)*a_len + 1);
+        if(!l_buf)
+        {
+                return NULL;
+        }
         a_nbq.read_from(a_off, l_buf, a_len);
         l_buf[a_len] = '\0';
         return l_buf;

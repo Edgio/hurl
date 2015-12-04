@@ -508,6 +508,24 @@ int32_t nconn_tls::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t nconn_tls::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
+{
+        int32_t l_status;
+        l_status = nconn_tcp::ncset_listening_nb(a_evr_loop, a_val);
+        if(l_status != NC_STATUS_OK)
+        {
+                NDBG_PRINT("Error performing nconn_tcp::ncset_listening.\n");
+                return NC_STATUS_ERROR;
+        }
+        m_tls_state = TLS_STATE_LISTENING;
+        return NC_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t nconn_tls::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 {
         int32_t l_status;

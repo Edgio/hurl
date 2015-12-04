@@ -35,6 +35,7 @@ option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
 option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
 option(BUILD_EFENCE     "Build with tcmalloc" OFF)
 option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
+option(BUILD_UDNS       "Build with udns (async dns support)" OFF)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -63,6 +64,7 @@ message("    Enable google cpu/heap profiler support:   " "BUILD_PROFILER       
 message("    Build with tcmalloc:                       " "BUILD_TCMALLOC          " ${BUILD_TCMALLOC})
 message("    Build with efence:                         " "BUILD_EFENCE            " ${BUILD_EFENCE})
 message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
+message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
 message("")
 
 if (FORTIFY)
@@ -80,6 +82,14 @@ elseif(BUILD_ASAN)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
   set(LIBRARIES ${LIBRARIES} asan)
   set(DEBUG_MODE ON)
+endif()
+
+# ------------------------------------------------------------------------------
+# udns support
+# ------------------------------------------------------------------------------
+if (BUILD_UDNS)
+  add_definitions(-DASYNC_DNS_WITH_UDNS=1)
+  set(LIBRARIES ${LIBRARIES} udns)
 endif()
 
 # ------------------------------------------------------------------------------
@@ -115,11 +125,13 @@ SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
 
 SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0")
+
 if (BUILD_TCMALLOC)
   SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} google-perftools)
 endif()
-if (BUILD_DNS_C_ARES)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libc-ares2)
+
+if (BUILD_UDNS)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libudns0)
 endif()
 
 # cpack doesn't actually use the following, but the build.sh command does
@@ -128,6 +140,10 @@ SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev")
 
 if (BUILD_TCMALLOC)
   SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libgoogle-perftools-dev)
+endif()
+
+if (BUILD_UDNS)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libudns-dev)
 endif()
 
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")

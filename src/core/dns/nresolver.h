@@ -46,19 +46,30 @@
 //: ----------------------------------------------------------------------------
 #define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
 
+// TODO Remove -enable with build flag...
+//#define ASYNC_DNS_WITH_UDNS 1
+#ifdef ASYNC_DNS_WITH_UDNS
+#define ASYNC_DNS_SUPPORT 1
+#endif
+
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-// TODO Remove -enable with build flag...
-#define ASYNC_DNS_WITH_C_ARES 1
-#ifdef ASYNC_DNS_WITH_C_ARES
-#endif
-
 //struct real_pcre;
 //typedef real_pcre pcre;
 //struct pcre_extra;
 
+#ifdef ASYNC_DNS_WITH_UDNS
+struct dns_ctx;
+struct dns_rr_a4;
+#endif
+
 namespace ns_hlx {
+
+//: ----------------------------------------------------------------------------
+//: Fwd Decl's
+//: ----------------------------------------------------------------------------
+class nconn;
 
 // Host info
 struct host_info_s {
@@ -99,13 +110,63 @@ class nresolver
 {
 public:
         //: ------------------------------------------------
+        //: Types
+        //: ------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+        // Async resolver callback
+        typedef int32_t (*resolved_cb)(const host_info_s *, void *);
+
+        struct lookup_job {
+                void *m_data;
+                resolved_cb m_cb;
+                std::string m_host;
+                uint16_t m_port;
+                nresolver *m_nresolver;
+                lookup_job(void):
+                        m_data(NULL),
+                        m_cb(NULL),
+                        m_host(),
+                        m_port(0),
+                        m_nresolver(NULL)
+                {}
+        private:
+                // Disallow copy/assign
+                lookup_job& operator=(const lookup_job &);
+                lookup_job(const lookup_job &);
+        };
+        typedef std::queue<lookup_job *>lookup_job_q_t;
+#endif
+
+
+
+        //: ------------------------------------------------
+        //: Const
+        //: ------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+        static const uint64_t S_RESOLVER_ID = 0xFFFFFFFFFFFFFFFFUL;
+#endif
+        //: ------------------------------------------------
         //: Public methods
         //: ------------------------------------------------
         nresolver();
         ~nresolver();
 
         int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
+        host_info_s *lookup_tryfast(const std::string &a_host, uint16_t a_port);
         host_info_s *lookup_sync(const std::string &a_host, uint16_t a_port);
+#ifdef ASYNC_DNS_SUPPORT
+        int32_t init_async(void** ao_ctx, int &ao_fd);
+        int32_t destroy_async(void* a_ctx, int &a_fd);
+        int32_t lookup_async(void* a_ctx,
+                             const std::string &a_host,
+                             uint16_t a_port,
+                             resolved_cb a_cb,
+                             void *a_data,
+                             uint64_t &a_active,
+                             lookup_job_q_t &ao_lookup_job_q);
+        int32_t handle_io(void* a_ctx);
+#endif
+
 private:
         //: ------------------------------------------------
         //: Types
@@ -118,9 +179,17 @@ private:
         // Disallow copy/assign
         nresolver& operator=(const nresolver &);
         nresolver(const nresolver &);
-
         int32_t sync_ai_cache(void);
         int32_t read_ai_cache(const std::string &a_ai_cache_file);
+        host_info_s *lookup_inline(const std::string &a_host, uint16_t a_port);
+        void add_host_info_cache(const std::string &a_host, uint16_t a_port, host_info_s *a_host_info);
+
+        //: ------------------------------------------------
+        //: Private static methods
+        //: ------------------------------------------------
+#ifdef ASYNC_DNS_WITH_UDNS
+        static void dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, void *a_data);
+#endif
 
         //: ------------------------------------------------
         //: Private members
@@ -132,6 +201,7 @@ private:
         std::string m_ai_cache_file;
         //pcre *m_ip_address_re_compiled;
         //pcre_extra *m_ip_address_pcre_extra;
+
 };
 
 } //namespace ns_hlx {

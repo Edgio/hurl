@@ -843,6 +843,8 @@ void hlx::add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_tot
         ao_stat_agg.m_total_bytes += a_add_total_stat.m_total_bytes;
         ao_stat_agg.m_total_reqs += a_add_total_stat.m_total_reqs;
 
+        ao_stat_agg.m_num_resolve_req += a_add_total_stat.m_num_resolve_req;
+        ao_stat_agg.m_num_resolve_active += a_add_total_stat.m_num_resolve_active;
         ao_stat_agg.m_num_resolved += a_add_total_stat.m_num_resolved;
         ao_stat_agg.m_num_conn_started += a_add_total_stat.m_num_conn_started;
         ao_stat_agg.m_num_conn_completed += a_add_total_stat.m_num_conn_completed;

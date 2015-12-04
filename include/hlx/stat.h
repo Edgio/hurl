@@ -88,6 +88,8 @@ typedef struct t_stat_struct
         uint64_t m_total_reqs;
 
         // Connection stats
+        uint64_t m_num_resolve_req;
+        uint64_t m_num_resolve_active;
         uint64_t m_num_resolved;
         uint64_t m_num_conn_started;
         uint32_t m_cur_conn_count;
@@ -106,6 +108,8 @@ typedef struct t_stat_struct
                 m_stat_us_end_to_end(),
                 m_total_bytes(0),
                 m_total_reqs(0),
+                m_num_resolve_req(0),
+                m_num_resolve_active(0),
                 m_num_resolved(0),
                 m_num_conn_started(0),
                 m_cur_conn_count(0),
@@ -130,6 +134,8 @@ typedef struct t_stat_struct
                 m_total_reqs = 0;
 
                 // Client stats
+                m_num_resolve_req = 0;
+                m_num_resolve_active = 0;
                 m_num_resolved = 0;
                 m_num_conn_started = 0;
                 m_cur_conn_count = 0;

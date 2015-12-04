@@ -75,6 +75,7 @@ protected:
         // Protected methods
         // -------------------------------------------------
         int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val);
         int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t ncsetup(evr_loop *a_evr_loop);
         int32_t ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len);

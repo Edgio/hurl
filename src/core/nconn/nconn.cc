@@ -443,6 +443,25 @@ int32_t nconn::nc_set_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t nconn::nc_set_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
+{
+        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
+        int32_t l_status;
+        l_status = ncset_listening_nb(a_evr_loop, a_val);
+        if(l_status != NC_STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
+
+        m_nc_state = NC_STATE_LISTENING;
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t nconn::nc_set_accepting(evr_loop *a_evr_loop, int a_fd)
 {
         int32_t l_status;

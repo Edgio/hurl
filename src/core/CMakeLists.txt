@@ -36,6 +36,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ./support
     ./nconn
     ../../include 
+    ../../udns-0.4
 )
 
 # Source files

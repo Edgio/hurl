@@ -165,6 +165,7 @@ public:
         int32_t nc_read(evr_loop *a_evr_loop, nbq *a_in_q);
         int32_t nc_write(evr_loop *a_evr_loop, nbq *a_out_q);
         int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
+        int32_t nc_set_listening_nb(evr_loop *a_evr_loop, int32_t a_val);
         int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
         int32_t nc_init(void);
@@ -190,6 +191,7 @@ protected:
         virtual int32_t ncconnect(evr_loop *a_evr_loop) = 0;
         virtual int32_t nccleanup(void) = 0;
         virtual int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val) = 0;
+        virtual int32_t ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val) = 0;
         virtual int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd) = 0;
 
         // -------------------------------------------------
