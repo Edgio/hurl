@@ -414,14 +414,17 @@ host_info_s *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port
 //: ----------------------------------------------------------------------------
 void nresolver::add_host_info_cache(const std::string &a_host, uint16_t a_port, host_info_s *a_host_info)
 {
-        // Create a cache key
-        char l_port_str[8];
-        snprintf(l_port_str, 8, "%d", a_port);
-        std::string l_cache_key;
-        l_cache_key = a_host + ":" + l_port_str;
-        pthread_mutex_lock(&m_cache_mutex);
-        m_ai_cache_map[l_cache_key] = a_host_info;
-        pthread_mutex_unlock(&m_cache_mutex);
+        if(m_use_cache)
+        {
+                // Create a cache key
+                char l_port_str[8];
+                snprintf(l_port_str, 8, "%d", a_port);
+                std::string l_cache_key;
+                l_cache_key = a_host + ":" + l_port_str;
+                pthread_mutex_lock(&m_cache_mutex);
+                m_ai_cache_map[l_cache_key] = a_host_info;
+                pthread_mutex_unlock(&m_cache_mutex);
+        }
 }
 
 //: ----------------------------------------------------------------------------

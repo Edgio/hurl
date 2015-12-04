@@ -733,6 +733,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -R, --recv_buffer    Socket receive buffer size.\n");
         fprintf(a_stream, "  -S, --send_buffer    Socket send buffer size.\n");
         fprintf(a_stream, "  -D, --no_delay       Socket TCP no-delay.\n");
+        fprintf(a_stream, "  -k, --no_cache       Don't use addr info cache.\n");
         fprintf(a_stream, "  -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).\n");
         fprintf(a_stream, "  -C, --connect_only   Only connect -do not send request.\n");
         fprintf(a_stream, "  \n");
@@ -839,6 +840,7 @@ int main(int argc, char** argv)
                 { "recv_buffer",    1, 0, 'R' },
                 { "send_buffer",    1, 0, 'S' },
                 { "no_delay",       1, 0, 'D' },
+                { "no_cache",       0, 0, 'k' },
                 { "ai_cache",       1, 0, 'A' },
                 { "connect_only",   0, 0, 'C' },
                 { "cipher",         1, 0, 'y' },
@@ -914,9 +916,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DA:CRcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -1189,6 +1191,14 @@ int main(int argc, char** argv)
                 case 'D':
                 {
                         l_hlx->set_sock_opt_no_delay(true);
+                        break;
+                }
+                // ---------------------------------------
+                // I'm poor -I aint got no cache!
+                // ---------------------------------------
+                case 'k':
+                {
+                        l_hlx->set_use_ai_cache(false);
                         break;
                 }
                 // ---------------------------------------
