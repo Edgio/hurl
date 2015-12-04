@@ -39,9 +39,6 @@
 // signal
 #include <signal.h>
 
-// Shared pointer
-//#include <tr1/memory>
-
 #include <list>
 #include <set>
 #include <algorithm>
@@ -310,8 +307,6 @@ static int32_t s_completion_cb(ns_hlx::hlx &a_hlx,
 #if 0
                 SSL_SESSION *m_tls_session = SSL_get_session(m_tls);
                 SSL_SESSION_print_fp(stdout, m_tls_session);
-
-                // TODO REMOVE
                 X509* l_cert = NULL;
                 l_cert = SSL_get_peer_certificate(m_tls);
                 if(NULL == l_cert)

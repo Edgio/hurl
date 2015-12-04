@@ -123,17 +123,11 @@
 
 #define UNUSED(x) ( (void)(x) )
 
-//: ----------------------------------------------------------------------------
-//: Legacy Macros...
-//: TODO REMOVE
-//: ----------------------------------------------------------------------------
-#if 0
 #define FATAL(fmt, x...)\
         do {\
                 fprintf(stderr, fmt, ## x);\
                 exit(1);\
         } while(0)
-#endif
 
 // Namespace ns_hlx
 namespace ns_hlx {

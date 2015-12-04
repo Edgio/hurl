@@ -267,11 +267,10 @@ int32_t nconn_tls::tls_accept(void)
                 switch(l_tls_error) {
                 case SSL_ERROR_SSL:
                 {
-                        // TODO REMOVE
-                        NDBG_PRINT("LABEL[%s]: SSL_ERROR_SSL %lu: %s.\n",
-                                        m_label.c_str(),
-                                        ERR_get_error(),
-                                        ERR_error_string(ERR_get_error(),NULL));
+                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SSL %lu: %s.\n",
+                        //                m_label.c_str(),
+                        //                ERR_get_error(),
+                        //                ERR_error_string(ERR_get_error(),NULL));
                         if(gts_last_tls_error[0] != '\0')
                         {
                                 NCONN_ERROR("LABEL[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s\n",

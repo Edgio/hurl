@@ -328,12 +328,6 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                         return NC_STATUS_ERROR;
                 }
         }
-        // TODO REMOVE
-        //else if((uint32_t)l_status < a_buf_len)
-        //{
-        //        NDBG_PRINT("l_status[%d] < a_buf_len[%u].\n", l_status, a_buf_len);
-        //}
-        // TODO EAGAIN
         return l_status;
 }
 
@@ -453,14 +447,11 @@ state_top:
         l_connect_status = connect(m_fd,
                                    ((struct sockaddr*) &(m_host_info->m_sa)),
                                    (m_host_info->m_sa_len));
-        // TODO REMOVE
-        //NDBG_PRINT_BT();
         //NDBG_PRINT("%sCONNECT%s[%3d]: Retry: %d Status %3d. Reason[%d]: %s\n",
         //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
         //           m_fd, l_retry_connect_count, l_connect_status,
         //           errno,
         //           strerror(errno));
-
         if (l_connect_status < 0)
         {
                 switch (errno)

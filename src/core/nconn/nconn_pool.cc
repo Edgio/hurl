@@ -78,8 +78,6 @@ nconn *nconn_pool::get(scheme_t a_scheme)
 
         if(m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size)
         {
-                // TODO REMOVE
-                //NDBG_PRINT("%sEAGAIN%s\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF);
                 return NULL;
         }
 

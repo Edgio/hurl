@@ -940,12 +940,6 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                                 l_resp->show();
                                                 if(l_t_hlx->m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
                                         }
-
-                                        // TODO REMOVE
-                                        //NDBG_PRINT("CONN %sREUSE%s: l_nconn->can_reuse():           %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_nconn->can_reuse());
-                                        //NDBG_PRINT("CONN %sREUSE%s: l_hconn->m_supports_keep_alive: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_hconn->m_supports_keep_alives);
-                                        //NDBG_PRINT("CONN %sREUSE%s: l_hconn->m_subr->get_is_done(): %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_hconn->m_subr->get_is_done());
-                                        //NDBG_PRINT("CONN %sREUSE%s: m_use_persistent_pool:          %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_t_hlx->m_t_conf->m_use_persistent_pool);
                                         if(!l_nconn->can_reuse() ||
                                            !l_hconn->m_supports_keep_alives ||
                                            (l_subr_is_done && !l_t_hlx->m_t_conf->m_use_persistent_pool))

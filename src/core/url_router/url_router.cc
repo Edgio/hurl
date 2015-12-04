@@ -775,7 +775,6 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         // common edge
         edge *l_common_edge = NULL;
 
-        // TODO REMOVE
         //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
         //NDBG_PRINT("%s: a_path%s: %s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, (pattern_str(a_pattern)).c_str());
         //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
@@ -787,7 +786,6 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 return NULL;
         }
 
-        // TODO REMOVE
         //NDBG_PRINT("l_prefix_len:                      %d\n", l_prefix_len);
         //if(l_common_edge)
         //{
@@ -822,18 +820,11 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         }
         else if(l_prefix_len == pattern_len(l_common_edge->m_pattern))
         {
-
                 //NDBG_PRINT("%s: l_prefix_len == pattern_len(l_common_edge->m_pattern) :%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
-
                 // Get subpath string
                 pattern_t l_subpattern = pattern_sub(a_pattern, l_prefix_len, pattern_len(a_pattern) - l_prefix_len);
-
-                // TODO REMOVE
                 //NDBG_PRINT("%ssub_pattern%s: %s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (pattern_str(l_subpattern)).c_str());
-
-                // TODO REMOVE
                 //NDBG_PRINT("l_prefix_len == l_common_edge->m_pattern.length()\n");
-
                 // insert new path to this node
                 node *l_new_node;
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
@@ -842,17 +833,13 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                         NDBG_PRINT("Error performing insert_route: %s\n", (pattern_str(l_subpattern)).c_str());
                         return NULL;
                 }
-
                 return l_new_node;
         }
         else if (l_prefix_len < pattern_len(l_common_edge->m_pattern))
         {
-
                 //NDBG_PRINT("%s: l_prefix_len < pattern_len(l_common_edge->m_pattern) :%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
-
                 // partially matched with pattern
                 // split endpoint
-
                 // Create new node -branched at prefix
                 node *l_new_node;
                 l_new_node = l_common_edge->branch(l_prefix_len);
@@ -861,13 +848,9 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                         NDBG_PRINT("Error performing branch: offset: %u\n", l_prefix_len);
                         return NULL;
                 }
-
                 // Get subpath string
                 pattern_t l_subpattern = pattern_sub(a_pattern, l_prefix_len, pattern_len(a_pattern) - l_prefix_len);
-
-                // TODO REMOVE
                 //NDBG_PRINT("%ssub_pattern%s: %s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (pattern_str(l_subpattern)).c_str());
-
                 // Insert the remainder of the path at the new branch
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
@@ -882,7 +865,6 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 printf("Error unexpected route.\n");
                 return NULL;
         }
-
         return this;
 }
 
@@ -903,9 +885,7 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
 
         for(edge_list_t::const_iterator i_edge = m_edge_list.begin(); i_edge != m_edge_list.end(); ++i_edge)
         {
-                // TODO REMOVE
                 //NDBG_PRINT("%sloopin on edges compare%s: %s\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, pattern_str((*i_edge)->m_pattern).c_str());
-
                 // ignore all edges with parameter
                 l_common_prefix_len = pattern_diff(a_pattern, (*i_edge)->m_pattern);
                 //NDBG_PRINT("%sloopin on edges compare%s: l_common_prefix_len: %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_common_prefix_len);
@@ -965,21 +945,16 @@ const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap
 
                 std::string l_suffix;
                 const void *l_data;
-
-                // TODO REMOVE
                 //NDBG_PRINT("%sFIND_ROUTE%s[%s]: edge: %s\n",
                 //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
                 //                a_route.c_str(),
                 //                pattern_str((*i_edge)->m_pattern).c_str());
-
                 if((*i_edge)->match_route(a_route, l_url_param_map, l_suffix))
                 {
-
                         //NDBG_PRINT("%sFIND_ROUTE%s: MATCH_ROUTE %s == %s ... remainder: %s len(%d)\n",
                         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
                         //                pattern_str((*i_edge)->m_pattern).c_str(),
                         //                a_route.c_str(), l_suffix.c_str(), (int)l_suffix.length());
-
                         if(!l_suffix.length())
                         {
                                 // TODO better way to update map???
