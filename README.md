@@ -54,43 +54,41 @@ hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 Usage: hurl [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help          Display this help and exit.
-  -r, --version       Display the version number and exit.
-
+  -V, --version       Display the version number and exit.
+  
 Input Options:
-  -u, --url_file      URL file.
   -w, --no_wildcards  Don't wildcard the url.
+  -M, --mode          Request mode -if multipath [random(default) | sequential].
   -d, --data          HTTP body data -supports bodies up to 8k.
-
+  
 Settings:
   -y, --cipher        Cipher --see "openssl ciphers" for list.
-  -p, --parallel      Num parallel Default: 64.
+  -p, --parallel      Num parallel. Default: 100.
   -f, --fetches       Num fetches.
   -N, --num_calls     Number of requests per connection
   -k, --keep_alive    Re-use connections for all requests
-  -t, --threads       Number of parallel threads.
+  -t, --threads       Number of parallel threads. Default: 1
   -H, --header        Request headers -can add multiple ie -H<> -H<>...
-  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc
+  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc. Default GET
   -l, --seconds       Run for <N> seconds .
   -A, --rate          Max Request Rate.
-  -M, --mode          Requests mode [roundrobin|sequential|random].
   -R, --recv_buffer   Socket receive buffer size.
   -S, --send_buffer   Socket send buffer size.
   -D, --no_delay      Socket TCP no-delay.
   -T, --timeout       Timeout (seconds).
-
+  -x, --no_stats      Don't collect stats -faster.
+  
 Print Options:
   -v, --verbose       Verbose logging
   -c, --color         Color
   -q, --quiet         Suppress progress output
   -C, --responses     Display http(s) response codes instead of request statistics
   -L, --responses_per Display http(s) response codes per interval instead of request statistics
-
+  
 Stat Options:
   -P, --data_port     Start HTTP Stats Daemon on port.
-  -B, --breakdown     Show breakdown
   -Y, --http_load     Display in http load mode [MODE] -Legacy support
-  -G, --gprofile      Google profiler output file
-
+  
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
@@ -107,16 +105,17 @@ printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"http
 Usage: phurl -u [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help           Display this help and exit.
-  -r, --version        Display the version number and exit.
-
+  -V, --version        Display the version number and exit.
+  
 URL Options -or without parameter
   -u, --url            URL -REQUIRED (unless running cli: see --cli option).
   -d, --data           HTTP body data -supports bodies up to 8k.
-
+  
 Hostname Input Options -also STDIN:
   -f, --host_file      Host name file.
+  -J, --host_json      Host listing json format.
   -x, --execute        Script to execute to get host names.
-
+  
 Settings:
   -p, --parallel       Num parallel.
   -t, --threads        Number of parallel threads.
@@ -126,34 +125,35 @@ Settings:
   -R, --recv_buffer    Socket receive buffer size.
   -S, --send_buffer    Socket send buffer size.
   -D, --no_delay       Socket TCP no-delay.
+  -k, --no_cache       Don't use addr info cache.
   -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).
   -C, --connect_only   Only connect -do not send request.
-
+  
 SSL Settings:
   -y, --cipher         Cipher --see "openssl ciphers" for list.
   -O, --ssl_options    SSL Options string.
-  -V, --ssl_verify     Verify server certificate.
+  -K, --ssl_verify     Verify server certificate.
   -N, --ssl_sni        Use SSL SNI.
+  -B, --ssl_self_ok    Allow self-signed certificates.
   -F, --ssl_ca_file    SSL CA File.
   -L, --ssl_ca_path    SSL CA Path.
-
+  
 Command Line Client:
   -I, --cli            Start interactive command line -URL not required.
-
+  
 Print Options:
   -v, --verbose        Verbose logging
   -c, --color          Color
   -q, --quiet          Suppress output
   -s, --show_progress  Show progress
   -m, --show_summary   Show summary output
-
+  
 Output Options: -defaults to line delimited
   -o, --output         File to write output to. Defaults to stdout
   -l, --line_delimited Output <HOST> <RESPONSE BODY> per line
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
-
-
+  
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
