@@ -142,9 +142,9 @@ TEST_CASE( "nlru test", "[nlru]" ) {
                 INFO("Write 6 entries");
                 l_animal_lru.insert(l_monkey_label, new animal("Bongo"));
                 l_animal_lru.insert(l_monkey_label, new animal("Binky"));
-                l_animal_lru.insert(l_panda_label, new animal("Sleepy"));
                 l_animal_lru.insert(l_panda_label, new animal("Droopy"));
                 l_animal_lru.insert(l_snake_label, new animal("Slippy"));
+                l_animal_lru.insert(l_snake_label, new animal("Slimy"));
                 l_animal_lru.insert(l_bear_label, new animal("Honey"));
                 REQUIRE(( l_animal_lru.size() == 4 ));
                 REQUIRE(( l_num_call == 2 ));
@@ -153,9 +153,10 @@ TEST_CASE( "nlru test", "[nlru]" ) {
                 animal *l_get = NULL;
                 l_get = l_animal_lru.get(l_panda_label);
                 //l_animal_lru.show();
-                REQUIRE( l_animal_lru.size() == 3 );
-                REQUIRE( l_get != NULL );
-                REQUIRE(l_get->m_name == "Droopy");
+                REQUIRE( (l_animal_lru.size() == 3) );
+                REQUIRE( (l_get != NULL) );
+                printf("l_get->m_name: %s\n", l_get->m_name.c_str());
+                REQUIRE( (l_get->m_name == "Droopy") );
         }
 
 }

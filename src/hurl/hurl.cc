@@ -25,6 +25,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
+#include "../../include/hlx/stat.h"
+#include "tinymt64.h"
+
 #include <string.h>
 
 // getrlimit
@@ -48,10 +51,8 @@
 
 #include <stdint.h>
 
-#include "../../include/hlx/stat.h"
-#include "tinymt64.h"
 #ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
 #endif
 #include <inttypes.h>
 

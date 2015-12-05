@@ -17,6 +17,10 @@
  */
 
 #include <stdint.h>
+
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
+#endif
 #include <inttypes.h>
 
 #define TINYMT64_MEXP 127
