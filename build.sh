@@ -52,7 +52,8 @@ done <<<"$(echo "${BUILD_DEPENDS}" | tr ',' '\n')"
 # To build...
 # ------------------------------------------------------------------------------
 mkdir -p build
-pushd build
-cmake ../
-make package
-popd
+pushd build && \
+    cmake ../ && \
+    make package && \
+    popd && \
+exit $?
