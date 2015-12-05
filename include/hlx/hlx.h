@@ -92,6 +92,21 @@ typedef enum {
         H_RESP_ERROR
 } h_resp_t;
 
+// ---------------------------------------
+// Connection status
+// ---------------------------------------
+typedef enum {
+
+        CONN_STATUS_NONE                        =  1,
+        CONN_STATUS_OK                          =  0,
+        CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE   = -1,
+        CONN_STATUS_ERROR_ADDR_LOOKUP_TIMEOUT   = -2,
+        CONN_STATUS_ERROR_TIMEOUT               = -3,
+        CONN_STATUS_ERROR_TLS                   = -4,
+        CONN_STATUS_ERROR_TLS_HOST              = -5
+
+} conn_status_t;
+
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
@@ -250,9 +265,6 @@ public:
         int set_tls_server_ctx_options(long a_tls_options);
         void set_tls_server_ctx_key(const std::string &a_tls_key);
         void set_tls_server_ctx_crt(const std::string &a_tls_crt);
-        void set_tls_verify(bool a_val);
-        void set_tls_sni(bool a_val);
-        void set_tls_self_ok(bool a_val);
 
         // Client ctx
         void set_tls_client_ctx_cipher_list(const std::string &a_cipher_list);
@@ -596,6 +608,9 @@ public:
         hconn *get_requester_hconn(void);
         const host_info_s *get_host_info(void);
         t_hlx *get_t_hlx(void);
+        bool get_tls_verify(void);
+        bool get_tls_sni(void);
+        bool get_tls_self_ok(void);
 
         // Setters
         void set_scheme(scheme_t a_scheme);
@@ -620,6 +635,9 @@ public:
         void set_requester_hconn(hconn *a_hconn);
         void set_host_info(const host_info_s *a_host_info);
         void set_t_hlx(t_hlx *a_t_hlx);
+        void set_tls_verify(bool a_val);
+        void set_tls_sni(bool a_val);
+        void set_tls_self_ok(bool a_val);
 
         // Request Parts
         // Getters
@@ -695,7 +713,9 @@ private:
         hconn *m_requester_hconn;
         const host_info_s *m_host_info;
         t_hlx *m_t_hlx;
-
+        bool m_tls_verify;
+        bool m_tls_sni;
+        bool m_tls_self_ok;
 };
 
 //: ----------------------------------------------------------------------------
@@ -756,6 +776,9 @@ int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len);
 //: ----------------------------------------------------------------------------
 int nconn_get_fd(nconn &a_nconn);
 SSL *nconn_get_SSL(nconn &a_nconn);
+long nconn_get_last_SSL_err(nconn &a_nconn);
+conn_status_t nconn_get_status(nconn &a_nconn);
+const std::string &nconn_get_last_error_str(nconn &a_nconn);
 
 } //namespace ns_hlx {
 

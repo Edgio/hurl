@@ -43,7 +43,7 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
-#define T_HTTP_PROXY_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
+#define T_HLX_PROXY_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
         do { \
                 int _status = 0; \
                 _status = _conn.set_opt((_opt), (_buf), (_len)); \
@@ -1199,6 +1199,7 @@ int32_t t_hlx::subr_resolved_cb(const host_info_s *a_host_info, void *a_data)
                 if(l_error_cb)
                 {
                         nconn_tcp l_nconn;
+                        l_nconn.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
                         l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_subr, l_nconn);
                 }
                 return STATUS_OK;
@@ -1295,6 +1296,7 @@ int32_t t_hlx::try_deq_subr(void)
                                         if(l_error_cb)
                                         {
                                                 nconn_tcp l_nconn;
+                                                l_nconn.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
                                                 l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
                                         }
                                         m_subr_queue.pop();
@@ -1321,6 +1323,43 @@ int32_t t_hlx::try_deq_subr(void)
                         pthread_mutex_unlock(&m_subr_q_mutex);
                         continue;
                 }
+
+                // Configure connection for subr
+                // Set ssl options
+                if(l_nconn->get_scheme() == SCHEME_TLS)
+                {
+                        bool l_val;
+                        l_val = l_subr->get_tls_verify();
+                        T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
+                                               nconn_tls::OPT_TLS_VERIFY,
+                                               &(l_val),
+                                               sizeof(bool));
+                        l_val = l_subr->get_tls_self_ok();
+                        T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
+                                               nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED,
+                                               &(l_val),
+                                               sizeof(bool));
+                        l_val = l_subr->get_tls_sni();
+                        T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
+                                                   nconn_tls::OPT_TLS_SNI,
+                                                   &(l_val),
+                                                   sizeof(bool));
+                        if(!l_subr->get_hostname().empty())
+                        {
+                                T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
+                                                           nconn_tls::OPT_TLS_HOSTNAME,
+                                                           l_subr->get_hostname().c_str(),
+                                                           l_subr->get_hostname().length());
+                        }
+                        else
+                        {
+                                T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
+                                                           nconn_tls::OPT_TLS_HOSTNAME,
+                                                           l_subr->get_host().c_str(),
+                                                           l_subr->get_host().length());
+                        }
+                }
+
                 hconn *l_hconn = static_cast<hconn *>(l_nconn->get_data());
                 if(l_hconn)
                 {
@@ -1412,103 +1451,6 @@ void *t_hlx::t_run(void *a_nothing)
         m_stopped = true;
         return NULL;
 }
-
-#if 0
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t t_hlx::append_summary(nconn *a_nconn, resp *a_resp)
-{
-        uint16_t l_status;
-        if(!a_resp)
-        {
-                l_status = 900;
-        }
-        else
-        {
-                l_status = a_resp->get_status();
-        }
-        //NDBG_PRINT("%sTID[%lu]%s: status: %u\n", ANSI_COLOR_BG_BLUE, pthread_self(), ANSI_COLOR_OFF, l_status);
-        if(l_status == 900)
-        {
-                ++m_summary_info.m_error_addr;
-        }
-        else if((l_status == 0) ||
-                (l_status == 901) ||
-                (l_status == 902))
-        {
-#if 0
-                char *l_buf = NULL;
-                uint32_t l_len;
-                a_resp->get_body(&l_buf, l_len);
-                std::string l_body;
-                l_body.assign(l_buf, l_len);
-                // Missing ca
-                if(l_body.find("unable to get local issuer certificate") != std::string::npos)
-                {
-                        ++m_summary_info.m_tls_error_other;
-                }
-                // expired
-                if(l_body.find("certificate has expired") != std::string::npos)
-                {
-                        ++m_summary_info.m_tls_error_expired;
-                }
-                // expired
-                if(l_body.find("self signed certificate") != std::string::npos)
-                {
-                        ++m_summary_info.m_tls_error_self_signed;
-                }
-                ++m_summary_info.m_error_conn;
-                if(l_buf)
-                {
-                        free(l_buf);
-                        l_buf = NULL;
-                }
-#endif
-        }
-        else if(l_status == 200)
-        {
-                ++m_summary_info.m_success;
-        }
-        else
-        {
-                ++m_summary_info.m_error_unknown;
-        }
-
-        if((l_status == 200) && a_nconn && a_nconn->get_scheme() == SCHEME_TLS)
-        {
-#if 0
-                void *l_cipher;
-                a_nconn->get_opt(nconn_tls::OPT_TLS_INFO_CIPHER_STR, &l_cipher, NULL);
-                a_resp->m_tls_info_cipher_str = (const char *)l_cipher;
-
-                void *l_protocol;
-                a_nconn->get_opt(nconn_tls::OPT_TLS_INFO_PROTOCOL_STR, &l_protocol, NULL);
-                a_resp->m_tls_info_protocol_str = (const char *)l_protocol;
-
-                //NDBG_PRINT("(const char *)l_cipher:   %s\n", (const char *)l_cipher);
-                //NDBG_PRINT("(const char *)l_protocol: %s\n", (const char *)l_protocol);
-
-                // TODO Flag for summary???
-                // Add to summary...
-                if(l_cipher)
-                {
-                        std::string l_cipher_str = (char *)l_cipher;
-                        ++m_summary_info.m_tls_ciphers[l_cipher_str];
-                }
-                if(l_protocol)
-                {
-                        std::string l_protocol_str = (char *)l_protocol;
-                        ++m_summary_info.m_tls_protocols[l_protocol_str];
-                }
-#endif
-        }
-
-        return STATUS_OK;
-}
-#endif
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -1684,64 +1626,52 @@ int32_t t_hlx::config_conn(nconn &a_nconn,
         // Set options
         // -------------------------------------------
         // Set generic options
-        T_HTTP_PROXY_SET_NCONN_OPT((a_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_t_conf->m_sock_opt_recv_buf_size);
-        T_HTTP_PROXY_SET_NCONN_OPT((a_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_t_conf->m_sock_opt_send_buf_size);
-        T_HTTP_PROXY_SET_NCONN_OPT((a_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_t_conf->m_sock_opt_no_delay);
+        T_HLX_PROXY_SET_NCONN_OPT((a_nconn), nconn_tcp::OPT_TCP_RECV_BUF_SIZE, NULL, m_t_conf->m_sock_opt_recv_buf_size);
+        T_HLX_PROXY_SET_NCONN_OPT((a_nconn), nconn_tcp::OPT_TCP_SEND_BUF_SIZE, NULL, m_t_conf->m_sock_opt_send_buf_size);
+        T_HLX_PROXY_SET_NCONN_OPT((a_nconn), nconn_tcp::OPT_TCP_NO_DELAY, NULL, m_t_conf->m_sock_opt_no_delay);
 
         // Set ssl options
         if(a_nconn.get_scheme() == SCHEME_TLS)
         {
                 if(a_type == DATA_TYPE_SERVER)
                 {
-                        T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                                                nconn_tls::OPT_TLS_CIPHER_STR,
                                                m_t_conf->m_tls_server_ctx_cipher_list.c_str(),
                                                m_t_conf->m_tls_server_ctx_cipher_list.length());
-                        T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                                                nconn_tls::OPT_TLS_CTX,
                                                m_t_conf->m_tls_server_ctx,
                                                sizeof(m_t_conf->m_tls_server_ctx));
                         if(!m_t_conf->m_tls_server_ctx_crt.empty())
                         {
-                                T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                                T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                                                        nconn_tls::OPT_TLS_TLS_CRT,
                                                        m_t_conf->m_tls_server_ctx_crt.c_str(),
                                                        m_t_conf->m_tls_server_ctx_crt.length());
                         }
                         if(!m_t_conf->m_tls_server_ctx_key.empty())
                         {
-                                T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                                T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                                                        nconn_tls::OPT_TLS_TLS_KEY,
                                                        m_t_conf->m_tls_server_ctx_key.c_str(),
                                                        m_t_conf->m_tls_server_ctx_key.length());
                         }
-                        //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        //T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                         //                           nconn_tls::OPT_TLS_OPTIONS,
                         //                           &(m_t_conf->m_tls_server_ctx_options),
                         //                           sizeof(m_t_conf->m_tls_server_ctx_options));
                 }
                 else
                 {
-                        T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                                                nconn_tls::OPT_TLS_CIPHER_STR,
                                                m_t_conf->m_tls_client_ctx_cipher_list.c_str(),
                                                m_t_conf->m_tls_client_ctx_cipher_list.length());
-                        T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
+                        T_HLX_PROXY_SET_NCONN_OPT(a_nconn,
                                                nconn_tls::OPT_TLS_CTX,
                                                m_t_conf->m_tls_client_ctx,
                                                sizeof(m_t_conf->m_tls_client_ctx));
-                        //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
-                        //                       nconn_tls::OPT_TLS_VERIFY,
-                        //                       &(m_t_conf->m_tls_client_verify),
-                        //                       sizeof(m_t_conf->m_tls_client_verify));
-                        //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
-                        //                       nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED,
-                        //                       &(m_t_conf->m_tls_client_self_ok),
-                        //                       sizeof(m_t_conf->m_tls_client_self_ok));
-                        //T_HTTP_PROXY_SET_NCONN_OPT(a_nconn,
-                        //                           nconn_tls::OPT_TLS_OPTIONS,
-                        //                           &(m_t_conf->m_tls_client_ctx_options),
-                        //                           sizeof(m_t_conf->m_tls_client_ctx_options));
                 }
         }
         return STATUS_OK;

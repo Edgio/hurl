@@ -510,6 +510,7 @@ nconn::nconn(void):
       m_data(NULL),
       m_connect_start_time_us(0),
       m_request_start_time_us(0),
+      m_status(CONN_STATUS_OK),
       m_last_error(""),
       m_host_info(),
       m_num_reqs_per_conn(-1),
@@ -537,6 +538,29 @@ nconn::nconn(void):
 nconn::~nconn(void)
 {
         //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_nc_state, this);
+}
+
+//: ----------------------------------------------------------------------------
+//: nconn_utils
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+conn_status_t nconn_get_status(nconn &a_nconn)
+{
+        return a_nconn.get_status();
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const std::string &nconn_get_last_error_str(nconn &a_nconn)
+{
+        return a_nconn.get_last_error();
 }
 
 } // ns_hlx

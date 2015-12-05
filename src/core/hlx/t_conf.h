@@ -74,9 +74,6 @@ typedef struct t_conf
         long m_tls_client_ctx_options;
         std::string m_tls_client_ctx_ca_file;
         std::string m_tls_client_ctx_ca_path;
-        bool m_tls_client_verify;
-        bool m_tls_client_sni;
-        bool m_tls_client_self_ok;
 
         // ---------------------------------
         // Defaults...
@@ -105,10 +102,7 @@ typedef struct t_conf
                 m_tls_client_ctx_options_str(),
                 m_tls_client_ctx_options(0),
                 m_tls_client_ctx_ca_file(),
-                m_tls_client_ctx_ca_path(),
-                m_tls_client_verify(false),
-                m_tls_client_sni(false),
-                m_tls_client_self_ok(false)
+                m_tls_client_ctx_ca_path()
         {}
 
 private:

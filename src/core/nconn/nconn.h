@@ -138,6 +138,8 @@ public:
         uint64_t get_request_start_time_us(void) {return m_request_start_time_us;}
         uint64_t get_stat_tt_connect_us(void) {return m_stat.m_tt_connect_us;}
         bool get_connect_only(void) { return m_connect_only;}
+        const std::string &get_last_error(void) { return m_last_error;}
+        conn_status_t get_status(void) { return m_status;}
 
         // Setters
         void set_label(const std::string &a_label) {m_label = a_label;}
@@ -153,7 +155,7 @@ public:
         void set_request_start_time_us(uint64_t a_val) {m_request_start_time_us = a_val;}
         void set_stat_tt_completion_us(uint64_t a_val){ m_stat.m_tt_completion_us = a_val;}
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
-
+        void set_status(conn_status_t a_status) { m_status = a_status;}
         // State
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
         void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
@@ -204,6 +206,7 @@ protected:
         void *m_data;
         uint64_t m_connect_start_time_us;
         uint64_t m_request_start_time_us;
+        conn_status_t m_status;
         std::string m_last_error;
         const host_info_s* m_host_info;
         int64_t m_num_reqs_per_conn;

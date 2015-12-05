@@ -781,36 +781,6 @@ int hlx::set_tls_client_ctx_options(const std::string &a_tls_options_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_verify(bool a_val)
-{
-        m_t_conf->m_tls_client_verify = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::set_tls_sni(bool a_val)
-{
-        m_t_conf->m_tls_client_sni = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::set_tls_self_ok(bool a_val)
-{
-        m_t_conf->m_tls_client_self_ok = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int hlx::set_tls_client_ctx_options(long a_tls_options)
 {
         m_t_conf->m_tls_client_ctx_options = a_tls_options;

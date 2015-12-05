@@ -152,20 +152,26 @@ typedef std::map <std::string, uint32_t> summary_map_t;
 typedef struct summary_info_struct {
         uint32_t m_success;
         uint32_t m_error_addr;
+        uint32_t m_error_addr_timeout;
         uint32_t m_error_conn;
         uint32_t m_error_unknown;
+        uint32_t m_tls_error_hostname;
         uint32_t m_tls_error_self_signed;
         uint32_t m_tls_error_expired;
+        uint32_t m_tls_error_issuer;
         uint32_t m_tls_error_other;
         summary_map_t m_tls_protocols;
         summary_map_t m_tls_ciphers;
         summary_info_struct():
                 m_success(),
                 m_error_addr(),
+                m_error_addr_timeout(),
                 m_error_conn(),
                 m_error_unknown(),
+                m_tls_error_hostname(),
                 m_tls_error_self_signed(),
                 m_tls_error_expired(),
+                m_tls_error_issuer(),
                 m_tls_error_other(),
                 m_tls_protocols(),
                 m_tls_ciphers()
@@ -177,11 +183,13 @@ typedef struct phurl_resp_struct {
         ns_hlx::resp *m_resp;
         const char *m_tls_info_cipher_str;
         const char *m_tls_info_protocol_str;
+        std::string m_error_str;
         phurl_resp_struct():
                 m_subr(NULL),
                 m_resp(NULL),
                 m_tls_info_cipher_str(NULL),
-                m_tls_info_protocol_str(NULL)
+                m_tls_info_protocol_str(NULL),
+                m_error_str()
         {}
 private:
         // Disallow copy/assign
@@ -343,16 +351,70 @@ static int32_t s_error_cb(ns_hlx::hlx &a_hlx,
         {
                 return -1;
         }
-
         phurl_resp_t *l_resp = new phurl_resp_t();
         l_resp->m_resp = NULL;
         l_resp->m_subr = &a_subr;
-
+        l_resp->m_error_str = ns_hlx::nconn_get_last_error_str(a_nconn);
+        ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(a_nconn);
         pthread_mutex_lock(&(l_settings->m_mutex));
+        ++(l_settings->m_summary_info.m_error_conn);
+        switch(l_conn_status)
+        {
+        case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE:
+        {
+                ++(l_settings->m_summary_info.m_error_addr);
+                break;
+        }
+        case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_TIMEOUT:
+        {
+                ++(l_settings->m_summary_info.m_error_addr_timeout);
+                break;
+        }
+        case ns_hlx::CONN_STATUS_ERROR_TLS:
+        {
+                // Get last error
+                SSL *l_tls = ns_hlx::nconn_get_SSL(a_nconn);
+                long l_tls_vr = SSL_get_verify_result(l_tls);
+                if ((l_tls_vr == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
+                    (l_tls_vr == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
+                {
+                        ++(l_settings->m_summary_info.m_tls_error_self_signed);
+                }
+                else if(l_tls_vr == X509_V_ERR_CERT_HAS_EXPIRED)
+                {
+                        ++(l_settings->m_summary_info.m_tls_error_expired);
+                }
+                else if((l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) ||
+                        (l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY))
+                {
+                        ++(l_settings->m_summary_info.m_tls_error_issuer);
+                }
+                else
+                {
+                        //long l_err = ns_hlx::nconn_get_last_SSL_err(a_nconn);
+                        //printf("ERRORXXXX: %ld\n", l_err);
+                        //printf("ERRORXXXX: %s\n", ERR_error_string(l_err,NULL));
+                        //printf("ERRORXXXX: %s\n", l_resp->m_error_str.c_str());
+                        ++(l_settings->m_summary_info.m_tls_error_other);
+                }
+                break;
+
+        }
+        case ns_hlx::CONN_STATUS_ERROR_TLS_HOST:
+        {
+                ++(l_settings->m_summary_info.m_tls_error_hostname);
+                break;
+        }
+        default:
+        {
+                ++(l_settings->m_summary_info.m_error_unknown);
+                break;
+        }
+        }
+
         l_settings->m_pending_uid_set.erase(a_subr.get_uid());
         l_settings->m_resp_list.push_back(l_resp);
         pthread_mutex_unlock(&(l_settings->m_mutex));
-
         return 0;
 }
 
@@ -735,11 +797,9 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "SSL Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
         fprintf(a_stream, "  -O, --ssl_options    SSL Options string.\n");
-#if 0
         fprintf(a_stream, "  -K, --ssl_verify     Verify server certificate.\n");
         fprintf(a_stream, "  -N, --ssl_sni        Use SSL SNI.\n");
         fprintf(a_stream, "  -B, --ssl_self_ok    Allow self-signed certificates.\n");
-#endif
         fprintf(a_stream, "  -F, --ssl_ca_file    SSL CA File.\n");
         fprintf(a_stream, "  -L, --ssl_ca_path    SSL CA Path.\n");
         fprintf(a_stream, "  \n");
@@ -1022,7 +1082,7 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
-                // ssl options
+                // tls options
                 // ---------------------------------------
                 case 'O':
                 {
@@ -1036,31 +1096,31 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
-                // ssl verify
+                // tls verify
                 // ---------------------------------------
                 case 'K':
                 {
-                        l_hlx->set_tls_verify(true);
+                        l_subr->set_tls_verify(true);
                         break;
                 }
                 // ---------------------------------------
-                // ssl sni
+                // tls sni
                 // ---------------------------------------
                 case 'N':
                 {
-                        l_hlx->set_tls_sni(true);
+                        l_subr->set_tls_sni(true);
                         break;
                 }
                 // ---------------------------------------
-                // ssl self signed
+                // tls self signed
                 // ---------------------------------------
                 case 'B':
                 {
-                        l_hlx->set_tls_self_ok(true);
+                        l_subr->set_tls_self_ok(true);
                         break;
                 }
                 // ---------------------------------------
-                // ssl ca file
+                // tls ca file
                 // ---------------------------------------
                 case 'F':
                 {
@@ -1068,7 +1128,7 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
-                // ssl ca path
+                // tls ca path
                 // ---------------------------------------
                 case 'L':
                 {
@@ -1698,11 +1758,14 @@ void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
         printf("| total hosts:                     %u\n",a_num_hosts);
         printf("| success:                         %u\n",l_summary_info.m_success);
         printf("| error address lookup:            %u\n",l_summary_info.m_error_addr);
+        printf("| error address timeout:           %u\n",l_summary_info.m_error_addr_timeout);
         printf("| error connectivity:              %u\n",l_summary_info.m_error_conn);
         printf("| error unknown:                   %u\n",l_summary_info.m_error_unknown);
-        printf("| ssl error cert expired           %u\n",l_summary_info.m_tls_error_expired);
-        printf("| ssl error cert self-signed       %u\n",l_summary_info.m_tls_error_self_signed);
-        printf("| ssl error other                  %u\n",l_summary_info.m_tls_error_other);
+        printf("| tls error cert hostname          %u\n",l_summary_info.m_tls_error_hostname);
+        printf("| tls error cert self-signed       %u\n",l_summary_info.m_tls_error_self_signed);
+        printf("| tls error cert expired           %u\n",l_summary_info.m_tls_error_expired);
+        printf("| tls error cert issuer            %u\n",l_summary_info.m_tls_error_issuer);
+        printf("| tls error other                  %u\n",l_summary_info.m_tls_error_other);
 
         // Sort
         typedef std::map<uint32_t, std::string> _sorted_map_t;

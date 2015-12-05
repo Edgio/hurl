@@ -62,11 +62,13 @@ public:
                 OPT_TLS_CIPHER_STR = 1001,
                 OPT_TLS_OPTIONS = 1002,
                 OPT_TLS_SSL = 1003,
+                OPT_TLS_SSL_LAST_ERR = 1004,
 
                 // Verify options
                 OPT_TLS_VERIFY = 1100,
                 OPT_TLS_SNI = 1102,
-                OPT_TLS_VERIFY_ALLOW_SELF_SIGNED = 1103,
+                OPT_TLS_HOSTNAME = 1103,
+                OPT_TLS_VERIFY_ALLOW_SELF_SIGNED = 1105,
 
                 // CA options
                 OPT_TLS_CA_FILE = 1201,
@@ -88,15 +90,17 @@ public:
           m_tls_ctx(NULL),
           m_tls(NULL),
           m_tls_opt_verify(false),
+          m_tls_opt_sni(false),
           m_tls_opt_verify_allow_self_signed(false),
-          m_tls_opt_tlsext_hostname(""),
+          m_tls_opt_hostname(""),
           m_tls_opt_ca_file(""),
           m_tls_opt_ca_path(""),
           m_tls_opt_options(0),
           m_tls_opt_cipher_str(""),
           m_tls_key(""),
           m_tls_crt(""),
-          m_tls_state(TLS_STATE_FREE)
+          m_tls_state(TLS_STATE_FREE),
+          m_last_err(0)
           {
                 m_scheme = SCHEME_TLS;
           };
@@ -172,8 +176,9 @@ private:
         SSL_CTX * m_tls_ctx;
         SSL *m_tls;
         bool m_tls_opt_verify;
+        bool m_tls_opt_sni;
         bool m_tls_opt_verify_allow_self_signed;
-        std::string m_tls_opt_tlsext_hostname;
+        std::string m_tls_opt_hostname;
         std::string m_tls_opt_ca_file;
         std::string m_tls_opt_ca_path;
         long m_tls_opt_options;
@@ -181,6 +186,7 @@ private:
         std::string m_tls_key;
         std::string m_tls_crt;
         tls_state_t m_tls_state;
+        long m_last_err;
 };
 
 } //namespace ns_hlx {

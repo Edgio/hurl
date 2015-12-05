@@ -538,18 +538,18 @@ int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
 //: ----------------------------------------------------------------------------
 int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
 {
-        if (!ok)
+        if(ok)
         {
-                if(store)
-                {
-                        // TODO Can add check for depth here.
-                        //int depth = X509_STORE_CTX_get_error_depth(store);
-                        int err = X509_STORE_CTX_get_error(store);
-                        sprintf(gts_last_tls_error, "tls_cert_verify_callback Error[%d].  Reason: %s",
-                              err, X509_verify_cert_error_string(err));
-                        NDBG_PRINT("tls_cert_verify_callback Error[%d].  Reason: %s\n",
-                              err, X509_verify_cert_error_string(err));
-                }
+                return ok;
+        }
+
+        if(store)
+        {
+                // TODO Can add check for depth here.
+                //int depth = X509_STORE_CTX_get_error_depth(store);
+                int err = X509_STORE_CTX_get_error(store);
+                sprintf(gts_last_tls_error, "Error[%d].  Reason: %s", err, X509_verify_cert_error_string(err));
+                //NDBG_PRINT("Error[%d].  Reason: %s\n", err, X509_verify_cert_error_string(err));
         }
         return ok;
 }
@@ -620,7 +620,7 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
         if(!l_get_ids_status)
         {
                 // No names found bail out
-                NDBG_PRINT("LABEL[%s]: tls_x509_get_ids returned no names.\n", a_host);
+                //NDBG_PRINT("LABEL[%s]: tls_x509_get_ids returned no names.\n", a_host);
                 return -1;
         }
 
@@ -632,7 +632,7 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
                 }
         }
 
-        NDBG_PRINT("LABEL[%s]: Error Hostname match failed.\n", a_host);
+        //NDBG_PRINT("LABEL[%s]: Error hostname match failed.\n", a_host);
         return -1;
 }
 
@@ -645,7 +645,7 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
 int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disallow_self_signed)
 {
         X509* l_cert = NULL;
-
+        //NDBG_PRINT("a_host: %s\n", a_host);
         // Get certificate
         l_cert = SSL_get_peer_certificate(a_tls);
         if(NULL == l_cert)
@@ -653,10 +653,8 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                 //NDBG_PRINT("LABEL[%s]: SSL_get_peer_certificate error.  tls: %p", a_host, (void *)a_tls);
                 return -1;
         }
-
         // Example of displaying cert
         //X509_print_fp(stdout, l_cert);
-
         // Check host name
         if(a_host)
         {
@@ -664,34 +662,34 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                 l_status = validate_server_certificate_hostname(l_cert, a_host);
                 if(0 != l_status)
                 {
+                        sprintf(gts_last_tls_error, "Error[%d].  Reason: %s", -1, "hostname check failed");
                         if(NULL != l_cert)
                         {
                                 X509_free(l_cert);
                                 l_cert = NULL;
                         }
-                        //NDBG_PRINT("Error hostname match failed.\n");
                         return -1;
                 }
         }
-
         if(NULL != l_cert)
         {
                 X509_free(l_cert);
                 l_cert = NULL;
         }
-
+#if 0
         long l_tls_verify_result;
         l_tls_verify_result = SSL_get_verify_result(a_tls);
-        if(X509_V_OK != l_tls_verify_result)
+        if(l_tls_verify_result != X509_V_OK)
         {
 
                 // Check for self-signed failures
                 //a_disallow_self_signed
-                if(false == a_disallow_self_signed)
+                if(a_disallow_self_signed == false)
                 {
                         if ((l_tls_verify_result == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
                             (l_tls_verify_result == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
                         {
+                                sprintf(gts_last_tls_error, "Error[%d].  Reason: %s", -1, "self-signed certificate");
                                 // No errors return success(0)
                                 if(NULL != l_cert)
                                 {
@@ -715,6 +713,7 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                 //NDBG_PRINT("Error\n");
                 return -1;
         }
+#endif
 
         // No errors return success(0)
         return 0;

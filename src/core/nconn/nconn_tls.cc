@@ -90,12 +90,12 @@ int32_t nconn_tls::init(void)
         }
 
         // Set tls sni extension
-        if (!m_tls_opt_tlsext_hostname.empty())
+        if (m_tls_opt_sni && !m_tls_opt_hostname.empty())
         {
                 // const_cast to work around SSL's use of arg -this call does not change buffer argument
-                if (1 != SSL_set_tlsext_host_name(m_tls, m_tls_opt_tlsext_hostname.c_str()))
+                if (1 != SSL_set_tlsext_host_name(m_tls, m_tls_opt_hostname.c_str()))
                 {
-                        NCONN_ERROR("LABEL[%s]: Failed to set tls hostname: %s\n", m_label.c_str(), m_tls_opt_tlsext_hostname.c_str());
+                        NCONN_ERROR("LABEL[%s]: Failed to set tls hostname: %s\n", m_label.c_str(), m_tls_opt_hostname.c_str());
                         return NC_STATUS_ERROR;
                 }
         }
@@ -125,46 +125,24 @@ int32_t nconn_tls::tls_connect(void)
 {
         int l_status;
         m_tls_state = TLS_STATE_TLS_CONNECTING;
-        //NDBG_PRINT("Connect: %s\n", m_label.c_str());
         l_status = SSL_connect(m_tls);
-        //NDBG_PRINT("Connect: %d\n", l_status);
         if (l_status <= 0)
         {
-                //NDBG_PRINT("SSL connection failed - %d\n", l_status);
-                //NDBG_PRINT("Showing error.\n");
                 int l_tls_error = SSL_get_error(m_tls, l_status);
-                //NDBG_PRINT("l_tls_error: %d.\n", l_tls_error);
                 switch(l_tls_error) {
                 case SSL_ERROR_SSL:
                 {
+                        m_last_err = ERR_get_error();
                         if(gts_last_tls_error[0] != '\0')
                         {
-                                NCONN_ERROR("LABEL[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s",
-                                                m_label.c_str(),
-                                                ERR_get_error(),
-                                                ERR_error_string(ERR_get_error(),NULL),
-                                                gts_last_tls_error);
-                                //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s\n",
-                                //                m_label.c_str(),
-                                //                ERR_get_error(),
-                                //                ERR_error_string(ERR_get_error(),NULL),
-                                //                gts_last_tls_error);
-
-                                // Set back
+                                NCONN_ERROR("LABEL[%s]: TLS_ERROR: %s.",m_label.c_str(),gts_last_tls_error);
                                 gts_last_tls_error[0] = '\0';
                         }
                         else
                         {
-                                NCONN_ERROR("LABEL[%s]: SSL_ERROR_SSL %lu: %s.",
-                                                m_label.c_str(),
-                                                ERR_get_error(),
-                                                ERR_error_string(ERR_get_error(),NULL));
-                                //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SSL %lu: %s.\n",
-                                //                m_label.c_str(),
-                                //                ERR_get_error(),
-                                //                ERR_error_string(ERR_get_error(),NULL));
+                                NCONN_ERROR("LABEL[%s]: TLS_ERROR: OTHER.",m_label.c_str());
                         }
-
+                        m_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_WANT_READ:
@@ -184,6 +162,8 @@ int32_t nconn_tls::tls_connect(void)
                 case SSL_ERROR_WANT_X509_LOOKUP:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP", m_label.c_str());
+                        m_last_err = ERR_get_error();
+                        m_status = CONN_STATUS_ERROR_TLS;
                         //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
                 }
@@ -191,45 +171,44 @@ int32_t nconn_tls::tls_connect(void)
                 // look at error stack/return value/errno
                 case SSL_ERROR_SYSCALL:
                 {
+                        m_last_err = ERR_get_error();
                         if(l_status == 0)
                         {
                                 NCONN_ERROR("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol",
                                                 m_label.c_str(),
-                                                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
-                                //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol\n",
-                                //                m_label.c_str(),
-                                //                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL));
-
+                                                m_last_err, ERR_error_string(m_last_err, NULL));
                         }
                         else if(l_status == -1)
                         {
                                 NCONN_ERROR("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s",
                                                 m_label.c_str(),
-                                                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL),
+                                                m_last_err, ERR_error_string(m_last_err, NULL),
                                                 strerror(errno));
-                                //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s\n",
-                                //                m_label.c_str(),
-                                //                ERR_get_error(), ERR_error_string(ERR_get_error(), NULL),
-                                //                strerror(errno));
                         }
+                        m_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_ZERO_RETURN:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_ZERO_RETURN", m_label.c_str());
-                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_ZERO_RETURN\n", m_label.c_str());
+                        m_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_WANT_CONNECT:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_CONNECT", m_label.c_str());
-                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_CONNECT\n", m_label.c_str());
+                        m_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_WANT_ACCEPT:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_ACCEPT", m_label.c_str());
-                        //sNDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_ACCEPT\n", m_label.c_str());
+                        m_status = CONN_STATUS_ERROR_TLS;
+                        break;
+                }
+                default:
+                {
+                        m_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 }
@@ -267,13 +246,13 @@ int32_t nconn_tls::tls_accept(void)
                 switch(l_tls_error) {
                 case SSL_ERROR_SSL:
                 {
-                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_SSL %lu: %s.\n",
+                        //NDBG_PRINT("LABEL[%s]: TLS_ERROR %lu: %s.\n",
                         //                m_label.c_str(),
                         //                ERR_get_error(),
                         //                ERR_error_string(ERR_get_error(),NULL));
                         if(gts_last_tls_error[0] != '\0')
                         {
-                                NCONN_ERROR("LABEL[%s]: SSL_ERROR_SSL %lu: %s. Reason: %s\n",
+                                NCONN_ERROR("LABEL[%s]: TLS_ERROR %lu: %s. Reason: %s\n",
                                                 m_label.c_str(),
                                                 ERR_get_error(),
                                                 ERR_error_string(ERR_get_error(),NULL),
@@ -283,7 +262,7 @@ int32_t nconn_tls::tls_accept(void)
                         }
                         else
                         {
-                                NCONN_ERROR("LABEL[%s]: SSL_ERROR_SSL %lu: %s.\n",
+                                NCONN_ERROR("LABEL[%s]: TLS_ERROR %lu: %s.\n",
                                                 m_label.c_str(),
                                                 ERR_get_error(),
                                                 ERR_error_string(ERR_get_error(),NULL));
@@ -388,19 +367,25 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 memcpy(&m_tls_opt_options, a_buf, sizeof(long));
                 break;
         }
+
         case OPT_TLS_VERIFY:
         {
                 memcpy(&m_tls_opt_verify, a_buf, sizeof(bool));
                 break;
         }
+        case OPT_TLS_SNI:
+        {
+                memcpy(&m_tls_opt_sni, a_buf, sizeof(bool));
+                break;
+        }
+        case OPT_TLS_HOSTNAME:
+        {
+                m_tls_opt_hostname.assign((char *)a_buf, a_len);
+                break;
+        }
         case OPT_TLS_VERIFY_ALLOW_SELF_SIGNED:
         {
                 memcpy(&m_tls_opt_verify_allow_self_signed, a_buf, sizeof(bool));
-                break;
-        }
-        case OPT_TLS_SNI:
-        {
-                m_tls_opt_tlsext_hostname.assign((char *)a_buf, a_len);
                 break;
         }
         case OPT_TLS_CA_FILE:
@@ -472,6 +457,12 @@ int32_t nconn_tls::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
         {
                 *a_buf = (void *)m_tls;
                 *a_len = sizeof(m_tls);
+                break;
+        }
+        case OPT_TLS_SSL_LAST_ERR:
+        {
+                *a_buf = (void *)m_last_err;
+                *a_len = sizeof(m_last_err);
                 break;
         }
         default:
@@ -840,7 +831,6 @@ ncconnect_state_top:
                 }
                 else if(l_status != NC_STATUS_OK)
                 {
-                        //NDBG_PRINT("Error performing tls_connect\n");
                         return NC_STATUS_ERROR;
                 }
 
@@ -863,12 +853,15 @@ ncconnect_state_top:
         {
                 if(m_tls_opt_verify)
                 {
-                        int32_t l_status = 0;
+                        int32_t l_status;
                         // Do verify
-                        l_status = validate_server_certificate(m_tls, NULL, (!m_tls_opt_verify_allow_self_signed));
+                        l_status = validate_server_certificate(m_tls, m_tls_opt_hostname.c_str(), (!m_tls_opt_verify_allow_self_signed));
+                        //NDBG_PRINT("VERIFY l_status: %d\n", l_status);
                         if(l_status != 0)
                         {
-                                //NDBG_PRINT("Error validate_server_certificate failed\n");
+                                NCONN_ERROR("LABEL[%s]: Error: %s", m_label.c_str(), gts_last_tls_error);
+                                gts_last_tls_error[0] = '\0';
+                                m_status = CONN_STATUS_ERROR_TLS_HOST;
                                 return NC_STATUS_ERROR;
                         }
                 }
@@ -932,5 +925,25 @@ SSL *nconn_get_SSL(nconn &a_nconn)
         }
         return l_ssl;
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+long nconn_get_last_SSL_err(nconn &a_nconn)
+{
+        long l_err;
+        uint32_t l_len;
+        int l_status;
+        l_status = a_nconn.get_opt(nconn_tls::OPT_TLS_SSL_LAST_ERR, (void **)&l_err, &l_len);
+        if(l_status != nconn::NC_STATUS_OK)
+        {
+                return 0;
+        }
+        return l_err;
+}
+
+
 
 } //namespace ns_hlx {

@@ -77,6 +77,7 @@ SET(SRCS
 # Headers
 SET(HDRS
     ../../include/hlx/hlx.h
+    ../../include/hlx/stat.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

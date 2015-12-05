@@ -71,7 +71,10 @@ subr::subr(void):
         m_uid(0),
         m_requester_hconn(NULL),
         m_host_info(NULL),
-        m_t_hlx(NULL)
+        m_t_hlx(NULL),
+        m_tls_verify(false),
+        m_tls_sni(false),
+        m_tls_self_ok(false)
 {
 }
 
@@ -113,7 +116,10 @@ subr::subr(const subr &a_subr):
         m_uid(a_subr.m_uid),
         m_requester_hconn(a_subr.m_requester_hconn),
         m_host_info(a_subr.m_host_info),
-        m_t_hlx(a_subr.m_t_hlx)
+        m_t_hlx(a_subr.m_t_hlx),
+        m_tls_verify(a_subr.m_tls_verify),
+        m_tls_sni(a_subr.m_tls_sni),
+        m_tls_self_ok(a_subr.m_tls_self_ok)
 {
 }
 
@@ -408,6 +414,36 @@ t_hlx *subr::get_t_hlx(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+bool subr::get_tls_verify(void)
+{
+        return m_tls_verify;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool subr::get_tls_sni(void)
+{
+        return m_tls_sni;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool subr::get_tls_self_ok(void)
+{
+        return m_tls_self_ok;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void subr::reset_label(void)
 {
         switch(m_scheme)
@@ -682,6 +718,36 @@ void subr::set_host_info(const host_info_s *a_host_info)
 void subr::set_t_hlx(t_hlx *a_t_hlx)
 {
         m_t_hlx = a_t_hlx;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_tls_verify(bool a_val)
+{
+        m_tls_verify = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_tls_sni(bool a_val)
+{
+        m_tls_sni = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_tls_self_ok(bool a_val)
+{
+        m_tls_self_ok = a_val;
 }
 
 //: ----------------------------------------------------------------------------
