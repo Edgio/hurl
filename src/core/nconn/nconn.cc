@@ -139,7 +139,7 @@ state_top:
                 if(is_accepting())
                 {
                         //NDBG_PRINT("Still connecting...\n");
-                        return NC_STATUS_OK;
+                        return NC_STATUS_AGAIN;
                 }
                 m_nc_state = NC_STATE_CONNECTED;
                 goto state_top;
@@ -315,7 +315,7 @@ int32_t nconn::nc_read(evr_loop *a_evr_loop, nbq *a_in_q)
                                 int32_t l_status = m_read_cb(m_data, l_buf, l_bytes_read, a_in_q->get_cur_write_offset());
                                 if(l_status != STATUS_OK)
                                 {
-                                        NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
+                                        //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -385,7 +385,7 @@ int32_t nconn::nc_write(evr_loop *a_evr_loop, nbq *a_out_q)
                         int32_t l_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_bytes_written, 0);
                         if(l_status != STATUS_OK)
                         {
-                                NDBG_PRINT("Error performing m_read_cb\n");
+                                //NDBG_PRINT("Error performing m_write_cb\n");
                                 return NC_STATUS_ERROR;
                         }
                 }

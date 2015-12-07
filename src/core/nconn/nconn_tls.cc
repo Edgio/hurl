@@ -574,6 +574,10 @@ int32_t nconn_tls::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
                 {
                         return NC_STATUS_AGAIN;
                 }
+                else if(l_tls_error == SSL_ERROR_WANT_WRITE)
+                {
+                        return NC_STATUS_AGAIN;
+                }
         }
         else
         {
@@ -622,8 +626,38 @@ int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
         //                strerror(errno));
         if(l_status < 0)
         {
-                NCONN_ERROR("LABEL[%s]: Error: performing SSL_write.\n", m_label.c_str());
-                return NC_STATUS_ERROR;
+                int l_tls_error = SSL_get_error(m_tls, l_status);
+                //NDBG_PRINT("%sSSL_WRITE%s[%3d] l_bytes_read: %d error: %d\n",
+                //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
+                //                SSL_get_fd(m_tls), l_status,
+                //                l_tls_error);
+                if(l_tls_error == SSL_ERROR_WANT_READ)
+                {
+                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                                    EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET,
+                                                    this))
+                        {
+                                NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                return NC_STATUS_ERROR;
+                        }
+                        return NC_STATUS_AGAIN;
+                }
+                else if(l_tls_error == SSL_ERROR_WANT_WRITE)
+                {
+                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                                    EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
+                                                    this))
+                        {
+                                NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                return NC_STATUS_ERROR;
+                        }
+                        return NC_STATUS_AGAIN;
+                }
+                else
+                {
+                        NCONN_ERROR("LABEL[%s]: Error: performing SSL_write.\n", m_label.c_str());
+                        return NC_STATUS_ERROR;
+                }
         }
         return l_status;
 }
@@ -710,23 +744,21 @@ ncaccept_state_top:
                         else if(TLS_STATE_TLS_ACCEPTING_WANT_WRITE == m_tls_state)
                         {
                                 if (0 != a_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
+                                                            EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
                                         NCONN_ERROR("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
-                        return NC_STATUS_OK;
+                        return NC_STATUS_AGAIN;
                 }
                 else if(l_status != NC_STATUS_OK)
                 {
                         return NC_STATUS_ERROR;
                 }
 
-                // -------------------------------------------
                 // Add to event handler
-                // -------------------------------------------
                 if (0 != a_evr_loop->mod_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))

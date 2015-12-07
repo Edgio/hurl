@@ -664,7 +664,6 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
         int32_t l_status = STATUS_OK;
         do {
                 l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop, nconn::NC_MODE_WRITE, l_hconn->m_in_q, l_hconn->m_out_q);
-                //NDBG_PRINT("l_status: %d\n", l_status);
                 if(l_hconn->m_fs)
                 {
                         if(!l_hconn->m_out_q->read_avail())
@@ -722,7 +721,9 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                         return STATUS_OK;
                 }
 
-                if(l_hconn->m_out_q && !l_hconn->m_out_q->read_avail() && (l_hconn->m_type == DATA_TYPE_SERVER))
+                if(l_hconn->m_out_q &&
+                   !l_hconn->m_out_q->read_avail() &&
+                   (l_hconn->m_type == DATA_TYPE_SERVER))
                 {
                         if(!l_hconn->m_hmsg->m_supports_keep_alives)
                         {
@@ -734,7 +735,7 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                 }
                 else
                 {
-                        if(l_status == 0)
+                        if(l_status == nconn::NC_STATUS_OK)
                         {
                                 break;
                         }
@@ -802,8 +803,6 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                 return STATUS_OK;
         }
 #endif
-
-
 
         // Cancel last timer
         l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
@@ -1041,31 +1040,21 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 l_t_hlx->cleanup_hconn(*l_hconn);
                                 return STATUS_ERROR;
                         }
-
-                        //NDBG_PRINT("l_hconn->m_hmsg->m_complete: %d\n", l_hconn->m_hmsg->m_complete);
-                        if(l_hconn->m_hmsg->m_complete)
+                        if(l_hconn->m_hmsg && l_hconn->m_hmsg->m_complete)
                         {
                                 //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
                                 ++l_t_hlx->m_stat.m_num_reqs;
 
-                                // Reset out q
-                                //l_hconn->m_out_q->reset_write();
-
-                                // -----------------------------------------------------
-                                // main loop request handling...
-                                // -----------------------------------------------------
+                                // request handling...
                                 if(l_t_hlx->handle_req(*l_hconn, l_hconn->m_url_router) != STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error performing handle_req\n");
                                         l_t_hlx->cleanup_hconn(*l_hconn);
                                         return STATUS_ERROR;
                                 }
-
-                                l_hconn->m_hmsg->clear();
-                                if(l_status != nconn::NC_STATUS_EOF)
+                                if(l_hconn->m_hmsg)
                                 {
-                                        // Reset input q
-                                        l_hconn->m_in_q->reset();
+                                        l_hconn->m_hmsg->clear();
                                 }
                         }
                 } while(l_status != nconn::NC_STATUS_AGAIN && (!l_t_hlx->m_stopped));
@@ -1460,6 +1449,7 @@ void *t_hlx::t_run(void *a_nothing)
 int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
 {
         //NDBG_PRINT("%sCLEANUP%s: a_hconn: %p -label: %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, &a_hconn, a_hconn.m_nconn->get_label().c_str());
+        //NDBG_PRINT_BT();
         // Cancel last timer
         if(a_hconn.m_timer_obj)
         {
