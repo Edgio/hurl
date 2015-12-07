@@ -165,13 +165,15 @@ state_top:
                         }
                         else if(l_status == NC_STATUS_EOF)
                         {
-                                //NDBG_PRINT("NC_STATUS_EOF\n");
                                 return NC_STATUS_EOF;
                         }
                         else if(l_status == NC_STATUS_AGAIN)
                         {
-                                //NDBG_PRINT("NC_STATUS_EOF\n");
                                 return NC_STATUS_AGAIN;
+                        }
+                        else if(l_status == NC_STATUS_OK)
+                        {
+                                return NC_STATUS_OK;
                         }
                         // TODO other states???
                         if(l_status > 0)
@@ -198,13 +200,15 @@ state_top:
                         }
                         else if(l_status == NC_STATUS_EOF)
                         {
-                                //NDBG_PRINT("NC_STATUS_EOF\n");
                                 return NC_STATUS_EOF;
                         }
                         else if(l_status == NC_STATUS_AGAIN)
                         {
-                                //NDBG_PRINT("NC_STATUS_AGAIN\n");
                                 return NC_STATUS_AGAIN;
+                        }
+                        else if(l_status == NC_STATUS_OK)
+                        {
+                                return NC_STATUS_OK;
                         }
                         if(l_status > 0)
                         {
@@ -342,16 +346,16 @@ int32_t nconn::nc_write(evr_loop *a_evr_loop, nbq *a_out_q)
         //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
         if(!a_out_q)
         {
-                NDBG_PRINT("Error a_out_q == NULL\n");
+                //NDBG_PRINT("Error a_out_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
 
         if(!a_out_q->read_avail())
         {
-                //NDBG_PRINT("Error l_write_size == %d\n", m_out_q->read_avail());
-                return 0;
+                //NDBG_PRINT("Error l_write_size == %lu\n", a_out_q->read_avail());
+                return NC_STATUS_OK;
         }
-        //NDBG_PRINT("%sTRY_WRITE%s: l_write_size: %u\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q->read_avail());
+        //NDBG_PRINT("%sTRY_WRITE%s: l_write_size: %lu\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_out_q->read_avail());
         // -------------------------------------------------
         // while connection is writeable...
         //   wrtie up to next write size
@@ -362,8 +366,8 @@ int32_t nconn::nc_write(evr_loop *a_evr_loop, nbq *a_out_q)
         do {
                 //NDBG_PRINT("%sTRY_WRITE%s: m_out_q->b_read_ptr(): %p m_out_q->b_read_avail(): %d\n",
                 //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-                //                m_out_q->b_read_ptr(),
-                //                m_out_q->b_read_avail());
+                //                a_out_q->b_read_ptr(),
+                //                a_out_q->b_read_avail());
                 l_bytes_written = ncwrite(a_evr_loop, a_out_q->b_read_ptr(), a_out_q->b_read_avail());
                 //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
                 if(l_bytes_written < 0)

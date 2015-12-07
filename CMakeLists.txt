@@ -124,26 +124,21 @@ SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
 
-SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0")
-
-if (BUILD_TCMALLOC)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} google-perftools)
-endif()
-
-if (BUILD_UDNS)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libudns0)
+if(BUILD_UDNS)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0, google-perftools, libudns0)
+elseif (BUILD_TCMALLOC)
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0, google-perftools)
+else()
+  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0")
 endif()
 
 # cpack doesn't actually use the following, but the build.sh command does
-
-SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev")
-
-if (BUILD_TCMALLOC)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libgoogle-perftools-dev)
-endif()
-
-if (BUILD_UDNS)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} libudns-dev)
+if(BUILD_UDNS)
+  SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev, libgoogle-perftools-dev, libudns-dev")
+elseif (BUILD_TCMALLOC)
+  SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev, libgoogle-perftools-dev")
+else()
+  SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev")
 endif()
 
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")

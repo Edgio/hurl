@@ -5,8 +5,6 @@
   d. dns ttls
   e. access logs???
   f. rqst splitting (test with pipelined requests)
-  g. bad request handling if requesting over ssl and listening on raw -or vice versa
-  e. subr user-agent override -appends currently
 
 1. phurl
   a. option to skip tls cert hostname checking

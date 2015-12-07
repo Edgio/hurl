@@ -35,6 +35,9 @@
 // For sig_atomic_t
 #include <signal.h>
 
+// For strcasecmp
+#include <string.h>
+
 #include <string>
 #include <map>
 #include <list>
@@ -183,13 +186,19 @@ public:
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
+struct case_i_comp {
+    bool operator() (const std::string& lhs, const std::string& rhs) const {
+        return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+    }
+};
+
 #ifndef URL_PARAM_MAP_T
 #define URL_PARAM_MAP_T
 typedef std::map <std::string, std::string> url_pmap_t;
 #endif
 typedef std::list <cr_t> cr_list_t;
 typedef std::list <std::string> str_list_t;
-typedef std::map <std::string, str_list_t> kv_map_list_t;
+typedef std::map <std::string, str_list_t, case_i_comp> kv_map_list_t;
 typedef std::queue <subr *> subr_queue_t;
 typedef atomic_gcc_builtin<uint64_t> uint64_atomic_t;
 
