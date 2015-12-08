@@ -2,7 +2,6 @@
   a. evr_kqueue + eventfd analog.
   b. fix stats stdev/var.
   c. async dns timeouts
-  d. dns ttls
   e. access logs???
   f. rqst splitting (test with pipelined requests)
 

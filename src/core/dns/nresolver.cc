@@ -28,6 +28,7 @@
 #include "ndebug.h"
 #include "nconn_tcp.h"
 #include "base64.h"
+#include "time_util.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include <udns.h>
@@ -277,6 +278,20 @@ host_info_s *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_por
                 if(m_ai_cache_map.find(l_cache_key) != m_ai_cache_map.end())
                 {
                         l_host_info = m_ai_cache_map[l_cache_key];
+
+                        // Check expires
+                        if(l_host_info->m_expires_s &&
+                           (get_time_s() > l_host_info->m_expires_s))
+                        {
+                                //NDBG_PRINT("KEY: %s EXPIRED! -diff: %lu -expires: %lu cur: %lu\n",
+                                //                l_cache_key.c_str(),
+                                //                get_time_s() - l_host_info->m_expires_s,
+                                //                l_host_info->m_expires_s,
+                                //                get_time_s());
+                                m_ai_cache_map.erase(l_cache_key);
+                                l_host_info = NULL;
+                        }
+
                         pthread_mutex_unlock(&m_cache_mutex);
                         return l_host_info;
                 }
@@ -404,6 +419,9 @@ host_info_s *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port
                 return NULL;
         }
 
+        // Set to 5min -cuz getaddr-info stinks...
+        l_host_info->m_expires_s = get_time_s() + 300;
+
         //show_host_info();
         if(m_use_cache)
         {
@@ -523,6 +541,13 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, voi
         l_sockaddr_in->sin_port = htons(l_job->m_port);
 
         l_host_info->m_sa_len = sizeof(sockaddr_in);
+
+        uint64_t l_ttl_s = a_result->dnsa4_ttl;
+        if(l_ttl_s < S_MIN_TTL_S)
+        {
+                l_ttl_s = 10;
+        }
+        l_host_info->m_expires_s = get_time_s() + l_ttl_s;
 
         // Add to cache
         l_job->m_nresolver->add_host_info_cache(l_job->m_host, l_job->m_port, l_host_info);
