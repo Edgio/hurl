@@ -1052,6 +1052,10 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                 {
                                         l_hconn->m_hmsg->clear();
                                 }
+                                if(l_hconn->m_in_q)
+                                {
+                                        l_hconn->m_in_q->reset_write();
+                                }
                         }
                 } while(l_status != nconn::NC_STATUS_AGAIN && (!l_t_hlx->m_stopped));
         }

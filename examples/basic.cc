@@ -5,6 +5,7 @@
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>
+//#include <google/profiler.h>
 
 class bananas_getter: public ns_hlx::default_rqst_h
 {
@@ -52,7 +53,10 @@ int main(void)
         l_hlx->add_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
         l_hlx->set_num_threads(0);
+        //ProfilerStart("tmp.prof");
         l_hlx->run();
+        //l_hlx->wait_till_stopped();
+        //ProfilerStop();
         if(l_hlx) {delete l_hlx; l_hlx = NULL;}
         if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
         if(l_rqst_h_quit) {delete l_rqst_h_quit; l_rqst_h_quit = NULL;}
