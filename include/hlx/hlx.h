@@ -620,6 +620,7 @@ public:
         bool get_tls_verify(void);
         bool get_tls_sni(void);
         bool get_tls_self_ok(void);
+        bool get_tls_no_host_check(void);
 
         // Setters
         void set_scheme(scheme_t a_scheme);
@@ -647,6 +648,7 @@ public:
         void set_tls_verify(bool a_val);
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
+        void set_tls_no_host_check(bool a_val);
 
         // Request Parts
         // Getters
@@ -725,6 +727,7 @@ private:
         bool m_tls_verify;
         bool m_tls_sni;
         bool m_tls_self_ok;
+        bool m_tls_no_host_check;
 };
 
 //: ----------------------------------------------------------------------------

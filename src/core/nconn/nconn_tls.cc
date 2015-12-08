@@ -388,6 +388,11 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 memcpy(&m_tls_opt_verify_allow_self_signed, a_buf, sizeof(bool));
                 break;
         }
+        case OPT_TLS_VERIFY_NO_HOST_CHECK:
+        {
+                memcpy(&m_tls_opt_verify_no_host_check, a_buf, sizeof(bool));
+                break;
+        }
         case OPT_TLS_CA_FILE:
         {
                 m_tls_opt_ca_file.assign((char *)a_buf, a_len);
@@ -883,7 +888,7 @@ ncconnect_state_top:
         // -------------------------------------------------
         case TLS_STATE_CONNECTED:
         {
-                if(m_tls_opt_verify)
+                if(m_tls_opt_verify && !m_tls_opt_verify_no_host_check)
                 {
                         int32_t l_status;
                         // Do verify

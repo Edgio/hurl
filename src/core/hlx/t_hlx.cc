@@ -1328,6 +1328,11 @@ int32_t t_hlx::try_deq_subr(void)
                                                nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED,
                                                &(l_val),
                                                sizeof(bool));
+                        l_val = l_subr->get_tls_no_host_check();
+                        T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
+                                               nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK,
+                                               &(l_val),
+                                               sizeof(bool));
                         l_val = l_subr->get_tls_sni();
                         T_HLX_PROXY_SET_NCONN_OPT((*l_nconn),
                                                    nconn_tls::OPT_TLS_SNI,

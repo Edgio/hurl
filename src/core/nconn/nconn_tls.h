@@ -69,6 +69,7 @@ public:
                 OPT_TLS_SNI = 1102,
                 OPT_TLS_HOSTNAME = 1103,
                 OPT_TLS_VERIFY_ALLOW_SELF_SIGNED = 1105,
+                OPT_TLS_VERIFY_NO_HOST_CHECK = 1106,
 
                 // CA options
                 OPT_TLS_CA_FILE = 1201,
@@ -92,6 +93,7 @@ public:
           m_tls_opt_verify(false),
           m_tls_opt_sni(false),
           m_tls_opt_verify_allow_self_signed(false),
+          m_tls_opt_verify_no_host_check(false),
           m_tls_opt_hostname(""),
           m_tls_opt_ca_file(""),
           m_tls_opt_ca_path(""),
@@ -178,6 +180,7 @@ private:
         bool m_tls_opt_verify;
         bool m_tls_opt_sni;
         bool m_tls_opt_verify_allow_self_signed;
+        bool m_tls_opt_verify_no_host_check;
         std::string m_tls_opt_hostname;
         std::string m_tls_opt_ca_file;
         std::string m_tls_opt_ca_path;

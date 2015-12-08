@@ -800,6 +800,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -K, --ssl_verify     Verify server certificate.\n");
         fprintf(a_stream, "  -N, --ssl_sni        Use SSL SNI.\n");
         fprintf(a_stream, "  -B, --ssl_self_ok    Allow self-signed certificates.\n");
+        fprintf(a_stream, "  -M, --ssl_no_host    Skip host name checking.\n");
         fprintf(a_stream, "  -F, --ssl_ca_file    SSL CA File.\n");
         fprintf(a_stream, "  -L, --ssl_ca_path    SSL CA Path.\n");
         fprintf(a_stream, "  \n");
@@ -903,6 +904,7 @@ int main(int argc, char** argv)
                 { "ssl_verify",     0, 0, 'K' },
                 { "ssl_sni",        0, 0, 'N' },
                 { "ssl_self_ok",    0, 0, 'B' },
+                { "ssl_no_host",    0, 0, 'M' },
                 { "ssl_ca_file",    1, 0, 'F' },
                 { "ssl_ca_path",    1, 0, 'L' },
                 { "cli",            0, 0, 'I' },
@@ -971,9 +973,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -1117,6 +1119,14 @@ int main(int argc, char** argv)
                 case 'B':
                 {
                         l_subr->set_tls_self_ok(true);
+                        break;
+                }
+                // ---------------------------------------
+                // tls skip host check
+                // ---------------------------------------
+                case 'M':
+                {
+                        l_subr->set_tls_no_host_check(true);
                         break;
                 }
                 // ---------------------------------------

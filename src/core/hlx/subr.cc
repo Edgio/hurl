@@ -74,7 +74,8 @@ subr::subr(void):
         m_t_hlx(NULL),
         m_tls_verify(false),
         m_tls_sni(false),
-        m_tls_self_ok(false)
+        m_tls_self_ok(false),
+        m_tls_no_host_check(false)
 {
 }
 
@@ -119,7 +120,8 @@ subr::subr(const subr &a_subr):
         m_t_hlx(a_subr.m_t_hlx),
         m_tls_verify(a_subr.m_tls_verify),
         m_tls_sni(a_subr.m_tls_sni),
-        m_tls_self_ok(a_subr.m_tls_self_ok)
+        m_tls_self_ok(a_subr.m_tls_self_ok),
+        m_tls_no_host_check(a_subr.m_tls_no_host_check)
 {
 }
 
@@ -444,6 +446,16 @@ bool subr::get_tls_self_ok(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+bool subr::get_tls_no_host_check(void)
+{
+        return m_tls_no_host_check;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void subr::reset_label(void)
 {
         switch(m_scheme)
@@ -748,6 +760,16 @@ void subr::set_tls_sni(bool a_val)
 void subr::set_tls_self_ok(bool a_val)
 {
         m_tls_self_ok = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_tls_no_host_check(bool a_val)
+{
+        m_tls_no_host_check = a_val;
 }
 
 //: ----------------------------------------------------------------------------
