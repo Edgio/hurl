@@ -1039,6 +1039,7 @@ int main(int argc, char** argv)
         l_hlx->set_use_ai_cache(true);
         l_hlx->set_num_threads(l_max_threads);
         l_hlx->set_num_parallel(l_start_parallel);
+        l_hlx->set_num_reqs_per_conn(1);
 
         // -------------------------------------------------
         // Subrequest settings

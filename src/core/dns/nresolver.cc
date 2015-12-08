@@ -875,6 +875,11 @@ int32_t nresolver::read_ai_cache(const std::string &a_ai_cache_file)
         {
                 //NDBG_PRINT("Error reading json from file: %s.  Reason: data is not an array\n",
                 //                a_ai_cache_file.c_str());
+                if(l_buf)
+                {
+                        free(l_buf);
+                        l_buf = NULL;
+                }
                 return STATUS_OK;
         }
         // rapidjson uses SizeType instead of size_t.
@@ -884,6 +889,11 @@ int32_t nresolver::read_ai_cache(const std::string &a_ai_cache_file)
                 {
                         //NDBG_PRINT("Error reading json from file: %s.  Reason: array membe not an object\n",
                         //                a_ai_cache_file.c_str());
+                        if(l_buf)
+                        {
+                                free(l_buf);
+                                l_buf = NULL;
+                        }
                         return STATUS_OK;
                 }
                 std::string l_host;
@@ -908,6 +918,11 @@ int32_t nresolver::read_ai_cache(const std::string &a_ai_cache_file)
         if (STATUS_OK != l_status)
         {
                 NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
+                if(l_buf)
+                {
+                        free(l_buf);
+                        l_buf = NULL;
+                }
                 return STATUS_ERROR;
         }
         if(l_buf)

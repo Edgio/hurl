@@ -73,6 +73,11 @@ h_resp_t rqst_h::send_not_found(hlx &a_hlx, hconn &a_hconn, const rqst &a_rqst)
         memcpy(l_resp, G_RESP_GETFILE_NOT_FOUND, l_resp_len);
         l_api_resp.set_body_data(l_resp, l_resp_len);
         a_hlx.queue_api_resp(a_hconn, l_api_resp);
+        if(l_resp)
+        {
+                free(l_resp);
+                l_resp = NULL;
+        }
         return H_RESP_DONE;
 }
 

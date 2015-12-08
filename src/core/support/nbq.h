@@ -98,6 +98,7 @@ public:
 
         // Debugging display all
         void     b_display_all(void);
+        void     b_display_written(void);
 
         // For use with obj pool
         uint64_t get_idx(void) {return m_idx;}

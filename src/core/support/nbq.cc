@@ -443,6 +443,32 @@ int32_t nbq::b_read_avail(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void nbq::b_display_written(void)
+{
+        if(m_q.empty())
+        {
+                return;
+        }
+        uint32_t i_block_num = 0;
+        nb_list_t::iterator i_block;
+        for(i_block = m_q.begin(); i_block != m_cur_write_block; ++i_block, ++i_block_num)
+        {
+                NDBG_OUTPUT("+------------------------------------+\n");
+                NDBG_OUTPUT("| Block: %d\n", i_block_num);
+                NDBG_OUTPUT("+------------------------------------+\n");
+                mem_display((const uint8_t *)((*i_block)->m_data), (*i_block)->m_len);
+        }
+        NDBG_OUTPUT("+------------------------------------+\n");
+        NDBG_OUTPUT("| Block: %d\n", i_block_num);
+        NDBG_OUTPUT("+------------------------------------+\n");
+        mem_display((const uint8_t *)((*i_block)->m_data), (*i_block)->m_len - m_cur_block_write_avail);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void nbq::b_display_all(void)
 {
         uint32_t i_block_num = 0;

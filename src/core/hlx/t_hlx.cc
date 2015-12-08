@@ -351,11 +351,6 @@ nconn *t_hlx::get_proxy_conn(const host_info_s *a_host_info,
                         NDBG_PRINT("Error performing config_conn\n");
                         return NULL;
                 }
-                // -----------------------------------------
-                // TODO Make configurable...
-                // m_num_reqs_per_proxy_conn
-                // -----------------------------------------
-                l_nconn->set_num_reqs_per_conn(-1);
                 l_nconn->set_host_info(a_host_info);
         }
         return l_nconn;
@@ -518,10 +513,13 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
                 l_rqst->clear();
         }
         l_hconn->m_hmsg = l_rqst;
-
         if(!get_from_pool_if_null(l_hconn->m_in_q, m_nbq_pool))
         {
                 l_hconn->m_in_q->reset_write();
+        }
+        if(!get_from_pool_if_null(l_hconn->m_out_q, m_nbq_pool))
+        {
+                l_hconn->m_out_q->reset_write();
         }
         l_hconn->m_hmsg->set_q(l_hconn->m_in_q);
         ++m_stat.m_cur_conn_count;
@@ -544,7 +542,7 @@ int t_hlx::run(void)
         if (l_pthread_error != 0)
         {
                 // failed to create thread
-                NDBG_PRINT("Error: creating thread.  Reason: %s\n.", strerror(l_pthread_error));
+                //NDBG_PRINT("Error: creating thread.  Reason: %s\n.", strerror(l_pthread_error));
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -714,24 +712,22 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                                 return STATUS_ERROR;
                         }
                 }
-
                 if(l_nconn->is_done() || (l_status == nconn::NC_STATUS_EOF))
                 {
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_OK;
                 }
-
                 if(l_hconn->m_out_q &&
                    !l_hconn->m_out_q->read_avail() &&
                    (l_hconn->m_type == DATA_TYPE_SERVER))
                 {
-                        if(!l_hconn->m_hmsg->m_supports_keep_alives)
+                        if(l_hconn->m_hmsg->m_supports_keep_alives)
                         {
-                                l_t_hlx->cleanup_hconn(*l_hconn);
-                                return STATUS_OK;
+                                break;
                         }
                         // No data left to send
-                        break;
+                        l_t_hlx->cleanup_hconn(*l_hconn);
+                        return STATUS_OK;
                 }
                 else
                 {
@@ -1520,12 +1516,7 @@ int32_t t_hlx::handle_req(hconn &a_hconn, url_router *a_url_router)
         {
                 return STATUS_ERROR;
         }
-        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool))
-        {
-                a_hconn.m_out_q->reset_write();
-        }
         url_pmap_t l_pmap;
-        //NDBG_PRINT("a_req.get_path: %s\n", l_rqst->get_path().c_str());
         //NDBG_PRINT("a_url_router:   %p\n", a_url_router);
         //NDBG_PRINT("a_req.m_method: %d\n", l_rqst->m_method);
         rqst_h *l_rqst_h = (rqst_h *)a_url_router->find_route(l_rqst->get_path(),l_pmap);
