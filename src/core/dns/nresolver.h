@@ -145,6 +145,8 @@ public:
 #ifdef ASYNC_DNS_SUPPORT
         static const uint64_t S_RESOLVER_ID = 0xFFFFFFFFFFFFFFFFUL;
 #endif
+        static const uint32_t S_MAX_PARALLEL_LOOKUPS = 10;
+
         //: ------------------------------------------------
         //: Public methods
         //: ------------------------------------------------

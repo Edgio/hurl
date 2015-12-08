@@ -200,17 +200,20 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
                 }
         }
 #ifdef ASYNC_DNS_WITH_UDNS
+        pthread_mutex_lock(&m_cache_mutex);
         dns_ctx *l_ctx = NULL;
         l_ctx = dns_new(NULL);
         if(!l_ctx)
         {
                 NDBG_PRINT("Error performing dns_new\n");
+                pthread_mutex_unlock(&m_cache_mutex);
                 return STATUS_ERROR;
         }
         l_status = dns_init(l_ctx, 0);
         if(l_status < 0)
         {
                 NDBG_PRINT("Error performing dns_init\n");
+                pthread_mutex_unlock(&m_cache_mutex);
                 return STATUS_ERROR;
         }
         // TODO Name servers???
@@ -229,10 +232,12 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
         if (ao_fd < 0)
         {
                 NDBG_PRINT("Error performing dns_open\n");
+                pthread_mutex_unlock(&m_cache_mutex);
                 return STATUS_ERROR;
         }
 
         *ao_ctx = l_ctx;
+        pthread_mutex_unlock(&m_cache_mutex);
 #endif
         return STATUS_OK;
 }
@@ -610,7 +615,7 @@ int32_t nresolver::lookup_async(void* a_ctx,
         }
 
         a_active = dns_active(l_ctx);
-        uint32_t l_submit = 100 - a_active;
+        uint32_t l_submit = S_MAX_PARALLEL_LOOKUPS - a_active;
         //NDBG_PRINT("a_active: %lu\n", a_active);
         while((l_submit) && !(ao_lookup_job_q.empty()))
         {
@@ -644,7 +649,7 @@ int32_t nresolver::lookup_async(void* a_ctx,
         // ???
         time_t now;
         now = time(NULL);
-        const int delay = dns_timeouts(l_ctx, -1, now);
+        const int delay = dns_timeouts(l_ctx, 1, now);
         (void) delay;
 #endif
         return STATUS_OK;
