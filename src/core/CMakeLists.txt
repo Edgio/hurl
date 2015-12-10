@@ -24,42 +24,40 @@ project(hlx)
 cmake_minimum_required(VERSION 2.6.0)
 
 # include paths
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-    #${CMAKE_CURRENT_BINARY_DIR}
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ../../ext
     ./ndebug
     ./url_router
-    ./hlx
-    ./dns
-    ./http_parser
     ./evr
-    ./cityhash
     ./support
     ./nconn
+    ./dns
+    ./hlx
     ../../include 
-    ../../udns-0.4
 )
 
 # Source files
 SET(SRCS
+    ../../ext/http_parser/http_parser.cc
+    ../../ext/hostcheck/hostcheck.cc
+    ../../ext/base64/base64.cc
     ./ndebug/ndebug.cc
-    ./http_parser/http_parser.cc
+    ./url_router/url_router.cc
     ./evr/evr.cc
     ./evr/evr_epoll.cc
     ./evr/evr_select.cc
-    ./cityhash/city.cc
     ./support/string_util.cc
     ./support/time_util.cc
     ./support/tls_util.cc
     ./support/stat_util.cc
-    ./support/hostcheck.cc
+    ./support/uri.cc
+    ./support/nbq.cc
+    ./support/file.cc
     ./nconn/nconn.cc
     ./nconn/nconn_tcp.cc
     ./nconn/nconn_tls.cc
     ./nconn/nconn_pool.cc
-    ./support/base64.cc
-    ./support/uri.cc
-    ./support/nbq.cc
-    ./support/file.cc
     ./dns/nresolver.cc
     ./hlx/hmsg.cc
     ./hlx/rqst.cc
@@ -71,7 +69,6 @@ SET(SRCS
     ./hlx/lsnr.cc
     ./hlx/subr.cc
     ./hlx/api_resp.cc
-    ./url_router/url_router.cc
 )
 
 # Headers

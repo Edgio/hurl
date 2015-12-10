@@ -30,7 +30,8 @@ LIST(APPEND INST_HDRS ${HDRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 #${CMAKE_CURRENT_BINARY_DIR}
     ../../include
-    ../core
+    ../../ext
+    ../core/
 )
 
 #add_definitions(-std=c++0x)

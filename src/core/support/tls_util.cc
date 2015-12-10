@@ -30,7 +30,7 @@
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
 #include "tls_util.h"
-#include "hostcheck.h"
+#include "hostcheck/hostcheck.h"
 
 #include <map>
 #include <algorithm>

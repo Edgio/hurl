@@ -27,7 +27,7 @@
 #include "nresolver.h"
 #include "ndebug.h"
 #include "nconn_tcp.h"
-#include "base64.h"
+#include "base64/base64.h"
 #include "time_util.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS

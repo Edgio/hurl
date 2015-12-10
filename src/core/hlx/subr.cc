@@ -27,7 +27,7 @@
 #include "hlx/hlx.h"
 #include "ndebug.h"
 #include "string_util.h"
-#include "http_parser.h"
+#include "http_parser/http_parser.h"
 
 #include <string.h>
 
