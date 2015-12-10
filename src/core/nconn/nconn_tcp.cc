@@ -28,6 +28,7 @@
 #include "time_util.h"
 #include "evr.h"
 #include "ndebug.h"
+#include "host_info.h"
 
 // Fcntl and friends
 #include <unistd.h>

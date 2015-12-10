@@ -26,11 +26,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "evr.h"
+#include "ai_cache.h"
 
 #include <pthread.h>
-#include <semaphore.h>
-#include <signal.h>
 #include <stdint.h>
 
 #include <netinet/in.h>
@@ -44,21 +42,18 @@
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-#define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
-
 // TODO Remove -enable with build flag...
-//#define ASYNC_DNS_WITH_UDNS 1
+#define ASYNC_DNS_WITH_UDNS 1
 #ifdef ASYNC_DNS_WITH_UDNS
-#define ASYNC_DNS_SUPPORT 1
+  #define ASYNC_DNS_SUPPORT 1
+  #include "evr.h"
 #endif
+
+#define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-//struct real_pcre;
-//typedef real_pcre pcre;
-//struct pcre_extra;
-
 #ifdef ASYNC_DNS_WITH_UDNS
 struct dns_ctx;
 struct dns_rr_a4;
@@ -70,41 +65,7 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nconn;
-
-// Host info
-struct host_info_s {
-        struct sockaddr_storage m_sa;
-        int m_sa_len;
-        int m_sock_family;
-        int m_sock_type;
-        int m_sock_protocol;
-        uint64_t m_expires_s;
-
-        host_info_s():
-                m_sa(),
-                m_sa_len(16),
-                m_sock_family(AF_INET),
-                m_sock_type(SOCK_STREAM),
-                m_sock_protocol(IPPROTO_TCP),
-                m_expires_s(0)
-        {
-                ((struct sockaddr_in *)(&m_sa))->sin_family = AF_INET;
-        };
-
-        void show(void)
-        {
-                printf("+-----------+\n");
-                printf("| Host Info |\n");
-                printf("+-----------+-------------------------\n");
-                printf(": m_sock_family:   %d\n",  m_sock_family);
-                printf(": m_sock_type:     %d\n",  m_sock_type);
-                printf(": m_sock_protocol: %d\n",  m_sock_protocol);
-                printf(": m_sa_len:        %d\n",  m_sa_len);
-                printf(": m_expires:       %lu\n", m_expires_s);
-                printf("+-------------------------------------\n");
-        };
-
-};
+struct host_info;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -117,7 +78,7 @@ public:
         //: ------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
         // Async resolver callback
-        typedef int32_t (*resolved_cb)(const host_info_s *, void *);
+        typedef int32_t (*resolved_cb)(const host_info *, void *);
 
         struct lookup_job {
                 void *m_data;
@@ -140,13 +101,11 @@ public:
         typedef std::queue<lookup_job *>lookup_job_q_t;
 #endif
 
-
-
         //: ------------------------------------------------
         //: Const
         //: ------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-        static const uint64_t S_RESOLVER_ID = 0xFFFFFFFFFFFFFFFFUL;
+        static const uint64_t S_RESOLVER_ID = 0xFFFFDEADBEEF0001UL;
 #endif
         static const uint32_t S_MAX_PARALLEL_LOOKUPS = 10;
         static const uint32_t S_MIN_TTL_S = 10;
@@ -158,8 +117,10 @@ public:
         ~nresolver();
 
         int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
-        host_info_s *lookup_tryfast(const std::string &a_host, uint16_t a_port);
-        host_info_s *lookup_sync(const std::string &a_host, uint16_t a_port);
+        host_info *lookup_tryfast(const std::string &a_host, uint16_t a_port);
+        host_info *lookup_sync(const std::string &a_host, uint16_t a_port);
+        bool get_use_cache(void) { return m_use_cache;}
+        ai_cache *get_ai_cache(void) {return m_ai_cache;}
 #ifdef ASYNC_DNS_SUPPORT
         int32_t init_async(void** ao_ctx, int &ao_fd);
         int32_t destroy_async(void* a_ctx, int &a_fd);
@@ -175,20 +136,13 @@ public:
 
 private:
         //: ------------------------------------------------
-        //: Types
-        //: ------------------------------------------------
-        typedef std::map <std::string, host_info_s *> ai_cache_map_t;
-
-        //: ------------------------------------------------
         //: Private methods
         //: ------------------------------------------------
         // Disallow copy/assign
         nresolver& operator=(const nresolver &);
         nresolver(const nresolver &);
-        int32_t sync_ai_cache(void);
-        int32_t read_ai_cache(const std::string &a_ai_cache_file);
-        host_info_s *lookup_inline(const std::string &a_host, uint16_t a_port);
-        void add_host_info_cache(const std::string &a_host, uint16_t a_port, host_info_s *a_host_info);
+
+        host_info *lookup_inline(const std::string &a_host, uint16_t a_port);
 
         //: ------------------------------------------------
         //: Private static methods
@@ -203,11 +157,7 @@ private:
         bool m_is_initd;
         uint32_t m_use_cache;
         pthread_mutex_t m_cache_mutex;
-        ai_cache_map_t m_ai_cache_map;
-        std::string m_ai_cache_file;
-        //pcre *m_ip_address_re_compiled;
-        //pcre_extra *m_ip_address_pcre_extra;
-
+        ai_cache *m_ai_cache;
 };
 
 } //namespace ns_hlx {

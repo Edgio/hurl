@@ -29,46 +29,30 @@
 #include "nconn_tcp.h"
 #include "base64/base64.h"
 #include "time_util.h"
+#include "host_info.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include <udns.h>
 #endif
 
-// json support
-//#pragma GCC diagnostic push
-//#pragma GCC diagnostic ignored "-Werror"
-#include "rapidjson/document.h"
-//#pragma GCC diagnostic pop
-
-#include <arpa/inet.h>
-#include <errno.h>
-#include <string.h>
 #include <unistd.h>
-#include <sys/stat.h>
-#include <stdint.h>
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#include <inttypes.h>
 #include <netdb.h>
-
-// TODO TEST --remove
-#include <sys/poll.h>
-
-//#include <pcre.h>
-
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
-//#define IPV4_ADDR_REGEX "\\b\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\b"
-// Note matches 999.999.999.999 -check inet_pton result...
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
 //: ----------------------------------------------------------------------------
-//static void resolve_cb(void* mydata, int err, struct ub_result* result);
+static inline std::string get_cache_key(const std::string &a_host, uint16_t a_port)
+{
+        char l_port_str[8];
+        snprintf(l_port_str, 8, "%d", a_port);
+        std::string l_cache_key;
+        l_cache_key = a_host + ":" + l_port_str;
+        return l_cache_key;
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -79,8 +63,7 @@ nresolver::nresolver():
         m_is_initd(false),
         m_use_cache(false),
         m_cache_mutex(),
-        m_ai_cache_map(),
-        m_ai_cache_file(NRESOLVER_DEFAULT_AI_CACHE_FILE)
+        m_ai_cache(NULL)
 {
         pthread_mutex_init(&m_cache_mutex, NULL);
 }
@@ -92,31 +75,43 @@ nresolver::nresolver():
 //: ----------------------------------------------------------------------------
 nresolver::~nresolver()
 {
-#if 0
-        pcre_free(m_ip_address_re_compiled);
-        if(m_ip_address_pcre_extra != NULL)
+        // Sync back to disk
+        if(m_use_cache && m_ai_cache)
         {
-                pcre_free(m_ip_address_pcre_extra);
+                delete m_ai_cache;
+                m_ai_cache = NULL;
+        }
+        pthread_mutex_destroy(&m_cache_mutex);
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nresolver::init(std::string ai_cache_file, bool a_use_cache)
+{
+        if(m_is_initd)
+        {
+                return STATUS_OK;
+        }
+        m_use_cache = a_use_cache;
+        if(m_use_cache)
+        {
+                m_ai_cache = new ai_cache(ai_cache_file);
+        }
+
+#ifdef ASYNC_DNS_WITH_UDNS
+        if (dns_init(NULL, 0) < 0)
+        {
+                NDBG_PRINT("Error unable to initialize dns library\n");
+                return STATUS_ERROR;
         }
 #endif
 
-        // Sync back to disk
-        if(m_use_cache)
-        {
-                sync_ai_cache();
-        }
-
-        pthread_mutex_destroy(&m_cache_mutex);
-        for(ai_cache_map_t::iterator i_h = m_ai_cache_map.begin();
-            i_h != m_ai_cache_map.end();
-            ++i_h)
-        {
-                if(i_h->second)
-                {
-                        delete i_h->second;
-                        i_h->second = NULL;
-                }
-        }
+        m_is_initd = true;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -143,45 +138,6 @@ int32_t nresolver::destroy_async(void* a_ctx, int &a_fd)
         return STATUS_OK;
 }
 #endif
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t nresolver::init(std::string addr_info_cache_file, bool a_use_cache)
-{
-        if(m_is_initd)
-        {
-                return STATUS_OK;
-        }
-        m_use_cache = a_use_cache;
-        if(m_use_cache)
-        {
-                m_ai_cache_file = addr_info_cache_file;
-                if(m_ai_cache_file.empty())
-                {
-                        //NDBG_PRINT("Using: %s\n", l_db_name.c_str());
-                        m_ai_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE;
-                }
-                int32_t l_status = read_ai_cache(m_ai_cache_file);
-                if(l_status != STATUS_OK)
-                {
-                        return STATUS_ERROR;
-                }
-        }
-
-#ifdef ASYNC_DNS_WITH_UDNS
-        if (dns_init(NULL, 0) < 0)
-        {
-                NDBG_PRINT("Error unable to initialize dns library\n");
-                return STATUS_ERROR;
-        }
-#endif
-
-        m_is_initd = true;
-        return STATUS_OK;
-}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -249,7 +205,7 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-host_info_s *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
+host_info *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
 {
         int32_t l_status;
         if(!m_is_initd)
@@ -264,7 +220,7 @@ host_info_s *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_por
         // ---------------------------------------
         // cache lookup
         // ---------------------------------------
-        host_info_s *l_host_info = NULL;
+        host_info *l_host_info = NULL;
         if(m_use_cache)
         {
                 // Create a cache key
@@ -275,29 +231,10 @@ host_info_s *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_por
 
                 // Lookup in map
                 pthread_mutex_lock(&m_cache_mutex);
-                if(m_ai_cache_map.find(l_cache_key) != m_ai_cache_map.end())
-                {
-                        l_host_info = m_ai_cache_map[l_cache_key];
-
-                        // Check expires
-                        if(l_host_info->m_expires_s &&
-                           (get_time_s() > l_host_info->m_expires_s))
-                        {
-                                //NDBG_PRINT("KEY: %s EXPIRED! -diff: %lu -expires: %lu cur: %lu\n",
-                                //                l_cache_key.c_str(),
-                                //                get_time_s() - l_host_info->m_expires_s,
-                                //                l_host_info->m_expires_s,
-                                //                get_time_s());
-                                m_ai_cache_map.erase(l_cache_key);
-                                l_host_info = NULL;
-                        }
-
-                        pthread_mutex_unlock(&m_cache_mutex);
-                        return l_host_info;
-                }
+                l_host_info = m_ai_cache->lookup(l_cache_key);
                 pthread_mutex_unlock(&m_cache_mutex);
         }
-        return NULL;
+        return l_host_info;
 }
 
 //: ----------------------------------------------------------------------------
@@ -305,11 +242,11 @@ host_info_s *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_por
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-host_info_s *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
+host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
 {
         // Initialize...
-        host_info_s *l_host_info = NULL;
-        l_host_info = new host_info_s();
+        host_info *l_host_info = NULL;
+        l_host_info = new host_info();
         l_host_info->m_sa_len = sizeof(l_host_info->m_sa);
         memset((void*) &(l_host_info->m_sa), 0, l_host_info->m_sa_len);
 
@@ -423,9 +360,9 @@ host_info_s *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port
         l_host_info->m_expires_s = get_time_s() + 300;
 
         //show_host_info();
-        if(m_use_cache)
+        if(m_use_cache && m_ai_cache)
         {
-                add_host_info_cache(a_host, a_port, l_host_info);
+                m_ai_cache->add(get_cache_key(a_host, a_port), l_host_info);
         }
         return l_host_info;
 }
@@ -435,27 +372,7 @@ host_info_s *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void nresolver::add_host_info_cache(const std::string &a_host, uint16_t a_port, host_info_s *a_host_info)
-{
-        if(m_use_cache)
-        {
-                // Create a cache key
-                char l_port_str[8];
-                snprintf(l_port_str, 8, "%d", a_port);
-                std::string l_cache_key;
-                l_cache_key = a_host + ":" + l_port_str;
-                pthread_mutex_lock(&m_cache_mutex);
-                m_ai_cache_map[l_cache_key] = a_host_info;
-                pthread_mutex_unlock(&m_cache_mutex);
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-host_info_s *nresolver::lookup_sync(const std::string &a_host, uint16_t a_port)
+host_info *nresolver::lookup_sync(const std::string &a_host, uint16_t a_port)
 {
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_host.c_str(), a_port);
         int32_t l_status;
@@ -469,7 +386,7 @@ host_info_s *nresolver::lookup_sync(const std::string &a_host, uint16_t a_port)
         }
 
         // tryfast lookup
-        host_info_s *l_host_info = NULL;
+        host_info *l_host_info = NULL;
         l_host_info = lookup_tryfast(a_host, a_port);
         if(l_host_info)
         {
@@ -530,8 +447,8 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, voi
         //           s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
 
         // Create host_info_t
-        host_info_s *l_host_info = NULL;
-        l_host_info = new host_info_s();
+        host_info *l_host_info = NULL;
+        l_host_info = new host_info();
         l_host_info->m_sa_len = sizeof(l_host_info->m_sa);
         memset((void*) &(l_host_info->m_sa), 0, l_host_info->m_sa_len);
 
@@ -550,7 +467,10 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, voi
         l_host_info->m_expires_s = get_time_s() + l_ttl_s;
 
         // Add to cache
-        l_job->m_nresolver->add_host_info_cache(l_job->m_host, l_job->m_port, l_host_info);
+        if(l_job->m_nresolver->get_use_cache() && l_job->m_nresolver->get_ai_cache())
+        {
+                l_job->m_nresolver->get_ai_cache()->add(get_cache_key(l_job->m_host, l_job->m_port), l_host_info);
+        }
 
         if(l_job->m_cb)
         {
@@ -702,235 +622,5 @@ int32_t nresolver::handle_io(void* a_ctx)
         return STATUS_OK;
 }
 #endif
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-#if 0
-nresolver::sc_lookup_status_t nresolver::try_fast_lookup(reqlet *a_reqlet,
-                                                         resolve_cb_t a_resolve_cb)
-{
-
-        // TODO Move to constructor...
-        int l_pcre_exec_ret;
-        int l_pcre_sub_str_vec[30];
-
-        // Try to find the regex in aLineToMatch, and report results.
-        l_pcre_exec_ret = pcre_exec(m_ip_address_re_compiled,
-                                    m_ip_address_pcre_extra,
-                                    a_reqlet->m_url.m_host.c_str(),
-                                    a_reqlet->m_url.m_host.length(), // length of string
-                                    0,                               // Start looking at this point
-                                    0,                               // OPTIONS
-                                    l_pcre_sub_str_vec,              //
-                                    30);                             // Length of subStrVec
-
-
-        // Report what happened in the pcre_exec call..
-        //NDBG_OUTPUT("pcre_exec return: %d\n", l_pcre_exec_ret);
-        if((PCRE_ERROR_NOMATCH != l_pcre_exec_ret) &&
-           (l_pcre_exec_ret < 0))
-        {
-                // Something bad happened..
-                switch(l_pcre_exec_ret)
-                {
-                        //case PCRE_ERROR_NOMATCH      : NDBG_OUTPUT("String did not match the pattern\n");        break;
-                        case PCRE_ERROR_NULL         : NDBG_PRINT("STATUS_ERROR: Something was null\n");                      break;
-                        case PCRE_ERROR_BADOPTION    : NDBG_PRINT("STATUS_ERROR: A bad option was passed\n");                 break;
-                        case PCRE_ERROR_BADMAGIC     : NDBG_PRINT("STATUS_ERROR: Magic number bad (compiled re corrupt?)\n"); break;
-                        case PCRE_ERROR_UNKNOWN_NODE : NDBG_PRINT("STATUS_ERROR: Something kooky in the compiled re\n");      break;
-                        case PCRE_ERROR_NOMEMORY     : NDBG_PRINT("STATUS_ERROR: Ran out of memory\n");                       break;
-                        default                      : NDBG_PRINT("STATUS_ERROR: Unknown error\n");                           break;
-                } // end switch
-                return LOSTATUS_OKUP_STATUS_ERROR;
-        }
-        else if(PCRE_ERROR_NOMATCH != l_pcre_exec_ret)
-        {
-        //NDBG_PRINT("Result: We have a match for string: %s\n", a_reqlet->m_url.m_host.c_str());
-
-                // store this IP address in sa:
-                int l_status = 0;
-                l_status = a_reqlet->slow_resolve();
-                if(STATUS_OK != l_status)
-                {
-                        NDBG_PRINT("STATUS_ERROR: performing slow_resolve.\n");
-                        return LOSTATUS_OKUP_STATUS_ERROR;
-                }
-                else
-                {
-                        if(NULL != a_resolve_cb)
-                        {
-                                // Callback...
-                                int l_status = 0;
-                                l_status = a_resolve_cb(a_reqlet);
-                                if(STATUS_OK != l_status)
-                                {
-                                        NDBG_PRINT("STATUS_ERROR: invoking callback\n");
-                                        return LOSTATUS_OKUP_STATUS_ERROR;
-                                }
-
-                                // We're done...
-                                //NDBG_PRINT("MATCH for a_reqlet: %p.\n", a_reqlet);
-                                //a_reqlet->show_host_info();
-                                return LOSTATUS_OKUP_STATUS_EARLY;
-                        }
-                }
-        }
-        // Try a cache db lookup
-        // TODO
-        return LOSTATUS_OKUP_STATUS_NONE;
-}
-#endif
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t nresolver::sync_ai_cache(void)
-{
-        int32_t l_status = 0;
-        FILE *l_file_ptr = fopen(m_ai_cache_file.c_str(), "w+");
-        if(l_file_ptr == NULL)
-        {
-                NDBG_PRINT("Error performing fopen. Reason: %s\n", strerror(errno));
-                return STATUS_ERROR;
-        }
-        fprintf(l_file_ptr, "[");
-        uint32_t l_len = m_ai_cache_map.size();
-        uint32_t i_len = 0;
-        for(ai_cache_map_t::const_iterator i_entry = m_ai_cache_map.begin();
-            i_entry != m_ai_cache_map.end();
-            ++i_entry)
-        {
-                std::string l_ai_val64 = base64_encode((const unsigned char *)(i_entry->second), sizeof(host_info_s));
-                fprintf(l_file_ptr, "{");
-                fprintf(l_file_ptr, "\"host\": \"%s\",", i_entry->first.c_str());
-                fprintf(l_file_ptr, "\"ai\": \"%s\"", l_ai_val64.c_str());
-                ++i_len;
-                if(i_len == l_len)
-                fprintf(l_file_ptr, "}");
-                else
-                fprintf(l_file_ptr, "},");
-        }
-        fprintf(l_file_ptr, "]");
-        l_status = fclose(l_file_ptr);
-        if(l_status != 0)
-        {
-                NDBG_PRINT("Error performing fclose. Reason: %s\n", strerror(errno));
-                return STATUS_ERROR;
-        }
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t nresolver::read_ai_cache(const std::string &a_ai_cache_file)
-{
-        struct stat l_stat;
-        int32_t l_status = STATUS_OK;
-        l_status = stat(a_ai_cache_file.c_str(), &l_stat);
-        if(l_status != 0)
-        {
-                //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", a_ai_cache_file.c_str(), strerror(errno));
-                return STATUS_OK;
-        }
-
-        if(!(l_stat.st_mode & S_IFREG))
-        {
-                //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", a_ai_cache_file.c_str());
-                return STATUS_OK;
-        }
-
-        FILE * l_file;
-        l_file = fopen(a_ai_cache_file.c_str(),"r");
-        if (NULL == l_file)
-        {
-                //NDBG_PRINT("Error opening file: %s.  Reason: %s\n", a_ai_cache_file.c_str(), strerror(errno));
-                return STATUS_OK;
-        }
-
-        // Read in file...
-        int32_t l_size = l_stat.st_size;
-        int32_t l_read_size;
-        char *l_buf = (char *)malloc(sizeof(char)*l_size);
-        l_read_size = fread(l_buf, 1, l_size, l_file);
-        if(l_read_size != l_size)
-        {
-                //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
-                //                strerror(errno), l_read_size, l_size);
-                return STATUS_OK;
-        }
-        std::string l_buf_str;
-        l_buf_str.assign(l_buf, l_size);
-        // NOTE: rapidjson assert's on errors -interestingly
-        rapidjson::Document l_doc;
-        l_doc.Parse(l_buf_str.c_str());
-        if(!l_doc.IsArray())
-        {
-                //NDBG_PRINT("Error reading json from file: %s.  Reason: data is not an array\n",
-                //                a_ai_cache_file.c_str());
-                if(l_buf)
-                {
-                        free(l_buf);
-                        l_buf = NULL;
-                }
-                return STATUS_OK;
-        }
-        // rapidjson uses SizeType instead of size_t.
-        for(rapidjson::SizeType i_record = 0; i_record < l_doc.Size(); ++i_record)
-        {
-                if(!l_doc[i_record].IsObject())
-                {
-                        //NDBG_PRINT("Error reading json from file: %s.  Reason: array membe not an object\n",
-                        //                a_ai_cache_file.c_str());
-                        if(l_buf)
-                        {
-                                free(l_buf);
-                                l_buf = NULL;
-                        }
-                        return STATUS_OK;
-                }
-                std::string l_host;
-                std::string l_ai;
-                if(l_doc[i_record].HasMember("host"))
-                {
-                        l_host = l_doc[i_record]["host"].GetString();
-
-                        if(l_doc[i_record].HasMember("ai"))
-                        {
-                                l_ai = l_doc[i_record]["ai"].GetString();
-
-                                std::string l_ai_decoded;
-                                l_ai_decoded = base64_decode(l_ai);
-                                host_info_s *l_host_info = new host_info_s();
-                                memcpy(l_host_info, l_ai_decoded.data(), l_ai_decoded.length());
-                                m_ai_cache_map[l_host] = l_host_info;
-                        }
-                }
-        }
-        l_status = fclose(l_file);
-        if (STATUS_OK != l_status)
-        {
-                NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
-                if(l_buf)
-                {
-                        free(l_buf);
-                        l_buf = NULL;
-                }
-                return STATUS_ERROR;
-        }
-        if(l_buf)
-        {
-                free(l_buf);
-                l_buf = NULL;
-        }
-        return STATUS_OK;
-}
 
 }

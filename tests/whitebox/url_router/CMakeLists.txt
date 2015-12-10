@@ -23,15 +23,17 @@
 project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
-# ------------------------------------------------------------------------------
-# build catch
-# ------------------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../ext/)
-add_library(compiled_catch STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ext/catch/catch.hpp _catch.cc)
-
-# ------------------------------------------------------------------------------
-# build tests
-# ------------------------------------------------------------------------------
-add_subdirectory(support)
-add_subdirectory(url_router)
-add_subdirectory(dns)
+# ------------------------------------------------
+# wb_url_router
+# ------------------------------------------------
+SET(SRCS wb_url_router.cc
+    ../../../src/core/url_router/url_router.cc
+    ../../../src/core/ndebug/ndebug.cc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/../
+                    ../../../src/core/url_router/
+                    ../../../src/core/ndebug/)
+add_executable(wb_url_router ${HDRS} ${SRCS})
+target_link_libraries(wb_url_router compiled_catch ${LIBRARIES})
+SET_TARGET_PROPERTIES(wb_url_router PROPERTIES OUTPUT_NAME "wb_url_router")
+add_test(url_router wb_url_router)

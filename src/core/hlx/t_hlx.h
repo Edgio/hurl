@@ -52,6 +52,7 @@ typedef obj_pool <resp> resp_pool_t;
 typedef obj_pool <rqst> rqst_pool_t;
 typedef obj_pool <nbq> nbq_pool_t;
 class url_router;
+struct host_info;
 
 //: ----------------------------------------------------------------------------
 //: t_hlx
@@ -97,7 +98,7 @@ public:
 
         // Resolver callback
 #ifdef ASYNC_DNS_SUPPORT
-        static int32_t subr_resolved_cb(const host_info_s *a_host_info, void *a_data);
+        static int32_t subr_resolved_cb(const host_info *a_host_info, void *a_data);
 #endif
 
 private:
@@ -130,7 +131,7 @@ private:
                             hconn_type_t a_type,
                             bool a_save);
 
-        nconn * get_proxy_conn(const host_info_s *a_host_info,
+        nconn * get_proxy_conn(const host_info *a_host_info,
                                const std::string &a_label,
                                scheme_t a_scheme,
                                bool a_save,

@@ -320,7 +320,7 @@ int32_t t_hlx::queue_output(hconn &a_hconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_hlx::get_proxy_conn(const host_info_s *a_host_info,
+nconn *t_hlx::get_proxy_conn(const host_info *a_host_info,
                              const std::string &a_label,
                              scheme_t a_scheme,
                              bool a_save,
@@ -1161,7 +1161,7 @@ int32_t t_hlx::evr_loop_file_error_cb(void *a_data)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t t_hlx::subr_resolved_cb(const host_info_s *a_host_info, void *a_data)
+int32_t t_hlx::subr_resolved_cb(const host_info *a_host_info, void *a_data)
 {
         //NDBG_PRINT("%sRESOLVE_CB%s: HERE\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF);
         subr *l_subr = static_cast<subr *>(a_data);
@@ -1220,7 +1220,7 @@ int32_t t_hlx::try_deq_subr(void)
                 int32_t l_status;
                 std::string l_error;
 
-                const host_info_s *l_host_info = l_subr->get_host_info();
+                const host_info *l_host_info = l_subr->get_host_info();
                 //NDBG_PRINT("l_host_info: %p\n", l_host_info);
                 if(!l_host_info)
                 {

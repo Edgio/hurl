@@ -23,15 +23,21 @@
 project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
-# ------------------------------------------------------------------------------
-# build catch
-# ------------------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../ext/)
-add_library(compiled_catch STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ext/catch/catch.hpp _catch.cc)
-
-# ------------------------------------------------------------------------------
-# build tests
-# ------------------------------------------------------------------------------
-add_subdirectory(support)
-add_subdirectory(url_router)
-add_subdirectory(dns)
+# ------------------------------------------------
+# wb_url_router
+# ------------------------------------------------
+SET(SRCS wb_ai_cache.cc
+         ../../../src/core/dns/ai_cache.cc
+         ../../../ext/base64/base64.cc
+         ../../../src/core/support/time_util.cc
+         ../../../src/core/ndebug/ndebug.cc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/../
+                    ../../../ext
+                    ../../../src/core/dns/
+                    ../../../src/core/support/
+                    ../../../src/core/ndebug/)
+add_executable(wb_ai_cache ${HDRS} ${SRCS})
+target_link_libraries(wb_ai_cache compiled_catch ${LIBRARIES})
+SET_TARGET_PROPERTIES(wb_ai_cache PROPERTIES OUTPUT_NAME "wb_ai_cache")
+add_test(ai_cache wb_ai_cache)

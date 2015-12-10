@@ -124,7 +124,7 @@ class subr;
 class api_resp;
 struct t_stat_struct;
 typedef t_stat_struct t_stat_t;
-struct host_info_s;
+struct host_info;
 class nresolver;
 
 //: ----------------------------------------------------------------------------
@@ -615,7 +615,7 @@ public:
         bool get_detach_resp(void);
         uint64_t get_uid(void);
         hconn *get_requester_hconn(void);
-        const host_info_s *get_host_info(void);
+        const host_info *get_host_info(void);
         t_hlx *get_t_hlx(void);
         bool get_tls_verify(void);
         bool get_tls_sni(void);
@@ -643,7 +643,7 @@ public:
         void set_detach_resp(bool a_val);
         void set_uid(uint64_t a_uid);
         void set_requester_hconn(hconn *a_hconn);
-        void set_host_info(const host_info_s *a_host_info);
+        void set_host_info(const host_info *a_host_info);
         void set_t_hlx(t_hlx *a_t_hlx);
         void set_tls_verify(bool a_val);
         void set_tls_sni(bool a_val);
@@ -722,7 +722,7 @@ private:
         bool m_detach_resp;
         uint64_t m_uid;
         hconn *m_requester_hconn;
-        const host_info_s *m_host_info;
+        const host_info *m_host_info;
         t_hlx *m_t_hlx;
         bool m_tls_verify;
         bool m_tls_sni;
