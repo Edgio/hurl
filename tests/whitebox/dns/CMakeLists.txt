@@ -24,7 +24,7 @@ project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
 # ------------------------------------------------
-# wb_url_router
+# wb_ai_cache
 # ------------------------------------------------
 SET(SRCS wb_ai_cache.cc
          ../../../src/core/dns/ai_cache.cc
