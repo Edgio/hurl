@@ -487,16 +487,22 @@ public:
         rqst_h(void) {};
         virtual ~rqst_h(){};
 
-        virtual h_resp_t do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_post(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_put(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_delete(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_default(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_get(hlx &a_hlx, hconn &a_hconn,
+                                rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_post(hlx &a_hlx, hconn &a_hconn,
+                                 rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_put(hlx &a_hlx, hconn &a_hconn,
+                                rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_delete(hlx &a_hlx, hconn &a_hconn,
+                                   rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_default(hlx &a_hlx, hconn &a_hconn,
+                                    rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        h_resp_t get_file(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const std::string &a_path);
+        h_resp_t get_file(hlx &a_hlx, hconn &a_hconn,
+                          rqst &a_rqst, const std::string &a_path);
         h_resp_t send_not_found(hlx &a_hlx, hconn &a_hconn, const rqst &a_rqst);
 
 private:
@@ -778,7 +784,9 @@ private:
 //: ----------------------------------------------------------------------------
 int32_t nbq_write_request_line(nbq &ao_q, const char *a_buf, uint32_t a_len);
 int32_t nbq_write_status(nbq &ao_q, http_status_t a_status);
-int32_t nbq_write_header(nbq &ao_q, const char *a_key_buf, uint32_t a_key_len, const char *a_val_buf, uint32_t a_val_len);
+int32_t nbq_write_header(nbq &ao_q,
+                         const char *a_key_buf, uint32_t a_key_len,
+                         const char *a_val_buf, uint32_t a_val_len);
 int32_t nbq_write_header(nbq &ao_q, const char *a_key_buf, const char *a_val_buf);
 int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len);
 
