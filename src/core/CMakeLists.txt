@@ -3,7 +3,7 @@
 # All Rights Reserved
 #
 #   Author: Reed P Morrison
-#   Date:   02/07/2014  
+#   Date:   02/07/2014
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -34,7 +34,8 @@ include_directories(
     ./nconn
     ./dns
     ./hlx
-    ../../include 
+    ../../include
+    ${LIBUDNS_INCLUDE_DIR}
 )
 
 # Source files
@@ -80,6 +81,8 @@ SET(HDRS
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})
 
+#target_link_libraries(hlxcore)
+
 # Create symlink for libhlxcore.so.<soversion>
 SET_TARGET_PROPERTIES(hlxcore
   PROPERTIES
@@ -97,4 +100,3 @@ install(FILES ${HDRS}
   DESTINATION include/hlx
   COMPONENT Headers
 )
-

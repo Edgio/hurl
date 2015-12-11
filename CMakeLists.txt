@@ -47,7 +47,7 @@ add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 # ------------------------------------------------------------------------------
 # Libraries options
 # ------------------------------------------------------------------------------
-set(LIBRARIES ${LIBRARIES} pthread rt ssl crypto)
+set(LIBRARIES ${LIBRARIES} pthread rt dl)
 
 # ------------------------------------------------------------------------------
 # Display the current settings
@@ -71,26 +71,87 @@ if (FORTIFY)
   add_definitions(-D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now)
 endif()
 
+# ------------------------------------------------------------------------------
+# Resolve dependencies
+# ------------------------------------------------------------------------------
+
+# \brief   Find ubuntu packages based on their (optional) include and (required) library test files
+# \details
+# \param   output_var_prefix    The prefix for variables output_var_prefix{_INCLUDE_DIR,_LIBS} that are set on success
+# \param   include_test_file    The file to look for via find_path to see if it exists anywhere
+# \param   library_test_file    The file to look for and add to the LIBRARIES variable
+# \param   ubuntu_package       The package to add to CPACK package depends list
+# \param   ubuntu_build_package The package to suggest installing to proceed building properly
+macro(find_ubuntu_package output_var_prefix include_test_file
+                library_test_file ubuntu_package
+                ubuntu_build_package)
+
+  if (NOT "${include_test_file}" STREQUAL "")
+          find_path(${output_var_prefix}_INCLUDE_DIR ${include_test_file})
+          if (${output_var_prefix}_INCLUDE_DIR)
+                  if(NOT "${output_var_prefix}_INCLUDE_DIR" STREQUAL "/usr/include")
+                          message(STATUS "Found ${output_var_prefix} include: ${${output_var_prefix}_INCLUDE_DIR}")
+                  endif()
+          else()
+                  message(FATAL_ERROR "Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
+          endif()
+  endif()
+  find_library(${output_var_prefix}_LIBS ${library_test_file})
+  if (${output_var_prefix}_LIBS)
+          message(STATUS "Found ${output_var_prefix} lib: ${${output_var_prefix}_LIBS}")
+          LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
+  else()
+          message(FATAL_ERROR "Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
+  endif()
+  if (NOT "${ubuntu_package}" STREQUAL "")
+          LIST(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS "${ubuntu_package}")
+  endif()
+  if (NOT "${ubuntu_build_package}" STREQUAL "")
+          LIST(APPEND CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${ubuntu_build_package}")
+  endif()
+
+endmacro(find_ubuntu_package)
+
+find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a
+        libssl1.0.0 libssl-dev)
+find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a
+        libssl1.0.0 libssl-dev)
+
+
 if (BUILD_PROFILER)
   add_definitions(-DENABLE_PROFILER=1)
-  set(LIBRARIES ${LIBRARIES} tcmalloc profiler)
-elseif(BUILD_TCMALLOC)
-  set(LIBRARIES ${LIBRARIES} tcmalloc)
-elseif(BUILD_EFENCE)
-  set(LIBRARIES ${LIBRARIES} efence)
-elseif(BUILD_ASAN)
-  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
-  set(LIBRARIES ${LIBRARIES} asan)
-  set(DEBUG_MODE ON)
+  find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a
+          google-perftools0 libgoogle-perftools-dev)
 endif()
 
-# ------------------------------------------------------------------------------
-# udns support
-# ------------------------------------------------------------------------------
-if (BUILD_UDNS)
-  add_definitions(-DASYNC_DNS_WITH_UDNS=1)
-  set(LIBRARIES ${LIBRARIES} udns)
+if (BUILD_TCMALLOC)
+  find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a
+          google-perftools0 libgoogle-perftools-dev)
+  find_ubuntu_package(LIBZMA lzma.h liblzma.a
+          liblzma5 liblzma-dev)
+  find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a
+          libunwind8 libunwind8-dev)
+  LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
 endif()
+
+if (BUILD_EFENCE)
+  find_ubuntu_package(LIBEFENCE "" libefence.a
+          "" electric-fence)
+endif()
+
+if (BUILD_ASAN)
+  find_ubuntu_package(LIBASAN "" libasan.so.0
+          "" libasan0)
+   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+   set(DEBUG_MODE ON)
+endif()
+
+if(BUILD_UDNS)
+  find_ubuntu_package(LIBUDNS udns.h libudns.a
+          libudns0 libudns-dev)
+endif()
+
+message("   Libraries: ${LIBRARIES}")
 
 # ------------------------------------------------------------------------------
 # Optional flags
@@ -123,23 +184,5 @@ SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
-
-if(BUILD_UDNS)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0, google-perftools, libudns0")
-elseif (BUILD_TCMALLOC)
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0, google-perftools")
-else()
-  SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libssl1.0.0")
-endif()
-
-# cpack doesn't actually use the following, but the build.sh command does
-if(BUILD_UDNS)
-  SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev, libgoogle-perftools-dev, libudns-dev")
-elseif (BUILD_TCMALLOC)
-  SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev, libgoogle-perftools-dev")
-else()
-  SET(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "libssl-dev")
-endif()
-
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 INCLUDE(CPack)
