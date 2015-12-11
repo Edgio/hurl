@@ -35,7 +35,7 @@ option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
 option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
 option(BUILD_EFENCE     "Build with tcmalloc" OFF)
 option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
-option(BUILD_UDNS       "Build with udns (async dns support)" OFF)
+option(BUILD_UDNS       "Build with udns (async dns support)" ON)
 
 # ------------------------------------------------------------------------------
 # Compiler options
