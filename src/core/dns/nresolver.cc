@@ -263,12 +263,15 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
         gaierr = getaddrinfo(a_host.c_str(), portstr, &l_hints, &l_addrinfo);
         if (gaierr != 0)
         {
-                //NDBG_PRINT("Error getaddrinfo '%s': %s\n", a_host.c_str(), gai_strerror(gaierr));
+                //NDBG_PRINT("Error getaddrinfo '%s': %s\n",
+                //           a_host.c_str(), gai_strerror(gaierr));
                 delete l_host_info;
                 return NULL;
         }
 
-        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_host.c_str(), a_port);
+        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           a_host.c_str(), a_port);
 
         // Find the first IPv4 and IPv6 entries.
         struct addrinfo* l_addrinfo_v4 = NULL;
@@ -301,7 +304,8 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
         {
                 if (sizeof(l_host_info->m_sa) < l_addrinfo_v4->ai_addrlen)
                 {
-                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n", a_host.c_str(),
+                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n",
+                                   a_host.c_str(),
                               (unsigned long) sizeof(l_host_info->m_sa),
                               (unsigned long) l_addrinfo_v4->ai_addrlen);
                         delete l_host_info;
@@ -313,10 +317,13 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
                 l_host_info->m_sa_len = l_addrinfo_v4->ai_addrlen;
 
                 //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v4->ai_addrlen);
-                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr, l_addrinfo_v4->ai_addrlen);
+                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr,
+                //                   l_addrinfo_v4->ai_addrlen);
                 //show_host_info();
 
-                memmove(&(l_host_info->m_sa), l_addrinfo_v4->ai_addr, l_addrinfo_v4->ai_addrlen);
+                memmove(&(l_host_info->m_sa),
+                        l_addrinfo_v4->ai_addr,
+                        l_addrinfo_v4->ai_addrlen);
 
                 // Set the port
                 ((sockaddr_in *)(&(l_host_info->m_sa)))->sin_port = htons(a_port);
@@ -327,7 +334,8 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
         {
                 if (sizeof(l_host_info->m_sa) < l_addrinfo_v6->ai_addrlen)
                 {
-                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n", a_host.c_str(),
+                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n",
+                                   a_host.c_str(),
                               (unsigned long) sizeof(l_host_info->m_sa),
                               (unsigned long) l_addrinfo_v6->ai_addrlen);
                         delete l_host_info;
@@ -338,9 +346,12 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
                 l_host_info->m_sock_protocol = l_addrinfo_v6->ai_protocol;
                 l_host_info->m_sa_len = l_addrinfo_v6->ai_addrlen;
                 //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v6->ai_addrlen);
-                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr, l_addrinfo_v6->ai_addrlen);
+                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr,
+                //                    l_addrinfo_v6->ai_addrlen);
                 //show_host_info();
-                memmove(&l_host_info->m_sa, l_addrinfo_v6->ai_addr, l_addrinfo_v6->ai_addrlen);
+                memmove(&l_host_info->m_sa,
+                        l_addrinfo_v6->ai_addr,
+                        l_addrinfo_v6->ai_addrlen);
 
                 // Set the port
                 ((sockaddr_in6 *)(&(l_host_info->m_sa)))->sin6_port = htons(a_port);
@@ -349,7 +360,8 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
         }
         else
         {
-                NDBG_PRINT("Error no valid address found for host %s\n", a_host.c_str());
+                NDBG_PRINT("Error no valid address found for host %s\n",
+                           a_host.c_str());
                 delete l_host_info;
                 return NULL;
         }
@@ -372,7 +384,9 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
 //: ----------------------------------------------------------------------------
 host_info *nresolver::lookup_sync(const std::string &a_host, uint16_t a_port)
 {
-        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_host.c_str(), a_port);
+        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
+        //           ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
+        //           a_host.c_str(), a_port);
         int32_t l_status;
         if(!m_is_initd)
         {
@@ -411,12 +425,14 @@ const char *s_bytes_2_ip_str(const unsigned char *c)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_WITH_UDNS
-void nresolver::dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, void *a_data)
+void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
+                          struct dns_rr_a4 *a_result,
+                          void *a_data)
 {
         lookup_job *l_job = static_cast<lookup_job *>(a_data);
         if(!l_job || !(l_job->m_nresolver))
         {
-                NDBG_PRINT("l_lookup_job[%p] == NULL or l_lookup_job->m_nresolver == NULL\n", l_job);
+                NDBG_PRINT("job[%p] == NULL or nresolver == NULL\n", l_job);
                 return;
         }
 
@@ -496,7 +512,9 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, voi
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_WITH_UDNS
 // TODO ipv6 support???
-//static void s_dns_a6_cb(struct dns_ctx *a_ctx, struct dns_rr_a6 *a_result, void *a_data)
+//static void s_dns_a6_cb(struct dns_ctx *a_ctx,
+//                        struct dns_rr_a6 *a_result,
+//                        void *a_data)
 //{
 //        if(!a_result ||
 //          (a_result->dnsa6_nrr <= 0))
@@ -526,7 +544,9 @@ int32_t nresolver::lookup_async(void* a_ctx,
                                 uint64_t &a_active,
                                 lookup_job_q_t &ao_lookup_job_q)
 {
-        //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_ctx: %p\n", ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, a_ctx);
+        //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_ctx: %p\n",
+        //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+        //           a_ctx);
         int32_t l_status;
         if(!m_is_initd)
         {
@@ -553,7 +573,9 @@ int32_t nresolver::lookup_async(void* a_ctx,
                 l_job->m_cb = a_cb;
                 l_job->m_nresolver = this;
                 l_job->m_data = a_data;
-                //NDBG_PRINT("%sADD    LOOKUP%s: HOST: %s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, l_job->m_host.c_str());
+                //NDBG_PRINT("%sADD    LOOKUP%s: HOST: %s\n",
+                //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
+                //           l_job->m_host.c_str());
                 ao_lookup_job_q.push(l_job);
         }
 
@@ -566,11 +588,14 @@ int32_t nresolver::lookup_async(void* a_ctx,
                 struct dns_query *l_query = NULL;
                 lookup_job *l_job = ao_lookup_job_q.front();
                 ao_lookup_job_q.pop();
-                //NDBG_PRINT("%sSUBMIT LOOKUP%s: HOST: %s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_job->m_host.c_str());
+                //NDBG_PRINT("%sSUBMIT LOOKUP%s: HOST: %s\n",
+                //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
+                //           l_job->m_host.c_str());
                 l_query = dns_submit_a4(l_ctx, l_job->m_host.c_str(), 0, dns_a4_cb, l_job);
                 if (!l_query)
                 {
-                        NDBG_PRINT("Error performing dns_submit_a4.  Last status: %d\n", dns_status(NULL));
+                        NDBG_PRINT("Error performing dns_submit_a4.  Last status: %d\n",
+                                   dns_status(NULL));
                         return STATUS_ERROR;
                 }
 

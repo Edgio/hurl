@@ -152,7 +152,9 @@ int32_t ai_cache::sync(void)
             i_entry != m_ai_cache_map.end();
             ++i_entry)
         {
-                std::string l_ai_val64 = base64_encode((const unsigned char *)(i_entry->second), sizeof(host_info));
+                std::string l_ai_val64;
+                l_ai_val64 = base64_encode((const unsigned char *)(i_entry->second),
+                                           sizeof(host_info));
                 fprintf(l_file_ptr, "{");
                 fprintf(l_file_ptr, "\"host\": \"%s\",", i_entry->first.c_str());
                 fprintf(l_file_ptr, "\"ai\": \"%s\"", l_ai_val64.c_str());
@@ -223,7 +225,7 @@ int32_t ai_cache::read(void)
         l_doc.Parse(l_buf_str.c_str());
         if(!l_doc.IsArray())
         {
-                //NDBG_PRINT("Error reading json from file: %s.  Reason: data is not an array\n",
+                //NDBG_PRINT("Error reading json from file: %s. Data not an array\n",
                 //                a_ai_cache_file.c_str());
                 if(l_buf)
                 {
@@ -237,8 +239,8 @@ int32_t ai_cache::read(void)
         {
                 if(!l_doc[i_record].IsObject())
                 {
-                        //NDBG_PRINT("Error reading json from file: %s.  Reason: array member not an object\n",
-                        //                a_ai_cache_file.c_str());
+                        //NDBG_PRINT("Error reading json from file: %s. Array member not an object\n",
+                        //           a_ai_cache_file.c_str());
                         if(l_buf)
                         {
                                 free(l_buf);

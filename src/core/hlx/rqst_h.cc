@@ -172,7 +172,8 @@ default_rqst_h::~default_rqst_h()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t default_rqst_h::do_get(hlx &a_hlx, hconn &a_hconn,
+                                rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         return send_not_found(a_hlx, a_hconn, a_rqst);
 }
@@ -182,7 +183,8 @@ h_resp_t default_rqst_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const 
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_post(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t default_rqst_h::do_post(hlx &a_hlx, hconn &a_hconn,
+                                 rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         return send_not_found(a_hlx, a_hconn, a_rqst);
 }
@@ -192,7 +194,8 @@ h_resp_t default_rqst_h::do_post(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_put(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t default_rqst_h::do_put(hlx &a_hlx, hconn &a_hconn,
+                                rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         return send_not_found(a_hlx, a_hconn, a_rqst);
 }
@@ -202,7 +205,8 @@ h_resp_t default_rqst_h::do_put(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const 
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_delete(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t default_rqst_h::do_delete(hlx &a_hlx, hconn &a_hconn,
+                                   rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         return send_not_found(a_hlx, a_hconn, a_rqst);
 }
@@ -212,7 +216,8 @@ h_resp_t default_rqst_h::do_delete(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, con
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_default(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t default_rqst_h::do_default(hlx &a_hlx, hconn &a_hconn,
+                                    rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         return send_not_found(a_hlx, a_hconn, a_rqst);
 }

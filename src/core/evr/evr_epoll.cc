@@ -41,11 +41,14 @@ namespace ns_hlx {
 evr_epoll::evr_epoll(int a_max_connections):
         m_epoll_fd(-1)
 {
-        //NDBG_PRINT("%sCREATE_EPOLL%s: a_max_events = %d\n",  ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_max_connections);
+        //NDBG_PRINT("%sCREATE_EPOLL%s: a_max_events = %d\n",
+        //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_max_connections);
         m_epoll_fd = epoll_create(8192);
         if (m_epoll_fd == -1)
         {
-                fprintf(stderr, "Error: epoll_create() failed: %s --max_connections = %d\n", strerror(errno), a_max_connections);
+                fprintf(stderr,
+                        "Error: epoll_create() failed: %s --max_connections = %d\n",
+                        strerror(errno), a_max_connections);
                 exit(-1);
         }
 }
@@ -57,10 +60,14 @@ evr_epoll::evr_epoll(int a_max_connections):
 //: ----------------------------------------------------------------------------
 int evr_epoll::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
 {
-        //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",  ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, a_timeout_msec, a_max_events);
+        //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",
+        //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+        //           a_timeout_msec, a_max_events);
         int l_epoll_status = 0;
         l_epoll_status = epoll_wait(m_epoll_fd, a_ev, a_max_events, a_timeout_msec);
-        //NDBG_PRINT("%swait%s = %d\n",  ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, l_epoll_status);
+        //NDBG_PRINT("%swait%s = %d\n",
+        //           ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
+        //           l_epoll_status);
         return l_epoll_status;
 }
 
@@ -88,14 +95,17 @@ static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
 //: ----------------------------------------------------------------------------
 int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
-        //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
+        //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X\n",
+        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+        //           a_fd, a_attr_mask);
         //NDBG_PRINT_BT();
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
         ev.data.ptr = a_data;
         if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, a_fd, &ev))
         {
-                NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_ADD fd[%d] failed (%s)\n", m_epoll_fd, a_fd, strerror(errno));
+                NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_ADD fd[%d] failed (%s)\n",
+                           m_epoll_fd, a_fd, strerror(errno));
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -108,14 +118,17 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: ----------------------------------------------------------------------------
 int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
-        //NDBG_PRINT("%smod%s: fd: %d --attr: 0x%08X\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_fd, a_attr_mask);
+        //NDBG_PRINT("%smod%s: fd: %d --attr: 0x%08X\n",
+        //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
+        //           a_fd, a_attr_mask);
         //NDBG_PRINT_BT();
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
         ev.data.ptr = a_data;
         if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, a_fd, &ev))
         {
-                NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_MOD fd[%d] failed (%s)\n", m_epoll_fd, a_fd, strerror(errno));
+                NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_MOD fd[%d] failed (%s)\n",
+                           m_epoll_fd, a_fd, strerror(errno));
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -134,7 +147,8 @@ int evr_epoll::del(int a_fd)
         {
                 if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, a_fd, &ev))
                 {
-                        NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n", m_epoll_fd, a_fd, strerror(errno));
+                        NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n",
+                                   m_epoll_fd, a_fd, strerror(errno));
                         return STATUS_OK;
                 }
         }

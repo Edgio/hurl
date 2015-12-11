@@ -295,7 +295,6 @@ private:
         // -------------------------------------------------
         int init(void);
         int init_t_hlx_list(void);
-        void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat);
 
         // -------------------------------------------------
         // Private members

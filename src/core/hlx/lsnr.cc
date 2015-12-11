@@ -54,7 +54,8 @@
                                 &_l__sock_opt_val, \
                                 sizeof(_l__sock_opt_val)); \
                                 if (_l_status == -1) { \
-                                        NDBG_PRINT("STATUS_ERROR: Failed to set %s count.  Reason: %s.\n", #_sock_opt_name, strerror(errno)); \
+                                        NDBG_PRINT("STATUS_ERROR: Failed to set %s.  Reason: %s.\n", \
+                                                   #_sock_opt_name, strerror(errno)); \
                                         return STATUS_ERROR;\
                                 } \
         } while(0)
@@ -109,7 +110,7 @@ static int32_t create_tcp_server_socket(uint16_t a_port)
 
         l_server_address.sin_family      = AF_INET;             // Internet address family
         l_server_address.sin_addr.s_addr = htonl(INADDR_ANY);   // Any incoming interface
-        l_server_address.sin_port        = htons(a_port);         // Local port
+        l_server_address.sin_port        = htons(a_port);       // Local port
 
         // -------------------------------------------
         // Bind to the local address

@@ -116,7 +116,8 @@ public:
         nresolver();
         ~nresolver();
 
-        int32_t init(std::string addr_info_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE, bool a_use_cache = true);
+        int32_t init(std::string addr_info_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE,
+                     bool a_use_cache = true);
         host_info *lookup_tryfast(const std::string &a_host, uint16_t a_port);
         host_info *lookup_sync(const std::string &a_host, uint16_t a_port);
         bool get_use_cache(void) { return m_use_cache;}

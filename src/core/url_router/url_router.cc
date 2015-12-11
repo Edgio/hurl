@@ -115,7 +115,9 @@ static inline std::string pattern_str(const pattern_t &a_pattern)
 {
         std::string l_retval;
 
-        for(pattern_t::const_iterator i_part = a_pattern.begin(); i_part != a_pattern.end(); ++i_part)
+        for(pattern_t::const_iterator i_part = a_pattern.begin();
+            i_part != a_pattern.end();
+            ++i_part)
         {
                 if(i_part->m_type == PART_TYPE_PARAMETER)
                 {
@@ -145,7 +147,9 @@ static inline uint32_t pattern_len(const pattern_t &a_pattern)
 {
         uint32_t l_retval = 0;
 
-        for(pattern_t::const_iterator i_part = a_pattern.begin(); i_part != a_pattern.end(); ++i_part)
+        for(pattern_t::const_iterator i_part = a_pattern.begin();
+            i_part != a_pattern.end();
+            ++i_part)
         {
                 if(i_part->m_type == PART_TYPE_PARAMETER)
                 {
@@ -194,10 +198,13 @@ static inline int32_t pattern_diff(const pattern_t &a1, const pattern_t &a2)
         pattern_t::const_iterator i_a1;
         pattern_t::const_iterator i_a2;
         int32_t l_len = 0;
-        for(i_a1 = a1.begin(), i_a2 = a2.begin(); i_a1 != a1.end() && i_a2 != a2.end(); ++i_a1, ++i_a2)
+        for(i_a1 = a1.begin(), i_a2 = a2.begin();
+            i_a1 != a1.end() && i_a2 != a2.end();
+            ++i_a1, ++i_a2)
         {
 
-                //NDBG_PRINT("Checking: %s :: %s\n", i_a1->m_str.c_str(), i_a2->m_str.c_str());
+                //NDBG_PRINT("Checking: %s :: %s\n",
+                //           i_a1->m_str.c_str(), i_a2->m_str.c_str());
 
                 int32_t l_diff = string_diff(i_a1->m_str, i_a2->m_str);
 
@@ -219,7 +226,8 @@ static inline int32_t pattern_diff(const pattern_t &a1, const pattern_t &a2)
                         if(i_a1->m_type != i_a2->m_type)
                         {
                                 NDBG_PRINT("Error type mismatch for pattern: %s and %s\n",
-                                                pattern_str(a1).c_str(), pattern_str(a2).c_str());
+                                                pattern_str(a1).c_str(),
+                                                pattern_str(a2).c_str());
                                 return -1;
                         }
                         if(i_a1->m_type == PART_TYPE_PARAMETER)
@@ -237,19 +245,27 @@ static inline int32_t pattern_diff(const pattern_t &a1, const pattern_t &a2)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static inline pattern_t pattern_sub(const pattern_t &a_pattern, uint32_t a_offset, uint32_t a_len)
+static inline pattern_t pattern_sub(const pattern_t &a_pattern,
+                                    uint32_t a_offset,
+                                    uint32_t a_len)
 {
 
-        //NDBG_PRINT("%sSUB%s: a_pattern: %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, pattern_str(a_pattern).c_str());
-        //NDBG_PRINT("%sSUB%s: a_offset:  %u\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_offset);
-        //NDBG_PRINT("%sSUB%s: a_len:     %u\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_len);
+        //NDBG_PRINT("%sSUB%s: a_pattern: %s\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           pattern_str(a_pattern).c_str());
+        //NDBG_PRINT("%sSUB%s: a_offset:  %u\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_offset);
+        //NDBG_PRINT("%sSUB%s: a_len:     %u\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_len);
 
         pattern_t l_retval;
         bool l_found = (a_offset == 0);
         uint32_t l_off = 0;
         uint32_t l_len = 0;
         part_t l_part;
-        for(pattern_t::const_iterator i_part = a_pattern.begin(); i_part != a_pattern.end(); ++i_part)
+        for(pattern_t::const_iterator i_part = a_pattern.begin();
+            i_part != a_pattern.end();
+            ++i_part)
         {
                 if(i_part->m_type == PART_TYPE_PARAMETER)
                 {
@@ -260,7 +276,9 @@ static inline pattern_t pattern_sub(const pattern_t &a_pattern, uint32_t a_offse
                         }
                 }
 
-                for(uint32_t i_char = 0; (i_char < i_part->m_str.length()) && (l_len < a_len); ++i_char, ++l_off)
+                for(uint32_t i_char = 0;
+                    (i_char < i_part->m_str.length()) && (l_len < a_len);
+                    ++i_char, ++l_off)
                 {
                         if(!l_found && (l_off >= a_offset))
                         {
@@ -297,7 +315,9 @@ static inline pattern_t pattern_sub(const pattern_t &a_pattern, uint32_t a_offse
                 }
         }
 
-        //NDBG_PRINT("%sSUB%s: l_retval:  %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, pattern_str(l_retval).c_str());
+        //NDBG_PRINT("%sSUB%s: l_retval:  %s\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           pattern_str(l_retval).c_str());
 
         return l_retval;
 }
@@ -311,7 +331,9 @@ static inline bool pattern_match(const pattern_t &a1, const pattern_t &a2)
 {
         pattern_t::const_iterator i_a1;
         pattern_t::const_iterator i_a2;
-        for(i_a1 = a1.begin(), i_a2 = a2.begin(); i_a1 != a1.end() && i_a2 != a2.end(); ++i_a1, ++i_a2)
+        for(i_a1 = a1.begin(), i_a2 = a2.begin();
+            i_a1 != a1.end() && i_a2 != a2.end();
+            ++i_a1, ++i_a2)
         {
                 if(i_a1->m_type != i_a2->m_type)
                 {
@@ -384,7 +406,9 @@ public:
         edge(const pattern_t &a_pattern, node *a_child);
         ~edge();
         node *branch(uint32_t a_offset);
-        bool match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std::string &ao_suffix);
+        bool match_route(const std::string &a_route,
+                         url_pmap_t &ao_url_pmap,
+                         std::string &ao_suffix);
 
         // -------------------------------------------------
         // Public members
@@ -416,14 +440,21 @@ private:
 node *edge::branch(uint32_t a_offset)
 {
 
-        //NDBG_PRINT("%sBRANCH%s: m_pattern:        %s\n", ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, pattern_str(m_pattern).c_str());
-        //NDBG_PRINT("%sBRANCH%s: a_pattern_offset: %u\n", ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, a_offset);
+        //NDBG_PRINT("%sBRANCH%s: m_pattern:        %s\n",
+        //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+        //           pattern_str(m_pattern).c_str());
+        //NDBG_PRINT("%sBRANCH%s: a_pattern_offset: %u\n",
+        //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+        //           a_offset);
 
         // Create new node starting at pattern offset
         node *l_new_child = new node();
 
         // Create new edge to new node
-        edge *l_new_edge = new edge(pattern_sub(m_pattern, a_offset, pattern_len(m_pattern)), l_new_child);
+        edge *l_new_edge = new edge(pattern_sub(m_pattern,
+                                                a_offset,
+                                                pattern_len(m_pattern)),
+                                    l_new_child);
 
         // Migrate child edges to new node
         for(edge_list_t::const_iterator i_edge = m_child->m_edge_list.begin();
@@ -449,7 +480,9 @@ node *edge::branch(uint32_t a_offset)
 
         m_pattern = pattern_sub(m_pattern, 0, a_offset);
 
-        //NDBG_PRINT("%sBRANCH%s: m_pattern:        %s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, pattern_str(m_pattern).c_str());
+        //NDBG_PRINT("%sBRANCH%s: m_pattern:        %s\n",
+        //           ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
+        //           pattern_str(m_pattern).c_str());
 
         return l_new_child;
 
@@ -460,19 +493,26 @@ node *edge::branch(uint32_t a_offset)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool edge::match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std::string &ao_suffix)
+bool edge::match_route(const std::string &a_route,
+                       url_pmap_t &ao_url_pmap,
+                       std::string &ao_suffix)
 {
 
         //NDBG_PRINT("%sMATCH_ROUTE%s: route: %s edge: %s\n",
-        //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, pattern_str(m_pattern).c_str(), a_route.c_str());
+        //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
+        //                pattern_str(m_pattern).c_str(), a_route.c_str());
 
         // Match parameters if has one
         const char *l_route_ptr = a_route.c_str();
         uint32_t l_len = 0;
-        for(pattern_t::const_iterator i_part = m_pattern.begin(); i_part != m_pattern.end(); ++i_part)
+        for(pattern_t::const_iterator i_part = m_pattern.begin();
+            i_part != m_pattern.end();
+            ++i_part)
         {
 
-                //NDBG_PRINT("%sCHECK%s:       %s %s\n", ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF, i_part->m_str.c_str(), l_route_ptr);
+                //NDBG_PRINT("%sCHECK%s:       %s %s\n",
+                //           ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF,
+                //           i_part->m_str.c_str(), l_route_ptr);
 
                 if(i_part->m_type == PART_TYPE_PARAMETER)
                 {
@@ -485,16 +525,23 @@ bool edge::match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std:
                                 ++i_char;
                         }
                         std::string l_val = std::string(l_route_ptr, i_char);
-                        //NDBG_PRINT("%sSETKX%s:       %s %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, i_part->m_str.c_str(), l_val.c_str());
+                        //NDBG_PRINT("%sSETKX%s:       %s %s\n",
+                        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+                        //           i_part->m_str.c_str(), l_val.c_str());
                         ao_url_pmap[i_part->m_str] = l_val;
                         l_route_ptr += i_char;
                 }
                 else if(i_part->m_type == PART_TYPE_STRING)
                 {
 
-                        //NDBG_PRINT("COMPARE: %s %.*s\n", i_part->m_str.c_str(), (int)i_part->m_str.length(), l_route_ptr);
+                        //NDBG_PRINT("COMPARE: %s %.*s\n",
+                        //           i_part->m_str.c_str(),
+                        //           (int)i_part->m_str.length(),
+                        //           l_route_ptr);
 
-                        if(strncmp(i_part->m_str.c_str(), l_route_ptr, i_part->m_str.length()) != 0)
+                        if(strncmp(i_part->m_str.c_str(),
+                                   l_route_ptr,
+                                   i_part->m_str.length()) != 0)
                         {
                                 //NDBG_PRINT("COMPARE: FAIL!!!!\n");
                                 return false;
@@ -504,7 +551,8 @@ bool edge::match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std:
                                 l_route_ptr += i_part->m_str.length();
                                 l_len += i_part->m_str.length();
 
-                                //NDBG_PRINT("Stri: %s l_len: %d\n", i_part->m_str.c_str(), l_len);
+                                //NDBG_PRINT("Stri: %s l_len: %d\n",
+                                //           i_part->m_str.c_str(), l_len);
 
                         }
                 }
@@ -526,7 +574,8 @@ bool edge::match_route(const std::string &a_route, url_pmap_t &ao_url_pmap, std:
                 ao_suffix = std::string(l_route_ptr);
         }
 
-        //NDBG_PRINT("%sMATCH!!!!%s: ao_suffix: %s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, ao_suffix.c_str());
+        //NDBG_PRINT("%sMATCH!!!!%s: ao_suffix: %s\n",
+        //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, ao_suffix.c_str());
 
         return true;
 }
@@ -669,7 +718,7 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                         // Already in parameter???
                         if(l_part.m_type == PART_TYPE_PARAMETER)
                         {
-                                NDBG_PRINT("Error cannot start a parameter within an existing parameter.\n");
+                                NDBG_PRINT("Error cannot start a parameter within existing parameter.\n");
                                 return -1;
                         }
 
@@ -775,9 +824,12 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         // common edge
         edge *l_common_edge = NULL;
 
-        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-        //NDBG_PRINT("%s: a_path%s: %s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, (pattern_str(a_pattern)).c_str());
-        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%s: a_path%s: %s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, (pattern_str(a_pattern)).c_str());
+        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
 
         l_status = find_longest_common_prefix(a_pattern, l_prefix_len, &l_common_edge);
         if(l_status != 0)
@@ -789,8 +841,10 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         //NDBG_PRINT("l_prefix_len:                      %d\n", l_prefix_len);
         //if(l_common_edge)
         //{
-        //        NDBG_PRINT("l_common_edge->m_pattern.length(): %d\n", (int)(pattern_len(a_pattern)));
-        //        NDBG_PRINT("l_common_edge->m_pattern:          %s\n", (pattern_str(a_pattern)).c_str());
+        //        NDBG_PRINT("l_common_edge->m_pattern.length(): %d\n",
+        //                   (int)(pattern_len(a_pattern)));
+        //        NDBG_PRINT("l_common_edge->m_pattern:          %s\n",
+        //                   (pattern_str(a_pattern)).c_str());
         //}
 
         // common prefix not found, insert a new edge for this pattern
@@ -820,24 +874,31 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         }
         else if(l_prefix_len == pattern_len(l_common_edge->m_pattern))
         {
-                //NDBG_PRINT("%s: l_prefix_len == pattern_len(l_common_edge->m_pattern) :%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
+                //NDBG_PRINT("%s: l_prefix_len == pattern_len(l_common_edge->m_pattern) :%s\n",
+                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
                 // Get subpath string
-                pattern_t l_subpattern = pattern_sub(a_pattern, l_prefix_len, pattern_len(a_pattern) - l_prefix_len);
-                //NDBG_PRINT("%ssub_pattern%s: %s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (pattern_str(l_subpattern)).c_str());
+                pattern_t l_subpattern = pattern_sub(a_pattern,
+                                                     l_prefix_len,
+                                                     pattern_len(a_pattern) - l_prefix_len);
+                //NDBG_PRINT("%ssub_pattern%s: %s\n",
+                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
+                //           (pattern_str(l_subpattern)).c_str());
                 //NDBG_PRINT("l_prefix_len == l_common_edge->m_pattern.length()\n");
                 // insert new path to this node
                 node *l_new_node;
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
                 {
-                        NDBG_PRINT("Error performing insert_route: %s\n", (pattern_str(l_subpattern)).c_str());
+                        NDBG_PRINT("Error performing insert_route: %s\n",
+                                   (pattern_str(l_subpattern)).c_str());
                         return NULL;
                 }
                 return l_new_node;
         }
         else if (l_prefix_len < pattern_len(l_common_edge->m_pattern))
         {
-                //NDBG_PRINT("%s: l_prefix_len < pattern_len(l_common_edge->m_pattern) :%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
+                //NDBG_PRINT("%s: l_prefix_len < pattern_len(l_common_edge->m_pattern) :%s\n",
+                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
                 // partially matched with pattern
                 // split endpoint
                 // Create new node -branched at prefix
@@ -849,13 +910,18 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                         return NULL;
                 }
                 // Get subpath string
-                pattern_t l_subpattern = pattern_sub(a_pattern, l_prefix_len, pattern_len(a_pattern) - l_prefix_len);
-                //NDBG_PRINT("%ssub_pattern%s: %s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, (pattern_str(l_subpattern)).c_str());
+                pattern_t l_subpattern = pattern_sub(a_pattern,
+                                                     l_prefix_len,
+                                                     pattern_len(a_pattern) - l_prefix_len);
+                //NDBG_PRINT("%ssub_pattern%s: %s\n",
+                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
+                //           (pattern_str(l_subpattern)).c_str());
                 // Insert the remainder of the path at the new branch
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
                 {
-                        NDBG_PRINT("Error performing insert_route: %s\n", (pattern_str(l_subpattern)).c_str());
+                        NDBG_PRINT("Error performing insert_route: %s\n",
+                                   (pattern_str(l_subpattern)).c_str());
                         return NULL;
                 }
                 return l_new_node;
@@ -883,12 +949,18 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
         ao_prefix_len = 0;
         edge *l_edge = NULL;
 
-        for(edge_list_t::const_iterator i_edge = m_edge_list.begin(); i_edge != m_edge_list.end(); ++i_edge)
+        for(edge_list_t::const_iterator i_edge = m_edge_list.begin();
+            i_edge != m_edge_list.end();
+            ++i_edge)
         {
-                //NDBG_PRINT("%sloopin on edges compare%s: %s\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, pattern_str((*i_edge)->m_pattern).c_str());
+                //NDBG_PRINT("%sloopin on edges compare%s: %s\n",
+                //           ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF,
+                //           pattern_str((*i_edge)->m_pattern).c_str());
                 // ignore all edges with parameter
                 l_common_prefix_len = pattern_diff(a_pattern, (*i_edge)->m_pattern);
-                //NDBG_PRINT("%sloopin on edges compare%s: l_common_prefix_len: %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_common_prefix_len);
+                //NDBG_PRINT("%sloopin on edges compare%s: l_common_prefix_len: %d\n",
+                //           ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF,
+                //           l_common_prefix_len);
                 if(l_common_prefix_len < 0)
                 {
                         return -1;
@@ -916,7 +988,9 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
 void node::display(uint32_t a_indent)
 {
         //printf("data: %p\n", m_data);
-        for(edge_list_t::const_iterator i_edge = m_edge_list.begin(); i_edge != m_edge_list.end(); ++i_edge)
+        for(edge_list_t::const_iterator i_edge = m_edge_list.begin();
+            i_edge != m_edge_list.end();
+            ++i_edge)
         {
                 // Stupid???
                 printf(": ");
@@ -938,7 +1012,9 @@ const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap
 {
         //NDBG_PRINT("Find route: %s\n", a_route.c_str());
 
-        for(edge_list_t::const_iterator i_edge = m_edge_list.begin(); i_edge != m_edge_list.end(); ++i_edge)
+        for(edge_list_t::const_iterator i_edge = m_edge_list.begin();
+            i_edge != m_edge_list.end();
+            ++i_edge)
         {
 
                 url_pmap_t l_url_param_map;
@@ -951,7 +1027,7 @@ const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap
                 //                pattern_str((*i_edge)->m_pattern).c_str());
                 if((*i_edge)->match_route(a_route, l_url_param_map, l_suffix))
                 {
-                        //NDBG_PRINT("%sFIND_ROUTE%s: MATCH_ROUTE %s == %s ... remainder: %s len(%d)\n",
+                        //NDBG_PRINT("%sFIND_ROUTE%s: MATCH_ROUTE %s == %s. Remainder: %s len(%d)\n",
                         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
                         //                pattern_str((*i_edge)->m_pattern).c_str(),
                         //                a_route.c_str(), l_suffix.c_str(), (int)l_suffix.length());
@@ -963,7 +1039,8 @@ const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap
                                                 ++i_arg)
                                 {
                                         ao_url_pmap[i_arg->first] = i_arg->second;
-                                        //NDBG_PRINT("Parameter: %s: %s\n", i_arg->first.c_str(), i_arg->second.c_str());
+                                        //NDBG_PRINT("Parameter: %s: %s\n",
+                                        //           i_arg->first.c_str(), i_arg->second.c_str());
                                 }
 
                                 return (*i_edge)->m_child->m_data;
@@ -980,7 +1057,8 @@ const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap
                                                 ++i_arg)
                                 {
                                         ao_url_pmap[i_arg->first] = i_arg->second;
-                                        //NDBG_PRINT("Parameter: %s: %s\n", i_arg->first.c_str(), i_arg->second.c_str());
+                                        //NDBG_PRINT("Parameter: %s: %s\n",
+                                        //           i_arg->first.c_str(), i_arg->second.c_str());
                                 }
 
                                 return l_data;
@@ -1012,7 +1090,9 @@ node::node():
 node::~node()
 {
         // Walk the edge list deleting any nodes
-        for(edge_list_t::iterator i_e = m_edge_list.begin(); i_e != m_edge_list.end(); ++i_e)
+        for(edge_list_t::iterator i_e = m_edge_list.begin();
+            i_e != m_edge_list.end();
+            ++i_e)
         {
                 if(*i_e)
                 {
