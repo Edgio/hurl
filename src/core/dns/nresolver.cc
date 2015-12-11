@@ -26,8 +26,6 @@
 //: ----------------------------------------------------------------------------
 #include "nresolver.h"
 #include "ndebug.h"
-#include "nconn_tcp.h"
-#include "base64/base64.h"
 #include "time_util.h"
 #include "host_info.h"
 
@@ -37,6 +35,7 @@
 
 #include <unistd.h>
 #include <netdb.h>
+#include <string.h>
 
 namespace ns_hlx {
 
@@ -45,7 +44,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static inline std::string get_cache_key(const std::string &a_host, uint16_t a_port)
+std::string get_cache_key(const std::string &a_host, uint16_t a_port)
 {
         char l_port_str[8];
         snprintf(l_port_str, 8, "%d", a_port);
@@ -83,7 +82,6 @@ nresolver::~nresolver()
         }
         pthread_mutex_destroy(&m_cache_mutex);
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

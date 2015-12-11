@@ -116,7 +116,7 @@ public:
         nresolver();
         ~nresolver();
 
-        int32_t init(std::string addr_info_cache_file = "", bool a_use_cache = false);
+        int32_t init(std::string addr_info_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE, bool a_use_cache = true);
         host_info *lookup_tryfast(const std::string &a_host, uint16_t a_port);
         host_info *lookup_sync(const std::string &a_host, uint16_t a_port);
         bool get_use_cache(void) { return m_use_cache;}
@@ -159,6 +159,11 @@ private:
         pthread_mutex_t m_cache_mutex;
         ai_cache *m_ai_cache;
 };
+
+//: ----------------------------------------------------------------------------
+//: cache key helper
+//: ----------------------------------------------------------------------------
+std::string get_cache_key(const std::string &a_host, uint16_t a_port);
 
 } //namespace ns_hlx {
 
