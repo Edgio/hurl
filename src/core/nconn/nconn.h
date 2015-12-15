@@ -136,9 +136,11 @@ public:
         bool get_collect_stats_flag(void) {return m_collect_stats_flag;}
         uint64_t get_request_start_time_us(void) {return m_request_start_time_us;}
         uint64_t get_stat_tt_connect_us(void) {return m_stat.m_tt_connect_us;}
+        uint64_t get_connect_start_time_us(void) {return m_connect_start_time_us;}
         bool get_connect_only(void) { return m_connect_only;}
         const std::string &get_last_error(void) { return m_last_error;}
         conn_status_t get_status(void) { return m_status;}
+
 
         // Setters
         void set_label(const std::string &a_label) {m_label = a_label;}
@@ -154,6 +156,8 @@ public:
         void set_request_start_time_us(uint64_t a_val) {m_request_start_time_us = a_val;}
         void set_stat_tt_completion_us(uint64_t a_val){ m_stat.m_tt_completion_us = a_val;}
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
+        void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
+
         void set_status(conn_status_t a_status) { m_status = a_status;}
         // State
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}

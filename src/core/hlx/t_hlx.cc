@@ -477,6 +477,13 @@ int32_t t_hlx::start_subr(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
                 cleanup_hconn(a_hconn);
                 return STATUS_OK;
         }
+
+        // Get request time
+        if(a_nconn.get_collect_stats_flag())
+        {
+                a_nconn.set_request_start_time_us(get_time_us());
+        }
+
         return STATUS_OK;
 }
 
@@ -691,12 +698,6 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                 }
                 else if(l_hconn->m_subr)
                 {
-                        // Get request time
-                        if(!l_nconn->get_request_start_time_us() &&
-                           l_nconn->get_collect_stats_flag())
-                        {
-                                l_nconn->set_request_start_time_us(get_time_us());
-                        }
                         if(l_status == nconn::NC_STATUS_ERROR)
                         {
                                 subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
@@ -782,43 +783,11 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_hconn->m_t_hlx);
         t_hlx *l_t_hlx = static_cast<t_hlx *>(l_hconn->m_t_hlx);
 
-        int32_t l_status = STATUS_OK;
-        int32_t l_retval = STATUS_OK;
-
-        // -------------------------------------------------
-        // Resolver
-        // -------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
+        // Async Resolver
         if(l_nconn->get_id() == nresolver::S_RESOLVER_ID)
         {
-                if(!l_t_hlx->m_t_conf ||
-                   !(l_t_hlx->m_t_conf->m_hlx) ||
-                   !(l_t_hlx->m_t_conf->m_hlx->get_nresolver()) ||
-                   !(l_t_hlx->m_async_dns_ctx))
-                {
-
-                        return STATUS_ERROR;
-                }
-                nresolver *l_nresolver =
-                                static_cast<nresolver *>(l_t_hlx->m_t_conf->m_hlx->get_nresolver());
-                l_status = l_nresolver->handle_io(l_t_hlx->m_async_dns_ctx);
-                if(l_status != STATUS_OK)
-                {
-                        return STATUS_ERROR;
-                }
-                std::string l_unused;
-                l_status = l_nresolver->lookup_async(l_t_hlx->m_async_dns_ctx,
-                                                     l_unused,
-                                                     0,
-                                                     subr_resolved_cb,
-                                                     NULL,
-                                                     l_t_hlx->m_stat.m_num_resolve_active,
-                                                     l_t_hlx->m_lookup_job_q);
-                if(l_status != STATUS_OK)
-                {
-                        return STATUS_ERROR;
-                }
-                return STATUS_OK;
+                return l_t_hlx->handle_async_dns_ev();
         }
 #endif
 
@@ -826,50 +795,10 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
         l_hconn->m_timer_obj = NULL;
 
-        // -------------------------------------------------
         // Server -incoming client connections
-        // -------------------------------------------------
-        //NDBG_PRINT("%sREADABLE%s l_nconn->is_listening(): %d\n",
-        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-        //           l_nconn->is_listening());
         if(l_nconn->is_listening())
         {
-                // Returns new client fd on success
-                l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop,
-                                                         nconn::NC_MODE_NONE,
-                                                         NULL,
-                                                         NULL);
-                if(l_status == nconn::NC_STATUS_ERROR)
-                {
-                        return STATUS_ERROR;
-                }
-
-                int l_fd = l_status;
-                // Get new connected client conn
-                nconn *l_new_nconn = NULL;
-                l_new_nconn = l_t_hlx->get_new_client_conn(l_fd, l_nconn->get_scheme(), l_hconn->m_url_router);
-                if(!l_new_nconn)
-                {
-                        //NDBG_PRINT("Error performing get_new_client_conn");
-                        return STATUS_ERROR;
-                }
-
-                if(!get_from_pool_if_null(l_hconn->m_in_q, l_t_hlx->m_nbq_pool))
-                {
-                        l_hconn->m_in_q->reset();
-                }
-
-                // Set connected
-                l_status = l_new_nconn->nc_set_accepting(l_t_hlx->m_evr_loop, l_fd);
-                if(l_status != STATUS_OK)
-                {
-                        //NDBG_PRINT("Error: performing run_state_machine\n");
-                        // 1000 apologies :)
-                        l_t_hlx->cleanup_hconn(*(static_cast<hconn *>(l_new_nconn->get_data())));
-                        return STATUS_ERROR;
-                }
-
-                return STATUS_OK;
+                return l_t_hlx->handle_listen_ev(*l_hconn, *l_nconn);
         }
 
         //NDBG_PRINT("nconn host: %s --l_hconn->m_type: %d\n", l_nconn->m_host.c_str(), l_hconn->m_type);
@@ -885,215 +814,219 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                 l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
         }
 
-        // -------------------------------------------------
-        // Subrequests
-        // -------------------------------------------------
-        if(l_hconn->m_subr)
+        int32_t l_status = STATUS_OK;
+        do {
+                // Flipping modes to support TLS connections
+                nconn::mode_t l_mode = nconn::NC_MODE_READ;
+                nbq *l_out_q = l_hconn->m_out_q;
+                if(l_out_q && l_out_q->read_avail())
+                {
+                        l_mode = nconn::NC_MODE_WRITE;
+                }
+                l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop,
+                                                         l_mode,
+                                                         l_hconn->m_in_q,
+                                                         l_hconn->m_out_q);
+                if(l_status > 0)
+                {
+                        l_t_hlx->m_stat.m_num_bytes_read += l_status;
+                }
+                //NDBG_PRINT("LABEL[%s] l_status: %d\n", l_nconn->get_label().c_str(), l_status);
+                switch(l_status)
+                {
+                case nconn::NC_STATUS_EOF:
+                {
+                        l_t_hlx->cleanup_hconn(*l_hconn);
+                        return STATUS_OK;
+                }
+                case nconn::NC_STATUS_ERROR:
+                {
+                        // subr...
+                        if(l_hconn->m_subr)
+                        {
+                                if(l_nconn->get_collect_stats_flag())
+                                {
+                                        l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
+                                }
+                                if(l_hconn->m_hmsg)
+                                {
+                                        resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
+                                        l_resp->set_status(901);
+                                }
+                                // TODO ??? why two status codes ???
+                                l_hconn->m_status_code = 901;
+                                l_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_hconn->m_status_code);
+                                l_nconn->reset_stats();
+                                subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
+                                if(l_error_cb)
+                                {
+                                        l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_hconn->m_subr, *l_nconn);
+                                }
+                        }
+                        ++(l_t_hlx->m_stat.m_num_errors);
+                        l_t_hlx->cleanup_hconn(*l_hconn);
+                        return STATUS_ERROR;
+                }
+                case nconn::NC_STATUS_OK:
+                {
+                        // Connect only && done --early exit...
+                        if(l_nconn->get_connect_only() && l_nconn->is_done())
+                        {
+                                //NDBG_PRINT("LABEL[%s] l_status: %d\n", l_nconn->get_label().c_str(), l_status);
+                                if(l_hconn->m_hmsg)
+                                {
+                                        resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
+                                        l_resp->set_status(200);
+                                }
+                                l_hconn->m_status_code = 200;
+                                l_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_hconn->m_status_code);
+                                if(l_hconn->m_subr)
+                                {
+                                        l_t_hlx->subr_complete(*l_hconn);
+                                }
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_OK;
+                        }
+                        break;
+                }
+                default:
+                {
+                        // nothing...
+                        break;
+                }
+                }
+        } while(l_status != nconn::NC_STATUS_AGAIN && (!l_t_hlx->m_stopped));
+
+        // Handle completion
+        if((l_nconn->is_done()) ||
+           (l_hconn->m_hmsg && l_hconn->m_hmsg->m_complete))
         {
-                resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
-                int32_t l_status = STATUS_OK;
-                do {
-                        nconn::mode_t l_mode = nconn::NC_MODE_READ;
-                        nbq *l_out_q = l_hconn->m_out_q;
-                        if(l_out_q && l_out_q->read_avail())
+                // ---------------------------------------------------
+                // subr...
+                // ---------------------------------------------------
+                if(l_hconn->m_subr)
+                {
+                        // Get request time
+                        if(l_nconn->get_collect_stats_flag())
                         {
-                                l_mode = nconn::NC_MODE_WRITE;
+                                l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
                         }
-                        l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop,
-                                                                 l_mode,
-                                                                 l_hconn->m_in_q,
-                                                                 l_hconn->m_out_q);
-                        if(l_status >= 0)
+                        l_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_hconn->m_status_code);
+
+                        // Display...
+                        if(l_t_hlx->m_t_conf->m_verbose && l_hconn->m_hmsg)
                         {
-                                l_t_hlx->m_stat.m_num_bytes_read += l_status;
+                                if(l_t_hlx->m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                                resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
+                                l_resp->show();
+                                if(l_t_hlx->m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
                         }
-                        if(l_status == nconn::NC_STATUS_EOF)
+
+                        bool l_subr_is_done = l_hconn->m_subr->get_is_done();
+                        bool l_subr_is_pending_done = l_hconn->m_subr->get_is_pending_done();
+                        bool l_complete = l_t_hlx->subr_complete(*l_hconn);
+                        if(l_complete)
+                        {
+                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                return STATUS_OK;
+                        }
+                        if(!l_nconn->can_reuse() ||
+                           !l_hconn->m_supports_keep_alives ||
+                           (l_subr_is_done && !l_t_hlx->m_t_conf->m_use_persistent_pool))
                         {
                                 l_t_hlx->cleanup_hconn(*l_hconn);
                                 return STATUS_OK;
                         }
 
-                        l_timeout_ms = l_hconn->m_subr->get_timeout_s()*1000;
-
-                        //NDBG_PRINT("l_status:                %d\n", l_status);
-                        //NDBG_PRINT("l_nconn->is_done():      %d\n", l_nconn->is_done());
-                        //NDBG_PRINT("l_http_resp->m_complete: %d\n", l_hconn->m_hmsg->m_complete);
-                        if((l_nconn->is_done()) ||
-                           (l_hconn->m_hmsg->m_complete) ||
-                           (l_status == nconn::NC_STATUS_ERROR))
+                        // -------------------------------------------
+                        // Reset or add back to subr for reuse
+                        // -------------------------------------------
+                        if(!get_from_pool_if_null(l_hconn->m_in_q, l_t_hlx->m_nbq_pool))
                         {
+                                l_hconn->m_in_q->reset_write();
+                        }
 
-                                //NDBG_PRINT("l_done: %d -- l_status: %d --proxy size: %d\n",
-                                //           l_done, l_status,
-                                //           (int)l_t_hlx->m_nconn_proxy_pool.get_nconn_obj_pool().used_size());
-                                // Get request time
-                                if(l_nconn->get_collect_stats_flag())
+                        if(l_t_hlx->m_t_conf->m_use_persistent_pool)
+                        {
+                                l_status = l_t_hlx->m_nconn_proxy_pool.add_idle(l_nconn);
+                                if(l_status != STATUS_OK)
                                 {
-                                        l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_request_start_time_us()));
-                                }
-                                l_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_hconn->m_status_code);
-                                l_nconn->reset_stats();
-                                if(l_status == nconn::NC_STATUS_ERROR)
-                                {
-                                        subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
-                                        if(l_error_cb)
-                                        {
-                                                l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_hconn->m_subr, *l_nconn);
-                                        }
-                                        l_resp->set_status(901);
+                                        //NDBG_PRINT("Error: performing add_idle l_status: %d\n", l_status);
                                         ++(l_t_hlx->m_stat.m_num_errors);
                                         l_t_hlx->cleanup_hconn(*l_hconn);
                                         return STATUS_ERROR;
                                 }
-                                else
+                                return STATUS_OK;
+                        }
+                        // -------------------------------------------
+                        // If not using pool try resend on same
+                        // connection.
+                        // NOTE:
+                        // This is an optimization meant for load
+                        // testing -whereas pool is used if hlx
+                        // used as proxy.
+                        // -------------------------------------------
+                        //NDBG_PRINT("l_t_hlx->m_t_conf->m_use_persistent_pool: %d\n",
+                        //           l_t_hlx->m_t_conf->m_use_persistent_pool);
+                        else if(l_hconn->m_subr &&
+                                (l_hconn->m_subr->get_type() == SUBR_TYPE_DUPE))
+                        {
+                                if((!l_subr_is_pending_done) &&
+                                   !l_t_hlx->m_stopped)
                                 {
-                                        if(l_nconn->get_connect_only() && l_hconn->m_hmsg)
-                                        {
-                                                resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
-                                                l_resp->set_status(200);
-                                        }
-                                        bool l_subr_is_done = l_hconn->m_subr->get_is_done();
-                                        bool l_subr_is_pending_done = l_hconn->m_subr->get_is_pending_done();
-                                        bool l_complete = l_t_hlx->subr_complete(*l_hconn);
-                                        if(l_complete)
-                                        {
-                                                l_t_hlx->cleanup_hconn(*l_hconn);
-                                                return STATUS_OK;
-                                        }
-                                        // Display...
-                                        if(l_t_hlx->m_t_conf->m_verbose)
-                                        {
-                                                if(l_t_hlx->m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
-                                                l_resp->show();
-                                                if(l_t_hlx->m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
-                                        }
-                                        if(!l_nconn->can_reuse() ||
-                                           !l_hconn->m_supports_keep_alives ||
-                                           (l_subr_is_done && !l_t_hlx->m_t_conf->m_use_persistent_pool))
-                                        {
-                                                if(l_resp->get_status() >= 500)
-                                                {
-                                                        //++(l_t_client->m_num_error);
-                                                }
-                                                l_t_hlx->cleanup_hconn(*l_hconn);
-                                                return STATUS_OK;
-                                        }
 
-                                        // Cancel last timer
-                                        l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
-                                        l_hconn->m_timer_obj = NULL;
                                         uint64_t l_last_connect_us = l_nconn->get_stat_tt_connect_us();
                                         l_nconn->reset_stats();
                                         l_nconn->set_stat_tt_connect_us(l_last_connect_us);
+                                        l_nconn->set_connect_start_time_us(get_time_us() - l_last_connect_us);
 
-                                        // -------------------------------------------
-                                        // If not using pool try resend on same
-                                        // connection.
-                                        // NOTE:
-                                        // This is an optimization meant for load
-                                        // testing -whereas pool is used if hlx
-                                        // used as proxy.
-                                        // -------------------------------------------
-                                        //NDBG_PRINT("l_t_hlx->m_t_conf->m_use_persistent_pool: %d\n",
-                                        //           l_t_hlx->m_t_conf->m_use_persistent_pool);
-                                        if(l_hconn->m_subr &&
-                                           (l_hconn->m_subr->get_type() == SUBR_TYPE_DUPE) &&
-                                           !l_t_hlx->m_t_conf->m_use_persistent_pool)
+                                        // Send request again...
+                                        l_status = l_t_hlx->start_subr(*(l_hconn->m_subr), *l_hconn, *l_nconn);
+                                        if(l_status != STATUS_OK)
                                         {
-                                                if((!l_subr_is_pending_done) &&
-                                                   !l_t_hlx->m_stopped)
-                                                {
-                                                        // Get request time
-                                                        if(l_nconn->get_collect_stats_flag())
-                                                        {
-                                                                l_nconn->set_request_start_time_us(get_time_us());
-                                                        }
-                                                        // Send request again...
-                                                        l_status = l_t_hlx->start_subr(*(l_hconn->m_subr), *l_hconn, *l_nconn);
-                                                        if(l_status != STATUS_OK)
-                                                        {
-                                                                //NDBG_PRINT("Error: performing request\n");
-                                                                ++(l_t_hlx->m_stat.m_num_errors);
-                                                                l_t_hlx->cleanup_hconn(*l_hconn);
-                                                                return STATUS_ERROR;
-                                                        }
-                                                        l_hconn->m_subr->bump_num_requested();
-                                                        if(l_hconn->m_subr->get_is_pending_done())
-                                                        {
-                                                                l_t_hlx->m_subr_queue.pop();
-                                                        }
-                                                }
-                                                else
-                                                {
-                                                        l_t_hlx->cleanup_hconn(*l_hconn);
-                                                        return STATUS_OK;
-                                                }
+                                                //NDBG_PRINT("Error: performing request\n");
+                                                ++(l_t_hlx->m_stat.m_num_errors);
+                                                l_t_hlx->cleanup_hconn(*l_hconn);
+                                                return STATUS_ERROR;
                                         }
-                                        else
+                                        l_hconn->m_subr->bump_num_requested();
+                                        if(l_hconn->m_subr->get_is_pending_done())
                                         {
-                                                l_status = l_t_hlx->m_nconn_proxy_pool.add_idle(l_nconn);
-                                                if(l_status != STATUS_OK)
-                                                {
-                                                        //NDBG_PRINT("Error: performing add_idle l_status: %d\n", l_status);
-                                                        ++(l_t_hlx->m_stat.m_num_errors);
-                                                        l_t_hlx->cleanup_hconn(*l_hconn);
-                                                        return STATUS_ERROR;
-                                                }
+                                                l_t_hlx->m_subr_queue.pop();
                                         }
+                                }
+                                else
+                                {
+                                        l_t_hlx->cleanup_hconn(*l_hconn);
                                         return STATUS_OK;
                                 }
                                 return STATUS_OK;
                         }
-                } while((l_status != nconn::NC_STATUS_AGAIN) && (!l_t_hlx->m_stopped));
-        }
+                }
+                // ---------------------------------------------------
+                // server...
+                // ---------------------------------------------------
+                else
+                {
+                        //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
+                        ++l_t_hlx->m_stat.m_num_reqs;
 
-        // -------------------------------------------------
-        // handle client connections
-        // -------------------------------------------------
-        else
-        {
-                do {
-                        l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop,
-                                                                 nconn::NC_MODE_READ,
-                                                                 l_hconn->m_in_q,
-                                                                 l_hconn->m_out_q);
-                        if(l_status > 0)
+                        // request handling...
+                        if(l_t_hlx->handle_req(*l_hconn, l_hconn->m_url_router) != STATUS_OK)
                         {
-                                l_t_hlx->m_stat.m_num_bytes_read += l_status;
-                        }
-                        //NDBG_PRINT("l_status: %d\n", l_status);
-                        if(l_status == nconn::NC_STATUS_EOF)
-                        {
-                                l_t_hlx->cleanup_hconn(*l_hconn);
-                                return STATUS_OK;
-                        }
-                        else if(l_status == nconn::NC_STATUS_ERROR)
-                        {
+                                //NDBG_PRINT("Error performing handle_req\n");
                                 l_t_hlx->cleanup_hconn(*l_hconn);
                                 return STATUS_ERROR;
                         }
-                        if(l_hconn->m_hmsg && l_hconn->m_hmsg->m_complete)
+                        if(l_hconn->m_hmsg)
                         {
-                                //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
-                                ++l_t_hlx->m_stat.m_num_reqs;
-
-                                // request handling...
-                                if(l_t_hlx->handle_req(*l_hconn, l_hconn->m_url_router) != STATUS_OK)
-                                {
-                                        //NDBG_PRINT("Error performing handle_req\n");
-                                        l_t_hlx->cleanup_hconn(*l_hconn);
-                                        return STATUS_ERROR;
-                                }
-                                if(l_hconn->m_hmsg)
-                                {
-                                        l_hconn->m_hmsg->clear();
-                                }
-                                if(l_hconn->m_in_q)
-                                {
-                                        l_hconn->m_in_q->reset_write();
-                                }
+                                l_hconn->m_hmsg->clear();
                         }
-                } while(l_status != nconn::NC_STATUS_AGAIN && (!l_t_hlx->m_stopped));
+                        if(l_hconn->m_in_q)
+                        {
+                                l_hconn->m_in_q->reset_write();
+                        }
+                }
         }
 
         // Add idle timeout
@@ -1101,9 +1034,7 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                                        evr_loop_file_timeout_cb,
                                        l_nconn,
                                        &(l_hconn->m_timer_obj));
-
-        // Normal return
-        return l_retval;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1196,6 +1127,89 @@ int32_t t_hlx::evr_loop_file_error_cb(void *a_data)
                 }
         }
         l_t_hlx->cleanup_hconn(*l_hconn);
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
+{
+        int32_t l_status;
+
+        // Returns new client fd on success
+        l_status = a_nconn.nc_run_state_machine(m_evr_loop,
+                                                 nconn::NC_MODE_NONE,
+                                                 NULL,
+                                                 NULL);
+        if(l_status == nconn::NC_STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+
+        int l_fd = l_status;
+        // Get new connected client conn
+        nconn *l_new_nconn = NULL;
+        l_new_nconn = get_new_client_conn(l_fd, a_nconn.get_scheme(), a_hconn.m_url_router);
+        if(!l_new_nconn)
+        {
+                //NDBG_PRINT("Error performing get_new_client_conn");
+                return STATUS_ERROR;
+        }
+
+        if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool))
+        {
+                a_hconn.m_in_q->reset();
+        }
+
+        // Set connected
+        l_status = l_new_nconn->nc_set_accepting(m_evr_loop, l_fd);
+        if(l_status != STATUS_OK)
+        {
+                //NDBG_PRINT("Error: performing run_state_machine\n");
+                cleanup_hconn(*(static_cast<hconn *>(l_new_nconn->get_data())));
+                return STATUS_ERROR;
+        }
+
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_hlx::handle_async_dns_ev(void)
+{
+        if(!m_t_conf ||
+           !(m_t_conf->m_hlx) ||
+           !(m_t_conf->m_hlx->get_nresolver()) ||
+           !(m_async_dns_ctx))
+        {
+
+                return STATUS_ERROR;
+        }
+        nresolver *l_nresolver = static_cast<nresolver *>(m_t_conf->m_hlx->get_nresolver());
+        int32_t l_status;
+        l_status = l_nresolver->handle_io(m_async_dns_ctx);
+        if(l_status != STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
+        std::string l_unused;
+        l_status = l_nresolver->lookup_async(m_async_dns_ctx,
+                                             l_unused,
+                                             0,
+                                             subr_resolved_cb,
+                                             NULL,
+                                             m_stat.m_num_resolve_active,
+                                             m_lookup_job_q);
+        if(l_status != STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
         return STATUS_OK;
 }
 
@@ -1363,6 +1377,11 @@ int32_t t_hlx::try_deq_subr(void)
                         continue;
                 }
 
+                // Reset stats
+                l_nconn->reset_stats();
+
+                //NDBG_PRINT("%sSTARTING CONNECTION%s: HOST: %s\n",
+                //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_subr->get_host().c_str());
                 // Configure connection for subr
                 // Set ssl options
                 if(l_nconn->get_scheme() == SCHEME_TLS)

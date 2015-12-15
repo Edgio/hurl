@@ -141,8 +141,9 @@ private:
         int32_t try_deq_subr(void);
         bool subr_complete(hconn &a_hconn);
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
-
+        int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
 #ifdef ASYNC_DNS_SUPPORT
+        int32_t handle_async_dns_ev(void);
         int32_t init_async_dns(void);
 #endif
 
