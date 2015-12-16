@@ -104,10 +104,10 @@ macro(find_ubuntu_package output_var_prefix include_test_file
           message(FATAL_ERROR "Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
   endif()
   if (NOT "${ubuntu_package}" STREQUAL "")
-          LIST(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS "${ubuntu_package}")
+          LIST(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS_LIST "${ubuntu_package}")
   endif()
   if (NOT "${ubuntu_build_package}" STREQUAL "")
-          LIST(APPEND CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${ubuntu_build_package}")
+          LIST(APPEND CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST "${ubuntu_build_package}")
   endif()
 
 endmacro(find_ubuntu_package)
@@ -121,12 +121,12 @@ find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a
 if (BUILD_PROFILER)
   add_definitions(-DENABLE_PROFILER=1)
   find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a
-          google-perftools0 libgoogle-perftools-dev)
+          google-perftools libgoogle-perftools-dev)
 endif()
 
 if (BUILD_TCMALLOC)
   find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a
-          google-perftools0 libgoogle-perftools-dev)
+          google-perftools libgoogle-perftools-dev)
   find_ubuntu_package(LIBZMA lzma.h liblzma.a
           liblzma5 liblzma-dev)
   find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a
@@ -152,6 +152,11 @@ if(BUILD_UDNS)
 endif()
 
 message("   Libraries: ${LIBRARIES}")
+
+# make the cmake list variables into .deb-compatible strings
+string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
+string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST}")
+
 
 # ------------------------------------------------------------------------------
 # Optional flags
