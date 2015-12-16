@@ -545,7 +545,7 @@ public:
         // -------------------------------------------------
         lsnr(uint16_t a_port=12345, scheme_t a_scheme = SCHEME_TCP);
         ~lsnr();
-        int32_t add_endpoint(const std::string &a_endpoint, const rqst_h *a_handler);
+        int32_t register_endpoint(const std::string &a_endpoint, const rqst_h *a_handler);
         int32_t get_fd(void) const { return m_fd;}
         scheme_t get_scheme(void) const { return m_scheme;}
         url_router *get_url_router(void) const { return m_url_router;}

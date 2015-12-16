@@ -1629,7 +1629,7 @@ int main(int argc, char** argv)
                 stats_getter *l_stats_getter = new stats_getter();
                 l_stats_getter->m_hlx = l_hlx;
                 int32_t l_status;
-                l_status = l_lsnr->add_endpoint("/", l_stats_getter);
+                l_status = l_lsnr->register_endpoint("/", l_stats_getter);
                 if(l_status != 0)
                 {
                         printf("Error: adding endpoint: %s\n", "/");

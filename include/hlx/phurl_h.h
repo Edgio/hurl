@@ -34,20 +34,27 @@
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Types
+//: Fwd decl's
 //: ----------------------------------------------------------------------------
-typedef struct host_struct
+class phurl_h;
+
+//: ----------------------------------------------------------------------------
+//: Host Struct
+//: ----------------------------------------------------------------------------
+class host_s
 {
+public:
         std::string m_host;
         uint16_t m_port;
-        host_struct():
-                m_host(),
-                m_port(0)
+        host_s(std::string a_host, uint16_t a_port = 80):
+               m_host(a_host),
+               m_port(a_port)
         {};
-} host_t;
+};
 
-typedef std::list <host_t> host_list_t;
-
+//: ----------------------------------------------------------------------------
+//: Single Resp Struct
+//: ----------------------------------------------------------------------------
 class hlx_resp
 {
 public:
@@ -62,8 +69,13 @@ private:
         hlx_resp& operator=(const hlx_resp &);
         hlx_resp(const hlx_resp &);
 };
+
+//: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
 typedef std::list <hlx_resp *> hlx_resp_list_t;
 typedef std::set <uint64_t> resp_uid_set_t;
+typedef std::list <struct host_s> host_list_t;
 
 //: ----------------------------------------------------------------------------
 //: fanout resp
@@ -83,6 +95,7 @@ public:
         pthread_mutex_t m_mutex;
         resp_uid_set_t m_pending_uid_set;
         hlx_resp_list_t m_resp_list;
+        phurl_h *m_phurl_h;
 
 private:
         // -------------------------------------------------
@@ -107,12 +120,13 @@ public:
 
         h_resp_t do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         void add_host(const std::string a_host, uint16_t a_port = 80);
+        void set_host_list(const host_list_t &a_host_list);
         subr &get_subr_template(void);
+        virtual int32_t create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *l_fanout_resp);
 
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static int32_t create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *l_fanout_resp);
         static int32_t s_completion_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn, resp &a_resp);
         static int32_t s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn);
 private:

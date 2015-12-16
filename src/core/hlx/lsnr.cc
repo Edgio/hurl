@@ -67,7 +67,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t lsnr::add_endpoint(const std::string &a_endpoint, const rqst_h *a_rqst_h)
+int32_t lsnr::register_endpoint(const std::string &a_endpoint, const rqst_h *a_rqst_h)
 {
         if(!m_url_router)
         {

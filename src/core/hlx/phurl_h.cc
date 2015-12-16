@@ -38,7 +38,8 @@ namespace ns_hlx {
 phurl_h_resp::phurl_h_resp(void) :
         m_mutex(),
         m_pending_uid_set(),
-        m_resp_list()
+        m_resp_list(),
+        m_phurl_h(NULL)
 {
         pthread_mutex_init(&m_mutex, NULL);
 }
@@ -114,10 +115,18 @@ subr &phurl_h::get_subr_template(void)
 void phurl_h::add_host(const std::string a_host, uint16_t a_port)
 {
         // Setup host list
-        host_t l_host;
-        l_host.m_host = a_host;
-        l_host.m_port = a_port;
+        host_s l_host(a_host, a_port);
         m_host_list.push_back(l_host);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void phurl_h::set_host_list(const host_list_t &a_host_list)
+{
+        m_host_list = a_host_list;
 }
 
 //: ----------------------------------------------------------------------------
@@ -129,6 +138,7 @@ h_resp_t phurl_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pma
 {
         // Create request state
         phurl_h_resp *l_fanout_resp = new phurl_h_resp();
+        l_fanout_resp->m_phurl_h = this;
 
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
@@ -170,12 +180,25 @@ int32_t phurl_h::s_completion_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn, resp 
         pthread_mutex_lock(&(l_fanout_resp->m_mutex));
         l_fanout_resp->m_pending_uid_set.erase(a_subr.get_uid());
         l_fanout_resp->m_resp_list.push_back(l_resp);
-        pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
-
         // Check for done
         if(l_fanout_resp->m_pending_uid_set.empty())
         {
-                create_resp(a_hlx, a_subr, l_fanout_resp);
+                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
+                if(!l_fanout_resp->m_phurl_h)
+                {
+                        return -1;
+                }
+                int32_t l_status;
+                // Create resp will destroy fanout resp obj
+                l_status = l_fanout_resp->m_phurl_h->create_resp(a_hlx, a_subr, l_fanout_resp);
+                if(l_status != 0)
+                {
+                        return -1;
+                }
+        }
+        else
+        {
+                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
         }
         return 0;
 }
@@ -194,12 +217,25 @@ int32_t phurl_h::s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn)
         }
         pthread_mutex_lock(&(l_fanout_resp->m_mutex));
         l_fanout_resp->m_pending_uid_set.erase(a_subr.get_uid());
-        pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
-
         // Check for done
         if(l_fanout_resp->m_pending_uid_set.empty())
         {
-                create_resp(a_hlx, a_subr, l_fanout_resp);
+                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
+                if(!l_fanout_resp->m_phurl_h)
+                {
+                        return -1;
+                }
+                int32_t l_status;
+                // Create resp will destroy fanout resp obj
+                l_status = l_fanout_resp->m_phurl_h->create_resp(a_hlx, a_subr, l_fanout_resp);
+                if(l_status != 0)
+                {
+                        return -1;
+                }
+        }
+        else
+        {
+                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
         }
         return 0;
 }

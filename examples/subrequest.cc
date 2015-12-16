@@ -79,8 +79,8 @@ int main(void)
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::rqst_h *l_rqst_h = new twootter_getter();
         ns_hlx::rqst_h *l_rqst_h_quit = new quitter();
-        l_lsnr->add_endpoint("/twootter", l_rqst_h);
-        l_lsnr->add_endpoint("/quit", l_rqst_h_quit);
+        l_lsnr->register_endpoint("/twootter", l_rqst_h);
+        l_lsnr->register_endpoint("/quit", l_rqst_h_quit);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
         l_hlx->add_lsnr(l_lsnr);
         l_hlx->set_num_threads(0);

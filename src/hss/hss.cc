@@ -611,7 +611,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         int32_t l_status = 0;
         file_getter *l_file_getter = new file_getter();
-        l_status = l_lsnr->add_endpoint("/*", l_file_getter);
+        l_status = l_lsnr->register_endpoint("/*", l_file_getter);
         if(l_status != 0)
         {
                 printf("Error: adding endpoint: %s\n", "/*");

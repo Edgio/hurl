@@ -49,12 +49,12 @@ SET_TARGET_PROPERTIES(subrequest PROPERTIES OUTPUT_NAME "subrequest")
 target_link_libraries(subrequest ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
-# fanout
+# floodecho
 # ----------------------------------------------------------
-add_executable(fanout fanout.cc)
-add_dependencies(fanout hlxcore)
-SET_TARGET_PROPERTIES(fanout PROPERTIES OUTPUT_NAME "fanout")
-target_link_libraries(fanout ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+add_executable(floodecho floodecho.cc)
+add_dependencies(floodecho hlxcore)
+SET_TARGET_PROPERTIES(floodecho PROPERTIES OUTPUT_NAME "floodecho")
+target_link_libraries(floodecho ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
 # files
