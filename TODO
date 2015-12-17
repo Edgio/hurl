@@ -4,4 +4,6 @@
   c. async dns timeouts
   e. access logs???
   f. rqst splitting (test with pipelined requests)
+  g. set separate timeouts resolve/connect/idle
+  h. error callback indicate error type
 
