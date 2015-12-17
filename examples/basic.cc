@@ -1,7 +1,7 @@
 //: ----------------------------------------------------------------------------
 //: basic example:
 //: compile with:
-//:   g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
+//:   g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o basic
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>

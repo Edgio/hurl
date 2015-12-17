@@ -1,10 +1,11 @@
 //: ----------------------------------------------------------------------------
 //: fanout example:
 //: compile with:
-//:   g++ fanout.cc -lhlxcore -lssl -lcrypto -lpthread -o fanout
+//:   g++ floodecho.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o floodecho
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <hlx/phurl_h.h>
+#include <stdlib.h>
 //#include <google/profiler.h>
 
 class hello_from: public ns_hlx::phurl_h

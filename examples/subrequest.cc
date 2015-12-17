@@ -1,7 +1,7 @@
 //: ----------------------------------------------------------------------------
 //: subrequest example:
 //: compile with:
-//:   g++ subrequest.cc -lhlxcore -lssl -lcrypto -lpthread -o subrequest
+//:   g++ subrequest.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o subrequest
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>

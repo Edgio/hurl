@@ -1,7 +1,7 @@
 //: ----------------------------------------------------------------------------
 //: file server example:
 //: compile with:
-//:   g++ files.cc -lhlxcore -lssl -lcrypto -lpthread -o files
+//:   g++ files.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o files
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>
