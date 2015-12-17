@@ -5,6 +5,3 @@
   e. access logs???
   f. rqst splitting (test with pipelined requests)
 
-1. phurl
-  a. option to skip tls cert hostname checking
-
