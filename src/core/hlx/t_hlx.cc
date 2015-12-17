@@ -736,7 +736,8 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_OK;
                 }
-                if(l_hconn->m_out_q &&
+                if(!l_nconn->is_accepting() &&
+                   l_hconn->m_out_q &&
                    !l_hconn->m_out_q->read_avail() &&
                    (l_hconn->m_type == DATA_TYPE_SERVER))
                 {
