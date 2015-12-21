@@ -60,6 +60,13 @@ std::string get_cache_key(const std::string &a_host, uint16_t a_port)
 //: ----------------------------------------------------------------------------
 nresolver::nresolver():
         m_is_initd(false),
+        m_resolver_host_list(),
+        m_port(53),
+#ifdef ASYNC_DNS_SUPPORT
+        m_timeout_s(S_TIMEOUT_S),
+        m_retries(S_RETRIES),
+        m_max_parallel(S_MAX_PARALLEL_LOOKUPS),
+#endif
         m_use_cache(false),
         m_cache_mutex(),
         m_ai_cache(NULL)
@@ -110,6 +117,16 @@ int32_t nresolver::init(std::string ai_cache_file, bool a_use_cache)
 
         m_is_initd = true;
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void nresolver::add_resolver_host(const std::string a_server)
+{
+        m_resolver_host_list.push_back(a_server);
 }
 
 //: ----------------------------------------------------------------------------
@@ -171,17 +188,37 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
                 pthread_mutex_unlock(&m_cache_mutex);
                 return STATUS_ERROR;
         }
-        // TODO Name servers???
-        // reset nameserver list
-        //dns_add_serv(m_ctx, NULL);
-        //dns_add_serv(m_ctx, m_name_server);
+
+        // Specified Name servers
+        if(!m_resolver_host_list.empty())
+        {
+                // reset nameserver list
+                l_status = dns_add_serv(l_ctx, NULL);
+                if(l_status < 0)
+                {
+                        NDBG_PRINT("Error performing dns_add_serv\n");
+                        return STATUS_ERROR;
+                }
+                for(resolver_host_list_t::iterator i_s = m_resolver_host_list.begin();
+                    i_s != m_resolver_host_list.end();
+                    ++i_s)
+                {
+                        l_status = dns_add_serv(l_ctx, i_s->c_str());
+                        if(l_status < 0)
+                        {
+                                NDBG_PRINT("Error performing dns_add_serv\n");
+                                return STATUS_ERROR;
+                        }
+                }
+        }
+
 
         // set dns options
         // Note: PORT MUST be set before setting up m_sock
         // TODO make configurable
-        dns_set_opt(l_ctx, DNS_OPT_TIMEOUT, 10);
-        dns_set_opt(l_ctx, DNS_OPT_NTRIES,  3);
-        dns_set_opt(l_ctx, DNS_OPT_PORT,    53);
+        dns_set_opt(l_ctx, DNS_OPT_TIMEOUT, m_timeout_s);
+        dns_set_opt(l_ctx, DNS_OPT_NTRIES,  m_retries);
+        dns_set_opt(l_ctx, DNS_OPT_PORT,    m_port);
 
         ao_fd = dns_open(l_ctx);
         if (ao_fd < 0)
@@ -430,9 +467,17 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                           void *a_data)
 {
         lookup_job *l_job = static_cast<lookup_job *>(a_data);
-        if(!l_job || !(l_job->m_nresolver))
+        //NDBG_PRINT("l_job: %p\n", l_job);
+        if(!l_job)
         {
-                NDBG_PRINT("job[%p] == NULL or nresolver == NULL\n", l_job);
+                //NDBG_PRINT("job[%p] == NULL\n", l_job);
+                return;
+        }
+        if(!l_job->m_nresolver)
+        {
+                //NDBG_PRINT("job[%p] == NULL or nresolver == NULL\n", l_job);
+                delete l_job;
+                l_job = NULL;
                 return;
         }
 
@@ -449,9 +494,11 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                         l_status = l_job->m_cb(NULL, l_job->m_data);
                         if(l_status != STATUS_OK)
                         {
-                                NDBG_PRINT("Error performing callback.\n");
+                                //NDBG_PRINT("Error performing callback.\n");
                         }
                 }
+                delete l_job;
+                l_job = NULL;
                 return;
         }
 
@@ -492,7 +539,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 l_status = l_job->m_cb(l_host_info, l_job->m_data);
                 if(l_status != STATUS_OK)
                 {
-                        NDBG_PRINT("Error performing callback.\n");
+                        //NDBG_PRINT("Error performing callback.\n");
                 }
         }
 
@@ -544,8 +591,9 @@ int32_t nresolver::lookup_async(void* a_ctx,
                                 uint64_t &a_active,
                                 lookup_job_q_t &ao_lookup_job_q)
 {
-        //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_ctx: %p\n",
+        //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_host: %s a_ctx: %p\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+        //           a_host.c_str(),
         //           a_ctx);
         int32_t l_status;
         if(!m_is_initd)
@@ -580,24 +628,24 @@ int32_t nresolver::lookup_async(void* a_ctx,
         }
 
         a_active = dns_active(l_ctx);
-        uint32_t l_submit = S_MAX_PARALLEL_LOOKUPS - a_active;
+        uint32_t l_submit = m_max_parallel - a_active;
         //NDBG_PRINT("a_active: %lu\n", a_active);
         while((l_submit) && !(ao_lookup_job_q.empty()))
         {
                 //NDBG_PRINT("l_submit: %u\n", l_submit);
-                struct dns_query *l_query = NULL;
                 lookup_job *l_job = ao_lookup_job_q.front();
                 ao_lookup_job_q.pop();
                 //NDBG_PRINT("%sSUBMIT LOOKUP%s: HOST: %s\n",
                 //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                 //           l_job->m_host.c_str());
-                l_query = dns_submit_a4(l_ctx, l_job->m_host.c_str(), 0, dns_a4_cb, l_job);
-                if (!l_query)
+                l_job->m_dns_query = dns_submit_a4(l_ctx, l_job->m_host.c_str(), 0, dns_a4_cb, l_job);
+                if (!l_job->m_dns_query)
                 {
                         NDBG_PRINT("Error performing dns_submit_a4.  Last status: %d\n",
                                    dns_status(NULL));
                         return STATUS_ERROR;
                 }
+                l_job->m_dns_ctx = l_ctx;
 
                 //NDBG_PRINT("%sSTATUS%s job: %s status: %d. Reason: %s\n",
                 //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
@@ -615,10 +663,10 @@ int32_t nresolver::lookup_async(void* a_ctx,
         }
 
         // ???
-        time_t now;
-        now = time(NULL);
-        const int delay = dns_timeouts(l_ctx, 1, now);
-        (void) delay;
+        time_t l_now;
+        l_now = time(NULL);
+        const int l_delay = dns_timeouts(l_ctx, 1, l_now);
+        (void) l_delay;
 #endif
         return STATUS_OK;
 }
@@ -638,9 +686,10 @@ int32_t nresolver::handle_io(void* a_ctx)
         {
                 return STATUS_ERROR;
         }
-        time_t l_now;
-        l_now = time(NULL);
-        dns_ioevent(l_ctx, l_now);
+        dns_ioevent(l_ctx, 0);
+
+        const int l_delay = dns_timeouts(l_ctx, 0, 0);
+        (void) l_delay;
 #endif
         return STATUS_OK;
 }

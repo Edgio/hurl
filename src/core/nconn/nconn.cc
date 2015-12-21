@@ -109,7 +109,7 @@ state_top:
                         //NDBG_PRINT("Still connecting...\n");
                         return NC_STATUS_AGAIN;
                 }
-                //NDBG_PRINT("%sConnected%s: host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
+                //NDBG_PRINT("%sConnected%s: label: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
                 // Returning client fd
                 // If OK -change state to connected???
                 m_nc_state = NC_STATE_CONNECTED;
@@ -120,6 +120,7 @@ state_top:
                 if(m_connect_only)
                 {
                         m_nc_state = NC_STATE_DONE;
+                        return NC_STATUS_EOF;
                 }
                 goto state_top;
         }
@@ -150,35 +151,32 @@ state_top:
         // -------------------------------------------------
         case NC_STATE_CONNECTED:
         {
-                int32_t l_status = NC_STATUS_OK;
-                int32_t l_bytes = 0;
                 switch(a_mode)
                 {
                 case NC_MODE_READ:
                 {
+                        int32_t l_status = NC_STATUS_OK;
                         l_status = nc_read(a_evr_loop, a_in_q);
                         //NDBG_PRINT("l_status: %d\n", l_status);
-                        if(l_status == NC_STATUS_ERROR)
+                        switch(l_status){
+                        case NC_STATUS_EOF:
                         {
-                                //NDBG_PRINT("Error performing nc_read -host: %s\n", m_label.c_str());
-                                return NC_STATUS_ERROR;
+                                m_nc_state = NC_STATE_DONE;
                         }
-                        else if(l_status == NC_STATUS_EOF)
+                        case NC_STATUS_ERROR:
+                        case NC_STATUS_AGAIN:
+                        case NC_STATUS_OK:
                         {
-                                return NC_STATUS_EOF;
+                                return l_status;
                         }
-                        else if(l_status == NC_STATUS_AGAIN)
+                        default:
                         {
-                                return NC_STATUS_AGAIN;
+                                break;
                         }
-                        else if(l_status == NC_STATUS_OK)
-                        {
-                                return NC_STATUS_OK;
                         }
-                        // TODO other states???
+
                         if(l_status > 0)
                         {
-                                l_bytes += l_status;
                                 if(m_collect_stats_flag)
                                 {
                                         m_stat.m_total_bytes += l_status;
@@ -188,57 +186,50 @@ state_top:
                                         }
                                 }
                         }
-                        break;
+                        return l_status;
                 }
                 case NC_MODE_WRITE:
                 {
+                        int32_t l_status = NC_STATUS_OK;
                         l_status = nc_write(a_evr_loop, a_out_q);
-                        if(l_status == NC_STATUS_ERROR)
+                        switch(l_status){
+                        case NC_STATUS_EOF:
                         {
-                                //NDBG_PRINT("Error performing nc_write\n");
-                                return NC_STATUS_ERROR;
+                                m_nc_state = NC_STATE_DONE;
                         }
-                        else if(l_status == NC_STATUS_EOF)
+                        case NC_STATUS_ERROR:
+                        case NC_STATUS_AGAIN:
+                        case NC_STATUS_OK:
                         {
-                                return NC_STATUS_EOF;
+                                return l_status;
                         }
-                        else if(l_status == NC_STATUS_AGAIN)
+                        default:
                         {
-                                return NC_STATUS_AGAIN;
+                                break;
                         }
-                        else if(l_status == NC_STATUS_OK)
-                        {
-                                return NC_STATUS_OK;
                         }
-                        if(l_status > 0)
-                        {
-                                l_bytes += l_status;
-                        }
-                        // TODO -if EAGAIN -mod evr for EPOLL_OUT
-
-                        break;
+                        return l_status;
                 }
                 default:
                 {
-                        break;
+                        return NC_STATUS_ERROR;
                 }
                 }
-                return l_bytes;
+                return NC_STATUS_ERROR;
         }
         // -------------------------------------------------
         // STATE: DONE
         // -------------------------------------------------
         case NC_STATE_DONE:
         {
-                // nothing???
-                break;
+                return NC_STATUS_EOF;
         }
         default:
         {
-                break;
+                return NC_STATUS_ERROR;
         }
         }
-        return NC_STATUS_OK;
+        return NC_STATUS_ERROR;
 }
 
 //: ----------------------------------------------------------------------------
@@ -514,7 +505,7 @@ nconn::nconn(void):
       m_data(NULL),
       m_connect_start_time_us(0),
       m_request_start_time_us(0),
-      m_status(CONN_STATUS_OK),
+      m_conn_status(CONN_STATUS_OK),
       m_last_error(""),
       m_host_info(),
       m_num_reqs_per_conn(-1),

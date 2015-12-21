@@ -142,7 +142,7 @@ int32_t nconn_tls::tls_connect(void)
                         {
                                 NCONN_ERROR("LABEL[%s]: TLS_ERROR: OTHER.",m_label.c_str());
                         }
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_WANT_READ:
@@ -163,7 +163,7 @@ int32_t nconn_tls::tls_connect(void)
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP", m_label.c_str());
                         m_last_err = ERR_get_error();
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
                 }
@@ -185,30 +185,30 @@ int32_t nconn_tls::tls_connect(void)
                                                 m_last_err, ERR_error_string(m_last_err, NULL),
                                                 strerror(errno));
                         }
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_ZERO_RETURN:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_ZERO_RETURN", m_label.c_str());
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_WANT_CONNECT:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_CONNECT", m_label.c_str());
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 case SSL_ERROR_WANT_ACCEPT:
                 {
                         NCONN_ERROR("LABEL[%s]: SSL_ERROR_WANT_ACCEPT", m_label.c_str());
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 default:
                 {
-                        m_status = CONN_STATUS_ERROR_TLS;
+                        m_conn_status = CONN_STATUS_ERROR_TLS;
                         break;
                 }
                 }
@@ -898,7 +898,7 @@ ncconnect_state_top:
                         {
                                 NCONN_ERROR("LABEL[%s]: Error: %s", m_label.c_str(), gts_last_tls_error);
                                 gts_last_tls_error[0] = '\0';
-                                m_status = CONN_STATUS_ERROR_TLS_HOST;
+                                m_conn_status = CONN_STATUS_ERROR_TLS_HOST;
                                 return NC_STATUS_ERROR;
                         }
                 }

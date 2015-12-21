@@ -36,8 +36,10 @@
 #include <sys/socket.h>
 
 #include <string>
-#include <queue>
+#include <set>
 #include <map>
+#include <list>
+#include <queue> // for std::priority_queue
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -46,7 +48,6 @@
 #define ASYNC_DNS_WITH_UDNS 1
 #ifdef ASYNC_DNS_WITH_UDNS
   #define ASYNC_DNS_SUPPORT 1
-  #include "evr.h"
 #endif
 
 #define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
@@ -57,6 +58,7 @@
 #ifdef ASYNC_DNS_WITH_UDNS
 struct dns_ctx;
 struct dns_rr_a4;
+struct dns_query;
 #endif
 
 namespace ns_hlx {
@@ -76,6 +78,8 @@ public:
         //: ------------------------------------------------
         //: Types
         //: ------------------------------------------------
+        typedef std::list <std::string> resolver_host_list_t;
+
 #ifdef ASYNC_DNS_SUPPORT
         // Async resolver callback
         typedef int32_t (*resolved_cb)(const host_info *, void *);
@@ -85,12 +89,20 @@ public:
                 resolved_cb m_cb;
                 std::string m_host;
                 uint16_t m_port;
+#ifdef ASYNC_DNS_WITH_UDNS
+                struct dns_query *m_dns_query;
+                struct dns_ctx *m_dns_ctx;
+#endif
                 nresolver *m_nresolver;
                 lookup_job(void):
                         m_data(NULL),
                         m_cb(NULL),
                         m_host(),
                         m_port(0),
+#ifdef ASYNC_DNS_WITH_UDNS
+                        m_dns_query(NULL),
+                        m_dns_ctx(NULL),
+#endif
                         m_nresolver(NULL)
                 {}
         private:
@@ -105,7 +117,10 @@ public:
         //: Const
         //: ------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-        static const uint64_t S_RESOLVER_ID = 0xFFFFDEADBEEF0001UL;
+        static const uint64_t S_RESOLVER_ID         = 0xFFFFDEADBEEF0001UL;
+        static const uint32_t S_TIMEOUT_S = 4;
+        static const uint32_t S_RETRIES = 3;
+
 #endif
         static const uint32_t S_MAX_PARALLEL_LOOKUPS = 10;
         static const uint32_t S_MIN_TTL_S = 10;
@@ -118,6 +133,8 @@ public:
 
         int32_t init(std::string addr_info_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE,
                      bool a_use_cache = true);
+        void add_resolver_host(const std::string a_server);
+        void set_port(uint16_t a_port) {m_port = a_port;}
         host_info *lookup_tryfast(const std::string &a_host, uint16_t a_port);
         host_info *lookup_sync(const std::string &a_host, uint16_t a_port);
         bool get_use_cache(void) { return m_use_cache;}
@@ -133,6 +150,9 @@ public:
                              uint64_t &a_active,
                              lookup_job_q_t &ao_lookup_job_q);
         int32_t handle_io(void* a_ctx);
+        void set_timeout_s(uint32_t a_val) { m_timeout_s = a_val;}
+        void set_retries(uint32_t a_val) { m_retries = a_val;}
+        void set_max_parllel(uint32_t a_val) { m_max_parallel = a_val;}
 #endif
 
 private:
@@ -156,6 +176,13 @@ private:
         //: Private members
         //: ------------------------------------------------
         bool m_is_initd;
+        resolver_host_list_t m_resolver_host_list;
+        uint16_t m_port;
+#ifdef ASYNC_DNS_SUPPORT
+        uint32_t m_timeout_s;
+        uint32_t m_retries;
+        uint32_t m_max_parallel;
+#endif
         uint32_t m_use_cache;
         pthread_mutex_t m_cache_mutex;
         ai_cache *m_ai_cache;

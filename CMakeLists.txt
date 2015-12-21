@@ -47,7 +47,7 @@ add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 # ------------------------------------------------------------------------------
 # Libraries options
 # ------------------------------------------------------------------------------
-set(LIBRARIES ${LIBRARIES} pthread rt dl)
+set(LIBRARIES ${LIBRARIES} pthread rt)
 
 # ------------------------------------------------------------------------------
 # Display the current settings
@@ -117,7 +117,6 @@ find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a
 find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a
         libssl1.0.0 libssl-dev)
 
-
 if (BUILD_PROFILER)
   add_definitions(-DENABLE_PROFILER=1)
   find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a
@@ -151,6 +150,7 @@ if(BUILD_UDNS)
           libudns0 libudns-dev)
 endif()
 
+set(LIBRARIES ${LIBRARIES} dl)
 message("   Libraries: ${LIBRARIES}")
 
 # make the cmake list variables into .deb-compatible strings
