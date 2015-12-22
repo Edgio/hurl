@@ -35,7 +35,7 @@ option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
 option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
 option(BUILD_EFENCE     "Build with tcmalloc" OFF)
 option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
-option(BUILD_UDNS       "Build with udns (async dns support)" ON)
+option(BUILD_UDNS       "Build with udns (async dns support)" OFF)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -74,7 +74,6 @@ endif()
 # ------------------------------------------------------------------------------
 # Resolve dependencies
 # ------------------------------------------------------------------------------
-
 # \brief   Find ubuntu packages based on their (optional) include and (required) library test files
 # \details
 # \param   output_var_prefix    The prefix for variables output_var_prefix{_INCLUDE_DIR,_LIBS} that are set on success
@@ -117,12 +116,18 @@ find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a
 find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a
         libssl1.0.0 libssl-dev)
 
+# ------------------------------------------------------------------------------
+# Build PROFILER
+# ------------------------------------------------------------------------------
 if (BUILD_PROFILER)
   add_definitions(-DENABLE_PROFILER=1)
   find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a
           google-perftools libgoogle-perftools-dev)
 endif()
 
+# ------------------------------------------------------------------------------
+# Build TCMALLOC
+# ------------------------------------------------------------------------------
 if (BUILD_TCMALLOC)
   find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a
           google-perftools libgoogle-perftools-dev)
@@ -133,11 +138,17 @@ if (BUILD_TCMALLOC)
   LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
 endif()
 
+# ------------------------------------------------------------------------------
+# Build EFENCE
+# ------------------------------------------------------------------------------
 if (BUILD_EFENCE)
   find_ubuntu_package(LIBEFENCE "" libefence.a
           "" electric-fence)
 endif()
 
+# ------------------------------------------------------------------------------
+# ASAN
+# ------------------------------------------------------------------------------
 if (BUILD_ASAN)
   find_ubuntu_package(LIBASAN "" libasan.so.0
           "" libasan0)
@@ -145,15 +156,36 @@ if (BUILD_ASAN)
    set(DEBUG_MODE ON)
 endif()
 
+# ------------------------------------------------------------------------------
+# Build UDNS
+# ------------------------------------------------------------------------------
 if(BUILD_UDNS)
-  find_ubuntu_package(LIBUDNS udns.h libudns.a
-          libudns0 libudns-dev)
+    include(ExternalProject)
+    ExternalProject_Add(udns
+    
+      # Optional approach -including from external url
+      #URL http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz
+      DOWNLOAD_COMMAND ""
+      
+      SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
+      BINARY_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
+      CONFIGURE_COMMAND "./configure"
+      BUILD_COMMAND make
+      INSTALL_COMMAND ""
+    )
+    set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
     add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
+# ------------------------------------------------------------------------------
+# 
+# ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} dl)
 message("   Libraries: ${LIBRARIES}")
 
+# ------------------------------------------------------------------------------
+# 
+# ------------------------------------------------------------------------------
 # make the cmake list variables into .deb-compatible strings
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST}")
