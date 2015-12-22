@@ -232,6 +232,7 @@ public:
         void set_start_time_ms(uint64_t a_start_time_ms);
         void set_collect_stats(bool a_val);
         void set_use_persistent_pool(bool a_val);
+        void set_timeout_s(uint32_t a_val);
 
         // Socket options
         void set_sock_opt_no_delay(bool a_val);

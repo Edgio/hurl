@@ -342,6 +342,16 @@ void hlx::set_use_persistent_pool(bool a_val)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: Global timeout for connect/read/write
+//: \return:  NA
+//: \param:   a_val: timeout in seconds
+//: ----------------------------------------------------------------------------
+void hlx::set_timeout_s(uint32_t a_val)
+{
+        m_t_conf->m_timeout_s = a_val;
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
