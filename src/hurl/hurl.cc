@@ -1635,7 +1635,7 @@ int main(int argc, char** argv)
                         printf("Error: adding endpoint: %s\n", "/");
                         return -1;
                 }
-                l_hlx->add_lsnr(l_lsnr);
+                l_hlx->register_lsnr(l_lsnr);
         }
 
 

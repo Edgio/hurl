@@ -619,9 +619,9 @@ int main(int argc, char** argv)
         }
 
         // -------------------------------------------
-        // Add lsnr
+        // Register lsnr
         // -------------------------------------------
-        l_hlx->add_lsnr(l_lsnr);
+        l_hlx->register_lsnr(l_lsnr);
 
         // -------------------------------------------
         // Sigint handler

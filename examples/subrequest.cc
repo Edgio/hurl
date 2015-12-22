@@ -82,7 +82,7 @@ int main(void)
         l_lsnr->register_endpoint("/twootter", l_rqst_h);
         l_lsnr->register_endpoint("/quit", l_rqst_h_quit);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->add_lsnr(l_lsnr);
+        l_hlx->register_lsnr(l_lsnr);
         l_hlx->set_num_threads(0);
         //l_hlx->set_verbose(true);
         //l_hlx->set_color(true);

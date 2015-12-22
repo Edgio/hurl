@@ -26,7 +26,7 @@ int main(void)
         file_getter *l_file_getter = new file_getter();
         l_lsnr->register_endpoint("/*", l_file_getter);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->add_lsnr(l_lsnr);
+        l_hlx->register_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
         l_hlx->set_num_threads(0);
         //ProfilerStart("tmp.prof");

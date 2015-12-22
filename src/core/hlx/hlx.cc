@@ -515,7 +515,7 @@ int hlx::set_tls_client_ctx_options(long a_tls_options)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::add_lsnr(lsnr *a_lsnr)
+int32_t hlx::register_lsnr(lsnr *a_lsnr)
 {
         if(!a_lsnr)
         {

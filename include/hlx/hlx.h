@@ -243,7 +243,7 @@ public:
         void set_ai_cache(const std::string &a_ai_cache);
 
         // Listeners
-        int32_t add_lsnr(lsnr *a_lsnr);
+        int32_t register_lsnr(lsnr *a_lsnr);
 
         // Subrequests
         subr &create_subr();
@@ -802,5 +802,3 @@ const std::string &nconn_get_last_error_str(nconn &a_nconn);
 } //namespace ns_hlx {
 
 #endif
-
-
