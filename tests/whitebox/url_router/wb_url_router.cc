@@ -61,6 +61,16 @@ TEST_CASE( "url router test", "[url_router]" )
                 REQUIRE((l_status == 0));
         }
 
+        // Fail on add duplicate
+        l_status = l_url_router.add_route("/bonkers", (void *)8);
+        REQUIRE((l_status == 0));
+        l_status = l_url_router.add_route("/bonkers", (void *)10);
+        REQUIRE((l_status != 0));
+        l_status = l_url_router.add_route("/cats_are/cool/dog/are/smellfeet", (void *)100);
+        REQUIRE((l_status == 0));
+        l_status = l_url_router.add_route("/cats_are/cool/dog/are/smellfeet", (void *)101);
+        REQUIRE((l_status != 0));
+
         // Display
         //l_url_router.display();
 
@@ -70,6 +80,7 @@ TEST_CASE( "url router test", "[url_router]" )
                         {"/monkeys/bongo/banana/33", (void *)1},
                         {"/cats_are/cool/dog/are/smelly", (void *)2},
                         {"/sweet/donuts/pinky", (void *)1337},
+                        {"/bonkers", (void *)8},
                         {"/sweet/donuts/cavorting/anteaters", (void *)1337},
                         {"/sweet/donuts/trash/pandas/are/super/cool", (void *)1337}
                 };
