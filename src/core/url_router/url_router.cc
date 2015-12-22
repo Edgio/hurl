@@ -225,9 +225,9 @@ static inline int32_t pattern_diff(const pattern_t &a1, const pattern_t &a2)
                         l_len += l_diff;
                         if(i_a1->m_type != i_a2->m_type)
                         {
-                                NDBG_PRINT("Error type mismatch for pattern: %s and %s\n",
-                                                pattern_str(a1).c_str(),
-                                                pattern_str(a2).c_str());
+                                //NDBG_PRINT("Error type mismatch for pattern: %s and %s\n",
+                                //                pattern_str(a1).c_str(),
+                                //                pattern_str(a2).c_str());
                                 return -1;
                         }
                         if(i_a1->m_type == PART_TYPE_PARAMETER)
@@ -675,7 +675,7 @@ edge *node::connect(node *a_node, const pattern_t &a_pattern, bool a_dupe)
         l_edge = append_edge(a_node, a_pattern);
         if (!l_edge)
         {
-                printf("Error performing append_edge\n");
+                //printf("Error performing append_edge\n");
                 return NULL;
         }
 
@@ -718,14 +718,14 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                         // Already in parameter???
                         if(l_part.m_type == PART_TYPE_PARAMETER)
                         {
-                                NDBG_PRINT("Error cannot start a parameter within existing parameter.\n");
+                                //NDBG_PRINT("Error cannot start a parameter within existing parameter.\n");
                                 return -1;
                         }
 
                         // Preceded by '/'
                         if(l_path[i_char - 1] != '/')
                         {
-                                NDBG_PRINT("Error parameters must be preceded by '\'.\n");
+                                //NDBG_PRINT("Error parameters must be preceded by '\'.\n");
                                 return -1;
                         }
 
@@ -741,7 +741,7 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                 {
                         if(l_part.m_type != PART_TYPE_PARAMETER)
                         {
-                                NDBG_PRINT("Error cannot end a parameter without start char '>'.\n");
+                                //NDBG_PRINT("Error cannot end a parameter without start char '>'.\n");
                                 return -1;
                         }
 
@@ -749,7 +749,7 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                         {
                                 if(l_path[i_char + 1] != '/')
                                 {
-                                        NDBG_PRINT("Error parameters must end with '\'.\n");
+                                        //NDBG_PRINT("Error parameters must end with '\'.\n");
                                         return -1;
                                 }
                         }
@@ -767,7 +767,7 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                         // Preceded by '/'
                         if(l_path[i_char - 1] != '/')
                         {
-                                NDBG_PRINT("Error terminals must be preceded by '\'.\n");
+                                //NDBG_PRINT("Error terminals must be preceded by '\'.\n");
                                 return -1;
                         }
                         // Add last part to pattern
@@ -797,7 +797,7 @@ convert_path_to_pattern_done:
         // Still in parameter???
         if(l_part.m_type == PART_TYPE_PARAMETER)
         {
-                NDBG_PRINT("Error parameter not terminated.\n");
+                //NDBG_PRINT("Error parameter not terminated.\n");
                 return -1;
         }
 
@@ -834,7 +834,7 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         l_status = find_longest_common_prefix(a_pattern, l_prefix_len, &l_common_edge);
         if(l_status != 0)
         {
-                printf("Error performing find_longest_common_prefix\n");
+                //printf("Error performing find_longest_common_prefix\n");
                 return NULL;
         }
 
@@ -850,9 +850,7 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         // common prefix not found, insert a new edge for this pattern
         if(l_prefix_len == 0)
         {
-
                 //NDBG_PRINT("%s: PREFIX_LEN == 0 :%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
-
                 node * l_child_node = new node();
                 ++(l_child_node->m_endpoint);
 
@@ -866,7 +864,7 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 l_new_edge = connect(l_child_node, a_pattern, true);
                 if(!l_new_edge)
                 {
-                        printf("Error performing connect\n");
+                        //printf("Error performing connect\n");
                         return NULL;
                 }
 
@@ -884,13 +882,20 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
                 //           (pattern_str(l_subpattern)).c_str());
                 //NDBG_PRINT("l_prefix_len == l_common_edge->m_pattern.length()\n");
+                //NDBG_PRINT("pattern_len(l_subpattern): %u\n", pattern_len(l_subpattern));
+                if(!pattern_len(l_subpattern))
+                {
+                        //NDBG_PRINT("Error performing insert_route: %s -endpoint collision\n",
+                        //           (pattern_str(a_pattern)).c_str());
+                        return NULL;
+                }
                 // insert new path to this node
                 node *l_new_node;
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
                 {
-                        NDBG_PRINT("Error performing insert_route: %s\n",
-                                   (pattern_str(l_subpattern)).c_str());
+                        //NDBG_PRINT("Error performing insert_route: %s\n",
+                        //           (pattern_str(l_subpattern)).c_str());
                         return NULL;
                 }
                 return l_new_node;
@@ -906,7 +911,7 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 l_new_node = l_common_edge->branch(l_prefix_len);
                 if(!l_new_node)
                 {
-                        NDBG_PRINT("Error performing branch: offset: %u\n", l_prefix_len);
+                        //NDBG_PRINT("Error performing branch: offset: %u\n", l_prefix_len);
                         return NULL;
                 }
                 // Get subpath string
@@ -920,15 +925,15 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
                 {
-                        NDBG_PRINT("Error performing insert_route: %s\n",
-                                   (pattern_str(l_subpattern)).c_str());
+                        //NDBG_PRINT("Error performing insert_route: %s\n",
+                        //           (pattern_str(l_subpattern)).c_str());
                         return NULL;
                 }
                 return l_new_node;
         }
         else
         {
-                printf("Error unexpected route.\n");
+                //printf("Error unexpected route.\n");
                 return NULL;
         }
         return this;
@@ -1120,7 +1125,7 @@ int32_t url_router::add_route(const std::string &a_route, const void *a_data)
         l_status = convert_path_to_pattern(l_route, l_pattern);
         if(l_status != 0)
         {
-                NDBG_PRINT("Error performing sanitize path: %s\n", l_route.c_str());
+                //NDBG_PRINT("Error performing sanitize path: %s\n", l_route.c_str());
                 return -1;
         }
 
@@ -1133,7 +1138,7 @@ int32_t url_router::add_route(const std::string &a_route, const void *a_data)
         l_node = m_root_node->insert_route(l_pattern, a_data);
         if(!l_node)
         {
-                printf("Error performing insert_route\n");
+                //printf("Error performing insert_route\n");
                 return -1;
         }
 
