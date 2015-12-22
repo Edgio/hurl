@@ -135,7 +135,10 @@ void nresolver::add_resolver_host(const std::string a_server)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t nresolver::destroy_async(void* a_ctx, int &a_fd)
+int32_t nresolver::destroy_async(void* a_ctx,
+                                 int &a_fd,
+                                 lookup_job_q_t &ao_lookup_job_q,
+                                 lookup_job_pq_t &ao_lookup_job_pq)
 {
 #ifdef ASYNC_DNS_WITH_UDNS
         if(a_fd > 0)
@@ -150,6 +153,24 @@ int32_t nresolver::destroy_async(void* a_ctx, int &a_fd)
                 l_ctx = NULL;
         }
 #endif
+        while(ao_lookup_job_pq.size())
+        {
+                lookup_job *l_j = ao_lookup_job_pq.top();
+                if(l_j)
+                {
+                        delete l_j;
+                }
+                ao_lookup_job_pq.pop();
+        }
+        while(ao_lookup_job_q.size())
+        {
+                lookup_job *l_j = ao_lookup_job_q.front();
+                if(l_j)
+                {
+                        delete l_j;
+                }
+                ao_lookup_job_q.pop();
+        }
         return STATUS_OK;
 }
 #endif
@@ -256,19 +277,18 @@ host_info *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
         // cache lookup
         // ---------------------------------------
         host_info *l_host_info = NULL;
-        if(m_use_cache)
-        {
-                // Create a cache key
-                char l_port_str[8];
-                snprintf(l_port_str, 8, "%d", a_port);
-                std::string l_cache_key;
-                l_cache_key = a_host + ":" + l_port_str;
 
-                // Lookup in map
-                pthread_mutex_lock(&m_cache_mutex);
-                l_host_info = m_ai_cache->lookup(l_cache_key);
-                pthread_mutex_unlock(&m_cache_mutex);
-        }
+        // Create a cache key
+        char l_port_str[8];
+        snprintf(l_port_str, 8, "%d", a_port);
+        std::string l_cache_key;
+        l_cache_key = a_host + ":" + l_port_str;
+
+        // Lookup in map
+        pthread_mutex_lock(&m_cache_mutex);
+        l_host_info = m_ai_cache->lookup(l_cache_key);
+        pthread_mutex_unlock(&m_cache_mutex);
+
         return l_host_info;
 }
 
@@ -407,9 +427,9 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
         l_host_info->m_expires_s = get_time_s() + 300;
 
         //show_host_info();
-        if(m_use_cache && m_ai_cache)
+        if(m_ai_cache)
         {
-                m_ai_cache->add(get_cache_key(a_host, a_port), l_host_info);
+                l_host_info = m_ai_cache->lookup(get_cache_key(a_host, a_port), l_host_info);
         }
         return l_host_info;
 }
@@ -475,9 +495,19 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         }
         if(!l_job->m_nresolver)
         {
-                //NDBG_PRINT("job[%p] == NULL or nresolver == NULL\n", l_job);
-                delete l_job;
-                l_job = NULL;
+                if (a_result)
+                {
+                        free(a_result);
+                }
+                return;
+        }
+        ai_cache *l_ai_cache = l_job->m_nresolver->get_ai_cache();
+        if(!l_ai_cache)
+        {
+                if (a_result)
+                {
+                        free(a_result);
+                }
                 return;
         }
 
@@ -497,12 +527,24 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                                 //NDBG_PRINT("Error performing callback.\n");
                         }
                 }
-                delete l_job;
-                l_job = NULL;
+                if (a_result)
+                {
+                        free(a_result);
+                }
                 return;
         }
 
-        //NDBG_PRINT("okay host: %s, size: %d -ip: %s\n",
+        if(l_job->m_complete)
+        {
+                if (a_result)
+                {
+                        free(a_result);
+                }
+                return;
+        }
+        l_job->m_complete = true;
+        //NDBG_PRINT("%sokay host%s: %s, size: %d -ip: %s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
         //           a_result->dnsa4_qname,
         //           a_result->dnsa4_nrr,
         //           s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
@@ -512,7 +554,6 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         l_host_info = new host_info();
         l_host_info->m_sa_len = sizeof(l_host_info->m_sa);
         memset((void*) &(l_host_info->m_sa), 0, l_host_info->m_sa_len);
-
         sockaddr_in *l_sockaddr_in = (sockaddr_in *)&(l_host_info->m_sa);
         l_sockaddr_in->sin_family = AF_INET;
         l_sockaddr_in->sin_addr = a_result->dnsa4_addr[0];
@@ -527,12 +568,12 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         }
         l_host_info->m_expires_s = get_time_s() + l_ttl_s;
 
-        // Add to cache
-        if(l_job->m_nresolver->get_use_cache() && l_job->m_nresolver->get_ai_cache())
-        {
-                l_job->m_nresolver->get_ai_cache()->add(get_cache_key(l_job->m_host, l_job->m_port), l_host_info);
-        }
+        std::string l_cache_key = get_cache_key(l_job->m_host, l_job->m_port);
+        pthread_mutex_lock(&(l_job->m_nresolver->m_cache_mutex));
+        l_host_info = l_ai_cache->lookup(l_cache_key, l_host_info);
+        pthread_mutex_unlock(&(l_job->m_nresolver->m_cache_mutex));
 
+        // Add to cache
         if(l_job->m_cb)
         {
                 int32_t l_status = 0;
@@ -542,12 +583,9 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                         //NDBG_PRINT("Error performing callback.\n");
                 }
         }
-
-        // delete the job
-        if(l_job)
+        if (a_result)
         {
-                delete l_job;
-                l_job = NULL;
+                free(a_result);
         }
 }
 #endif
@@ -589,7 +627,8 @@ int32_t nresolver::lookup_async(void* a_ctx,
                                 resolved_cb a_cb,
                                 void *a_data,
                                 uint64_t &a_active,
-                                lookup_job_q_t &ao_lookup_job_q)
+                                lookup_job_q_t &ao_lookup_job_q,
+                                lookup_job_pq_t &ao_lookup_job_pq)
 {
         //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_host: %s a_ctx: %p\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
@@ -646,7 +685,8 @@ int32_t nresolver::lookup_async(void* a_ctx,
                         return STATUS_ERROR;
                 }
                 l_job->m_dns_ctx = l_ctx;
-
+                l_job->m_start_time = get_time_s();
+                ao_lookup_job_pq.push(l_job);
                 //NDBG_PRINT("%sSTATUS%s job: %s status: %d. Reason: %s\n",
                 //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
                 //                l_job->m_host.c_str(),
@@ -668,6 +708,20 @@ int32_t nresolver::lookup_async(void* a_ctx,
         const int l_delay = dns_timeouts(l_ctx, 1, l_now);
         (void) l_delay;
 #endif
+
+        // Check for expires
+        uint32_t l_expire_s = m_timeout_s*m_retries*2;
+        uint64_t l_now_s = get_time_s();
+        while(!ao_lookup_job_pq.size() && (ao_lookup_job_pq.top()->m_start_time + l_expire_s) < l_now_s)
+        {
+                lookup_job *l_j = ao_lookup_job_pq.top();
+                if(l_j)
+                {
+                        delete l_j;
+                }
+                ao_lookup_job_pq.pop();
+        }
+
         return STATUS_OK;
 }
 #endif

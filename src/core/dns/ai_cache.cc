@@ -109,12 +109,14 @@ host_info *ai_cache::lookup(const std::string a_label)
                 if(l_host_info->m_expires_s &&
                    (get_time_s() > l_host_info->m_expires_s))
                 {
-                        //NDBG_PRINT("KEY: %s EXPIRED! -diff: %lu -expires: %lu cur: %lu\n",
+                        //NDBG_PRINT("KEY: %s EXPIRED! -diff: %lu -expires: %lu cur: %lu -l_host_info: %p\n",
                         //                a_label.c_str(),
                         //                get_time_s() - l_host_info->m_expires_s,
                         //                l_host_info->m_expires_s,
-                        //                get_time_s());
+                        //                get_time_s(),
+                        //                l_host_info);
                         m_ai_cache_map.erase(a_label);
+                        delete l_host_info;
                         l_host_info = NULL;
                 }
         }
@@ -126,9 +128,33 @@ host_info *ai_cache::lookup(const std::string a_label)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+host_info *ai_cache::lookup(const std::string a_label, host_info *a_host_info)
+{
+        host_info *l_host_info = lookup(a_label);
+        if(!l_host_info)
+        {
+                m_ai_cache_map[a_label] = a_host_info;
+                l_host_info = a_host_info;
+        }
+        else
+        {
+                delete a_host_info;
+        }
+        return l_host_info;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void ai_cache::add(const std::string a_label, host_info *a_host_info)
 {
-        m_ai_cache_map[a_label] = a_host_info;
+        ai_cache_map_t::iterator i_h = m_ai_cache_map.find(a_label);
+        if(i_h != m_ai_cache_map.end())
+        {
+                m_ai_cache_map[a_label] = a_host_info;
+        }
 }
 
 //: ----------------------------------------------------------------------------

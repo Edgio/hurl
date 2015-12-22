@@ -45,7 +45,7 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 // TODO Remove -enable with build flag...
-#define ASYNC_DNS_WITH_UDNS 1
+//#define ASYNC_DNS_WITH_UDNS 1
 #ifdef ASYNC_DNS_WITH_UDNS
   #define ASYNC_DNS_SUPPORT 1
 #endif
@@ -89,6 +89,8 @@ public:
                 resolved_cb m_cb;
                 std::string m_host;
                 uint16_t m_port;
+                bool m_complete;
+                uint64_t m_start_time;
 #ifdef ASYNC_DNS_WITH_UDNS
                 struct dns_query *m_dns_query;
                 struct dns_ctx *m_dns_ctx;
@@ -99,6 +101,8 @@ public:
                         m_cb(NULL),
                         m_host(),
                         m_port(0),
+                        m_complete(false),
+                        m_start_time(0),
 #ifdef ASYNC_DNS_WITH_UDNS
                         m_dns_query(NULL),
                         m_dns_ctx(NULL),
@@ -111,6 +115,18 @@ public:
                 lookup_job(const lookup_job &);
         };
         typedef std::queue<lookup_job *>lookup_job_q_t;
+
+        //: ----------------------------------------------------------------------------
+        //: Priority queue sorting
+        //: ----------------------------------------------------------------------------
+        class lj_compare_start_times {
+        public:
+                bool operator()(lookup_job* t1, lookup_job* t2)
+                {
+                        return (t1->m_start_time > t2->m_start_time);
+                }
+        };
+        typedef std::priority_queue<lookup_job *, std::vector<lookup_job *>, lj_compare_start_times> lookup_job_pq_t;
 #endif
 
         //: ------------------------------------------------
@@ -141,14 +157,17 @@ public:
         ai_cache *get_ai_cache(void) {return m_ai_cache;}
 #ifdef ASYNC_DNS_SUPPORT
         int32_t init_async(void** ao_ctx, int &ao_fd);
-        int32_t destroy_async(void* a_ctx, int &a_fd);
+        int32_t destroy_async(void* a_ctx, int &a_fd,
+                              lookup_job_q_t &ao_lookup_job_q,
+                              lookup_job_pq_t &ao_lookup_job_pq);
         int32_t lookup_async(void* a_ctx,
                              const std::string &a_host,
                              uint16_t a_port,
                              resolved_cb a_cb,
                              void *a_data,
                              uint64_t &a_active,
-                             lookup_job_q_t &ao_lookup_job_q);
+                             lookup_job_q_t &ao_lookup_job_q,
+                             lookup_job_pq_t &ao_lookup_job_pq);
         int32_t handle_io(void* a_ctx);
         void set_timeout_s(uint32_t a_val) { m_timeout_s = a_val;}
         void set_retries(uint32_t a_val) { m_retries = a_val;}

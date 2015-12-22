@@ -148,6 +148,7 @@ endif()
 if(BUILD_UDNS)
   find_ubuntu_package(LIBUDNS udns.h libudns.a
           libudns0 libudns-dev)
+    add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
 set(LIBRARIES ${LIBRARIES} dl)
@@ -156,7 +157,6 @@ message("   Libraries: ${LIBRARIES}")
 # make the cmake list variables into .deb-compatible strings
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST}")
-
 
 # ------------------------------------------------------------------------------
 # Optional flags

@@ -57,6 +57,7 @@ public:
         ai_cache(std::string a_cache_file = "NRESOLVER_DEFAULT_AI_CACHE_FILE");
         ~ai_cache();
         host_info *lookup(const std::string a_label);
+        host_info *lookup(const std::string a_label, host_info *a_host_info);
         void add(const std::string a_label, host_info *a_host_info);
 
 private:

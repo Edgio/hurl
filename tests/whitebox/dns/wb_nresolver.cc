@@ -152,6 +152,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
                 uint64_t l_active;
                 ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
+                ns_hlx::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
 
                 // Set globals
@@ -165,7 +166,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "google.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(GOOD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
                 // Good
@@ -174,7 +175,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "yahoo.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(GOOD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -183,7 +184,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "arfarhfarfbloop", 9874,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -192,7 +193,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "wonbaombaboiuiuiuoad.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
 
@@ -228,7 +229,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 INFO("g_lkp_err:     " << g_lkp_err)
                 REQUIRE((g_lkp_err == 0));
 
-                l_nresolver->destroy_async(l_ctx, l_fd);
+                l_nresolver->destroy_async(l_ctx, l_fd, l_lookup_job_q, l_lookup_job_pq);
                 delete l_nresolver;
         }
         SECTION("Validate async -bad resolver")
@@ -258,6 +259,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
                 uint64_t l_active;
                 ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
+                ns_hlx::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
 
                 // Set globals
@@ -271,7 +273,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "google.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
                 // Good
@@ -280,7 +282,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "yahoo.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -289,7 +291,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "arfarhfarfbloop", 9874,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -298,7 +300,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "wonbaombaboiuiuiuoad.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
                 REQUIRE((l_status == 0));
 
 
@@ -334,7 +336,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 INFO("g_lkp_err:     " << g_lkp_err)
                 REQUIRE((g_lkp_err == 0));
 
-                l_nresolver->destroy_async(l_ctx, l_fd);
+                l_nresolver->destroy_async(l_ctx, l_fd, l_lookup_job_q, l_lookup_job_pq);
                 delete l_nresolver;
         }
 #endif

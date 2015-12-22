@@ -148,6 +148,7 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_async_dns_fd(-1),
         m_async_dns_nconn(NULL),
         m_lookup_job_q(),
+        m_lookup_job_pq(),
 #endif
         m_is_initd(false)
 {
@@ -184,11 +185,13 @@ t_hlx::~t_hlx()
                 }
                 m_subr_queue.pop();
         }
-
 #ifdef ASYNC_DNS_SUPPORT
         if(m_t_conf && m_t_conf->m_hlx && m_t_conf->m_hlx->get_nresolver())
         {
-                m_t_conf->m_hlx->get_nresolver()->destroy_async(m_async_dns_ctx, m_async_dns_fd);
+                m_t_conf->m_hlx->get_nresolver()->destroy_async(m_async_dns_ctx,
+                                                                m_async_dns_fd,
+                                                                m_lookup_job_q,
+                                                                m_lookup_job_pq);
                 if(m_async_dns_nconn)
                 {
                         delete m_async_dns_nconn;
@@ -641,6 +644,50 @@ bool t_hlx::subr_complete(hconn &a_hconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t t_hlx::subr_error(hconn &a_hconn)
+{
+        nconn *l_nconn = a_hconn.m_nconn;
+        resp *l_resp = static_cast<resp *>(a_hconn.m_hmsg);
+        a_hconn.m_subr->bump_num_completed();
+        if(l_nconn->get_collect_stats_flag())
+        {
+                l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
+        }
+        // TODO ??? why two status codes ???
+        a_hconn.m_status_code = l_resp->get_status();
+        a_hconn.m_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_resp->get_status());
+        l_nconn->reset_stats();
+        subr::error_cb_t l_error_cb = a_hconn.m_subr->get_error_cb();
+        if(l_error_cb)
+        {
+                l_error_cb(*(a_hconn.m_t_hlx->m_t_conf->m_hlx), *(a_hconn.m_subr), *l_nconn);
+        }
+
+        if(a_hconn.m_subr->get_detach_resp())
+        {
+                if(a_hconn.m_hmsg)
+                {
+                        delete a_hconn.m_hmsg;
+                        a_hconn.m_hmsg = NULL;
+                }
+                a_hconn.m_subr = NULL;
+        }
+        else
+        {
+                if(a_hconn.m_subr->get_type() != SUBR_TYPE_DUPE)
+                {
+                        delete a_hconn.m_subr;
+                        a_hconn.m_subr = NULL;
+                }
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
 {
         //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, a_data);
@@ -868,24 +915,13 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
                         // subr...
                         if(l_hconn->m_subr)
                         {
-                                if(l_nconn->get_collect_stats_flag())
-                                {
-                                        l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
-                                }
                                 if(l_hconn->m_hmsg)
                                 {
                                         resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
                                         l_resp->set_status(901);
                                 }
-                                // TODO ??? why two status codes ???
-                                l_hconn->m_status_code = 901;
-                                l_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_hconn->m_status_code);
-                                l_nconn->reset_stats();
-                                subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
-                                if(l_error_cb)
-                                {
-                                        l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_hconn->m_subr, *l_nconn);
-                                }
+                                l_t_hlx->subr_error(*l_hconn);
+                                // TODO Check error;
                         }
                         ++(l_t_hlx->m_stat.m_num_errors);
                         l_t_hlx->cleanup_hconn(*l_hconn);
@@ -1070,15 +1106,8 @@ int32_t t_hlx::evr_loop_file_timeout_cb(void *a_data)
         {
                 if(l_hconn->m_subr)
                 {
-                        l_hconn->m_subr->bump_num_completed();
-                        subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
-                        if(l_error_cb)
-                        {
-                                //NDBG_PRINT_BT();
-                                l_error_cb(*(l_t_hlx->m_t_conf->m_hlx),
-                                           *l_hconn->m_subr,
-                                           *l_nconn);
-                        }
+                        l_t_hlx->subr_error(*l_hconn);
+                        // TODO Check error;
                 }
         }
         l_t_hlx->cleanup_hconn(*l_hconn);
@@ -1122,14 +1151,10 @@ int32_t t_hlx::evr_loop_file_error_cb(void *a_data)
         ++l_t_hlx->m_stat.m_num_errors;
         if(l_hconn->m_type == DATA_TYPE_CLIENT)
         {
-                l_hconn->m_subr->bump_num_completed();
-                //NDBG_PRINT("l_hconn->m_rqst.m_subr->get_num_completed(): %d\n",
-                //           l_hconn->m_rqst.m_subr->get_num_completed());
-                subr::error_cb_t l_error_cb = l_hconn->m_subr->get_error_cb();
-                if(l_error_cb)
+                if(l_hconn->m_subr)
                 {
-                        //NDBG_PRINT_BT();
-                        l_error_cb(*(l_t_hlx->m_t_conf->m_hlx), *l_hconn->m_subr, *l_nconn);
+                        l_t_hlx->subr_error(*l_hconn);
+                        // TODO Check error;
                 }
         }
         l_t_hlx->cleanup_hconn(*l_hconn);
@@ -1342,7 +1367,8 @@ int32_t t_hlx::async_dns_lookup(const std::string &a_host, uint16_t a_port, void
                                              subr_resolved_cb,
                                              a_data,
                                              m_stat.m_num_resolve_active,
-                                             m_lookup_job_q);
+                                             m_lookup_job_q,
+                                             m_lookup_job_pq);
         if(l_status != STATUS_OK)
         {
                 return STATUS_ERROR;
@@ -1389,11 +1415,12 @@ int32_t t_hlx::try_deq_subr(void)
                         // Try fast
                         l_host_info = l_nresolver->lookup_tryfast(l_subr->get_host(),
                                                                   l_subr->get_port());
-                        //NDBG_PRINT("%sl_host_info%s: %p\n",
-                        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
-                        //           l_host_info);
                         if(l_host_info)
                         {
+                                //NDBG_PRINT("HOST: %s %sl_host_info%s: %p\n",
+                                //           l_subr->get_host().c_str(),
+                                //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+                                //           l_host_info);
                                 l_subr->set_host_info(l_host_info);
                         }
                         else

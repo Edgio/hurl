@@ -1509,6 +1509,12 @@ int main(int argc, char** argv)
                 }
                 std::string l_buf_str;
                 l_buf_str.assign(l_buf, l_size);
+                if(l_buf)
+                {
+                        free(l_buf);
+                        l_buf = NULL;
+                }
+
 
                 // NOTE: rapidjson assert's on errors -interestingly
                 rapidjson::Document l_doc;

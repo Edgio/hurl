@@ -339,6 +339,9 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
 //: ----------------------------------------------------------------------------
 int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
 {
+        //NDBG_PRINT("LABEL: %s --m_host_info: %p\n",
+        //           get_label().c_str(),
+        //           m_host_info);
         // Make a socket.
         m_fd = socket(m_host_info->m_sock_family,
                       m_host_info->m_sock_type,

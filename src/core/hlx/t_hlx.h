@@ -140,6 +140,7 @@ private:
         int32_t start_subr(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
         int32_t try_deq_subr(void);
         bool subr_complete(hconn &a_hconn);
+        int32_t subr_error(hconn &a_hconn);
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
         int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
 #ifdef ASYNC_DNS_SUPPORT
@@ -175,6 +176,7 @@ private:
         int m_async_dns_fd;
         nconn *m_async_dns_nconn;
         nresolver::lookup_job_q_t m_lookup_job_q;
+        nresolver::lookup_job_pq_t m_lookup_job_pq;
 #endif
 
         // is initialized flag
