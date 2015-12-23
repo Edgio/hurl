@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <math.h>
 #include <netinet/in.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <stdio.h>
 
 // For sig_atomic_t
@@ -145,6 +147,21 @@ typedef struct cr_struct
                 m_len = 0;
         }
 } cr_t;
+
+//: ----------------------------------------------------------------------------
+//: \details: Host info
+//: ----------------------------------------------------------------------------
+struct host_info {
+        struct sockaddr_storage m_sa;
+        int m_sa_len;
+        int m_sock_family;
+        int m_sock_type;
+        int m_sock_protocol;
+        uint64_t m_expires_s;
+
+        host_info();
+        void show(void);
+};
 
 //: ----------------------------------------------------------------------------
 //: \details: atomic support -in lieu of C++11 support
@@ -621,7 +638,7 @@ public:
         bool get_detach_resp(void);
         uint64_t get_uid(void);
         hconn *get_requester_hconn(void);
-        const host_info *get_host_info(void);
+        const host_info &get_host_info(void);
         t_hlx *get_t_hlx(void);
         bool get_tls_verify(void);
         bool get_tls_sni(void);
@@ -649,7 +666,7 @@ public:
         void set_detach_resp(bool a_val);
         void set_uid(uint64_t a_uid);
         void set_requester_hconn(hconn *a_hconn);
-        void set_host_info(const host_info *a_host_info);
+        void set_host_info(const host_info &a_host_info);
         void set_t_hlx(t_hlx *a_t_hlx);
         void set_tls_verify(bool a_val);
         void set_tls_sni(bool a_val);
@@ -728,7 +745,7 @@ private:
         bool m_detach_resp;
         uint64_t m_uid;
         hconn *m_requester_hconn;
-        const host_info *m_host_info;
+        host_info m_host_info;
         t_hlx *m_t_hlx;
         bool m_tls_verify;
         bool m_tls_sni;

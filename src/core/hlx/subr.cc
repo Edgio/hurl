@@ -70,7 +70,7 @@ subr::subr(void):
         m_detach_resp(false),
         m_uid(0),
         m_requester_hconn(NULL),
-        m_host_info(NULL),
+        m_host_info(),
         m_t_hlx(NULL),
         m_tls_verify(false),
         m_tls_sni(false),
@@ -396,7 +396,7 @@ hconn *subr::get_requester_hconn(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const host_info *subr::get_host_info(void)
+const host_info &subr::get_host_info(void)
 {
         return m_host_info;
 }
@@ -717,7 +717,7 @@ void subr::set_requester_hconn(hconn *a_hconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_host_info(const host_info *a_host_info)
+void subr::set_host_info(const host_info &a_host_info)
 {
         m_host_info = a_host_info;
 }

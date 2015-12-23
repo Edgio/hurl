@@ -24,10 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/hlx.h"
 #include "nresolver.h"
 #include "ndebug.h"
 #include "time_util.h"
-#include "host_info.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include <udns.h>
@@ -67,7 +67,7 @@ nresolver::nresolver():
         m_retries(S_RETRIES),
         m_max_parallel(S_MAX_PARALLEL_LOOKUPS),
 #endif
-        m_use_cache(false),
+        m_use_cache(true),
         m_cache_mutex(),
         m_ai_cache(NULL)
 {
@@ -95,7 +95,8 @@ nresolver::~nresolver()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nresolver::init(std::string ai_cache_file, bool a_use_cache)
+int32_t nresolver::init(bool a_use_cache,
+                        const std::string &a_ai_cache_file)
 {
         if(m_is_initd)
         {
@@ -104,7 +105,11 @@ int32_t nresolver::init(std::string ai_cache_file, bool a_use_cache)
         m_use_cache = a_use_cache;
         if(m_use_cache)
         {
-                m_ai_cache = new ai_cache(ai_cache_file);
+                m_ai_cache = new ai_cache(a_ai_cache_file);
+        }
+        else
+        {
+                m_ai_cache = NULL;
         }
 
 #ifdef ASYNC_DNS_WITH_UDNS
@@ -261,7 +266,7 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-host_info *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
+int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
         int32_t l_status;
         if(!m_is_initd)
@@ -269,7 +274,7 @@ host_info *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
                 l_status = init();
                 if(l_status != STATUS_OK)
                 {
-                        return NULL;
+                        return STATUS_ERROR;
                 }
         }
 
@@ -285,11 +290,22 @@ host_info *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
         l_cache_key = a_host + ":" + l_port_str;
 
         // Lookup in map
-        pthread_mutex_lock(&m_cache_mutex);
-        l_host_info = m_ai_cache->lookup(l_cache_key);
-        pthread_mutex_unlock(&m_cache_mutex);
+        if(m_use_cache && m_ai_cache)
+        {
+                pthread_mutex_lock(&m_cache_mutex);
+                l_host_info = m_ai_cache->lookup(l_cache_key);
+                pthread_mutex_unlock(&m_cache_mutex);
+        }
 
-        return l_host_info;
+        if(l_host_info)
+        {
+                ao_host_info = *l_host_info;
+                return STATUS_OK;
+        }
+        else
+        {
+                return STATUS_ERROR;
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -297,7 +313,7 @@ host_info *nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
+int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
         // Initialize...
         host_info *l_host_info = NULL;
@@ -323,7 +339,7 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
                 //NDBG_PRINT("Error getaddrinfo '%s': %s\n",
                 //           a_host.c_str(), gai_strerror(gaierr));
                 delete l_host_info;
-                return NULL;
+                return STATUS_ERROR;
         }
 
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
@@ -366,7 +382,7 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
                               (unsigned long) sizeof(l_host_info->m_sa),
                               (unsigned long) l_addrinfo_v4->ai_addrlen);
                         delete l_host_info;
-                        return NULL;
+                        return STATUS_ERROR;
                 }
                 l_host_info->m_sock_family = l_addrinfo_v4->ai_family;
                 l_host_info->m_sock_type = l_addrinfo_v4->ai_socktype;
@@ -396,7 +412,7 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
                               (unsigned long) sizeof(l_host_info->m_sa),
                               (unsigned long) l_addrinfo_v6->ai_addrlen);
                         delete l_host_info;
-                        return NULL;
+                        return STATUS_ERROR;
                 }
                 l_host_info->m_sock_family = l_addrinfo_v6->ai_family;
                 l_host_info->m_sock_type = l_addrinfo_v6->ai_socktype;
@@ -420,18 +436,36 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
                 NDBG_PRINT("Error no valid address found for host %s\n",
                            a_host.c_str());
                 delete l_host_info;
-                return NULL;
+                return STATUS_ERROR;
         }
 
         // Set to 5min -cuz getaddr-info stinks...
         l_host_info->m_expires_s = get_time_s() + 300;
 
         //show_host_info();
-        if(m_ai_cache)
+        if(m_use_cache && m_ai_cache)
         {
                 l_host_info = m_ai_cache->lookup(get_cache_key(a_host, a_port), l_host_info);
         }
-        return l_host_info;
+
+        int32_t l_retval = STATUS_OK;
+        if(l_host_info)
+        {
+                ao_host_info = *l_host_info;
+                l_retval = STATUS_OK;
+        }
+        else
+        {
+                l_retval = STATUS_ERROR;
+        }
+
+        if(l_host_info && (!m_use_cache || !m_ai_cache))
+        {
+                delete l_host_info;
+                l_host_info = NULL;
+        }
+
+        return l_retval;
 }
 
 //: ----------------------------------------------------------------------------
@@ -439,7 +473,7 @@ host_info *nresolver::lookup_inline(const std::string &a_host, uint16_t a_port)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-host_info *nresolver::lookup_sync(const std::string &a_host, uint16_t a_port)
+int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
         //           ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
@@ -450,18 +484,17 @@ host_info *nresolver::lookup_sync(const std::string &a_host, uint16_t a_port)
                 l_status = init();
                 if(l_status != STATUS_OK)
                 {
-                        return NULL;
+                        return STATUS_ERROR;
                 }
         }
 
         // tryfast lookup
-        host_info *l_host_info = NULL;
-        l_host_info = lookup_tryfast(a_host, a_port);
-        if(l_host_info)
+        l_status = lookup_tryfast(a_host, a_port, ao_host_info);
+        if(l_status == STATUS_OK)
         {
-                return l_host_info;
+                return STATUS_OK;
         }
-        return lookup_inline(a_host, a_port);
+        return lookup_inline(a_host, a_port, ao_host_info);
 }
 
 //: ----------------------------------------------------------------------------
@@ -501,16 +534,6 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 }
                 return;
         }
-        ai_cache *l_ai_cache = l_job->m_nresolver->get_ai_cache();
-        if(!l_ai_cache)
-        {
-                if (a_result)
-                {
-                        free(a_result);
-                }
-                return;
-        }
-
         if(!a_result ||
           (a_result->dnsa4_nrr <= 0))
         {
@@ -568,10 +591,13 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         }
         l_host_info->m_expires_s = get_time_s() + l_ttl_s;
 
-        std::string l_cache_key = get_cache_key(l_job->m_host, l_job->m_port);
-        pthread_mutex_lock(&(l_job->m_nresolver->m_cache_mutex));
-        l_host_info = l_ai_cache->lookup(l_cache_key, l_host_info);
-        pthread_mutex_unlock(&(l_job->m_nresolver->m_cache_mutex));
+        if(l_job->m_nresolver->m_use_cache && l_job->m_nresolver->get_ai_cache())
+        {
+                std::string l_cache_key = get_cache_key(l_job->m_host, l_job->m_port);
+                pthread_mutex_lock(&(l_job->m_nresolver->m_cache_mutex));
+                l_host_info = l_job->m_nresolver->get_ai_cache()->lookup(l_cache_key, l_host_info);
+                pthread_mutex_unlock(&(l_job->m_nresolver->m_cache_mutex));
+        }
 
         // Add to cache
         if(l_job->m_cb)

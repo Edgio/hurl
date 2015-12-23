@@ -131,7 +131,7 @@ private:
                             hconn_type_t a_type,
                             bool a_save);
 
-        nconn * get_proxy_conn(const host_info *a_host_info,
+        nconn * get_proxy_conn(const host_info &a_host_info,
                                const std::string &a_label,
                                scheme_t a_scheme,
                                bool a_save,

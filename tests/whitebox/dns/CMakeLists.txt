@@ -28,12 +28,14 @@ cmake_minimum_required(VERSION 2.8.0)
 # ------------------------------------------------
 SET(SRCS wb_ai_cache.cc
          ../../../src/core/dns/ai_cache.cc
+         ../../../src/core/dns/host_info.cc
          ../../../ext/base64/base64.cc
          ../../../src/core/support/time_util.cc
          ../../../src/core/ndebug/ndebug.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../ext
+                    ../../../include
                     ../../../src/core/dns/
                     ../../../src/core/support/
                     ../../../src/core/ndebug/)
@@ -51,12 +53,14 @@ SET(SRCS wb_nresolver.cc
          ../../../src/core/evr/evr_select.cc
          ../../../src/core/dns/ai_cache.cc
          ../../../src/core/dns/nresolver.cc
+         ../../../src/core/dns/host_info.cc
          ../../../ext/base64/base64.cc
          ../../../src/core/support/time_util.cc
          ../../../src/core/ndebug/ndebug.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../ext
+                    ../../../include
                     ../../../src/core/dns/
                     ../../../src/core/evr/
                     ../../../src/core/support/

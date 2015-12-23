@@ -145,7 +145,7 @@ public:
         void set_label(const std::string &a_label) {m_label = a_label;}
         void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
-        void set_host_info(const host_info *a_host_info) {m_host_info = a_host_info;}
+        void set_host_info(const host_info &a_host_info) {m_host_info = a_host_info;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
         void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
         void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
@@ -210,7 +210,7 @@ protected:
         uint64_t m_request_start_time_us;
         conn_status_t m_conn_status;
         std::string m_last_error;
-        const host_info* m_host_info;
+        host_info m_host_info;
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;

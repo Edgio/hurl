@@ -324,7 +324,7 @@ int32_t t_hlx::queue_output(hconn &a_hconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_hlx::get_proxy_conn(const host_info *a_host_info,
+nconn *t_hlx::get_proxy_conn(const host_info &a_host_info,
                              const std::string &a_label,
                              scheme_t a_scheme,
                              bool a_save,
@@ -1340,7 +1340,7 @@ int32_t t_hlx::subr_resolved_cb(const host_info *a_host_info, void *a_data)
                 return STATUS_OK;
         }
         //NDBG_PRINT("l_subr: %p\n", l_subr);
-        l_subr->set_host_info(a_host_info);
+        l_subr->set_host_info(*a_host_info);
         ++(l_t_hlx->m_stat.m_num_resolved);
         l_t_hlx->add_subr(*l_subr);
         return STATUS_OK;
@@ -1401,79 +1401,76 @@ int32_t t_hlx::try_deq_subr(void)
                 int32_t l_status;
                 std::string l_error;
 
-                const host_info *l_host_info = l_subr->get_host_info();
-                //NDBG_PRINT("l_host_info: %p\n", l_host_info);
-                if(!l_host_info)
+                nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
+                if(!l_nresolver)
                 {
-                        nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
-                        if(!l_nresolver)
-                        {
-                                NDBG_PRINT("Error no resolver\n");
-                                return STATUS_ERROR;
-                        }
+                        NDBG_PRINT("Error no resolver\n");
+                        return STATUS_ERROR;
+                }
 
-                        // Try fast
-                        l_host_info = l_nresolver->lookup_tryfast(l_subr->get_host(),
-                                                                  l_subr->get_port());
-                        if(l_host_info)
-                        {
-                                //NDBG_PRINT("HOST: %s %sl_host_info%s: %p\n",
-                                //           l_subr->get_host().c_str(),
-                                //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
-                                //           l_host_info);
-                                l_subr->set_host_info(l_host_info);
-                        }
-                        else
-                        {
+                // Try fast
+                host_info l_host_info;
+                l_status = l_nresolver->lookup_tryfast(l_subr->get_host(),
+                                                       l_subr->get_port(),
+                                                       l_host_info);
+                if(l_status == STATUS_OK)
+                {
+                        //NDBG_PRINT("HOST: %s %sl_host_info%s: %p\n",
+                        //           l_subr->get_host().c_str(),
+                        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+                        //           l_host_info);
+                        l_subr->set_host_info(l_host_info);
+                }
+                else
+                {
 #ifdef ASYNC_DNS_SUPPORT
-                                // If try fast fails lookup async
-                                l_subr->set_t_hlx(this);
+                        // If try fast fails lookup async
+                        l_subr->set_t_hlx(this);
 
-                                if(!m_async_dns_is_initd)
-                                {
-                                        l_status = init_async_dns();
-                                        if(l_status != STATUS_OK)
-                                        {
-                                                return STATUS_ERROR;
-                                        }
-                                }
-
-                                ++(m_stat.m_num_resolve_req);
-                                l_status = async_dns_lookup(l_subr->get_host(), l_subr->get_port(), l_subr);
+                        if(!m_async_dns_is_initd)
+                        {
+                                l_status = init_async_dns();
                                 if(l_status != STATUS_OK)
                                 {
-                                        pthread_mutex_lock(&m_subr_q_mutex);
-                                        m_subr_queue.pop();
-                                        pthread_mutex_unlock(&m_subr_q_mutex);
-                                        continue;
+                                        return STATUS_ERROR;
                                 }
+                        }
+
+                        ++(m_stat.m_num_resolve_req);
+                        l_status = async_dns_lookup(l_subr->get_host(), l_subr->get_port(), l_subr);
+                        if(l_status != STATUS_OK)
+                        {
                                 pthread_mutex_lock(&m_subr_q_mutex);
                                 m_subr_queue.pop();
                                 pthread_mutex_unlock(&m_subr_q_mutex);
                                 continue;
-#else
-                                // sync dns
-                                l_host_info = l_nresolver->lookup_sync(l_subr->get_host(), l_subr->get_port());
-                                if(!l_host_info)
-                                {
-                                        //NDBG_PRINT("Error l_host_info null\n");
-                                        ++m_stat.m_num_errors;
-                                        l_subr->bump_num_requested();
-                                        l_subr->bump_num_completed();
-                                        subr::error_cb_t l_error_cb = l_subr->get_error_cb();
-                                        if(l_error_cb)
-                                        {
-                                                nconn_tcp l_nconn;
-                                                l_nconn.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
-                                                l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
-                                        }
-                                        m_subr_queue.pop();
-                                        continue;
-                                }
-                                l_subr->set_host_info(l_host_info);
-                                ++(m_stat.m_num_resolved);
-#endif
                         }
+                        pthread_mutex_lock(&m_subr_q_mutex);
+                        m_subr_queue.pop();
+                        pthread_mutex_unlock(&m_subr_q_mutex);
+                        continue;
+#else
+                        // sync dns
+                        l_status = l_nresolver->lookup_sync(l_subr->get_host(), l_subr->get_port(), l_host_info);
+                        if(l_status != STATUS_OK)
+                        {
+                                //NDBG_PRINT("Error l_host_info null\n");
+                                ++m_stat.m_num_errors;
+                                l_subr->bump_num_requested();
+                                l_subr->bump_num_completed();
+                                subr::error_cb_t l_error_cb = l_subr->get_error_cb();
+                                if(l_error_cb)
+                                {
+                                        nconn_tcp l_nconn;
+                                        l_nconn.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
+                                        l_error_cb(*(m_t_conf->m_hlx), *l_subr, l_nconn);
+                                }
+                                m_subr_queue.pop();
+                                continue;
+                        }
+                        l_subr->set_host_info(l_host_info);
+                        ++(m_stat.m_num_resolved);
+#endif
                 }
 
                 nconn *l_nconn = NULL;

@@ -67,7 +67,6 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nconn;
-struct host_info;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -136,9 +135,8 @@ public:
         static const uint64_t S_RESOLVER_ID         = 0xFFFFDEADBEEF0001UL;
         static const uint32_t S_TIMEOUT_S = 4;
         static const uint32_t S_RETRIES = 3;
-
-#endif
         static const uint32_t S_MAX_PARALLEL_LOOKUPS = 10;
+#endif
         static const uint32_t S_MIN_TTL_S = 10;
 
         //: ------------------------------------------------
@@ -147,14 +145,17 @@ public:
         nresolver();
         ~nresolver();
 
-        int32_t init(std::string addr_info_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE,
-                     bool a_use_cache = true);
+        int32_t init(bool a_use_cache = true,
+                     const std::string &a_ai_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE);
         void add_resolver_host(const std::string a_server);
         void set_port(uint16_t a_port) {m_port = a_port;}
-        host_info *lookup_tryfast(const std::string &a_host, uint16_t a_port);
-        host_info *lookup_sync(const std::string &a_host, uint16_t a_port);
         bool get_use_cache(void) { return m_use_cache;}
         ai_cache *get_ai_cache(void) {return m_ai_cache;}
+
+        // Lookups
+        int32_t lookup_tryfast(const std::string &a_host, uint16_t a_port, host_info &ao_host_info);
+        int32_t lookup_sync(const std::string &a_host, uint16_t a_port, host_info &ao_host_info);
+
 #ifdef ASYNC_DNS_SUPPORT
         int32_t init_async(void** ao_ctx, int &ao_fd);
         int32_t destroy_async(void* a_ctx, int &a_fd,
@@ -182,7 +183,7 @@ private:
         nresolver& operator=(const nresolver &);
         nresolver(const nresolver &);
 
-        host_info *lookup_inline(const std::string &a_host, uint16_t a_port);
+        int32_t lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info);
 
         //: ------------------------------------------------
         //: Private static methods

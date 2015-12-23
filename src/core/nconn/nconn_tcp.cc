@@ -28,7 +28,6 @@
 #include "time_util.h"
 #include "evr.h"
 #include "ndebug.h"
-#include "host_info.h"
 
 // Fcntl and friends
 #include <unistd.h>
@@ -343,9 +342,9 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
         //           get_label().c_str(),
         //           m_host_info);
         // Make a socket.
-        m_fd = socket(m_host_info->m_sock_family,
-                      m_host_info->m_sock_type,
-                      m_host_info->m_sock_protocol);
+        m_fd = socket(m_host_info.m_sock_family,
+                      m_host_info.m_sock_type,
+                      m_host_info.m_sock_protocol);
 
         //NDBG_OUTPUT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
         if (m_fd < 0)
@@ -449,8 +448,8 @@ int32_t nconn_tcp::ncconnect(evr_loop *a_evr_loop)
 
 state_top:
         l_connect_status = connect(m_fd,
-                                   ((struct sockaddr*) &(m_host_info->m_sa)),
-                                   (m_host_info->m_sa_len));
+                                   ((struct sockaddr*) &(m_host_info.m_sa)),
+                                   (m_host_info.m_sa_len));
         //NDBG_PRINT("%sCONNECT%s[%3d]: Retry: %d Status %3d. Reason[%d]: %s\n",
         //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
         //           m_fd, l_retry_connect_count, l_connect_status,

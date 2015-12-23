@@ -54,7 +54,7 @@ public:
         //: ------------------------------------------------
         //: Public methods
         //: ------------------------------------------------
-        ai_cache(std::string a_cache_file = "NRESOLVER_DEFAULT_AI_CACHE_FILE");
+        ai_cache(const std::string &a_ai_cache_file);
         ~ai_cache();
         host_info *lookup(const std::string a_label);
         host_info *lookup(const std::string a_label, host_info *a_host_info);
@@ -72,8 +72,11 @@ private:
         // Disallow copy/assign
         ai_cache& operator=(const ai_cache &);
         ai_cache(const ai_cache &);
-        int32_t sync(void);
-        int32_t read(void);
+
+        static int32_t sync(const std::string &a_ai_cache_file,
+                            const ai_cache_map_t &a_ai_cache_map);
+        static int32_t read(const std::string &a_ai_cache_file,
+                            ai_cache_map_t &ao_ai_cache_map);
 
         //: ------------------------------------------------
         //: Private members

@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/hlx.h"
 #include "nresolver.h"
 #include "ai_cache.h"
-#include "host_info.h"
 #include "time_util.h"
 #include "catch/catch.hpp"
 
@@ -99,14 +99,15 @@ TEST_CASE( "nresolver test", "[nresolver]" )
         SECTION("Validate No cache")
         {
                 ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
-                l_nresolver->init("", false);
-                ns_hlx::host_info *l_host_info = NULL;
-                l_host_info = l_nresolver->lookup_tryfast("google.com", 80);
-                REQUIRE(( l_host_info == NULL ));
-                l_host_info = l_nresolver->lookup_sync("google.com", 80);
-                REQUIRE(( l_host_info != NULL ));
-                l_host_info = l_nresolver->lookup_tryfast("google.com", 80);
-                REQUIRE(( l_host_info == NULL ));
+                l_nresolver->init(false, "");
+                ns_hlx::host_info l_host_info;
+                int32_t l_status;
+                l_status = l_nresolver->lookup_tryfast("google.com", 80, l_host_info);
+                REQUIRE(( l_status == -1 ));
+                l_status = l_nresolver->lookup_sync("google.com", 80, l_host_info);
+                REQUIRE(( l_status == 0 ));
+                l_status = l_nresolver->lookup_tryfast("google.com", 80, l_host_info);
+                REQUIRE(( l_status == -1 ));
                 bool l_use_cache = l_nresolver->get_use_cache();
                 ns_hlx::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
                 REQUIRE(( l_use_cache == false ));
@@ -116,16 +117,17 @@ TEST_CASE( "nresolver test", "[nresolver]" )
         SECTION("Validate cache")
         {
                 ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
-                l_nresolver->init("", true);
-                ns_hlx::host_info *l_host_info = NULL;
-                l_host_info = l_nresolver->lookup_sync("google.com", 80);
-                REQUIRE(( l_host_info != NULL ));
-                l_host_info = l_nresolver->lookup_sync("yahoo.com", 80);
-                REQUIRE(( l_host_info != NULL ));
-                l_host_info = l_nresolver->lookup_tryfast("yahoo.com", 80);
-                REQUIRE(( l_host_info != NULL ));
-                l_host_info = l_nresolver->lookup_tryfast("google.com", 80);
-                REQUIRE(( l_host_info != NULL ));
+                l_nresolver->init(true);
+                ns_hlx::host_info l_host_info;
+                int32_t l_status;
+                l_status = l_nresolver->lookup_sync("google.com", 80, l_host_info);
+                REQUIRE(( l_status == 0 ));
+                l_status = l_nresolver->lookup_sync("yahoo.com", 80, l_host_info);
+                REQUIRE(( l_status == 0 ));
+                l_status = l_nresolver->lookup_tryfast("yahoo.com", 80, l_host_info);
+                REQUIRE(( l_status == 0 ));
+                l_status = l_nresolver->lookup_tryfast("google.com", 80, l_host_info);
+                REQUIRE(( l_status == 0 ));
                 bool l_use_cache = l_nresolver->get_use_cache();
                 ns_hlx::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
                 REQUIRE(( l_use_cache == true ));

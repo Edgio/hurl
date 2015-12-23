@@ -28,7 +28,7 @@
 #include "base64/base64.h"
 #include "time_util.h"
 #include "ndebug.h"
-#include "host_info.h"
+#include "hlx/hlx.h"
 
 // json support
 //#pragma GCC diagnostic push
@@ -52,19 +52,18 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-ai_cache::ai_cache(std::string a_cache_file):
+ai_cache::ai_cache(const std::string &a_ai_cache_file):
         m_ai_cache_map(),
-        m_ai_cache_file(a_cache_file)
+        m_ai_cache_file(a_ai_cache_file)
 {
-        if(m_ai_cache_file.empty())
+        if(!m_ai_cache_file.empty())
         {
-                m_ai_cache_file = NRESOLVER_DEFAULT_AI_CACHE_FILE;
-        }
-        int32_t l_status = read();
-        if(l_status != STATUS_OK)
-        {
-                //NDBG_PRINT("Error: read with cache file: %s.\n",
-                //                m_ai_cache_file.c_str());
+                int32_t l_status = read(m_ai_cache_file, m_ai_cache_map);
+                if(l_status != STATUS_OK)
+                {
+                        //NDBG_PRINT("Error: read with cache file: %s.\n",
+                        //                m_ai_cache_file.c_str());
+                }
         }
 }
 
@@ -75,11 +74,14 @@ ai_cache::ai_cache(std::string a_cache_file):
 //: ----------------------------------------------------------------------------
 ai_cache::~ai_cache()
 {
-        int32_t l_status = sync();
-        if(l_status != STATUS_OK)
+        if(!m_ai_cache_file.empty())
         {
-                //NDBG_PRINT("Error: sync with ai_cache file: %s.\n",
-                //                m_ai_cache_file.c_str());
+                int32_t l_status = sync(m_ai_cache_file, m_ai_cache_map);
+                if(l_status != STATUS_OK)
+                {
+                        //NDBG_PRINT("Error: sync with ai_cache file: %s.\n",
+                        //                m_ai_cache_file.c_str());
+                }
         }
 
         for(ai_cache_map_t::iterator i_h = m_ai_cache_map.begin();
@@ -106,6 +108,7 @@ host_info *ai_cache::lookup(const std::string a_label)
         {
                 l_host_info = m_ai_cache_map[a_label];
                 // Check expires
+                //NDBG_PRINT("Seconds left: %ld\n", (l_host_info->m_expires_s - get_time_s()));
                 if(l_host_info->m_expires_s &&
                    (get_time_s() > l_host_info->m_expires_s))
                 {
@@ -153,8 +156,13 @@ void ai_cache::add(const std::string a_label, host_info *a_host_info)
         ai_cache_map_t::iterator i_h = m_ai_cache_map.find(a_label);
         if(i_h != m_ai_cache_map.end())
         {
-                m_ai_cache_map[a_label] = a_host_info;
+                if(i_h->second)
+                {
+                        delete i_h->second;
+                        i_h->second = NULL;
+                }
         }
+        m_ai_cache_map[a_label] = a_host_info;
 }
 
 //: ----------------------------------------------------------------------------
@@ -162,20 +170,21 @@ void ai_cache::add(const std::string a_label, host_info *a_host_info)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t ai_cache::sync(void)
+int32_t ai_cache::sync(const std::string &a_ai_cache_file,
+                       const ai_cache_map_t &a_ai_cache_map)
 {
         int32_t l_status = 0;
-        FILE *l_file_ptr = fopen(m_ai_cache_file.c_str(), "w+");
+        FILE *l_file_ptr = fopen(a_ai_cache_file.c_str(), "w+");
         if(l_file_ptr == NULL)
         {
                 //NDBG_PRINT("Error performing fopen. Reason: %s\n", strerror(errno));
                 return STATUS_ERROR;
         }
         fprintf(l_file_ptr, "[");
-        uint32_t l_len = m_ai_cache_map.size();
+        uint32_t l_len = a_ai_cache_map.size();
         uint32_t i_len = 0;
-        for(ai_cache_map_t::const_iterator i_entry = m_ai_cache_map.begin();
-            i_entry != m_ai_cache_map.end();
+        for(ai_cache_map_t::const_iterator i_entry = a_ai_cache_map.begin();
+            i_entry != a_ai_cache_map.end();
             ++i_entry)
         {
                 std::string l_ai_val64;
@@ -205,11 +214,12 @@ int32_t ai_cache::sync(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t ai_cache::read(void)
+int32_t ai_cache::read(const std::string &a_ai_cache_file,
+                       ai_cache_map_t &ao_ai_cache_map)
 {
         struct stat l_stat;
         int32_t l_status = STATUS_OK;
-        l_status = stat(m_ai_cache_file.c_str(), &l_stat);
+        l_status = stat(a_ai_cache_file.c_str(), &l_stat);
         if(l_status != 0)
         {
                 //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n",
@@ -225,7 +235,7 @@ int32_t ai_cache::read(void)
         }
 
         FILE * l_file;
-        l_file = fopen(m_ai_cache_file.c_str(),"r");
+        l_file = fopen(a_ai_cache_file.c_str(),"r");
         if (NULL == l_file)
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: %s\n",
@@ -288,7 +298,7 @@ int32_t ai_cache::read(void)
                                 l_ai_decoded = base64_decode(l_ai);
                                 host_info *l_host_info = new host_info();
                                 memcpy(l_host_info, l_ai_decoded.data(), l_ai_decoded.length());
-                                m_ai_cache_map[l_host] = l_host_info;
+                                ao_ai_cache_map[l_host] = l_host_info;
                         }
                 }
         }

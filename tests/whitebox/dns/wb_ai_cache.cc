@@ -24,8 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/hlx.h"
 #include "ai_cache.h"
-#include "host_info.h"
 #include "time_util.h"
 #include "catch/catch.hpp"
 
@@ -42,6 +42,7 @@ TEST_CASE( "ai cache test", "[ai_cache]" )
                 ns_hlx::ai_cache *l_ai_cache = new ns_hlx::ai_cache(l_bad_ai_cache_file);
                 std::string l_handle = "MY_HANDLE";
                 ns_hlx::host_info *l_host_info = new ns_hlx::host_info();
+                l_host_info->m_expires_s = ns_hlx::get_time_s() + 100;
                 l_ai_cache->add(l_handle, l_host_info);
                 l_host_info = l_ai_cache->lookup(l_handle);
                 REQUIRE(( l_host_info != NULL ));

@@ -96,7 +96,7 @@ hlx::hlx(void):
         m_subr_queue(),
         m_nresolver(NULL),
         m_use_ai_cache(true),
-        m_ai_cache(),
+        m_ai_cache(NRESOLVER_DEFAULT_AI_CACHE_FILE),
         m_start_time_ms(0),
         m_t_hlx_list(),
         m_t_hlx_subr_iter(),
@@ -831,7 +831,7 @@ int hlx::init(void)
         // Init resolver with cache
         // -------------------------------------------
         int32_t l_ldb_init_status;
-        l_ldb_init_status = m_nresolver->init(m_ai_cache, m_use_ai_cache);
+        l_ldb_init_status = m_nresolver->init(m_use_ai_cache, m_ai_cache);
         if(STATUS_OK != l_ldb_init_status)
         {
                 NDBG_PRINT("Error performing resolver init with ai_cache: %s\n",

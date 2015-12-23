@@ -61,6 +61,7 @@ SET(SRCS
     ./nconn/nconn_pool.cc
     ./dns/nresolver.cc
     ./dns/ai_cache.cc
+    ./dns/host_info.cc
     ./hlx/hmsg.cc
     ./hlx/rqst.cc
     ./hlx/resp.cc
