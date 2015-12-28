@@ -711,8 +711,11 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
         }
 
         // Cancel last timer
-        l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
-        l_hconn->m_timer_obj = NULL;
+        if(l_hconn->m_timer_obj)
+        {
+                l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
+                l_hconn->m_timer_obj = NULL;
+        }
 
         // Get timeout ms
         uint32_t l_timeout_ms = 0;
@@ -813,10 +816,13 @@ int32_t t_hlx::evr_loop_file_writeable_cb(void *a_data)
 
 done:
         // Add idle timeout
-        l_t_hlx->m_evr_loop->add_timer(l_timeout_ms,
-                                       evr_loop_file_timeout_cb,
-                                       l_nconn,
-                                       &(l_hconn->m_timer_obj));
+        if(!l_hconn->m_timer_obj)
+        {
+                l_t_hlx->m_evr_loop->add_timer(l_timeout_ms,
+                                               evr_loop_file_timeout_cb,
+                                               l_nconn,
+                                               &(l_hconn->m_timer_obj));
+        }
         return STATUS_OK;
 }
 
@@ -846,17 +852,20 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         }
 #endif
 
-        // Cancel last timer
-        l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
-        l_hconn->m_timer_obj = NULL;
-
         // Server -incoming client connections
         if(l_nconn->is_listening())
         {
                 return l_t_hlx->handle_listen_ev(*l_hconn, *l_nconn);
         }
 
-        //NDBG_PRINT("nconn host: %s --l_hconn->m_type: %d\n", l_nconn->m_host.c_str(), l_hconn->m_type);
+        //NDBG_PRINT("nconn host: %s --l_hconn->m_type: %d\n", l_nconn->get_label().c_str(), l_hconn->m_type);
+
+        // Cancel last timer
+        if(l_hconn->m_timer_obj)
+        {
+                l_t_hlx->m_evr_loop->cancel_timer(l_hconn->m_timer_obj);
+                l_hconn->m_timer_obj = NULL;
+        }
 
         // Get timeout ms
         uint32_t l_timeout_ms = 0;
@@ -1072,10 +1081,13 @@ int32_t t_hlx::evr_loop_file_readable_cb(void *a_data)
         }
 
         // Add idle timeout
-        l_t_hlx->m_evr_loop->add_timer(l_timeout_ms,
-                                       evr_loop_file_timeout_cb,
-                                       l_nconn,
-                                       &(l_hconn->m_timer_obj));
+        if(!l_hconn->m_timer_obj)
+        {
+                l_t_hlx->m_evr_loop->add_timer(l_timeout_ms,
+                                               evr_loop_file_timeout_cb,
+                                               l_nconn,
+                                               &(l_hconn->m_timer_obj));
+        }
         return STATUS_OK;
 }
 

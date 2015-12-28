@@ -270,7 +270,7 @@ void command_exec(settings_struct_t &a_settings)
                 }
 
                 // TODO add define...
-                usleep(500000);
+                usleep(1000000);
 
                 if(a_settings.m_show_stats && !a_settings.m_verbose)
                 {
