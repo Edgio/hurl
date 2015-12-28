@@ -421,7 +421,7 @@ public:
 
         void clear(void);
 
-        const std::string &get_path();
+        const std::string &get_uri_path();
 
         // Debug
         void show();
@@ -429,7 +429,6 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        std::string m_url;
 
         // ---------------------------------------
         // raw http request offsets
@@ -439,9 +438,18 @@ public:
 
 private:
         // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        int32_t parse_uri(void);
+
+        // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        std::string m_path;
+        bool m_uri_parsed;
+        std::string m_uri;
+        std::string m_uri_path;
+        std::string m_uri_query;
+        std::string m_uri_fragment;
 };
 
 //: ----------------------------------------------------------------------------
@@ -475,6 +483,7 @@ public:
         // ---------------------------------------
         cr_t m_p_status;
 
+        // TODO REMOVE
         const char *m_tls_info_protocol_str;
         const char *m_tls_info_cipher_str;
 

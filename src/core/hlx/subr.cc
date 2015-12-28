@@ -976,8 +976,9 @@ int32_t subr::init_with_url(const std::string &a_url)
         //NDBG_PRINT("Parse url:           %s\n", a_url.c_str());
         //NDBG_PRINT("Parse a_wildcarding: %d\n", a_wildcarding);
         http_parser_url l_url;
+        http_parser_url_init(&l_url);
         // silence bleating memory sanitizers...
-        memset(&l_url, 0, sizeof(l_url));
+        //memset(&l_url, 0, sizeof(l_url));
         int l_status;
         l_status = http_parser_parse_url(l_url_fixed.c_str(), l_url_fixed.length(), 0, &l_url);
         if(l_status != 0)

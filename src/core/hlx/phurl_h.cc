@@ -64,6 +64,7 @@ phurl_h_resp::~phurl_h_resp(void)
                         *i_resp = NULL;
                 }
         }
+        pthread_mutex_destroy(&m_mutex);
 }
 
 //: ----------------------------------------------------------------------------

@@ -112,7 +112,6 @@ int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length)
                 rqst *l_rqst = static_cast<rqst *>(l_hconn->m_hmsg);
                 l_rqst->m_p_url.m_off = CALC_OFFSET(l_hconn, a_at);
                 l_rqst->m_p_url.m_len = a_length;
-                l_rqst->m_url.assign(a_at, a_length);
         }
         return 0;
 }
