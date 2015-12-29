@@ -6,4 +6,5 @@
   f. rqst splitting (test with pipelined requests)
   g. set separate timeouts resolve/connect/idle
   h. error callback indicate error type
+  g. error responses for handlers
 
