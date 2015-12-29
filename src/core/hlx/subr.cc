@@ -627,7 +627,7 @@ void subr::set_timeout_s(int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_host(std::string a_val)
+void subr::set_host(const std::string &a_val)
 {
         m_host = a_val;
 }
@@ -637,7 +637,7 @@ void subr::set_host(std::string a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_hostname(std::string a_val)
+void subr::set_hostname(const std::string &a_val)
 {
         m_hostname = a_val;
 }
@@ -647,7 +647,7 @@ void subr::set_hostname(std::string a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_id(std::string a_val)
+void subr::set_id(const std::string &a_val)
 {
         m_id = a_val;
 }
@@ -657,7 +657,7 @@ void subr::set_id(std::string a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_where(std::string a_val)
+void subr::set_where(const std::string &a_val)
 {
         m_where = a_val;
 }
@@ -838,6 +838,16 @@ uint32_t subr::get_body_len(void)
 //: ----------------------------------------------------------------------------
 //:                             Request Setters
 //: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_path(const std::string &a_path)
+{
+        m_path = a_path;
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

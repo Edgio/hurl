@@ -668,10 +668,10 @@ public:
         void set_create_req_cb(create_req_cb_t a_cb);
         void set_type(subr_type_t a_type);
         void set_timeout_s(int32_t a_val);
-        void set_host(std::string a_val);
-        void set_hostname(std::string a_val);
-        void set_id(std::string a_val);
-        void set_where(std::string a_val);
+        void set_host(const std::string &a_val);
+        void set_hostname(const std::string &a_val);
+        void set_id(const std::string &a_val);
+        void set_where(const std::string &a_val);
         void set_port(uint16_t a_val);
         void set_data(void *a_data);
         void set_detach_resp(bool a_val);
@@ -694,6 +694,7 @@ public:
         uint32_t get_body_len(void);
 
         // Setters
+        void set_path(const std::string &a_path);
         void set_body_data(const char *a_ptr, uint32_t a_len);
         void set_verb(const std::string &a_verb);
         int set_header(const std::string &a_header);
