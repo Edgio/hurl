@@ -238,6 +238,7 @@ int32_t rqst::parse_uri()
 //: ----------------------------------------------------------------------------
 void rqst::show(void)
 {
+        m_q->reset_read();
         cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
         for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)

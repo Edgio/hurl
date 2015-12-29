@@ -105,6 +105,7 @@ void resp::set_status(uint16_t a_code)
 //: ----------------------------------------------------------------------------
 void resp::show(void)
 {
+        m_q->reset_read();
         NDBG_OUTPUT("HTTP/%d.%d %u ", m_http_major, m_http_minor, m_status);
         print_part(*m_q, m_p_status.m_off, m_p_status.m_len);
         NDBG_OUTPUT("\r\n");
