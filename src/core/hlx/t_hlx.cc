@@ -1725,7 +1725,7 @@ int32_t t_hlx::handle_req(hconn &a_hconn, url_router *a_url_router)
         url_pmap_t l_pmap;
         //NDBG_PRINT("a_url_router:   %p\n", a_url_router);
         //NDBG_PRINT("a_req.m_method: %d\n", l_rqst->m_method);
-        rqst_h *l_rqst_h = (rqst_h *)a_url_router->find_route(l_rqst->get_uri_path(),l_pmap);
+        rqst_h *l_rqst_h = (rqst_h *)a_url_router->find_route(l_rqst->get_url_path(),l_pmap);
         //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
         h_resp_t l_hdlr_status = H_RESP_NONE;
         if(l_rqst_h)

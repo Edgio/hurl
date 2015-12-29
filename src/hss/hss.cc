@@ -103,7 +103,7 @@ class file_getter: public ns_hlx::default_rqst_h
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 //printf("GET_PATH: %s\n", a_rqst.get_path().c_str());
-                return get_file(a_hlx, a_hconn, a_rqst, a_rqst.get_uri_path());
+                return get_file(a_hlx, a_hconn, a_rqst, a_rqst.get_url_path());
         }
 };
 

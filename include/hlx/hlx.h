@@ -421,7 +421,9 @@ public:
 
         void clear(void);
 
-        const std::string &get_uri_path();
+        const std::string &get_url_path();
+        const std::string &get_url_query();
+        const std::string &get_url_fragment();
 
         // Debug
         void show();
@@ -445,11 +447,11 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        bool m_uri_parsed;
-        std::string m_uri;
-        std::string m_uri_path;
-        std::string m_uri_query;
-        std::string m_uri_fragment;
+        bool m_url_parsed;
+        std::string m_url;
+        std::string m_url_path;
+        std::string m_url_query;
+        std::string m_url_fragment;
 };
 
 //: ----------------------------------------------------------------------------

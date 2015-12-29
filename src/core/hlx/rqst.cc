@@ -42,11 +42,11 @@ rqst::rqst(void):
         hmsg(),
         m_p_url(),
         m_method(),
-        m_uri_parsed(false),
-        m_uri(),
-        m_uri_path(),
-        m_uri_query(),
-        m_uri_fragment()
+        m_url_parsed(false),
+        m_url(),
+        m_url_path(),
+        m_url_query(),
+        m_url_fragment()
 {
         m_type = hmsg::TYPE_RQST;
 }
@@ -71,19 +71,24 @@ void rqst::clear(void)
         hmsg::clear();
         m_p_url.clear();
         m_method = 0;
-        m_uri.clear();
-        m_uri_path.clear();
-        m_uri_query.clear();
-        m_uri_fragment.clear();
-        m_uri_parsed = false;
+        m_url.clear();
+        m_url_path.clear();
+        m_url_query.clear();
+        m_url_fragment.clear();
+        m_url_parsed = false;
 }
 
 //: ----------------------------------------------------------------------------
 //:                               Getters
 //: ----------------------------------------------------------------------------
-const std::string &rqst::get_uri_path()
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const std::string &rqst::get_url_path()
 {
-        if(!m_uri_parsed)
+        if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
                 if(l_status != STATUS_OK)
@@ -91,7 +96,43 @@ const std::string &rqst::get_uri_path()
                         // do nothing...
                 }
         }
-        return m_uri_path;
+        return m_url_path;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const std::string &rqst::get_url_query()
+{
+        if(!m_url_parsed)
+        {
+                int32_t l_status = parse_uri();
+                if(l_status != STATUS_OK)
+                {
+                        // do nothing...
+                }
+        }
+        return m_url_query;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const std::string &rqst::get_url_fragment()
+{
+        if(!m_url_parsed)
+        {
+                int32_t l_status = parse_uri();
+                if(l_status != STATUS_OK)
+                {
+                        // do nothing...
+                }
+        }
+        return m_url_fragment;
 }
 
 //: ----------------------------------------------------------------------------
@@ -106,7 +147,7 @@ const std::string &rqst::get_uri_path()
 //: ----------------------------------------------------------------------------
 int32_t rqst::parse_uri()
 {
-        if(m_uri_parsed)
+        if(m_url_parsed)
         {
                 return STATUS_OK;
         }
@@ -119,16 +160,16 @@ int32_t rqst::parse_uri()
                 l_path = copy_part(*m_q, m_p_url.m_off, m_p_url.m_len);
                 if(l_path && strlen(l_path))
                 {
-                        m_uri = l_path;
+                        m_url = l_path;
                         free(l_path);
                 }
         }
 
-        std::string l_url_fixed = m_uri;
+        std::string l_url_fixed = m_url;
         // Find scheme prefix "://"
-        if(m_uri.find("://", 0) == std::string::npos)
+        if(m_url.find("://", 0) == std::string::npos)
         {
-                l_url_fixed = "http://bloop.com" + m_uri;
+                l_url_fixed = "http://bloop.com" + m_url;
         }
         http_parser_url l_url;
         http_parser_url_init(&l_url);
@@ -156,20 +197,20 @@ int32_t rqst::parse_uri()
                         {
                         case UF_PATH:
                         {
-                                m_uri_path = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_PATH]: %s\n", m_uri_path.c_str());
+                                m_url_path = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_PATH]: %s\n", m_url_path.c_str());
                                 break;
                         }
                         case UF_QUERY:
                         {
-                                m_uri_query = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_QUERY]: %s\n", m_uri_query.c_str());
+                                m_url_query = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_QUERY]: %s\n", m_url_query.c_str());
                                 break;
                         }
                         case UF_FRAGMENT:
                         {
-                                m_uri_fragment = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_FRAGMENT]: %s\n", m_uri_fragment.c_str());
+                                m_url_fragment = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_FRAGMENT]: %s\n", m_url_fragment.c_str());
                                 break;
                         }
                         case UF_USERINFO:
@@ -183,7 +224,7 @@ int32_t rqst::parse_uri()
                         }
                 }
         }
-        m_uri_parsed = true;
+        m_url_parsed = true;
         return STATUS_OK;
 }
 
