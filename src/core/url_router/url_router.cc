@@ -765,11 +765,11 @@ static int32_t convert_path_to_pattern(std::string &a_route, pattern_t &ao_patte
                 else if(l_path[i_char] == '*')
                 {
                         // Preceded by '/'
-                        if(l_path[i_char - 1] != '/')
-                        {
-                                //NDBG_PRINT("Error terminals must be preceded by '\'.\n");
-                                return -1;
-                        }
+                        //if(l_path[i_char - 1] != '/')
+                        //{
+                        //        //NDBG_PRINT("Error terminals must be preceded by '\'.\n");
+                        //        return -1;
+                        //}
                         // Add last part to pattern
                         ao_pattern.push_back(l_part);
 

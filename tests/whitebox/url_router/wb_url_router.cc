@@ -51,6 +51,7 @@ TEST_CASE( "url router test", "[url_router]" )
                 {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
                 {"/cats_are/cool/dog/are/smelly", (void *)2},
                 {"/sweet/donuts/*", (void *)1337},
+                {"/bots*", (void *)1338},
                 {"/sweet/cakes/*/cupcakes", (void *)5337}
         };
 
@@ -80,7 +81,11 @@ TEST_CASE( "url router test", "[url_router]" )
                         {"/monkeys/bongo/banana/33", (void *)1},
                         {"/cats_are/cool/dog/are/smelly", (void *)2},
                         {"/sweet/donuts/pinky", (void *)1337},
+                        {"/sweet/donuts/stinky", (void *)1337},
                         {"/bonkers", (void *)8},
+                        {"/bots", (void *)1338},
+                        {"/botsy", (void *)1338},
+                        {"/botsy/flopsy", (void *)1338},
                         {"/sweet/donuts/cavorting/anteaters", (void *)1337},
                         {"/sweet/donuts/trash/pandas/are/super/cool", (void *)1337}
                 };
