@@ -80,8 +80,8 @@ SET(SRCS
 SET(HDRS
     ../../include/hlx/hlx.h
     ../../include/hlx/stat.h
-    ../../include/hlx/handler/phurl_h.h
-    ../../include/hlx/handler/file_h.h
+    ../../include/hlx/phurl_h.h
+    ../../include/hlx/file_h.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

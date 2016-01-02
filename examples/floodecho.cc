@@ -4,7 +4,7 @@
 //:   g++ floodecho.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o floodecho
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
-#include <hlx/handler/phurl_h.h>
+#include <hlx/phurl_h.h>
 #include <stdlib.h>
 //#include <google/profiler.h>
 

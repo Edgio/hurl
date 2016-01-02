@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
-#include "hlx/handler/phurl_h.h"
+#include "hlx/phurl_h.h"
 #include "ndebug.h"
 
 namespace ns_hlx {

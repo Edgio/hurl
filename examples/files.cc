@@ -4,7 +4,7 @@
 //:   g++ files.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o files
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
-#include <hlx/handler/file_h.h>
+#include <hlx/file_h.h>
 #include <string.h>
 //#include <google/profiler.h>
 
