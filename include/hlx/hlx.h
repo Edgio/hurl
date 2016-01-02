@@ -530,8 +530,6 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        h_resp_t get_file(hlx &a_hlx, hconn &a_hconn,
-                          rqst &a_rqst, const std::string &a_path);
         h_resp_t send_not_found(hlx &a_hlx, hconn &a_hconn, const rqst &a_rqst);
 
 private:
@@ -651,6 +649,8 @@ public:
         hconn *get_requester_hconn(void);
         const host_info &get_host_info(void);
         t_hlx *get_t_hlx(void);
+        uint64_t get_start_time_ms(void);
+        uint64_t get_end_time_ms(void);
         bool get_tls_verify(void);
         bool get_tls_sni(void);
         bool get_tls_self_ok(void);
@@ -679,6 +679,8 @@ public:
         void set_requester_hconn(hconn *a_hconn);
         void set_host_info(const host_info &a_host_info);
         void set_t_hlx(t_hlx *a_t_hlx);
+        void set_start_time_ms(uint64_t a_val);
+        void set_end_time_ms(uint64_t a_val);
         void set_tls_verify(bool a_val);
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
@@ -759,6 +761,8 @@ private:
         hconn *m_requester_hconn;
         host_info m_host_info;
         t_hlx *m_t_hlx;
+        uint64_t m_start_time_ms;
+        uint64_t m_end_time_ms;
         bool m_tls_verify;
         bool m_tls_sni;
         bool m_tls_self_ok;

@@ -68,18 +68,20 @@ SET(SRCS
     ./hlx/cb.cc
     ./hlx/hlx.cc
     ./hlx/t_hlx.cc
-    ./hlx/rqst_h.cc
-    ./hlx/phurl_h.cc
     ./hlx/lsnr.cc
     ./hlx/subr.cc
     ./hlx/api_resp.cc
+    ./hlx/handler/rqst_h.cc
+    ./hlx/handler/file_h.cc
+    ./hlx/handler/phurl_h.cc
 )
 
 # Headers
 SET(HDRS
     ../../include/hlx/hlx.h
     ../../include/hlx/stat.h
-    ../../include/hlx/phurl_h.h
+    ../../include/hlx/handler/phurl_h.h
+    ../../include/hlx/handler/file_h.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

@@ -72,6 +72,8 @@ subr::subr(void):
         m_requester_hconn(NULL),
         m_host_info(),
         m_t_hlx(NULL),
+        m_start_time_ms(0),
+        m_end_time_ms(0),
         m_tls_verify(false),
         m_tls_sni(false),
         m_tls_self_ok(false),
@@ -118,6 +120,8 @@ subr::subr(const subr &a_subr):
         m_requester_hconn(a_subr.m_requester_hconn),
         m_host_info(a_subr.m_host_info),
         m_t_hlx(a_subr.m_t_hlx),
+        m_start_time_ms(a_subr.m_start_time_ms),
+        m_end_time_ms(a_subr.m_end_time_ms),
         m_tls_verify(a_subr.m_tls_verify),
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
@@ -406,9 +410,19 @@ const host_info &subr::get_host_info(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-t_hlx *subr::get_t_hlx(void)
+uint64_t subr::get_start_time_ms(void)
 {
-        return m_t_hlx;
+        return m_start_time_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t subr::get_end_time_ms(void)
+{
+        return m_end_time_ms;
 }
 
 //: ----------------------------------------------------------------------------
@@ -730,6 +744,26 @@ void subr::set_host_info(const host_info &a_host_info)
 void subr::set_t_hlx(t_hlx *a_t_hlx)
 {
         m_t_hlx = a_t_hlx;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_start_time_ms(uint64_t a_val)
+{
+       m_start_time_ms = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_end_time_ms(uint64_t a_val)
+{
+        m_end_time_ms = a_val;
 }
 
 //: ----------------------------------------------------------------------------

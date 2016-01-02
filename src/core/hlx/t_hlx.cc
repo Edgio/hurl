@@ -454,6 +454,11 @@ int32_t t_hlx::start_subr(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         // Set subreq
         //l_hconn->m_rqst.m_subr = &a_subr;
 
+        // Set start time
+        if(a_subr.get_type() != SUBR_TYPE_DUPE)
+        {
+                a_subr.set_end_time_ms(get_time_ms());
+        }
         l_status = m_evr_loop->add_timer(a_subr.get_timeout_s()*1000,
                                          evr_loop_file_timeout_cb,
                                          &a_nconn,
@@ -611,6 +616,10 @@ bool t_hlx::subr_complete(hconn &a_hconn)
 
         bool l_complete = false;
         l_subr->bump_num_completed();
+        if(a_hconn.m_subr->get_type() != SUBR_TYPE_DUPE)
+        {
+                a_hconn.m_subr->set_end_time_ms(get_time_ms());
+        }
         subr::completion_cb_t l_completion_cb = l_subr->get_completion_cb();
         // Call completion handler
         if(l_completion_cb)
@@ -649,6 +658,10 @@ int32_t t_hlx::subr_error(hconn &a_hconn)
         nconn *l_nconn = a_hconn.m_nconn;
         resp *l_resp = static_cast<resp *>(a_hconn.m_hmsg);
         a_hconn.m_subr->bump_num_completed();
+        if(a_hconn.m_subr->get_type() != SUBR_TYPE_DUPE)
+        {
+                a_hconn.m_subr->set_end_time_ms(get_time_ms());
+        }
         if(l_nconn->get_collect_stats_flag())
         {
                 l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));

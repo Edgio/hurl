@@ -96,6 +96,7 @@ public:
         resp_uid_set_t m_pending_uid_set;
         hlx_resp_list_t m_resp_list;
         phurl_h *m_phurl_h;
+        void *m_data;
 
 private:
         // -------------------------------------------------
@@ -122,7 +123,7 @@ public:
         void add_host(const std::string a_host, uint16_t a_port = 80);
         void set_host_list(const host_list_t &a_host_list);
         subr &get_subr_template(void);
-        virtual int32_t create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *l_fanout_resp);
+        virtual int32_t create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *a_fanout_resp);
 
         // -------------------------------------------------
         // Public static methods

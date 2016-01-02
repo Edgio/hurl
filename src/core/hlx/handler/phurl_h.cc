@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
-#include "hlx/phurl_h.h"
+#include "hlx/handler/phurl_h.h"
 #include "ndebug.h"
 
 namespace ns_hlx {
@@ -39,7 +39,8 @@ phurl_h_resp::phurl_h_resp(void) :
         m_mutex(),
         m_pending_uid_set(),
         m_resp_list(),
-        m_phurl_h(NULL)
+        m_phurl_h(NULL),
+        m_data(NULL)
 {
         pthread_mutex_init(&m_mutex, NULL);
 }
@@ -246,13 +247,13 @@ int32_t phurl_h::s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *l_fanout_resp)
+int32_t phurl_h::create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *a_fanout_resp)
 {
         // Get body of resp
         char l_buf[2048];
         l_buf[0] = '\0';
-        for(hlx_resp_list_t::iterator i_resp = l_fanout_resp->m_resp_list.begin();
-            i_resp != l_fanout_resp->m_resp_list.end();
+        for(hlx_resp_list_t::iterator i_resp = a_fanout_resp->m_resp_list.begin();
+            i_resp != a_fanout_resp->m_resp_list.end();
             ++i_resp)
         {
                 char *l_status_buf = NULL;
@@ -274,7 +275,7 @@ int32_t phurl_h::create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *l_fanout_re
 
         // Queue
         a_hlx.queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
-        delete l_fanout_resp;
+        delete a_fanout_resp;
         return 0;
 }
 

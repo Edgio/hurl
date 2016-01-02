@@ -59,6 +59,9 @@ typedef enum type_enum {
 class hconn {
 
 public:
+        // -------------------------------------------------
+        // Publice members
+        // -------------------------------------------------
         hconn_type_t m_type;
 
         nconn *m_nconn;
@@ -83,6 +86,9 @@ public:
         // TODO Test
         filesender *m_fs;
 
+        // -------------------------------------------------
+        // Publice methods
+        // -------------------------------------------------
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
 
@@ -110,6 +116,9 @@ public:
         {};
 
 private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
         // Disallow copy/assign
         hconn& operator=(const hconn &);
         hconn(const hconn &);
