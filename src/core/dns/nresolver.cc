@@ -439,8 +439,8 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
                 return STATUS_ERROR;
         }
 
-        // Set to 5min -cuz getaddr-info stinks...
-        l_host_info->m_expires_s = get_time_s() + 300;
+        // Set to 60min -cuz getaddr-info stinks...
+        l_host_info->m_expires_s = get_time_s() + 3600;
 
         //show_host_info();
         if(m_use_cache && m_ai_cache)
