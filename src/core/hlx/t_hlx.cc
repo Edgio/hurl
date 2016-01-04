@@ -457,7 +457,7 @@ int32_t t_hlx::start_subr(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         // Set start time
         if(a_subr.get_type() != SUBR_TYPE_DUPE)
         {
-                a_subr.set_end_time_ms(get_time_ms());
+                a_subr.set_start_time_ms(get_time_ms());
         }
         l_status = m_evr_loop->add_timer(a_subr.get_timeout_s()*1000,
                                          evr_loop_file_timeout_cb,
