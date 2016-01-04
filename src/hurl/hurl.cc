@@ -147,9 +147,9 @@ class stats_getter: public ns_hlx::default_rqst_h
 public:
         // GET
         ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
-                       ns_hlx::nconn &a_nconn,
-                       ns_hlx::rqst &a_rqst,
-                       const ns_hlx::url_pmap_t &a_url_pmap)
+                                ns_hlx::hconn &a_hconn,
+                                ns_hlx::rqst &a_rqst,
+                                const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 // Process request
                 if(!m_hlx)
@@ -169,6 +169,7 @@ public:
                 l_api_resp.set_header("Access-Control-Max-Age", "86400");
                 l_api_resp.set_header("Content-Length", l_len_str);
                 l_api_resp.set_body_data(l_char_buf, l_body_len);
+                a_hlx.queue_api_resp(a_hconn, l_api_resp);
                 return ns_hlx::H_RESP_DONE;
         }
         // hlx client
