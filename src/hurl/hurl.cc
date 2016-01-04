@@ -149,8 +149,7 @@ public:
         ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
                        ns_hlx::nconn &a_nconn,
                        ns_hlx::rqst &a_rqst,
-                       const ns_hlx::url_pmap_t &a_url_pmap,
-                       ns_hlx::api_resp &ao_api_resp)
+                       const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 // Process request
                 if(!m_hlx)
@@ -162,13 +161,14 @@ public:
                 char l_len_str[64];
                 uint32_t l_body_len = strlen(l_char_buf);
                 sprintf(l_len_str, "%u", l_body_len);
-                ao_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
-                ao_api_resp.set_header("Content-Type", "application/json");
-                ao_api_resp.set_header("Access-Control-Allow-Origin", "*");
-                ao_api_resp.set_header("Access-Control-Allow-Credentials", "true");
-                ao_api_resp.set_header("Access-Control-Max-Age", "86400");
-                ao_api_resp.set_header("Content-Length", l_len_str);
-                ao_api_resp.set_body_data(l_char_buf, l_body_len);
+                ns_hlx::api_resp &l_api_resp = a_hlx.create_api_resp();
+                l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
+                l_api_resp.set_header("Content-Type", "application/json");
+                l_api_resp.set_header("Access-Control-Allow-Origin", "*");
+                l_api_resp.set_header("Access-Control-Allow-Credentials", "true");
+                l_api_resp.set_header("Access-Control-Max-Age", "86400");
+                l_api_resp.set_header("Content-Length", l_len_str);
+                l_api_resp.set_body_data(l_char_buf, l_body_len);
                 return ns_hlx::H_RESP_DONE;
         }
         // hlx client

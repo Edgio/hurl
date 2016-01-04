@@ -531,6 +531,13 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
         {
                 return HLX_STATUS_ERROR;
         }
+        int32_t l_status;
+        l_status = a_lsnr->init();
+        if(l_status != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing lsnr init.\n");
+                return HLX_STATUS_ERROR;
+        }
         if(is_running())
         {
                 for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
@@ -539,7 +546,7 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
                 {
                         if(*i_t)
                         {
-                                int32_t l_status = (*i_t)->add_lsnr(*a_lsnr);
+                                l_status = (*i_t)->add_lsnr(*a_lsnr);
                                 if(l_status != STATUS_OK)
                                 {
                                         NDBG_PRINT("Error performing add_lsnr.\n");
