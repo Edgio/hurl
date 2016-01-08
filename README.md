@@ -131,15 +131,13 @@ Settings:
   
 SSL Settings:
   -y, --cipher         Cipher --see "openssl ciphers" for list.
-  -O, --ssl_options    SSL Options string.
-  -K, --ssl_verify     Verify server certificate.
-  -N, --ssl_sni        Use SSL SNI.
-  -B, --ssl_self_ok    Allow self-signed certificates.
-  -F, --ssl_ca_file    SSL CA File.
-  -L, --ssl_ca_path    SSL CA Path.
-  
-Command Line Client:
-  -I, --cli            Start interactive command line -URL not required.
+  -O, --tls_options    SSL Options string.
+  -K, --tls_verify     Verify server certificate.
+  -N, --tls_sni        Use SSL SNI.
+  -B, --tls_self_ok    Allow self-signed certificates.
+  -M, --tls_no_host    Skip host name checking.
+  -F, --tls_ca_file    SSL CA File.
+  -L, --tls_ca_path    SSL CA Path.
   
 Print Options:
   -v, --verbose        Verbose logging
@@ -153,7 +151,7 @@ Output Options: -defaults to line delimited
   -l, --line_delimited Output <HOST> <RESPONSE BODY> per line
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
-  
+
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
