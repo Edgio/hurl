@@ -163,7 +163,6 @@ public:
                 {
                         return ns_hlx::H_RESP_ERROR;
                 }
-                printf("l_stats_buf_len: %u\n", l_stats_buf_len);
                 char l_len_str[64];
                 sprintf(l_len_str, "%u", l_stats_buf_len);
                 ns_hlx::api_resp &l_api_resp = create_api_resp(a_hconn);
