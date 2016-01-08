@@ -8,10 +8,12 @@
 #include <stdlib.h>
 //#include <google/profiler.h>
 
+ns_hlx::hlx *g_hlx = NULL;
+
 class hello_from: public ns_hlx::phurl_h
 {
 public:
-        int32_t create_resp(ns_hlx::hlx &a_hlx, ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *l_fanout_resp)
+        int32_t create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *l_fanout_resp)
         {
                 // Get body of resp
                 char l_buf[4096];
@@ -34,13 +36,13 @@ public:
                 sprintf(l_len_str, "%lu", l_len);
 
                 // Create resp
-                ns_hlx::api_resp &l_api_resp = a_hlx.create_api_resp();
+                ns_hlx::api_resp &l_api_resp = ns_hlx::create_api_resp(*(a_subr.get_requester_hconn()));
                 l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
                 l_api_resp.set_header("Content-Length", l_len_str);
                 l_api_resp.set_body_data(l_buf, l_len);
 
                 // Queue
-                a_hlx.queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
+                ns_hlx::queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
                 delete l_fanout_resp;
                 return 0;
         }
@@ -50,12 +52,14 @@ class quitter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
-                                ns_hlx::hconn &a_hconn,
+        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
                                 ns_hlx::rqst &a_rqst,
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
-                a_hlx.stop();
+                if(g_hlx)
+                {
+                        g_hlx->stop();
+                }
                 return ns_hlx::H_RESP_DONE;
         }
 };
@@ -82,13 +86,13 @@ int main(void)
         l_lsnr->register_endpoint("/phurl", l_hello_from);
         l_lsnr->register_endpoint("/quit", new quitter());
 
-        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->register_lsnr(l_lsnr);
-        l_hlx->set_num_threads(0);
-        l_hlx->set_use_persistent_pool(true);
-        l_hlx->set_num_parallel(32);
+        g_hlx = new ns_hlx::hlx();
+        g_hlx->register_lsnr(l_lsnr);
+        g_hlx->set_num_threads(0);
+        g_hlx->set_num_parallel(32);
         //ProfilerStart("tmp.prof");
-        l_hlx->run();
-        delete l_hlx;
+        g_hlx->run();
+        delete g_hlx;
+        g_hlx = NULL;
         //ProfilerStop();
 }

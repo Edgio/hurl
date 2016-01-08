@@ -75,9 +75,10 @@ public:
         void stop(void);
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_s(void) { return m_t_conf->m_timeout_s;};
+        hlx *get_hlx(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_hlx;}
         void get_stats_copy(t_stat_t &ao_stat);
         int32_t add_lsnr(lsnr &a_lsnr);
-        int32_t add_subr(subr &a_subr);
+        int32_t subr_add(subr &a_subr);
         int32_t queue_output(hconn &a_hconn);
         int32_t queue_api_resp(api_resp &a_api_resp, hconn &a_hconn);
 
@@ -131,21 +132,20 @@ private:
                             hconn_type_t a_type,
                             bool a_save);
 
-        nconn * get_proxy_conn(const host_info &a_host_info,
-                               const std::string &a_label,
+        nconn * get_proxy_conn(const std::string &a_label,
                                scheme_t a_scheme,
                                bool a_save,
                                bool a_connect_only);
 
-        int32_t start_subr(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
-        int32_t try_deq_subr(void);
+        int32_t subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
+        int32_t subr_try_deq(void);
         bool subr_complete(hconn &a_hconn);
         int32_t subr_error(hconn &a_hconn);
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
         int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
 #ifdef ASYNC_DNS_SUPPORT
-        int32_t init_async_dns(void);
-        int32_t handle_async_dns_ev(void);
+        int32_t async_dns_init(void);
+        int32_t async_dns_handle_ev(void);
         int32_t async_dns_lookup(const std::string &a_host, uint16_t a_port, void *a_data);
 #endif
 
@@ -168,7 +168,6 @@ private:
         rqst_pool_t m_rqst_pool;
         nbq_pool_t m_nbq_pool;
         t_stat_t m_stat;
-        pthread_mutex_t m_subr_q_mutex;
 
 #ifdef ASYNC_DNS_SUPPORT
         bool m_async_dns_is_initd;

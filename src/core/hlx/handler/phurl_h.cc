@@ -136,7 +136,7 @@ void phurl_h::set_host_list(const host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t phurl_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t phurl_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         // Create request state
         phurl_h_resp *l_fanout_resp = new phurl_h_resp();
@@ -144,7 +144,7 @@ h_resp_t phurl_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pma
 
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
-                subr &l_subr = a_hlx.create_subr(m_subr_template);
+                subr &l_subr = create_subr(a_hconn, m_subr_template);
                 l_subr.set_host(i_host->m_host);
                 l_subr.reset_label();
                 l_subr.set_data(l_fanout_resp);
@@ -154,7 +154,7 @@ h_resp_t phurl_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pma
                 pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
 
                 int32_t l_status = 0;
-                l_status = a_hlx.queue_subr(&a_hconn, l_subr);
+                l_status = queue_subr(a_hconn, l_subr);
                 if(l_status != HLX_STATUS_OK)
                 {
                         printf("Error: performing add_subreq.\n");
@@ -169,7 +169,7 @@ h_resp_t phurl_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pma
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::s_completion_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn, resp &a_resp)
+int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 {
         phurl_h_resp *l_fanout_resp = static_cast<phurl_h_resp *>(a_subr.get_data());
         if(!l_fanout_resp)
@@ -192,7 +192,7 @@ int32_t phurl_h::s_completion_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn, resp 
                 }
                 int32_t l_status;
                 // Create resp will destroy fanout resp obj
-                l_status = l_fanout_resp->m_phurl_h->create_resp(a_hlx, a_subr, l_fanout_resp);
+                l_status = l_fanout_resp->m_phurl_h->create_resp(a_subr, l_fanout_resp);
                 if(l_status != 0)
                 {
                         return -1;
@@ -210,7 +210,7 @@ int32_t phurl_h::s_completion_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn, resp 
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn)
+int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
 {
         phurl_h_resp *l_fanout_resp = static_cast<phurl_h_resp *>(a_subr.get_data());
         if(!l_fanout_resp)
@@ -229,7 +229,7 @@ int32_t phurl_h::s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn)
                 }
                 int32_t l_status;
                 // Create resp will destroy fanout resp obj
-                l_status = l_fanout_resp->m_phurl_h->create_resp(a_hlx, a_subr, l_fanout_resp);
+                l_status = l_fanout_resp->m_phurl_h->create_resp(a_subr, l_fanout_resp);
                 if(l_status != 0)
                 {
                         return -1;
@@ -247,7 +247,7 @@ int32_t phurl_h::s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *a_fanout_resp)
+int32_t phurl_h::create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp)
 {
         // Get body of resp
         char l_buf[2048];
@@ -268,13 +268,13 @@ int32_t phurl_h::create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *a_fanout_re
         sprintf(l_len_str, "%lu", l_len);
 
         // Create resp
-        api_resp &l_api_resp = a_hlx.create_api_resp();
+        api_resp &l_api_resp = create_api_resp(*(a_subr.get_requester_hconn()));
         l_api_resp.set_status(HTTP_STATUS_OK);
         l_api_resp.set_header("Content-Length", l_len_str);
         l_api_resp.set_body_data(l_buf, l_len);
 
         // Queue
-        a_hlx.queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
+        queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
         delete a_fanout_resp;
         return 0;
 }

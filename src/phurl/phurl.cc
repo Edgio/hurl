@@ -291,8 +291,7 @@ std::string dump_all_responses(phurl_resp_list_t &a_resp_list, bool a_color, boo
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_completion_cb(ns_hlx::hlx &a_hlx,
-                               ns_hlx::subr &a_subr,
+static int32_t s_completion_cb(ns_hlx::subr &a_subr,
                                ns_hlx::nconn &a_nconn,
                                ns_hlx::resp &a_resp)
 {
@@ -342,8 +341,7 @@ static int32_t s_completion_cb(ns_hlx::hlx &a_hlx,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_error_cb(ns_hlx::hlx &a_hlx,
-                          ns_hlx::subr &a_subr,
+static int32_t s_error_cb(ns_hlx::subr &a_subr,
                           ns_hlx::nconn &a_nconn)
 {
         settings_struct_t *l_settings = static_cast<settings_struct_t *>(a_subr.get_data());
@@ -489,42 +487,6 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         //bool l_sent_stop = false;
         //bool l_first_time = true;
         nonblock(NB_ENABLE);
-        int l_status;
-
-        for(host_list_t::iterator i_host = a_settings.m_host_list->begin(); i_host != a_settings.m_host_list->end(); ++i_host)
-        {
-                ns_hlx::subr &l_subr = a_settings.m_hlx->create_subr(*(a_settings.m_subr));
-                l_subr.set_host(i_host->m_host);
-                if(!i_host->m_hostname.empty())
-                {
-                        l_subr.set_hostname(i_host->m_hostname);
-                }
-                if(!i_host->m_id.empty())
-                {
-                        l_subr.set_id(i_host->m_id);
-                }
-                if(!i_host->m_where.empty())
-                {
-                        l_subr.set_where(i_host->m_where);
-                }
-                if(i_host->m_port != 0)
-                {
-                        l_subr.set_port(i_host->m_port);
-                }
-                l_subr.reset_label();
-                l_subr.set_data(&a_settings);
-
-                pthread_mutex_lock(&(a_settings.m_mutex));
-                a_settings.m_pending_uid_set.insert(l_subr.get_uid());
-                pthread_mutex_unlock(&(a_settings.m_mutex));
-
-                l_status = a_settings.m_hlx->queue_subr(NULL, l_subr);
-                if(l_status != HLX_STATUS_OK)
-                {
-                        printf("Error: performing add_subreq.\n");
-                        return -1;
-                }
-        }
 
         //printf("Adding subr\n\n");
 
@@ -618,8 +580,6 @@ void show_help(void)
 #define MAX_CMD_SIZE 64
 int command_exec_cli(settings_struct_t &a_settings)
 {
-        a_settings.m_hlx->set_use_persistent_pool(true);
-
         bool l_done = false;
         // -------------------------------------------
         // Interactive mode banner
@@ -796,17 +756,17 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "SSL Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
-        fprintf(a_stream, "  -O, --ssl_options    SSL Options string.\n");
-        fprintf(a_stream, "  -K, --ssl_verify     Verify server certificate.\n");
-        fprintf(a_stream, "  -N, --ssl_sni        Use SSL SNI.\n");
-        fprintf(a_stream, "  -B, --ssl_self_ok    Allow self-signed certificates.\n");
-        fprintf(a_stream, "  -M, --ssl_no_host    Skip host name checking.\n");
-        fprintf(a_stream, "  -F, --ssl_ca_file    SSL CA File.\n");
-        fprintf(a_stream, "  -L, --ssl_ca_path    SSL CA Path.\n");
+        fprintf(a_stream, "  -O, --tls_options    SSL Options string.\n");
+        fprintf(a_stream, "  -K, --tls_verify     Verify server certificate.\n");
+        fprintf(a_stream, "  -N, --tls_sni        Use SSL SNI.\n");
+        fprintf(a_stream, "  -B, --tls_self_ok    Allow self-signed certificates.\n");
+        fprintf(a_stream, "  -M, --tls_no_host    Skip host name checking.\n");
+        fprintf(a_stream, "  -F, --tls_ca_file    SSL CA File.\n");
+        fprintf(a_stream, "  -L, --tls_ca_path    SSL CA Path.\n");
         fprintf(a_stream, "  \n");
-        fprintf(a_stream, "Command Line Client:\n");
-        fprintf(a_stream, "  -I, --cli            Start interactive command line -URL not required.\n");
-        fprintf(a_stream, "  \n");
+        //fprintf(a_stream, "Command Line Client:\n");
+        //fprintf(a_stream, "  -I, --cli            Start interactive command line -URL not required.\n");
+        //fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --color          Color\n");
@@ -847,7 +807,6 @@ int main(int argc, char** argv)
 
         l_hlx->set_collect_stats(false);
         l_hlx->set_use_ai_cache(true);
-        l_hlx->set_use_persistent_pool(false);
 
         // -------------------------------------------------
         // Subrequest settings
@@ -868,10 +827,10 @@ int main(int argc, char** argv)
         //l_hlx->set_header("x-select-backend", "self");
         //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
-        l_subr->set_header("Connection", "keep-alive");
+        //l_subr->set_header("Connection", "keep-alive");
         l_subr->set_completion_cb(s_completion_cb);
         l_subr->set_error_cb(s_error_cb);
-        l_subr->set_keepalive(true);
+        //l_subr->set_keepalive(true);
 
         // -------------------------------------------
         // Get args...
@@ -900,13 +859,13 @@ int main(int argc, char** argv)
                 { "ai_cache",       1, 0, 'A' },
                 { "connect_only",   0, 0, 'C' },
                 { "cipher",         1, 0, 'y' },
-                { "ssl_options",    1, 0, 'O' },
-                { "ssl_verify",     0, 0, 'K' },
-                { "ssl_sni",        0, 0, 'N' },
-                { "ssl_self_ok",    0, 0, 'B' },
-                { "ssl_no_host",    0, 0, 'M' },
-                { "ssl_ca_file",    1, 0, 'F' },
-                { "ssl_ca_path",    1, 0, 'L' },
+                { "tls_options",    1, 0, 'O' },
+                { "tls_verify",     0, 0, 'K' },
+                { "tls_sni",        0, 0, 'N' },
+                { "tls_self_ok",    0, 0, 'B' },
+                { "tls_no_host",    0, 0, 'M' },
+                { "tls_ca_file",    1, 0, 'F' },
+                { "tls_ca_path",    1, 0, 'L' },
                 { "cli",            0, 0, 'I' },
                 { "verbose",        0, 0, 'v' },
                 { "color",          0, 0, 'c' },
@@ -932,7 +891,6 @@ int main(int argc, char** argv)
         std::string l_url;
         std::string l_ai_cache;
         std::string l_output_file = "";
-        bool l_cli = false;
 
         // Defaults
         output_type_t l_output_mode = OUTPUT_JSON;
@@ -1387,7 +1345,7 @@ int main(int argc, char** argv)
         }
 
         // Check for required url argument
-        if(l_url.empty() && !l_cli)
+        if(l_url.empty() && !l_settings.m_cli)
         {
                 fprintf(stdout, "No URL specified.\n");
                 print_usage(stdout, -1);
@@ -1605,7 +1563,36 @@ int main(int argc, char** argv)
         }
 #endif
 
-        // TODO Fix for 0 threads
+        for(host_list_t::iterator i_host = l_settings.m_host_list->begin();
+            i_host != l_settings.m_host_list->end();
+            ++i_host)
+        {
+                ns_hlx::subr *l_subr = new ns_hlx::subr(*(l_settings.m_subr));
+                l_subr->set_uid(l_hlx->get_next_subr_uuid());
+                l_subr->set_host(i_host->m_host);
+                if(!i_host->m_hostname.empty())
+                {
+                        l_subr->set_hostname(i_host->m_hostname);
+                }
+                if(!i_host->m_id.empty())
+                {
+                        l_subr->set_id(i_host->m_id);
+                }
+                if(!i_host->m_where.empty())
+                {
+                        l_subr->set_where(i_host->m_where);
+                }
+                if(i_host->m_port != 0)
+                {
+                        l_subr->set_port(i_host->m_port);
+                }
+                l_subr->reset_label();
+                l_subr->set_data(&l_settings);
+                pthread_mutex_lock(&(l_settings.m_mutex));
+                l_settings.m_pending_uid_set.insert(l_subr->get_uid());
+                pthread_mutex_unlock(&(l_settings.m_mutex));
+                l_hlx->pre_queue_subr(*l_subr);
+        }
 
         // Set num to request
         l_settings.m_total_reqs = (uint32_t)l_host_list->size();

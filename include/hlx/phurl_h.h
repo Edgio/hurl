@@ -119,17 +119,17 @@ public:
         phurl_h(void);
         ~phurl_h();
 
-        h_resp_t do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         void add_host(const std::string a_host, uint16_t a_port = 80);
         void set_host_list(const host_list_t &a_host_list);
         subr &get_subr_template(void);
-        virtual int32_t create_resp(hlx &a_hlx, subr &a_subr, phurl_h_resp *a_fanout_resp);
+        virtual int32_t create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp);
 
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static int32_t s_completion_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn, resp &a_resp);
-        static int32_t s_error_cb(hlx &a_hlx, subr &a_subr, nconn &a_nconn);
+        static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
+        static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
 private:
         // -------------------------------------------------
         // Private methods

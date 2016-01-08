@@ -1155,7 +1155,7 @@ int32_t subr::init_with_url(const std::string &a_url)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subr::create_request(hlx &a_hlx, subr &a_subr, nbq &ao_q)
+int32_t subr::create_request(subr &a_subr, nbq &ao_q)
 {
         std::string l_path_ref = a_subr.get_path();
 

@@ -68,10 +68,12 @@ SET(SRCS
     ./hlx/cb.cc
     ./hlx/hlx.cc
     ./hlx/t_hlx.cc
+    ./hlx/hconn.cc
     ./hlx/lsnr.cc
     ./hlx/subr.cc
     ./hlx/api_resp.cc
     ./hlx/handler/rqst_h.cc
+    ./hlx/handler/default_rqst_h.cc
     ./hlx/handler/file_h.cc
     ./hlx/handler/phurl_h.cc
 )

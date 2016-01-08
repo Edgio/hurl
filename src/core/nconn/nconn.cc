@@ -489,6 +489,7 @@ int32_t nconn::nc_cleanup()
                 return STATUS_ERROR;
         }
         m_data = NULL;
+        m_host_info_is_set = false;
         return STATUS_OK;
 }
 
@@ -508,6 +509,7 @@ nconn::nconn(void):
       m_conn_status(CONN_STATUS_OK),
       m_last_error(""),
       m_host_info(),
+      m_host_info_is_set(false),
       m_num_reqs_per_conn(-1),
       m_num_reqs(0),
       m_connect_only(false),

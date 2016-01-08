@@ -42,13 +42,13 @@ public:
         file_h(void);
         ~file_h();
 
-        h_resp_t do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
 
         // -------------------------------------------------
         // Protected methods
         // -------------------------------------------------
 protected:
-        h_resp_t get_file(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const std::string &a_path);
+        h_resp_t get_file(hconn &a_hconn, rqst &a_rqst, const std::string &a_path);
 
         // -------------------------------------------------
         // Private methods

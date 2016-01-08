@@ -33,10 +33,22 @@
 #include "nresolver.h"
 #include "nconn_tcp.h"
 
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/prettywriter.h"
+
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
+#define JS_ADD_MEMBER(_obj, _key, _val, _l_js_alloc)\
+_obj.AddMember(_key,\
+                rapidjson::Value(_val, _l_js_alloc).Move(),\
+                _l_js_alloc)
 
 namespace ns_hlx {
 
@@ -93,7 +105,7 @@ hlx::hlx(void):
         m_stats(false),
         m_num_threads(1),
         m_lsnr_list(),
-        m_subr_queue(),
+        m_subr_pre_queue(),
         m_nresolver(NULL),
         m_use_ai_cache(true),
         m_ai_cache(NRESOLVER_DEFAULT_AI_CACHE_FILE),
@@ -186,7 +198,7 @@ void hlx::get_stats(t_stat_t &ao_all_stats)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len)
+int32_t hlx::get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len)
 {
         t_stat_t l_total;
 
@@ -194,29 +206,28 @@ int32_t hlx::get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len)
         // Get stats
         get_stats(l_total);
 
-        int l_cur_offset = 0;
-        // TODO -use rapidjson???
-        l_cur_offset += snprintf(l_json_buf + l_cur_offset,
-                                 l_json_buf_max_len - l_cur_offset,
-                                 "{\"data\": [");
+        rapidjson::Document l_body;
+        l_body.SetObject(); // Define doc as object -rather than array
+        rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
+        rapidjson::Value l_data_array(rapidjson::kArrayType);
 
-        l_cur_offset += snprintf(l_json_buf + l_cur_offset,
-                                 l_json_buf_max_len - l_cur_offset,
-                                "{\"key\": \"%s\", \"value\": ",
-                                "NA");
-        l_cur_offset += snprintf(l_json_buf + l_cur_offset,
-                                 l_json_buf_max_len - l_cur_offset,
-                                 "{\"%s\": %" PRIu64 ", \"%s\": %" PRIu64 "}",
-                                 "count", (uint64_t)(l_total.m_total_reqs),
-                                 "time", (uint64_t)(l_time_ms));
-        l_cur_offset += snprintf(l_json_buf + l_cur_offset,
-                                 l_json_buf_max_len - l_cur_offset,
-                                 "}");
-        l_cur_offset += snprintf(l_json_buf + l_cur_offset,
-                                 l_json_buf_max_len - l_cur_offset,
-                                 "]}");
-        return l_cur_offset;
+        // Single member array...
+        rapidjson::Value l_s;
+        l_s.SetObject();
+        JS_ADD_MEMBER(l_s, "key", "NA", l_alloc);
+        l_s.AddMember("count", l_total.m_total_reqs, l_alloc);
+        l_s.AddMember("time", l_time_ms, l_alloc);
 
+        l_body.AddMember("data", l_data_array, l_alloc);
+
+        rapidjson::StringBuffer l_strbuf;
+        rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
+        l_body.Accept(l_writer);
+
+        ao_json_buf_len = l_strbuf.GetSize();
+        *ao_json_buf = (char *)malloc(sizeof(char)*(ao_json_buf_len+1));
+        strncpy(*ao_json_buf, l_strbuf.GetString(), ao_json_buf_len);
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -329,16 +340,6 @@ void hlx::set_start_time_ms(uint64_t a_start_time_ms)
 void hlx::set_collect_stats(bool a_val)
 {
         m_t_conf->m_collect_stats = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::set_use_persistent_pool(bool a_val)
-{
-        m_t_conf->m_use_persistent_pool = a_val;
 }
 
 //: ----------------------------------------------------------------------------
@@ -562,6 +563,7 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
         return HLX_STATUS_OK;
 }
 
+#if 0
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -596,14 +598,14 @@ void hlx::add_subr_t(subr &a_subr)
                         if(l_subr.get_num_to_request() != 0)
                         {
                                 //a_http_req.m_sr_child_list.push_back(&l_rqst);
-                                (*i_t)->add_subr(l_subr);
+                                (*i_t)->subr_add(l_subr);
                         }
                 }
                 delete &a_subr;
         }
         else if(a_subr.get_type() == SUBR_TYPE_NONE)
         {
-                (*m_t_hlx_subr_iter)->add_subr(a_subr);
+                (*m_t_hlx_subr_iter)->subr_add(a_subr);
                 ++m_t_hlx_subr_iter;
                 if(m_t_hlx_subr_iter == m_t_hlx_list.end())
                 {
@@ -611,15 +613,16 @@ void hlx::add_subr_t(subr &a_subr)
                 }
         }
 }
+#endif
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::queue_subr(subr *a_subr)
+void hlx::pre_queue_subr(subr &a_subr)
 {
-        m_subr_queue.push(a_subr);
+        m_subr_pre_queue.push(&a_subr);
 }
 
 //: ----------------------------------------------------------------------------
@@ -627,101 +630,9 @@ void hlx::queue_subr(subr *a_subr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::queue_subr(hconn *a_hconn, subr &a_subr)
+uint64_t hlx::get_next_subr_uuid(void)
 {
-        int32_t l_status;
-        if(!m_is_initd)
-        {
-                l_status = init();
-                if(HLX_STATUS_OK != l_status)
-                {
-                        return HLX_STATUS_ERROR;
-                }
-        }
-        if(a_hconn)
-        {
-                a_subr.set_requester_hconn(a_hconn);
-        }
-
-        if(!m_nresolver)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        if(is_running())
-        {
-                add_subr_t(a_subr);
-        }
-        else
-        {
-                queue_subr(&a_subr);
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-subr &hlx::create_subr(const subr &a_subr)
-{
-        subr *l_subr = new subr(a_subr);
-        l_subr->set_uid(++m_cur_subr_uid);
-        return *l_subr;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-subr &hlx::create_subr(void)
-{
-        subr *l_subr = new subr();
-        l_subr->set_uid(++m_cur_subr_uid);
-        return *l_subr;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-api_resp &hlx::create_api_resp(void)
-{
-        api_resp *l_api_resp = new api_resp();
-        return *l_api_resp;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t hlx::queue_api_resp(hconn &a_hconn, api_resp &a_api_resp)
-{
-        if(!a_hconn.m_t_hlx)
-        {
-            return HLX_STATUS_ERROR;
-        }
-        a_hconn.m_t_hlx->queue_api_resp(a_api_resp, a_hconn);
-        delete &a_api_resp;
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t hlx::queue_resp(hconn &a_hconn)
-{
-        if(!a_hconn.m_t_hlx)
-        {
-            return HLX_STATUS_ERROR;
-        }
-        a_hconn.m_t_hlx->queue_output(a_hconn);
-        return HLX_STATUS_OK;
+        return ++m_cur_subr_uid;
 }
 
 //: ----------------------------------------------------------------------------
@@ -967,12 +878,54 @@ int hlx::init_t_hlx_list(void)
         // -------------------------------------------
         // Add any subreqs...
         // -------------------------------------------
-        while(m_subr_queue.size())
+        while(m_subr_pre_queue.size())
         {
-                add_subr_t(*(m_subr_queue.front()));
-                m_subr_queue.pop();
-        }
+                subr *l_subr = m_subr_pre_queue.front();
 
+                if(l_subr->get_type() == SUBR_TYPE_DUPE)
+                {
+                        uint32_t l_num_hlx = (uint32_t)m_t_hlx_list.size();
+                        uint32_t i_hlx_idx = 0;
+                        for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
+                            i_t != m_t_hlx_list.end();
+                            ++i_t, ++i_hlx_idx)
+                        {
+                                subr *l_duped_subr = new subr(*l_subr);
+                                l_duped_subr->set_uid(get_next_subr_uuid());
+
+                                // Recalculate num fetches per thread
+                                if(l_duped_subr->get_num_to_request() > 0)
+                                {
+                                        uint32_t l_num_fetches_per_thread =
+                                                        l_duped_subr->get_num_to_request() / l_num_hlx;
+                                        uint32_t l_remainder_fetches =
+                                                        l_duped_subr->get_num_to_request() % l_num_hlx;
+                                        if (i_hlx_idx == (l_num_hlx - 1))
+                                        {
+                                                l_num_fetches_per_thread += l_remainder_fetches;
+                                        }
+                                        //NDBG_PRINT("Num to fetch: %d\n", (int)l_num_fetches_per_thread);
+                                        l_duped_subr->set_num_to_request(l_num_fetches_per_thread);
+                                }
+                                if(l_duped_subr->get_num_to_request() != 0)
+                                {
+                                        //a_http_req.m_sr_child_list.push_back(&l_rqst);
+                                        (*i_t)->subr_add(*l_duped_subr);
+                                }
+                        }
+                        delete l_subr;
+                }
+                else if(l_subr->get_type() == SUBR_TYPE_NONE)
+                {
+                        (*m_t_hlx_subr_iter)->subr_add(*l_subr);
+                        ++m_t_hlx_subr_iter;
+                        if(m_t_hlx_subr_iter == m_t_hlx_list.end())
+                        {
+                                m_t_hlx_subr_iter = m_t_hlx_list.begin();
+                        }
+                }
+                m_subr_pre_queue.pop();
+        }
         return STATUS_OK;
 }
 

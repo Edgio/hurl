@@ -146,8 +146,7 @@ class stats_getter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hlx &a_hlx,
-                                ns_hlx::hconn &a_hconn,
+        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
                                 ns_hlx::rqst &a_rqst,
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
@@ -156,20 +155,31 @@ public:
                 {
                         return ns_hlx::H_RESP_ERROR;
                 }
-                char *l_char_buf = (char *)malloc(sizeof(char)*2048);;
-                m_hlx->get_stats_json(l_char_buf, 2048);
+                char *l_stats_buf = NULL;
+                uint32_t l_stats_buf_len;
+                int32_t l_status;
+                l_status = m_hlx->get_stats_json(&l_stats_buf, l_stats_buf_len);
+                if((l_status != HLX_STATUS_OK) || !l_stats_buf)
+                {
+                        return ns_hlx::H_RESP_ERROR;
+                }
+                printf("l_stats_buf_len: %u\n", l_stats_buf_len);
                 char l_len_str[64];
-                uint32_t l_body_len = strlen(l_char_buf);
-                sprintf(l_len_str, "%u", l_body_len);
-                ns_hlx::api_resp &l_api_resp = a_hlx.create_api_resp();
+                sprintf(l_len_str, "%u", l_stats_buf_len);
+                ns_hlx::api_resp &l_api_resp = create_api_resp(a_hconn);
                 l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
                 l_api_resp.set_header("Content-Type", "application/json");
                 l_api_resp.set_header("Access-Control-Allow-Origin", "*");
                 l_api_resp.set_header("Access-Control-Allow-Credentials", "true");
                 l_api_resp.set_header("Access-Control-Max-Age", "86400");
                 l_api_resp.set_header("Content-Length", l_len_str);
-                l_api_resp.set_body_data(l_char_buf, l_body_len);
-                a_hlx.queue_api_resp(a_hconn, l_api_resp);
+                l_api_resp.set_body_data(l_stats_buf, l_stats_buf_len);
+                queue_api_resp(a_hconn, l_api_resp);
+                if(l_stats_buf)
+                {
+                        free(l_stats_buf);
+                        l_stats_buf = NULL;
+                }
                 return ns_hlx::H_RESP_DONE;
         }
         // hlx client
@@ -456,8 +466,7 @@ void command_exec(settings_struct_t &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_completion_cb(ns_hlx::hlx &a_hlx,
-                               ns_hlx::subr &a_subr,
+static int32_t s_completion_cb(ns_hlx::subr &a_subr,
                                ns_hlx::nconn &a_nconn,
                                ns_hlx::resp &a_resp)
 {
@@ -858,7 +867,7 @@ const std::string &get_path(void *a_rand)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_create_request_cb(ns_hlx::hlx &a_hlx, ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
+static int32_t s_create_request_cb(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
 {
         if((g_num_to_request != -1) && (g_num_requested >= (uint32_t)g_num_to_request))
         {
@@ -1046,22 +1055,23 @@ int main(int argc, char** argv)
         // Subrequest settings
         // -------------------------------------------------
 
-        ns_hlx::subr &l_subr = l_hlx->create_subr();
-        l_subr.set_save(false);
+        ns_hlx::subr *l_subr = new ns_hlx::subr();
+        l_subr->set_uid(l_hlx->get_next_subr_uuid());
+        l_subr->set_save(false);
 
         // Default headers
-        l_subr.set_header("User-Agent","hurl Server Load Tester");
-        l_subr.set_header("Accept","*/*");
-        //l_subr.set_header("User-Agent","ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
-        //l_subr.set_header("User-Agent","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-        //l_subr.set_header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-        //l_subr.set_header("Accept","gzip,deflate");
-        //l_subr.set_header("Connection","keep-alive");
+        l_subr->set_header("User-Agent","hurl Server Load Tester");
+        l_subr->set_header("Accept","*/*");
+        //l_subr->set_header("User-Agent","ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
+        //l_subr->set_header("User-Agent","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
+        //l_subr->set_header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        //l_subr->set_header("Accept","gzip,deflate");
+        //l_subr->set_header("Connection","keep-alive");
 
-        l_subr.set_num_to_request(-1);
-        l_subr.set_type(ns_hlx::SUBR_TYPE_DUPE);
-        l_subr.set_create_req_cb(s_create_request_cb);
-        //l_subr.set_num_reqs_per_conn(1);
+        l_subr->set_num_to_request(-1);
+        l_subr->set_type(ns_hlx::SUBR_TYPE_DUPE);
+        l_subr->set_create_req_cb(s_create_request_cb);
+        //l_subr->set_num_reqs_per_conn(1);
 
         // Initialize rand...
         g_rand_ptr = (tinymt64_t*)calloc(1, sizeof(tinymt64_t));
@@ -1207,7 +1217,7 @@ int main(int argc, char** argv)
                                         printf("Error reading body data from file: %s\n", l_argument.c_str() + 1);
                                         return -1;
                                 }
-                                l_subr.set_body_data(l_buf, l_len);
+                                l_subr->set_body_data(l_buf, l_len);
                         }
                         else
                         {
@@ -1215,13 +1225,13 @@ int main(int argc, char** argv)
                                 uint32_t l_len;
                                 l_len = l_argument.length() + 1;
                                 l_buf = (char *)malloc(sizeof(char)*l_len);
-                                l_subr.set_body_data(l_buf, l_len);
+                                l_subr->set_body_data(l_buf, l_len);
                         }
 
                         // Add content length
                         char l_len_str[64];
-                        sprintf(l_len_str, "%u", l_subr.get_body_len());
-                        l_subr.set_header("Content-Length", l_len_str);
+                        sprintf(l_len_str, "%u", l_subr->get_body_len());
+                        l_subr->set_header("Content-Length", l_len_str);
                         break;
                 }
 #ifdef ENABLE_PROFILER
@@ -1270,7 +1280,7 @@ int main(int argc, char** argv)
                                 printf("Error fetches must be at least 1\n");
                                 return -1;
                         }
-                        l_subr.set_num_to_request(l_end_fetches);
+                        l_subr->set_num_to_request(l_end_fetches);
                         g_num_to_request = l_end_fetches;
                         break;
                 }
@@ -1293,7 +1303,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'k':
                 {
-                        l_subr.set_keepalive(true);
+                        l_subr->set_keepalive(true);
                         if(l_max_reqs_per_conn == 1)
                         {
                                 l_hlx->set_num_reqs_per_conn(-1);
@@ -1322,7 +1332,7 @@ int main(int argc, char** argv)
                 case 'H':
                 {
                         int32_t l_status;
-                        l_status = l_subr.set_header(l_argument);
+                        l_status = l_subr->set_header(l_argument);
                         if (l_status != 0)
                         {
                                 printf("Error performing set_header: %s\n", l_argument.c_str());
@@ -1340,7 +1350,7 @@ int main(int argc, char** argv)
                                 printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
                                 return -1;
                         }
-                        l_subr.set_verb(l_argument);
+                        l_subr->set_verb(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1439,7 +1449,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return -1;
                         }
-                        l_subr.set_timeout_s(l_subreq_timeout_s);
+                        l_subr->set_timeout_s(l_subreq_timeout_s);
                         break;
                 }
                 // ---------------------------------------
@@ -1456,7 +1466,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_subr.set_save(true);
+                        l_subr->set_save(true);
                         l_hlx->set_verbose(true);
                         break;
                 }
@@ -1572,20 +1582,15 @@ int main(int argc, char** argv)
                 //printf("Adding url: %s\n", l_url.c_str());
                 int32_t l_status;
                 // Set url
-                l_status = l_subr.init_with_url(l_url);
+                l_status = l_subr->init_with_url(l_url);
                 if(l_status != 0)
                 {
                         printf("Error: performing init_with_url: %s\n", l_url.c_str());
                         return -1;
                 }
                 // Set callback
-                l_subr.set_completion_cb(s_completion_cb);
-                l_status = l_hlx->queue_subr(NULL, l_subr);
-                if(l_status != 0)
-                {
-                        printf("Error: performing add_subreq with url: %s\n", l_url.c_str());
-                        return -1;
-                }
+                l_subr->set_completion_cb(s_completion_cb);
+                l_hlx->pre_queue_subr(*l_subr);
         }
         else
         {
@@ -1596,7 +1601,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Paths...
         // -------------------------------------------
-        std::string l_raw_path = l_subr.get_path();
+        std::string l_raw_path = l_subr->get_path();
         //printf("l_raw_path: %s\n",l_raw_path.c_str());
         if(l_wildcarding)
         {
@@ -1609,11 +1614,11 @@ int main(int argc, char** argv)
                 }
                 if(g_path_vector.size() > 1)
                 {
-                        l_subr.set_is_multipath(true);
+                        l_subr->set_is_multipath(true);
                 }
                 else
                 {
-                        l_subr.set_is_multipath(false);
+                        l_subr->set_is_multipath(false);
                 }
         }
         else
@@ -2198,10 +2203,12 @@ void display_results_http_load_style(settings_struct &a_settings,
 //: ----------------------------------------------------------------------------
 int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subr *a_subr, const std::string &a_url)
 {
-        ns_hlx::subr &l_subr = a_hlx->create_subr(*a_subr);
-        l_subr.init_with_url(a_url);
+
+        ns_hlx::subr *l_subr = new ns_hlx::subr(*a_subr);
+        l_subr->set_uid(a_hlx->get_next_subr_uuid());
+        l_subr->init_with_url(a_url);
         //printf("Adding url: %s\n", a_url.c_str());
-        a_hlx->queue_subr(NULL, l_subr);
+        a_hlx->pre_queue_subr(*l_subr);
         return 0;
 }
 

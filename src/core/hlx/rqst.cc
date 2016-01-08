@@ -46,6 +46,7 @@ rqst::rqst(void):
         m_url(),
         m_url_path(),
         m_url_query(),
+        m_url_query_map(),
         m_url_fragment()
 {
         m_type = hmsg::TYPE_RQST;
@@ -74,6 +75,7 @@ void rqst::clear(void)
         m_url.clear();
         m_url_path.clear();
         m_url_query.clear();
+        m_url_query_map.clear();
         m_url_fragment.clear();
         m_url_parsed = false;
 }
@@ -116,6 +118,25 @@ const std::string &rqst::get_url_query()
         }
         return m_url_query;
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const query_map_t &rqst::get_url_query_map()
+{
+        if(m_url_query_map.empty())
+        {
+                int32_t l_status = parse_query(get_url_query(), m_url_query_map);
+                if(l_status != STATUS_OK)
+                {
+                        // do nothing...
+                }
+        }
+        return m_url_query_map;
+}
+
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -226,6 +247,35 @@ int32_t rqst::parse_uri()
         }
         m_url_parsed = true;
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
+{
+        size_t l_pos = 0;
+        size_t l_last_pos = 0;
+        do {
+                l_pos = a_query.find("&", l_last_pos);
+                std::string l_part = a_query.substr(l_last_pos, l_pos - l_last_pos);
+
+                // Break by "="
+                std::string l_key;
+                std::string l_val;
+                size_t l_eq_pos = l_part.find("=");
+                l_key = l_part.substr(0, l_eq_pos);
+                if(l_eq_pos != std::string::npos)
+                {
+                        l_val = l_part.substr(l_eq_pos + 1, std::string::npos);
+                }
+                //printf("PART: l_key: %s l_val: %s\n", l_key.c_str(), l_val.c_str());
+                ao_query_map[l_key] = l_val;
+                l_last_pos = l_pos + 1;
+        } while(l_pos != std::string::npos);
+        return 0;
 }
 
 //: ----------------------------------------------------------------------------

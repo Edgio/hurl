@@ -218,6 +218,7 @@ typedef std::list <std::string> str_list_t;
 typedef std::map <std::string, str_list_t, case_i_comp> kv_map_list_t;
 typedef std::queue <subr *> subr_queue_t;
 typedef atomic_gcc_builtin<uint64_t> uint64_atomic_t;
+typedef std::map <std::string, std::string> query_map_t;
 
 //: ----------------------------------------------------------------------------
 //: hlx
@@ -248,7 +249,6 @@ public:
         void set_num_reqs_per_conn(int32_t a_num_reqs_per_conn);
         void set_start_time_ms(uint64_t a_start_time_ms);
         void set_collect_stats(bool a_val);
-        void set_use_persistent_pool(bool a_val);
         void set_timeout_s(uint32_t a_val);
 
         // Socket options
@@ -264,26 +264,18 @@ public:
         int32_t register_lsnr(lsnr *a_lsnr);
 
         // Subrequests
-        subr &create_subr();
-        subr &create_subr(const subr &a_subr);
-        int32_t queue_subr(hconn *a_hconn, subr &a_subr);
-
-        // API Responses
-        api_resp &create_api_resp(void);
-        int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
-        int32_t queue_resp(hconn &a_hconn);
+        void pre_queue_subr(subr &a_subr);
+        uint64_t get_next_subr_uuid(void);
 
         // Running...
         int32_t run(void);
         int32_t stop(void);
         int32_t wait_till_stopped(void);
         bool is_running(void);
-        void add_subr_t(subr &a_subr);
-        void queue_subr(subr *a_subr);
 
         // Stats
         void get_stats(t_stat_t &ao_all_stats);
-        int32_t get_stats_json(char *l_json_buf, uint32_t l_json_buf_max_len);
+        int32_t get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len);
 
         // TLS config
         // Server ctx
@@ -321,7 +313,7 @@ private:
         bool m_stats;
         uint32_t m_num_threads;
         lsnr_list_t m_lsnr_list;
-        subr_queue_t m_subr_queue;
+        subr_queue_t m_subr_pre_queue;
         nresolver *m_nresolver;
         bool m_use_ai_cache;
         std::string m_ai_cache;
@@ -423,6 +415,7 @@ public:
 
         const std::string &get_url_path();
         const std::string &get_url_query();
+        const query_map_t &get_url_query_map();
         const std::string &get_url_fragment();
 
         // Debug
@@ -443,6 +436,7 @@ private:
         // Private methods
         // -------------------------------------------------
         int32_t parse_uri(void);
+        int32_t parse_query(const std::string &a_query, query_map_t &ao_query_map);
 
         // -------------------------------------------------
         // Private members
@@ -451,6 +445,7 @@ private:
         std::string m_url;
         std::string m_url_path;
         std::string m_url_query;
+        query_map_t m_url_query_map;
         std::string m_url_fragment;
 };
 
@@ -516,21 +511,16 @@ public:
         rqst_h(void) {};
         virtual ~rqst_h(){};
 
-        virtual h_resp_t do_get(hlx &a_hlx, hconn &a_hconn,
-                                rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_post(hlx &a_hlx, hconn &a_hconn,
-                                 rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_put(hlx &a_hlx, hconn &a_hconn,
-                                rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_delete(hlx &a_hlx, hconn &a_hconn,
-                                   rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_default(hlx &a_hlx, hconn &a_hconn,
-                                    rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        h_resp_t send_not_found(hlx &a_hlx, hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_not_found(hconn &a_hconn, const rqst &a_rqst);
 
 private:
         // Disallow copy/assign
@@ -550,11 +540,11 @@ public:
         default_rqst_h(void);
         ~default_rqst_h();
 
-        h_resp_t do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_post(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_put(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_delete(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_default(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
 private:
         // Disallow copy/assign
         default_rqst_h& operator=(const default_rqst_h &);
@@ -610,9 +600,9 @@ public:
         // ---------------------------------------
         // Callbacks
         // ---------------------------------------
-        typedef int32_t (*error_cb_t)(hlx &, subr &, nconn &);
-        typedef int32_t (*completion_cb_t)(hlx &, subr &, nconn &, resp &);
-        typedef int32_t (*create_req_cb_t)(hlx &, subr &, nbq &);
+        typedef int32_t (*error_cb_t)(subr &, nconn &);
+        typedef int32_t (*completion_cb_t)(subr &, nconn &, resp &);
+        typedef int32_t (*create_req_cb_t)(subr &, nbq &);
 
         // -------------------------------------------------
         // Public methods
@@ -716,7 +706,7 @@ public:
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static int32_t create_request(hlx &a_hlx, subr &a_subr, nbq &ao_q);
+        static int32_t create_request(subr &a_subr, nbq &ao_q);
 
 private:
         // -------------------------------------------------
@@ -832,6 +822,20 @@ SSL *nconn_get_SSL(nconn &a_nconn);
 long nconn_get_last_SSL_err(nconn &a_nconn);
 conn_status_t nconn_get_status(nconn &a_nconn);
 const std::string &nconn_get_last_error_str(nconn &a_nconn);
+
+//: ----------------------------------------------------------------------------
+//: hnconn_utils
+//: ----------------------------------------------------------------------------
+// Subrequests
+subr &create_subr(hconn &a_hconn);
+subr &create_subr(hconn &a_hconn, const subr &a_subr);
+int32_t queue_subr(hconn &a_hconn, subr &a_subr);
+
+// API Responses
+api_resp &create_api_resp(hconn &a_hconn);
+int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
+int32_t queue_resp(hconn &a_hconn);
+
 
 } //namespace ns_hlx {
 

@@ -140,12 +140,14 @@ public:
         bool get_connect_only(void) { return m_connect_only;}
         const std::string &get_last_error(void) { return m_last_error;}
         conn_status_t get_status(void) { return m_conn_status;}
+        host_info get_host_info(void) {return m_host_info;}
+        bool get_host_info_is_set(void) {return m_host_info_is_set;}
 
         // Setters
         void set_label(const std::string &a_label) {m_label = a_label;}
         void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
-        void set_host_info(const host_info &a_host_info) {m_host_info = a_host_info;}
+        void set_host_info(const host_info &a_host_info) {m_host_info = a_host_info; m_host_info_is_set = true;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
         void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
         void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
@@ -156,8 +158,8 @@ public:
         void set_stat_tt_completion_us(uint64_t a_val){ m_stat.m_tt_completion_us = a_val;}
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
         void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
-
         void set_status(conn_status_t a_status) { m_conn_status = a_status;}
+
         // State
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
         void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
@@ -211,6 +213,7 @@ protected:
         conn_status_t m_conn_status;
         std::string m_last_error;
         host_info m_host_info;
+        bool m_host_info_is_set;
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;

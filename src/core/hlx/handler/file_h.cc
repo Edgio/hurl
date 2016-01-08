@@ -59,10 +59,10 @@ file_h::~file_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t file_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t file_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         // GET
-        return get_file(a_hlx, a_hconn, a_rqst, a_rqst.get_url_path());
+        return get_file(a_hconn, a_rqst, a_rqst.get_url_path());
 }
 
 //: ----------------------------------------------------------------------------
@@ -70,15 +70,14 @@ h_resp_t file_h::do_get(hlx &a_hlx, hconn &a_hconn, rqst &a_rqst, const url_pmap
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t file_h::get_file(hlx &a_hlx,
-                          hconn &a_hconn,
+h_resp_t file_h::get_file(hconn &a_hconn,
                           rqst &a_rqst,
                           const std::string &a_path)
 {
         if(!a_hconn.m_out_q)
         {
                 // TODO 5xx's for errors?
-                return send_not_found(a_hlx, a_hconn, a_rqst);
+                return send_not_found(a_hconn, a_rqst);
         }
 
         // Make relative...
@@ -90,7 +89,7 @@ h_resp_t file_h::get_file(hlx &a_hlx,
         {
                 delete l_fs;
                 // TODO 5xx's for errors?
-                return send_not_found(a_hlx, a_hconn, a_rqst);
+                return send_not_found(a_hconn, a_rqst);
         }
 
         a_hconn.m_fs = l_fs;
@@ -139,7 +138,7 @@ h_resp_t file_h::get_file(hlx &a_hlx,
         }
         l_fs->fsread(l_q, l_read);
 
-        a_hlx.queue_resp(a_hconn);
+        queue_resp(a_hconn);
         return H_RESP_DONE;
 }
 
