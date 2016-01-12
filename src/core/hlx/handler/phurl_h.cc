@@ -36,13 +36,11 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 phurl_h_resp::phurl_h_resp(void) :
-        m_mutex(),
         m_pending_uid_set(),
         m_resp_list(),
         m_phurl_h(NULL),
         m_data(NULL)
 {
-        pthread_mutex_init(&m_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -65,7 +63,6 @@ phurl_h_resp::~phurl_h_resp(void)
                         *i_resp = NULL;
                 }
         }
-        pthread_mutex_destroy(&m_mutex);
 }
 
 //: ----------------------------------------------------------------------------
@@ -136,7 +133,22 @@ void phurl_h::set_host_list(const host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t phurl_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t phurl_h::do_get(hconn &a_hconn,
+                         rqst &a_rqst,
+                         const url_pmap_t &a_url_pmap)
+{
+        return do_get_w_subr_template(a_hconn, a_rqst, a_url_pmap, m_subr_template);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn,
+                                         rqst &a_rqst,
+                                         const url_pmap_t &a_url_pmap,
+                                         const subr &a_subr)
 {
         // Create request state
         phurl_h_resp *l_fanout_resp = new phurl_h_resp();
@@ -144,14 +156,12 @@ h_resp_t phurl_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_p
 
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
-                subr &l_subr = create_subr(a_hconn, m_subr_template);
+                subr &l_subr = create_subr(a_hconn, a_subr);
                 l_subr.set_host(i_host->m_host);
                 l_subr.reset_label();
                 l_subr.set_data(l_fanout_resp);
 
-                pthread_mutex_lock(&(l_fanout_resp->m_mutex));
                 l_fanout_resp->m_pending_uid_set.insert(l_subr.get_uid());
-                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
 
                 int32_t l_status = 0;
                 l_status = queue_subr(a_hconn, l_subr);
@@ -179,13 +189,11 @@ int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
         hlx_resp *l_resp = new hlx_resp();
         l_resp->m_resp = &a_resp;
         l_resp->m_subr = &a_subr;
-        pthread_mutex_lock(&(l_fanout_resp->m_mutex));
         l_fanout_resp->m_pending_uid_set.erase(a_subr.get_uid());
         l_fanout_resp->m_resp_list.push_back(l_resp);
         // Check for done
         if(l_fanout_resp->m_pending_uid_set.empty())
         {
-                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
                 if(!l_fanout_resp->m_phurl_h)
                 {
                         return -1;
@@ -197,10 +205,6 @@ int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
                 {
                         return -1;
                 }
-        }
-        else
-        {
-                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
         }
         return 0;
 }
@@ -217,12 +221,10 @@ int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
         {
                 return -1;
         }
-        pthread_mutex_lock(&(l_fanout_resp->m_mutex));
         l_fanout_resp->m_pending_uid_set.erase(a_subr.get_uid());
         // Check for done
         if(l_fanout_resp->m_pending_uid_set.empty())
         {
-                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
                 if(!l_fanout_resp->m_phurl_h)
                 {
                         return -1;
@@ -234,10 +236,6 @@ int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
                 {
                         return -1;
                 }
-        }
-        else
-        {
-                pthread_mutex_unlock(&(l_fanout_resp->m_mutex));
         }
         return 0;
 }

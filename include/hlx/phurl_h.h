@@ -27,7 +27,6 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
-#include <pthread.h>
 
 #include <set>
 
@@ -92,7 +91,6 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        pthread_mutex_t m_mutex;
         resp_uid_set_t m_pending_uid_set;
         hlx_resp_list_t m_resp_list;
         phurl_h *m_phurl_h;
@@ -130,6 +128,13 @@ public:
         // -------------------------------------------------
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
         static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
+
+        // -------------------------------------------------
+        // Protected methods
+        // -------------------------------------------------
+protected:
+        h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap, const subr &a_subr);
+
 private:
         // -------------------------------------------------
         // Private methods
