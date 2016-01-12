@@ -101,7 +101,17 @@ phurl_h::~phurl_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr &phurl_h::get_subr_template(void)
+const subr &phurl_h::get_subr_template(void)
+{
+        return m_subr_template;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+subr &phurl_h::get_subr_template_mutable(void)
 {
         return m_subr_template;
 }

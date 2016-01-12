@@ -120,7 +120,8 @@ public:
         h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         void add_host(const std::string a_host, uint16_t a_port = 80);
         void set_host_list(const host_list_t &a_host_list);
-        subr &get_subr_template(void);
+        const subr &get_subr_template(void);
+        subr &get_subr_template_mutable(void);
         virtual int32_t create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp);
 
         // -------------------------------------------------

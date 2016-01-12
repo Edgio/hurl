@@ -78,7 +78,7 @@ int main(void)
         l_hello_from->add_host("www.reddit.com", 443);
 
         // Setup subr template
-        ns_hlx::subr &l_subr = l_hello_from->get_subr_template();
+        ns_hlx::subr &l_subr = l_hello_from->get_subr_template_mutable();
         l_subr.set_port(443);
         l_subr.set_scheme(ns_hlx::SCHEME_TLS);
 
