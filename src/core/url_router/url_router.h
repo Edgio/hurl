@@ -13,6 +13,8 @@
 #include <string>
 #include <map>
 #include <stdint.h>
+#include <stddef.h>
+#include <list>
 
 namespace ns_hlx {
 
@@ -25,6 +27,9 @@ typedef std::map <std::string, std::string> url_pmap_t;
 #endif
 
 class node;
+class edge;
+
+typedef std::list <edge *> edge_list_t;
 
 //: ----------------------------------------------------------------------------
 //: url_router
@@ -45,7 +50,31 @@ public:
         const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
         void display(void);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"  // ignored because std::iterator has non-virtual dtor
+        class const_iterator : public std::iterator <std::forward_iterator_tag, std::pair <std::string, const void*> >
+        {
+#pragma GCC diagnostic pop                // back to default behaviour
+        public:
+                const value_type operator*() const;
+                const value_type* operator->() const;
+                const_iterator& operator++();
+                const_iterator operator++(int);
+                const_iterator(const const_iterator& a_iterator);
+        private:
+                const_iterator(const url_router& a_router);
+
+                const url_router& m_router;
+                const node* m_cur_node;
+                const edge_list_t::const_iterator m_node_iterator;
+        };
+
+        const_iterator begin() const;
+        const_iterator end() const;
+
+
 private:
+
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
@@ -57,6 +86,7 @@ private:
         // Private members
         // -------------------------------------------------
         node *m_root_node;
+
 
 };
 

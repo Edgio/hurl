@@ -84,7 +84,7 @@ class edge;
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-typedef std::list <edge *> edge_list_t;
+// typedef std::list <edge *> edge_list_t;
 
 typedef enum {
         PART_TYPE_STRING = 0,
@@ -1170,6 +1170,50 @@ void url_router::display(void)
 {
         m_root_node->display(0);
 }
+
+url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
+        m_router(a_iterator.m_router),
+        m_cur_node(a_iterator.m_cur_node),
+        m_node_iterator(a_iterator.m_node_iterator)
+{
+}
+
+url_router::const_iterator::const_iterator(const url_router& a_router):
+        m_router(a_router),
+        m_cur_node(a_router.m_root_node),
+        m_node_iterator(m_cur_node->m_edge_list.begin())
+{
+
+}
+
+
+const url_router::const_iterator::value_type url_router::const_iterator::operator*() const
+{
+
+        // just segv if url_router doesn't have a node yet?
+        std::string l_pattern = pattern_str((*m_node_iterator)->m_pattern);
+        return url_router::const_iterator::value_type(l_pattern, m_cur_node->m_data);
+
+}
+
+
+const url_router::const_iterator::value_type* url_router::const_iterator::operator->() const
+{
+        return NULL;
+}
+
+url_router::const_iterator& url_router::const_iterator::operator++()
+{
+        return *this;
+}
+
+url_router::const_iterator url_router::const_iterator::operator++(int)
+{
+        return url_router::const_iterator(*this);
+}
+
+
+
 
 //: ----------------------------------------------------------------------------
 //: \details: Constructor
