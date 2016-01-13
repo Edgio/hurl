@@ -7,4 +7,6 @@
   g. set separate timeouts resolve/connect/idle
   h. error callback indicate error type
   g. error responses for handlers
+  h. if is interactive shell --> isatty(fileno(stdout)) -default to color
+  
 

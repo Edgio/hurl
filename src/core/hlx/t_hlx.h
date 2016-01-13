@@ -99,7 +99,7 @@ public:
 
         // Resolver callback
 #ifdef ASYNC_DNS_SUPPORT
-        static int32_t subr_resolved_cb(const host_info *a_host_info, void *a_data);
+        static int32_t async_dns_resolved_cb(const host_info *a_host_info, void *a_data);
 #endif
 
 private:
@@ -131,12 +131,7 @@ private:
         hconn * get_hconn(url_router *a_url_router,
                             hconn_type_t a_type,
                             bool a_save);
-
-        nconn * get_proxy_conn(const std::string &a_label,
-                               scheme_t a_scheme,
-                               bool a_save,
-                               bool a_connect_only);
-
+        int32_t subr_try_start(subr &a_subr);
         int32_t subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
         int32_t subr_try_deq(void);
         bool subr_complete(hconn &a_hconn);
@@ -174,6 +169,7 @@ private:
         void *m_async_dns_ctx;
         int m_async_dns_fd;
         nconn *m_async_dns_nconn;
+        evr_timer_event_struct *m_async_dns_timer_obj;
         nresolver::lookup_job_q_t m_lookup_job_q;
         nresolver::lookup_job_pq_t m_lookup_job_pq;
 #endif

@@ -410,6 +410,16 @@ const host_info &subr::get_host_info(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+t_hlx *subr::get_t_hlx(void)
+{
+        return m_t_hlx;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 uint64_t subr::get_start_time_ms(void)
 {
         return m_start_time_ms;

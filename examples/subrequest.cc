@@ -5,6 +5,8 @@
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <string.h>
+#include <unistd.h>
+//#include <google/profiler.h>
 
 ns_hlx::hlx *g_hlx = NULL;
 
@@ -86,9 +88,17 @@ int main(void)
         g_hlx = new ns_hlx::hlx();
         g_hlx->register_lsnr(l_lsnr);
         g_hlx->set_num_threads(0);
-        //l_hlx->set_verbose(true);
-        //l_hlx->set_color(true);
+        //g_hlx->set_verbose(true);
+        //g_hlx->set_color(true);
+        //ProfilerStart("tmp.prof");
         g_hlx->run();
+        //sleep(1);
+        //while(g_hlx->is_running())
+        //{
+        //        sleep(1);
+        //        g_hlx->display_stats();
+        //}
+        //ProfilerStop();
         if(g_hlx) {delete g_hlx; g_hlx = NULL;}
         if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
         if(l_rqst_h_quit) {delete l_rqst_h_quit; l_rqst_h_quit = NULL;}

@@ -45,7 +45,7 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 // TODO Remove -enable with build flag...
-//#define ASYNC_DNS_WITH_UDNS 1
+#define ASYNC_DNS_WITH_UDNS 1
 #ifdef ASYNC_DNS_WITH_UDNS
   #define ASYNC_DNS_SUPPORT 1
 #endif
@@ -135,7 +135,7 @@ public:
         static const uint64_t S_RESOLVER_ID         = 0xFFFFDEADBEEF0001UL;
         static const uint32_t S_TIMEOUT_S = 4;
         static const uint32_t S_RETRIES = 3;
-        static const uint32_t S_MAX_PARALLEL_LOOKUPS = 10;
+        static const uint32_t S_MAX_PARALLEL_LOOKUPS = 100;
 #endif
         static const uint32_t S_MIN_TTL_S = 10;
 
