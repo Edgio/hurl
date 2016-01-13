@@ -37,6 +37,9 @@
 #include <netdb.h>
 #include <string.h>
 
+// for inet_pton
+#include <arpa/inet.h>
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -266,6 +269,17 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+static bool is_valid_ip_address(const char *a_str)
+{
+    struct sockaddr_in l_sa;
+    return (inet_pton(AF_INET, a_str, &(l_sa.sin_addr)) != 0);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
         int32_t l_status;
@@ -302,10 +316,13 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
                 ao_host_info = *l_host_info;
                 return STATUS_OK;
         }
-        else
+
+        // Lookup inline
+        if(is_valid_ip_address(a_host.c_str()))
         {
-                return STATUS_ERROR;
+                return lookup_inline(a_host, a_port, ao_host_info);
         }
+        return STATUS_ERROR;
 }
 
 //: ----------------------------------------------------------------------------
@@ -733,6 +750,7 @@ int32_t nresolver::lookup_async(void* a_ctx,
         l_now = time(NULL);
         const int l_delay = dns_timeouts(l_ctx, 1, l_now);
         (void) l_delay;
+
 #endif
 
         // Check for expires
@@ -767,9 +785,6 @@ int32_t nresolver::handle_io(void* a_ctx)
                 return STATUS_ERROR;
         }
         dns_ioevent(l_ctx, 0);
-
-        const int l_delay = dns_timeouts(l_ctx, 0, 0);
-        (void) l_delay;
 #endif
         return STATUS_OK;
 }

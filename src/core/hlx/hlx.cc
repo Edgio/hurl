@@ -65,17 +65,26 @@ static void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_t
         add_stat(ao_stat_agg.m_stat_us_first_response , a_add_total_stat.m_stat_us_first_response);
         add_stat(ao_stat_agg.m_stat_us_end_to_end , a_add_total_stat.m_stat_us_end_to_end);
 
+        ao_stat_agg.m_num_cln_resolve_req += a_add_total_stat.m_num_cln_resolve_req;
+        ao_stat_agg.m_num_cln_resolve_active += a_add_total_stat.m_num_cln_resolve_active;
+        ao_stat_agg.m_num_cln_resolved += a_add_total_stat.m_num_cln_resolved;
+        ao_stat_agg.m_num_cln_conn_started += a_add_total_stat.m_num_cln_conn_started;
+        ao_stat_agg.m_cur_cln_conn_count += a_add_total_stat.m_cur_cln_conn_count;
+        ao_stat_agg.m_num_cln_conn_completed += a_add_total_stat.m_num_cln_conn_completed;
+        ao_stat_agg.m_num_cln_reqs += a_add_total_stat.m_num_cln_reqs;
+        ao_stat_agg.m_num_cln_idle_killed += a_add_total_stat.m_num_cln_idle_killed;
+
+        ao_stat_agg.m_num_srv_conn_started += a_add_total_stat.m_num_srv_conn_started;
+        ao_stat_agg.m_cur_srv_conn_count += a_add_total_stat.m_cur_srv_conn_count;
+        ao_stat_agg.m_num_srv_conn_completed += a_add_total_stat.m_num_srv_conn_completed;
+        ao_stat_agg.m_num_srv_reqs += a_add_total_stat.m_num_srv_reqs;
+        ao_stat_agg.m_num_srv_idle_killed += a_add_total_stat.m_num_srv_idle_killed;
+
         ao_stat_agg.m_total_bytes += a_add_total_stat.m_total_bytes;
         ao_stat_agg.m_total_reqs += a_add_total_stat.m_total_reqs;
-
-        ao_stat_agg.m_num_resolve_req += a_add_total_stat.m_num_resolve_req;
-        ao_stat_agg.m_num_resolve_active += a_add_total_stat.m_num_resolve_active;
-        ao_stat_agg.m_num_resolved += a_add_total_stat.m_num_resolved;
-        ao_stat_agg.m_num_conn_started += a_add_total_stat.m_num_conn_started;
-        ao_stat_agg.m_num_conn_completed += a_add_total_stat.m_num_conn_completed;
-        ao_stat_agg.m_num_idle_killed += a_add_total_stat.m_num_idle_killed;
         ao_stat_agg.m_num_errors += a_add_total_stat.m_num_errors;
         ao_stat_agg.m_num_bytes_read += a_add_total_stat.m_num_bytes_read;
+        ao_stat_agg.m_num_bytes_written += a_add_total_stat.m_num_bytes_written;
 
         for(status_code_count_map_t::const_iterator i_code =
                         a_add_total_stat.m_status_code_count_map.begin();
@@ -228,6 +237,63 @@ int32_t hlx::get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len)
         *ao_json_buf = (char *)malloc(sizeof(char)*(ao_json_buf_len+1));
         strncpy(*ao_json_buf, l_strbuf.GetString(), ao_json_buf_len);
         return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#define DISPLAY_DNS_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_MAGENTA, #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_CLN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_GREEN,   #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_SRV_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_BLUE,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_GEN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_CYAN,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+void hlx::display_stats(void)
+{
+        uint32_t i_t = 0;
+        for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
+           i_client != m_t_hlx_list.end();
+           ++i_client, ++i_t)
+        {
+                // Get stuff from client...
+                // TODO
+                t_stat_t l_stat;
+                (*i_client)->get_stats_copy(l_stat);
+                NDBG_OUTPUT("+-----------------------------------------------------------\n");
+                NDBG_OUTPUT("| THREAD [%6d]\n", i_t);
+                NDBG_OUTPUT("+-----------------------------------------------------------\n");
+                //xstat_t m_stat_us_connect;
+                //xstat_t m_stat_us_first_response;
+                //xstat_t m_stat_us_end_to_end;
+                DISPLAY_DNS_STAT(m_num_cln_resolve_req);
+                DISPLAY_DNS_STAT(m_num_cln_resolve_active);
+                DISPLAY_DNS_STAT(m_num_cln_resolved);
+                DISPLAY_DNS_STAT(m_num_cln_resolve_ev);
+                DISPLAY_CLN_STAT(m_num_cln_conn_started);
+                DISPLAY_CLN_STAT(m_cur_cln_conn_count);
+                DISPLAY_CLN_STAT(m_num_cln_conn_completed);
+                DISPLAY_CLN_STAT(m_num_cln_reqs);
+                DISPLAY_CLN_STAT(m_num_cln_idle_killed);
+                DISPLAY_SRV_STAT(m_num_srv_conn_started);
+                DISPLAY_SRV_STAT(m_cur_srv_conn_count);
+                DISPLAY_SRV_STAT(m_num_srv_conn_completed);
+                DISPLAY_SRV_STAT(m_num_srv_reqs);
+                DISPLAY_SRV_STAT(m_num_srv_idle_killed);
+                DISPLAY_GEN_STAT(m_num_run);
+                DISPLAY_GEN_STAT(m_total_bytes);
+                DISPLAY_GEN_STAT(m_total_reqs);
+                DISPLAY_GEN_STAT(m_num_errors);
+                DISPLAY_GEN_STAT(m_num_bytes_read);
+                DISPLAY_GEN_STAT(m_num_bytes_written);
+                //NDBG_OUTPUT("| %sPending resolve%s: \n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
+                //for(subr_pending_resolv_map_t::const_iterator i_r = l_stat.m_subr_pending_resolv_map.begin();
+                //    i_r != l_stat.m_subr_pending_resolv_map.end();
+                //    ++i_r)
+                //{
+                //        NDBG_OUTPUT("|     %s\n", i_r->first.c_str());
+                //}
+                //status_code_count_map_t m_status_code_count_map;
+        }
 }
 
 //: ----------------------------------------------------------------------------

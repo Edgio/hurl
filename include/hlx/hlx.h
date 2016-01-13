@@ -276,6 +276,7 @@ public:
         // Stats
         void get_stats(t_stat_t &ao_all_stats);
         int32_t get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len);
+        void display_stats(void);
 
         // TLS config
         // Server ctx

@@ -88,7 +88,7 @@ SET(HDRS
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})
 
-#target_link_libraries(hlxcore)
+target_link_libraries(hlxcore libudns)
 
 # Create symlink for libhlxcore.so.<soversion>
 SET_TARGET_PROPERTIES(hlxcore
@@ -107,3 +107,14 @@ install(FILES ${HDRS}
   DESTINATION include/hlx
   COMPONENT Headers
 )
+
+# ----------------------------------------------------------
+# Custom command to link archives together
+# ----------------------------------------------------------
+add_custom_command(
+  TARGET hlxcore
+  POST_BUILD
+  COMMAND ar -M < ${CMAKE_SOURCE_DIR}/src/core/libhlx.mri && mv libhlx.a libhlxcore.a
+  DEPENDS hlxcore udns
+)
+

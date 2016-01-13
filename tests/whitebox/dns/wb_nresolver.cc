@@ -54,8 +54,8 @@ static uint32_t g_lkp_err = 0;
 //: ----------------------------------------------------------------------------
 int32_t test_resolved_cb(const ns_hlx::host_info *a_host_info, void *a_data)
 {
-        //printf("DEBUG: test_resolved_cb: a_host_info: %p a_data: %p\n", a_host_info, a_data);
         --g_dns_reqs_qd;
+        //printf("DEBUG: test_resolved_cb: a_host_info: %p a_data: %p g_dns_reqs_qd: %d\n", a_host_info, a_data, g_dns_reqs_qd);
         if(a_host_info &&
            ((a_data == (void *)(GOOD_DATA_VALUE_1)) ||
             (a_data == (void *)(GOOD_DATA_VALUE_2))))
@@ -138,6 +138,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
         SECTION("Validate async")
         {
                 ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
+                l_nresolver->add_resolver_host("8.8.8.8");
                 l_nresolver->set_retries(1);
                 l_nresolver->set_timeout_s(1);
 
@@ -206,11 +207,19 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                         int l_count;
                         l_count = poll(&l_pfd, 1, 1*1000);
                         (void) l_count;
-                        //printf("DEBUG: poll: %d\n", l_count);
                         l_status = l_nresolver->handle_io(l_ctx);
+                        std::string l_unused;
+                        l_status = l_nresolver->lookup_async(l_ctx,
+                                                             l_unused, 0,
+                                                             test_resolved_cb,
+                                                             NULL,
+                                                             l_active, l_lookup_job_q, l_lookup_job_pq);
+                        REQUIRE((l_status == 0));
+                        if(g_dns_reqs_qd == 0)
+                        {
+                                break;
+                        }
                 }
-
-
                 uint64_t l_end_s = ns_hlx::get_time_s();
                 INFO("l_end_s:       " << l_end_s)
                 INFO("l_start_s:     " << l_start_s)
@@ -315,6 +324,17 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                         (void) l_count;
                         //printf("DEBUG: poll: %d\n", l_count);
                         l_status = l_nresolver->handle_io(l_ctx);
+                        std::string l_unused;
+                        l_status = l_nresolver->lookup_async(l_ctx,
+                                                             l_unused, 0,
+                                                             test_resolved_cb,
+                                                             NULL,
+                                                             l_active, l_lookup_job_q, l_lookup_job_pq);
+                        REQUIRE((l_status == 0));
+                        if(g_dns_reqs_qd == 0)
+                        {
+                                break;
+                        }
                 }
 
 

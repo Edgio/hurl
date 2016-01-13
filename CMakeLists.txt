@@ -35,7 +35,7 @@ option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
 option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
 option(BUILD_EFENCE     "Build with tcmalloc" OFF)
 option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
-option(BUILD_UDNS       "Build with udns (async dns support)" OFF)
+option(BUILD_UDNS       "Build with udns (async dns support)" ON)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -173,7 +173,8 @@ if(BUILD_UDNS)
       BUILD_COMMAND make
       INSTALL_COMMAND ""
     )
-    set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
+    # Link statically into libhlx archive
+    #set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
     add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
