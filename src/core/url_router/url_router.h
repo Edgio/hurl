@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <list>
+#include <stack>
 
 namespace ns_hlx {
 
@@ -62,12 +63,18 @@ public:
                 const_iterator operator++(int);
                 const_iterator(const const_iterator& a_iterator);
         private:
-                const_iterator(const url_router& a_router);
-
+                // Member Variables
                 const url_router& m_router;
-                const node* m_cur_node;
-                const edge_list_t::const_iterator m_cur_node_iterator;
+                std::stack <const node*> m_node_stack;
+                edge_list_t::const_iterator m_cur_node_iterator;
                 value_type m_cur_value;
+
+                // Member Functions
+                const_iterator(const url_router& a_router);
+                void go_to_end(void);
+
+                // Friends
+                friend class url_router;
         };
 
         const_iterator begin() const;

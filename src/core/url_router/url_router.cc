@@ -1171,22 +1171,6 @@ void url_router::display(void)
         m_root_node->display(0);
 }
 
-url_router::const_iterator::const_iterator(const url_router& a_router):
-        m_router(a_router),
-        m_cur_node(a_router.m_root_node),
-        m_cur_node_iterator(m_cur_node->m_edge_list.begin()),
-        m_cur_value()
-{
-}
-
-url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
-        m_router(a_iterator.m_router),
-        m_cur_node(a_iterator.m_cur_node),
-        m_cur_node_iterator(a_iterator.m_cur_node_iterator),
-        m_cur_value(a_iterator.m_cur_value)
-{
-}
-
 
 const url_router::const_iterator::value_type url_router::const_iterator::operator*() const
 {
@@ -1201,16 +1185,112 @@ const url_router::const_iterator::value_type* url_router::const_iterator::operat
 
 url_router::const_iterator& url_router::const_iterator::operator++()
 {
-        std::string l_pattern = pattern_str((*m_cur_node_iterator)->m_pattern);
-        m_cur_value = url_router::const_iterator::value_type(l_pattern, m_cur_node->m_data);
+
+        // overall 2 steps
+
+        {
+                // 1.  Move the iterator and node to the right spot
+
+                // if the current node has a child,
+                //   push the child mode onto the stack
+                //   go to the first entry in the child node
+                // else
+                //   go to the next entry in the current node
+                //   if we're at the end, return end iterator
+                if(NULL != (*m_cur_node_iterator)->m_child){
+                        // step down the branch
+
+                        m_node_stack.push((*m_cur_node_iterator)->m_child);
+                        m_cur_node_iterator = m_node_stack.top()->m_edge_list.begin();
+
+                } else {
+                        // go to the next sibling entry
+
+                        // move to the next point
+                        if(++m_cur_node_iterator == m_node_stack.top()->m_edge_list.end()){
+                                // we're at the end of the edge at the top of the stack
+
+                                // if we're at the top of the stack we're done
+                                if(m_node_stack.top() == m_router.m_root_node){
+                                        // we're now at the end element of the
+                                        // root node's list
+                                        // this is the end
+                                        return *this;
+                                }
+                                // we can keep going
+
+                                m_node_stack.pop();
+                                m_cur_node_iterator = m_node_stack.top()->m_edge_list.begin();
+
+                        }
+
+                }
+
+        }
+
+        {
+                // 2.  Set m_cur_value from them
+
+                std::string l_pattern = pattern_str((*m_cur_node_iterator)->m_pattern);
+                m_cur_value = url_router::const_iterator::value_type(l_pattern, m_node_stack.top()->m_data);
+
+        }
 
         return *this;
 }
 
 url_router::const_iterator url_router::const_iterator::operator++(int)
 {
-        return url_router::const_iterator(*this);
+
+        url_router::const_iterator l_retval(*this);
+        ++(*this);
+        return l_retval;
 }
+
+
+url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
+        m_router(a_iterator.m_router),
+        m_node_stack(a_iterator.m_node_stack),
+        m_cur_node_iterator(a_iterator.m_cur_node_iterator),
+        m_cur_value(a_iterator.m_cur_value)
+{
+}
+
+url_router::const_iterator::const_iterator(const url_router& a_router):
+        m_router(a_router),
+        m_node_stack(),
+        m_cur_node_iterator(),
+        m_cur_value()
+{
+        m_node_stack.push(a_router.m_root_node);
+        m_cur_node_iterator = m_node_stack.top()->m_edge_list.begin();
+}
+
+void url_router::const_iterator::go_to_end(void)
+{
+        // point to the end, this is the end of the root node's list
+        // as we iterate depth first
+        while(false == m_node_stack.empty())
+                m_node_stack.pop();
+        m_node_stack.push(m_router.m_root_node);
+        m_cur_node_iterator = m_node_stack.top()->m_edge_list.end();
+
+}
+
+
+
+url_router::const_iterator url_router::begin() const
+{
+        return const_iterator(*this);
+}
+
+url_router::const_iterator url_router::end() const
+{
+        url_router::const_iterator l_retval(*this);
+        l_retval.go_to_end();
+        return l_retval;
+}
+
 
 
 
