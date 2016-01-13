@@ -173,7 +173,8 @@ if(BUILD_UDNS)
       BUILD_COMMAND make
       INSTALL_COMMAND ""
     )
-    set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
+    # Link statically into libhlx archive
+    #set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
     add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 

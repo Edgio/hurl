@@ -86,9 +86,19 @@ SET(HDRS
     ../../include/hlx/file_h.h
 )
 
+# ----------------------------------------------------------
+# Custom command to link archives together
+# ----------------------------------------------------------
+add_custom_command(
+  OUTPUT create_single_archive
+  COMMAND ar -M < ${CMAKE_SOURCE_DIR}/src/core/libhlx.mri && mv libhlx.a libhlxcore.a
+  DEPENDS hlxcore udns
+)
+add_custom_target(run ALL DEPENDS create_single_archive)
+
 add_library(hlxcore STATIC ${HDRS} ${SRCS})
 
-#target_link_libraries(hlxcore)
+target_link_libraries(hlxcore libudns)
 
 # Create symlink for libhlxcore.so.<soversion>
 SET_TARGET_PROPERTIES(hlxcore
