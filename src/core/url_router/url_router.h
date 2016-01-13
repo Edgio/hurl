@@ -66,7 +66,8 @@ public:
 
                 const url_router& m_router;
                 const node* m_cur_node;
-                const edge_list_t::const_iterator m_node_iterator;
+                const edge_list_t::const_iterator m_cur_node_iterator;
+                value_type m_cur_value;
         };
 
         const_iterator begin() const;
