@@ -128,4 +128,16 @@ TEST_CASE( "url router test", "[url_router]" )
                         REQUIRE((l_found == NULL));
                 }
         }
+        SECTION("Iterator") {
+
+                int l_count = 0;
+                REQUIRE((l_url_router.begin() != l_url_router.end()));
+                for(ns_hlx::url_router::const_iterator iter = l_url_router.begin();
+                    iter != l_url_router.end();
+                    ++iter){
+                        ++l_count;
+                }
+                REQUIRE((l_count == 11));   // just a facet of how it's split up
+        }
+
 }

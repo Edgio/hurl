@@ -84,8 +84,6 @@ class edge;
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-// typedef std::list <edge *> edge_list_t;
-
 typedef enum {
         PART_TYPE_STRING = 0,
         PART_TYPE_PARAMETER,
@@ -373,7 +371,6 @@ public:
         edge *append_edge(node *a_node, const pattern_t &a_pattern);
         void append_edge(edge *a_edge);
         const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
-        void display(uint32_t a_indent);
 
         // -------------------------------------------------
         // Public members
@@ -414,7 +411,7 @@ public:
         // Public members
         // -------------------------------------------------
         pattern_t m_pattern;
-        node *m_child;
+        node *m_child;           // practically, this is never null, as that'd be an edge with no endpoint
 
 private:
         // -------------------------------------------------
@@ -990,29 +987,6 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void node::display(uint32_t a_indent)
-{
-        //printf("data: %p\n", m_data);
-        for(edge_list_t::const_iterator i_edge = m_edge_list.begin();
-            i_edge != m_edge_list.end();
-            ++i_edge)
-        {
-                // Stupid???
-                printf(": ");
-                for(uint32_t i=0; i < a_indent; ++i) printf("-");
-                printf("%s \n", pattern_str((*i_edge)->m_pattern).c_str());
-                if((*i_edge)->m_child != NULL)
-                {
-                        (*i_edge)->m_child->display(a_indent + 2);
-                }
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 const void *node::find_route(const std::string &a_route, url_pmap_t &ao_url_pmap)
 {
         //NDBG_PRINT("Find route: %s\n", a_route.c_str());
@@ -1101,10 +1075,7 @@ node::~node()
         {
                 if(*i_e)
                 {
-                        if((*i_e)->m_child)
-                        {
-                                delete (*i_e)->m_child;
-                        }
+                        delete (*i_e)->m_child;  // m_child is always set
                         delete *i_e;
                 }
         }
@@ -1168,7 +1139,10 @@ const void *url_router::find_route(const std::string &a_route, url_pmap_t &ao_ur
 //: ----------------------------------------------------------------------------
 void url_router::display(void)
 {
-        m_root_node->display(0);
+
+        for(const_iterator iter = begin(); iter != end(); ++iter)
+                printf(": %s%s -> %p\n", std::string(iter.depth<<1, '-').c_str(), iter->first.c_str(), iter->second);
+
 }
 
 
@@ -1189,7 +1163,7 @@ url_router::const_iterator& url_router::const_iterator::operator++()
         // overall 2 steps
 
         {
-                // 1.  Move the iterator and node to the right spot
+                // 1.  Move the iterator to the right spot
 
                 // if the current node has a child,
                 //   push the child mode onto the stack
@@ -1197,30 +1171,40 @@ url_router::const_iterator& url_router::const_iterator::operator++()
                 // else
                 //   go to the next entry in the current node
                 //   if we're at the end, return end iterator
-                if(NULL != (*m_cur_node_iterator)->m_child){
-                        // step down the branch
+                if(false == (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.empty()){
+                        // the current node being pointed _TO_ has children
 
-                        m_node_stack.push((*m_cur_node_iterator)->m_child);
-                        m_cur_node_iterator = m_node_stack.top()->m_edge_list.begin();
+                        // step down a node to get the children
+                        m_edge_iterators_stack.push(
+                                std::make_pair(
+                                        (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.begin(),
+                                        (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.end()
+                                        )
+                                );
+                        // fprintf(stderr, "Stepped down to edge: %p\n", *m_edge_iterators_stack.top().first);
+                        ++depth;
 
                 } else {
                         // go to the next sibling entry
 
+                        // fprintf(stderr, "Go to next sibling\n");
                         // move to the next point
-                        if(++m_cur_node_iterator == m_node_stack.top()->m_edge_list.end()){
+                        if(++(m_edge_iterators_stack.top().first) == m_edge_iterators_stack.top().second){
                                 // we're at the end of the edge at the top of the stack
 
+                                // fprintf(stderr, "edge ierator pointing at the end of the current node's edge list\n");
+                                m_edge_iterators_stack.pop();             // go up the stack one
+                                ++(m_edge_iterators_stack.top().first);   // and step forwards
+                                --depth;
+
                                 // if we're at the top of the stack we're done
-                                if(m_node_stack.top() == m_router.m_root_node){
+                                if(m_edge_iterators_stack.top().first == m_router.m_root_node->m_edge_list.end()){
                                         // we're now at the end element of the
                                         // root node's list
                                         // this is the end
                                         return *this;
                                 }
                                 // we can keep going
-
-                                m_node_stack.pop();
-                                m_cur_node_iterator = m_node_stack.top()->m_edge_list.begin();
 
                         }
 
@@ -1231,8 +1215,8 @@ url_router::const_iterator& url_router::const_iterator::operator++()
         {
                 // 2.  Set m_cur_value from them
 
-                std::string l_pattern = pattern_str((*m_cur_node_iterator)->m_pattern);
-                m_cur_value = url_router::const_iterator::value_type(l_pattern, m_node_stack.top()->m_data);
+                std::string l_pattern = pattern_str((*m_edge_iterators_stack.top().first)->m_pattern);
+                m_cur_value = url_router::const_iterator::value_type(l_pattern, (*m_edge_iterators_stack.top().first)->m_child->m_data);
 
         }
 
@@ -1247,47 +1231,61 @@ url_router::const_iterator url_router::const_iterator::operator++(int)
         return l_retval;
 }
 
+bool url_router::const_iterator::operator==(const const_iterator& a_iterator)
+{
+        return (&m_router == &a_iterator.m_router &&
+                m_edge_iterators_stack == a_iterator.m_edge_iterators_stack);
+}
+
+bool url_router::const_iterator::operator!=(const const_iterator& a_iterator)
+{
+        return !(*this == a_iterator);
+}
 
 url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
+        depth(a_iterator.depth),
         m_router(a_iterator.m_router),
-        m_node_stack(a_iterator.m_node_stack),
-        m_cur_node_iterator(a_iterator.m_cur_node_iterator),
+        m_edge_iterators_stack(a_iterator.m_edge_iterators_stack),
         m_cur_value(a_iterator.m_cur_value)
 {
 }
 
 url_router::const_iterator::const_iterator(const url_router& a_router):
+        depth(0),
         m_router(a_router),
-        m_node_stack(),
-        m_cur_node_iterator(),
+        m_edge_iterators_stack(),
         m_cur_value()
 {
-        m_node_stack.push(a_router.m_root_node);
-        m_cur_node_iterator = m_node_stack.top()->m_edge_list.begin();
-}
-
-void url_router::const_iterator::go_to_end(void)
-{
-        // point to the end, this is the end of the root node's list
-        // as we iterate depth first
-        while(false == m_node_stack.empty())
-                m_node_stack.pop();
-        m_node_stack.push(m_router.m_root_node);
-        m_cur_node_iterator = m_node_stack.top()->m_edge_list.end();
-
+        m_edge_iterators_stack.push(
+                std::make_pair(a_router.m_root_node->m_edge_list.begin(),
+                               a_router.m_root_node->m_edge_list.end()
+                        )
+                );
 }
 
 
 
 url_router::const_iterator url_router::begin() const
 {
-        return const_iterator(*this);
+        url_router::const_iterator l_retval(*this);
+        ++l_retval;  // step to the first valid (m_data != nullptr) point in the trie
+        return l_retval;
 }
 
 url_router::const_iterator url_router::end() const
 {
         url_router::const_iterator l_retval(*this);
-        l_retval.go_to_end();
+
+        // point to the end, this is the end of the root node's list
+        // as we iterate depth first
+        while(false == l_retval.m_edge_iterators_stack.empty())
+                l_retval.m_edge_iterators_stack.pop();
+        l_retval.m_edge_iterators_stack.push(
+                std::make_pair(l_retval.m_router.m_root_node->m_edge_list.end(),
+                               l_retval.m_router.m_root_node->m_edge_list.end()
+                        )
+                );
+
         return l_retval;
 }
 

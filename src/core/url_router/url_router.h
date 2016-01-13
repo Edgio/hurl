@@ -39,6 +39,59 @@ class url_router
 {
 public:
         // -------------------------------------------------
+        // Scoped Classes
+        // -------------------------------------------------
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Weffc++"  // ignored because std::iterator has non-virtual dtor
+        class const_iterator : public std::iterator <std::forward_iterator_tag, std::pair <std::string, const void*> >
+        {
+#pragma GCC diagnostic pop                // back to default behaviour
+        public:
+                // -------------------------------------------------
+                // Public methods
+                // -------------------------------------------------
+                const_iterator(const const_iterator& a_iterator);
+
+                const value_type operator*() const;
+                const value_type* operator->() const;
+
+                const_iterator& operator++();
+                const_iterator operator++(int);
+
+                bool operator==(const const_iterator& a_iterator);
+                bool operator!=(const const_iterator& a_iterator);
+
+                // -------------------------------------------------
+                // Public members
+                // -------------------------------------------------
+                uint32_t depth;
+
+        private:
+                // -------------------------------------------------
+                // Private members
+                // -------------------------------------------------
+                const url_router& m_router;
+
+                // worth some explanation
+                // this is the stasck of iterators over the edge lists for every node in the trie
+                // .first is the current position, .second is the end
+                std::stack <std::pair <edge_list_t::const_iterator, edge_list_t::const_iterator> > m_edge_iterators_stack;
+                value_type m_cur_value;
+
+
+                // -------------------------------------------------
+                // Private methods
+                // -------------------------------------------------
+                const_iterator(const url_router& a_router);
+
+
+                // Friends
+                friend class url_router;
+        };
+
+
+
+        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
         url_router();
@@ -50,32 +103,6 @@ public:
         int32_t add_route(const std::string &a_route, const void *a_data);
         const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
         void display(void);
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Weffc++"  // ignored because std::iterator has non-virtual dtor
-        class const_iterator : public std::iterator <std::forward_iterator_tag, std::pair <std::string, const void*> >
-        {
-#pragma GCC diagnostic pop                // back to default behaviour
-        public:
-                const value_type operator*() const;
-                const value_type* operator->() const;
-                const_iterator& operator++();
-                const_iterator operator++(int);
-                const_iterator(const const_iterator& a_iterator);
-        private:
-                // Member Variables
-                const url_router& m_router;
-                std::stack <const node*> m_node_stack;
-                edge_list_t::const_iterator m_cur_node_iterator;
-                value_type m_cur_value;
-
-                // Member Functions
-                const_iterator(const url_router& a_router);
-                void go_to_end(void);
-
-                // Friends
-                friend class url_router;
-        };
 
         const_iterator begin() const;
         const_iterator end() const;
