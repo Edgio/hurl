@@ -555,7 +555,10 @@ bool edge::match_route(const std::string &a_route,
                 }
                 else if(i_part->m_type == PART_TYPE_TERMINAL)
                 {
-                        ao_suffix = std::string();
+
+                        // capture everything after the terminal in a special parameter map '*'
+                        ao_url_pmap["*"] = std::string(l_route_ptr);
+                        ao_suffix.clear();
                         return true;
                 }
         }
@@ -564,11 +567,11 @@ bool edge::match_route(const std::string &a_route,
 
         if(l_len == a_route.length())
         {
-                ao_suffix = std::string();
+                ao_suffix.clear();
         }
         else
         {
-                ao_suffix = std::string(l_route_ptr);
+                ao_suffix.assign(l_route_ptr);
         }
 
         //NDBG_PRINT("%sMATCH!!!!%s: ao_suffix: %s\n",

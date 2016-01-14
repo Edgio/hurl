@@ -1808,9 +1808,7 @@ int32_t t_hlx::handle_req(hconn &a_hconn, url_router *a_url_router)
         else
         {
                 // Default response
-                l_hdlr_status = m_default_rqst_h.do_get(a_hconn,
-                                                        *l_rqst,
-                                                        l_pmap);
+                l_hdlr_status = m_default_rqst_h.send_not_found(a_hconn, *l_rqst);
         }
 
         switch(l_hdlr_status)
