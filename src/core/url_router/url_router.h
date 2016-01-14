@@ -61,12 +61,17 @@ public:
                 bool operator==(const const_iterator& a_iterator);
                 bool operator!=(const const_iterator& a_iterator);
 
+                // get the full url as a string
+                std::string get_full_url(void) const;
+
                 // -------------------------------------------------
                 // Public members
                 // -------------------------------------------------
                 uint32_t depth;
 
         private:
+                typedef std::stack <std::pair <edge_list_t::const_iterator, edge_list_t::const_iterator> > iterator_stack_t;
+
                 // -------------------------------------------------
                 // Private members
                 // -------------------------------------------------
@@ -75,7 +80,7 @@ public:
                 // worth some explanation
                 // this is the stasck of iterators over the edge lists for every node in the trie
                 // .first is the current position, .second is the end
-                std::stack <std::pair <edge_list_t::const_iterator, edge_list_t::const_iterator> > m_edge_iterators_stack;
+                iterator_stack_t m_edge_iterators_stack;
                 value_type m_cur_value;
 
 

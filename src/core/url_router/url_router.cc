@@ -1242,6 +1242,26 @@ bool url_router::const_iterator::operator!=(const const_iterator& a_iterator)
         return !(*this == a_iterator);
 }
 
+std::string url_router::const_iterator::get_full_url(void) const
+{
+
+        // create the full string representing the url to this point
+        std::string retval;
+
+        iterator_stack_t l_stack(m_edge_iterators_stack);
+        while(false == l_stack.empty()){
+                // have stuff on the stack
+
+                // build the string backwards
+                retval.insert(0, pattern_str((*l_stack.top().first)->m_pattern));
+                l_stack.pop();
+
+        }
+
+        return retval;
+
+}
+
 url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
         depth(a_iterator.depth),
         m_router(a_iterator.m_router),

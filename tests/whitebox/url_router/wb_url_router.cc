@@ -136,6 +136,7 @@ TEST_CASE( "url router test", "[url_router]" )
                     iter != l_url_router.end();
                     ++iter){
                         ++l_count;
+                        iter.get_full_url();
                 }
                 REQUIRE((l_count == 11));   // just a facet of how it's split up
         }
