@@ -31,7 +31,7 @@
 #include "nconn_tls.h"
 #include "time_util.h"
 #include "stat_util.h"
-#include "url_router.h"
+#include "hlx/url_router.h"
 
 #include <unistd.h>
 #include <errno.h>

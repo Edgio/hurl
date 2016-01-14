@@ -3,7 +3,7 @@
 # All Rights Reserved
 #
 #   Author: Reed P Morrison
-#   Date:   09/30/2015  
+#   Date:   09/30/2015
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ SET(SRCS wb_url_router.cc
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../src/core/url_router/
+                    ${CMAKE_SOURCE_DIR}/include
                     ../../../src/core/ndebug/)
 add_executable(wb_url_router ${HDRS} ${SRCS})
 target_link_libraries(wb_url_router compiled_catch ${LIBRARIES})

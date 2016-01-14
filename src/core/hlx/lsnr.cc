@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
-#include "url_router.h"
+#include "hlx/url_router.h"
 #include "ndebug.h"
 
 #include <string.h>

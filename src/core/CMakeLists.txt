@@ -84,6 +84,7 @@ SET(HDRS
     ../../include/hlx/stat.h
     ../../include/hlx/phurl_h.h
     ../../include/hlx/file_h.h
+    ../../include/hlx/url_router.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})
@@ -117,4 +118,3 @@ add_custom_command(
   COMMAND ar -M < ${CMAKE_SOURCE_DIR}/src/core/libhlx.mri && mv libhlx.a libhlxcore.a
   DEPENDS hlxcore udns
 )
-
