@@ -34,8 +34,11 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Custom responses
 //: ----------------------------------------------------------------------------
-const char *G_RESP_GETFILE_NOT_FOUND = "{ \"errors\": ["
+const char *G_RESP_NOT_FOUND = "{ \"errors\": ["
                                        "{\"code\": 404, \"message\": \"Not found\"}"
+                                       "], \"success\": false}\r\n";
+const char *G_RESP_NOT_IMPLEMENTED = "{ \"errors\": ["
+                                       "{\"code\": 501, \"message\": \"Not implemented\"}"
                                        "], \"success\": false}\r\n";
 
 //: ----------------------------------------------------------------------------
@@ -51,26 +54,34 @@ h_resp_t rqst_h::send_not_found(hconn &a_hconn, const rqst &a_rqst)
         l_api_resp.set_header("Date", get_date_str());
         l_api_resp.set_header("Content-type", "application/json");
         char l_length_str[64];
-        uint32_t l_resp_len = sizeof(char)*strlen(G_RESP_GETFILE_NOT_FOUND);
+        uint32_t l_resp_len = sizeof(char)*strlen(G_RESP_NOT_FOUND);
         sprintf(l_length_str, "%u", l_resp_len);
         l_api_resp.set_header("Content-Length", l_length_str);
-        if(a_rqst.m_supports_keep_alives)
-        {
-                l_api_resp.set_header("Connection", "keep-alive");
-        }
-        else
-        {
-                l_api_resp.set_header("Connection", "close");
-        }
-        char *l_resp = (char *)malloc(l_resp_len);
-        memcpy(l_resp, G_RESP_GETFILE_NOT_FOUND, l_resp_len);
-        l_api_resp.set_body_data(l_resp, l_resp_len);
+        l_api_resp.set_header("Connection", a_rqst.m_supports_keep_alives ? "keep-alive" : "close");
+        l_api_resp.set_body_data(G_RESP_NOT_FOUND, l_resp_len);
         queue_api_resp(a_hconn, l_api_resp);
-        if(l_resp)
-        {
-                free(l_resp);
-                l_resp = NULL;
-        }
+        return H_RESP_DONE;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+h_resp_t rqst_h::send_not_implemented(hconn &a_hconn, const rqst &a_rqst)
+{
+        api_resp &l_api_resp = create_api_resp(a_hconn);
+        l_api_resp.set_status(HTTP_STATUS_NOT_IMPLEMENTED);
+        l_api_resp.set_header("Server","hss/0.0.1");
+        l_api_resp.set_header("Date", get_date_str());
+        l_api_resp.set_header("Content-type", "application/json");
+        char l_length_str[64];
+        uint32_t l_resp_len = sizeof(char)*strlen(G_RESP_NOT_IMPLEMENTED);
+        sprintf(l_length_str, "%u", l_resp_len);
+        l_api_resp.set_header("Content-Length", l_length_str);
+        l_api_resp.set_header("Connection", a_rqst.m_supports_keep_alives ? "keep-alive" : "close");
+        l_api_resp.set_body_data(G_RESP_NOT_IMPLEMENTED, l_resp_len);
+        queue_api_resp(a_hconn, l_api_resp);
         return H_RESP_DONE;
 }
 

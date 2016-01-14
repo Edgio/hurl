@@ -55,7 +55,7 @@ default_rqst_h::~default_rqst_h()
 //: ----------------------------------------------------------------------------
 h_resp_t default_rqst_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
-        return send_not_found(a_hconn, a_rqst);
+        return send_not_implemented(a_hconn, a_rqst);
 }
 
 //: ----------------------------------------------------------------------------
@@ -65,7 +65,7 @@ h_resp_t default_rqst_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &
 //: ----------------------------------------------------------------------------
 h_resp_t default_rqst_h::do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
-        return send_not_found(a_hconn, a_rqst);
+        return send_not_implemented(a_hconn, a_rqst);
 }
 
 //: ----------------------------------------------------------------------------
@@ -75,7 +75,7 @@ h_resp_t default_rqst_h::do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t 
 //: ----------------------------------------------------------------------------
 h_resp_t default_rqst_h::do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
-        return send_not_found(a_hconn, a_rqst);
+        return send_not_implemented(a_hconn, a_rqst);
 }
 
 //: ----------------------------------------------------------------------------
@@ -85,7 +85,7 @@ h_resp_t default_rqst_h::do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &
 //: ----------------------------------------------------------------------------
 h_resp_t default_rqst_h::do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
-        return send_not_found(a_hconn, a_rqst);
+        return send_not_implemented(a_hconn, a_rqst);
 }
 
 //: ----------------------------------------------------------------------------
@@ -95,7 +95,7 @@ h_resp_t default_rqst_h::do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_
 //: ----------------------------------------------------------------------------
 h_resp_t default_rqst_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
-        return send_not_found(a_hconn, a_rqst);
+        return send_not_implemented(a_hconn, a_rqst);
 }
 
 } //namespace ns_hlx {
