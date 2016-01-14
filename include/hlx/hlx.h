@@ -733,19 +733,23 @@ public:
 
         // Request Parts
         // Getters
-        const std::string &get_query(void);
-        const std::string &get_path(void);
         const std::string &get_verb(void);
+        const std::string &get_path(void);
+        const std::string &get_query(void);
+        const std::string &get_fragment(void);
         const kv_map_list_t &get_headers(void);
         const char *get_body_data(void);
         uint32_t get_body_len(void);
 
         // Setters
-        void set_path(const std::string &a_path);
-        void set_body_data(const char *a_ptr, uint32_t a_len);
         void set_verb(const std::string &a_verb);
+        void set_query(const std::string &a_query);
+        void set_path(const std::string &a_path);
+        void set_fragment(const std::string &a_grament);
+        void set_headers(const kv_map_list_t &a_headers_list);
         int set_header(const std::string &a_header);
         int set_header(const std::string &a_key, const std::string &a_val);
+        void set_body_data(const char *a_ptr, uint32_t a_len);
 
         // Clear
         void clear_headers(void);

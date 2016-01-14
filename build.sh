@@ -27,5 +27,6 @@ mkdir -p build
 pushd build && \
     cmake ../ && \
     make package && \
+	make test && \
     popd && \
 exit $?

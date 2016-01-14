@@ -819,14 +819,15 @@ void subr::set_tls_no_host_check(bool a_val)
 //: ----------------------------------------------------------------------------
 //:                             Request Getters
 //: ----------------------------------------------------------------------------
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &subr::get_query(void)
+const std::string &subr::get_verb(void)
 {
-        return m_query;
+        return m_verb;
 }
 
 //: ----------------------------------------------------------------------------
@@ -844,9 +845,19 @@ const std::string &subr::get_path(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &subr::get_verb(void)
+const std::string &subr::get_query(void)
 {
-        return m_verb;
+        return m_query;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const std::string &subr::get_fragment(void)
+{
+        return m_fragment;
 }
 
 //: ----------------------------------------------------------------------------
@@ -882,6 +893,17 @@ uint32_t subr::get_body_len(void)
 //: ----------------------------------------------------------------------------
 //:                             Request Setters
 //: ----------------------------------------------------------------------------
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_verb(const std::string &a_verb)
+{
+        m_verb = a_verb;
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -897,10 +919,9 @@ void subr::set_path(const std::string &a_path)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_body_data(const char *a_ptr, uint32_t a_len)
+void subr::set_query(const std::string &a_query)
 {
-        m_body_data = a_ptr;
-        m_body_data_len = a_len;
+        m_query = a_query;
 }
 
 //: ----------------------------------------------------------------------------
@@ -908,9 +929,19 @@ void subr::set_body_data(const char *a_ptr, uint32_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_verb(const std::string &a_verb)
+void subr::set_fragment(const std::string &a_fragment)
 {
-        m_verb = a_verb;
+        m_fragment = a_fragment;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_headers(const kv_map_list_t &a_headers_list)
+{
+        m_headers = a_headers_list;
 }
 
 //: ----------------------------------------------------------------------------
@@ -975,6 +1006,17 @@ int subr::set_header(const std::string &a_key, const std::string &a_val)
                 m_headers[a_key] = l_list;
         }
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_body_data(const char *a_ptr, uint32_t a_len)
+{
+        m_body_data = a_ptr;
+        m_body_data_len = a_len;
 }
 
 //: ----------------------------------------------------------------------------
