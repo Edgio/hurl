@@ -401,12 +401,13 @@ public:
         virtual ~hmsg();
 
         // Getters
-        type_t get_type(void);
-        nbq *get_q(void);
-        char *get_body_allocd(char **ao_buf, uint64_t &ao_len);
-        kv_map_list_t *get_headers_allocd();
-        void get_headers(kv_map_list_t *ao_headers);
-        uint64_t get_idx(void);
+        type_t get_type(void) const;
+        nbq *get_q(void) const;
+        const char *get_body();
+        uint64_t get_body_len() const;
+        void get_headers(kv_map_list_t *ao_headers) const;
+        const kv_map_list_t &get_headers();
+        uint64_t get_idx(void) const;
         void set_idx(uint64_t a_idx);
 
         // Setters
@@ -443,6 +444,11 @@ protected:
         type_t m_type;
         nbq *m_q;
         uint64_t m_idx;
+
+        // populated on demand by getters
+        kv_map_list_t *m_headers;
+        char *m_body;
+        uint64_t m_body_len;
 
 private:
         // -------------------------------------------------

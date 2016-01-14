@@ -45,7 +45,10 @@ hmsg::hmsg(void):
         m_supports_keep_alives(false),
         m_type(TYPE_NONE),
         m_q(NULL),
-        m_idx(0)
+        m_idx(0),
+        m_headers(NULL),
+        m_body(NULL),
+        m_body_len(0)
 {
 
 }
@@ -74,6 +77,17 @@ void hmsg::clear(void)
         m_http_minor = 0;
         m_complete = false;
         m_supports_keep_alives = false;
+
+        delete m_headers;
+        m_headers = NULL;
+
+        if(NULL != m_body)
+                // body to deal with
+                free(m_body);
+        m_body = NULL;
+
+        m_body_len = 0;
+
 }
 
 //: ----------------------------------------------------------------------------
@@ -84,7 +98,7 @@ void hmsg::clear(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hmsg::type_t hmsg::get_type(void)
+hmsg::type_t hmsg::get_type(void) const
 {
         return m_type;
 }
@@ -94,7 +108,7 @@ hmsg::type_t hmsg::get_type(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nbq *hmsg::get_q(void)
+nbq *hmsg::get_q(void) const
 {
         return m_q;
 }
@@ -104,28 +118,33 @@ nbq *hmsg::get_q(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-char *hmsg::get_body_allocd(char **ao_buf, uint64_t &ao_len)
+const char *hmsg::get_body(void)
 {
-        if(!m_q)
-        {
-                ao_len = 0;
-                return NULL;
+        if(NULL == m_q){
+                // nothing here yet
+                return m_body;
         }
-        *ao_buf = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
-        ao_len = m_p_body.m_len + 1;
-        return *ao_buf;
+
+        if(NULL == m_body){
+                // body not initialized yet
+
+                m_body = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
+                m_body_len = m_p_body.m_len + 1;
+
+        }
+
+        return m_body;
 }
+
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-kv_map_list_t *hmsg::get_headers_allocd(void)
+uint64_t hmsg::get_body_len(void) const
 {
-        kv_map_list_t *l_kv_map_list = new kv_map_list_t();
-        get_headers(l_kv_map_list);
-        return l_kv_map_list;
+        return m_body_len;
 }
 
 
@@ -134,7 +153,7 @@ kv_map_list_t *hmsg::get_headers_allocd(void)
 //: \return:  TODO
 //: \param:   ao_headers   Pointer to the headers object to populate.  ASSUMPTION: is valid
 //: ----------------------------------------------------------------------------
-void hmsg::get_headers(kv_map_list_t *ao_headers)
+void hmsg::get_headers(kv_map_list_t *ao_headers) const
 {
         ns_hlx::cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         ns_hlx::cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
@@ -170,12 +189,33 @@ void hmsg::get_headers(kv_map_list_t *ao_headers)
         return;
 }
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   ao_headers   Pointer to the headers object to populate.  ASSUMPTION: is valid
+//: ----------------------------------------------------------------------------
+const kv_map_list_t &hmsg::get_headers()
+{
+
+        if(NULL == m_headers){
+                // need to initialize
+
+                m_headers = new kv_map_list_t();
+                get_headers(m_headers);
+
+        }
+
+        return *m_headers;
+}
+
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hmsg::get_idx(void)
+uint64_t hmsg::get_idx(void) const
 {
         return m_idx;
 }
