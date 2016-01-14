@@ -162,11 +162,11 @@ endif()
 if(BUILD_UDNS)
     include(ExternalProject)
     ExternalProject_Add(udns
-    
+
       # Optional approach -including from external url
       #URL http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz
       DOWNLOAD_COMMAND ""
-      
+
       SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
       BINARY_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
       CONFIGURE_COMMAND "./configure"
@@ -179,13 +179,13 @@ if(BUILD_UDNS)
 endif()
 
 # ------------------------------------------------------------------------------
-# 
+#
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} dl)
-message("   Libraries: ${LIBRARIES}")
+message(STATUS "Libraries: ${LIBRARIES}")
 
 # ------------------------------------------------------------------------------
-# 
+#
 # ------------------------------------------------------------------------------
 # make the cmake list variables into .deb-compatible strings
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
@@ -215,12 +215,21 @@ endif()
 # Debian Package Support
 # ------------------------------------------------------------------------------
 EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
+EXECUTE_PROCESS(COMMAND git describe --tags OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 SET(CPACK_GENERATOR "DEB")
-SET(CPACK_DEBIAN_PACKAGE_VERSION "1.3.0-${DISTRIBUTION}")
-SET(CPACK_PACKAGE_FILE_NAME "hlx-${CPACK_DEBIAN_PACKAGE_VERSION}-Linux")
+SET(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
+SET(CPACK_PACKAGE_FILE_NAME "hlx-${CPACK_DEBIAN_PACKAGE_VERSION}")
 SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
 SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
 SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+message(STATUS "Package Configuration:")
+message("")
+message("    Option                                     Value                     ")
+message("    ---------------------------------------------------------------------")
+message("    Package Version:                           ${CPACK_DEBIAN_PACKAGE_VERSION}")
+message("")
+
 INCLUDE(CPack)
