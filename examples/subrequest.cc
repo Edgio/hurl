@@ -34,9 +34,8 @@ public:
                                        ns_hlx::resp &a_resp)
         {
                 // Get body of resp
-                char *l_buf = NULL;
-                uint64_t l_len;
-                a_resp.get_body_allocd(&l_buf, l_len);
+                const char *l_buf = a_resp.get_body();
+                uint64_t l_len = a_resp.get_body_len();
 
                 // Create length string
                 char l_len_str[64];
@@ -50,13 +49,6 @@ public:
 
                 // Queue
                 ns_hlx::queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
-
-                // Free memory
-                if(l_buf)
-                {
-                        free(l_buf);
-                        l_buf = NULL;
-                }
 
                 return 0;
         }

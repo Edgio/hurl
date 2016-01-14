@@ -2017,9 +2017,8 @@ std::string dump_all_responses_line_dl(phurl_resp_list_t &a_resp_list,
                 {
                         if(l_fbf) {ARESP(", "); l_fbf = false;}
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        char *l_body_buf = NULL;
-                        uint64_t l_body_len = 0;
-                        l_resp->get_body_allocd(&l_body_buf, l_body_len);
+                        const char *l_body_buf = l_resp->get_body();
+                        uint64_t l_body_len = l_resp->get_body_len();
                         if(l_body_len)
                         {
                                 sprintf(l_buf, "\"%sbody%s\": %s",
@@ -2030,11 +2029,6 @@ std::string dump_all_responses_line_dl(phurl_resp_list_t &a_resp_list,
                         {
                                 sprintf(l_buf, "\"%sbody%s\": \"NO_RESPONSE\"",
                                                 l_body_color.c_str(), l_off_color.c_str());
-                        }
-                        if(l_body_buf)
-                        {
-                                free(l_body_buf);
-                                l_body_buf = NULL;
                         }
                         ARESP(l_buf);
                         l_fbf = true;
@@ -2119,11 +2113,11 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
                 }
 
                 // Headers
-                ns_hlx::kv_map_list_t *l_headers = l_resp->get_headers_allocd();
+                const ns_hlx::kv_map_list_t &l_headers = l_resp->get_headers();
                 if(a_part_map & PART_HEADERS)
                 {
-                        for(ns_hlx::kv_map_list_t::const_iterator i_header = l_headers->begin();
-                            i_header != l_headers->end();
+                        for(ns_hlx::kv_map_list_t::const_iterator i_header = l_headers.begin();
+                            i_header != l_headers.end();
                             ++i_header)
                         {
                                 for(ns_hlx::str_list_t::const_iterator i_val = i_header->second.begin();
@@ -2156,8 +2150,8 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
 
                 // Search for json
                 bool l_content_type_json = false;
-                ns_hlx::kv_map_list_t::const_iterator i_h = l_headers->find("Content-type");
-                if(i_h != l_headers->end())
+                ns_hlx::kv_map_list_t::const_iterator i_h = l_headers.find("Content-type");
+                if(i_h != l_headers.end())
                 {
                         for(ns_hlx::str_list_t::const_iterator i_val = i_h->second.begin();
                             i_val != i_h->second.end();
@@ -2175,9 +2169,8 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
                 {
 
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        char *l_body_buf = NULL;
-                        uint64_t l_body_len = 0;
-                        l_resp->get_body_allocd(&l_body_buf, l_body_len);
+                        const char *l_body_buf = l_resp->get_body();
+                        uint64_t l_body_len = l_resp->get_body_len();
                         if(l_body_len)
                         {
                                 // Append json
@@ -2199,20 +2192,10 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
                         {
                                 JS_ADD_MEMBER("body", "NO_RESPONSE");
                         }
-                        if(l_body_buf)
-                        {
-                                free(l_body_buf);
-                                l_body_buf = NULL;
-                        }
                 }
 
                 l_js_array.PushBack(l_obj, l_js_allocator);
 
-                if(l_headers)
-                {
-                        delete l_headers;
-                        l_headers = NULL;
-                }
         }
 
         // TODO -Can I just create an array -do I have to stick in a document?
