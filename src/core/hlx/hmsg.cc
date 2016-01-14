@@ -124,10 +124,26 @@ char *hmsg::get_body_allocd(char **ao_buf, uint64_t &ao_len)
 kv_map_list_t *hmsg::get_headers_allocd(void)
 {
         kv_map_list_t *l_kv_map_list = new kv_map_list_t();
+        get_headers(l_kv_map_list);
+        return l_kv_map_list;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   ao_headers   Pointer to the headers object to populate.  ASSUMPTION: is valid
+//: ----------------------------------------------------------------------------
+void hmsg::get_headers(kv_map_list_t *ao_headers)
+{
         ns_hlx::cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         ns_hlx::cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
-        for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)
+        for(; i_k != m_p_h_list_key.end() &&
+                    i_v != m_p_h_list_val.end();
+            ++i_k, ++i_v)
         {
+                // for each entry in the lists of headers
+
                 char *l_h_k_b = copy_part(*m_q, i_k->m_off, i_k->m_len);
                 std::string l_h_k = l_h_k_b;
                 if(l_h_k_b)
@@ -142,19 +158,16 @@ kv_map_list_t *hmsg::get_headers_allocd(void)
                         free(l_h_v_b);
                         l_h_v_b = NULL;
                 }
-                ns_hlx::kv_map_list_t::iterator i_obj = l_kv_map_list->find(l_h_k);
-                if(i_obj != l_kv_map_list->end())
-                {
+                ns_hlx::kv_map_list_t::iterator i_obj = ao_headers->find(l_h_k);
+                if(i_obj != ao_headers->end()){
                         i_obj->second.push_back(l_h_v);
-                }
-                else
-                {
+                } else {
                         ns_hlx::str_list_t l_list;
                         l_list.push_back(l_h_v);
-                        (*l_kv_map_list)[l_h_k] = l_list;
+                        (*ao_headers)[l_h_k] = l_list;
                 }
         }
-        return l_kv_map_list;
+        return;
 }
 
 //: ----------------------------------------------------------------------------

@@ -405,6 +405,7 @@ public:
         nbq *get_q(void);
         char *get_body_allocd(char **ao_buf, uint64_t &ao_len);
         kv_map_list_t *get_headers_allocd();
+        void get_headers(kv_map_list_t *ao_headers);
         uint64_t get_idx(void);
         void set_idx(uint64_t a_idx);
 
