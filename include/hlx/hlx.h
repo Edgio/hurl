@@ -403,7 +403,7 @@ public:
         // Getters
         type_t get_type(void) const;
         nbq *get_q(void) const;
-        const char *get_body();
+        const char *get_body_data();
         uint64_t get_body_len() const;
         void get_headers(kv_map_list_t *ao_headers) const;
         const kv_map_list_t &get_headers();

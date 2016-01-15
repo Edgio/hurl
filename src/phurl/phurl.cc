@@ -2017,7 +2017,7 @@ std::string dump_all_responses_line_dl(phurl_resp_list_t &a_resp_list,
                 {
                         if(l_fbf) {ARESP(", "); l_fbf = false;}
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const char *l_body_buf = l_resp->get_body();
+                        const char *l_body_buf = l_resp->get_body_data();
                         uint64_t l_body_len = l_resp->get_body_len();
                         if(l_body_len)
                         {
@@ -2169,7 +2169,7 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
                 {
 
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const char *l_body_buf = l_resp->get_body();
+                        const char *l_body_buf = l_resp->get_body_data();
                         uint64_t l_body_len = l_resp->get_body_len();
                         if(l_body_len)
                         {

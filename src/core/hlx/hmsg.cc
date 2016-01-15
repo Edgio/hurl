@@ -118,7 +118,7 @@ nbq *hmsg::get_q(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const char *hmsg::get_body(void)
+const char *hmsg::get_body_data(void)
 {
         if(NULL == m_q){
                 // nothing here yet

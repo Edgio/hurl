@@ -34,7 +34,7 @@ public:
                                        ns_hlx::resp &a_resp)
         {
                 // Get body of resp
-                const char *l_buf = a_resp.get_body();
+                const char *l_buf = a_resp.get_body_data();
                 uint64_t l_len = a_resp.get_body_len();
 
                 // Create length string
