@@ -384,24 +384,22 @@ void command_exec(settings_struct_t &a_settings)
                         switch (l_cmd)
                         {
 
+                        // -------------------------------------------
                         // Display
-                        case 'p':
-                                //a_scanner->display_collection_stats();
+                        // -------------------------------------------
+                        case 'd':
+                        {
+                                a_settings.m_hlx->display_stats();
                                 break;
-
-                                //Quit
+                        }
+                        // -------------------------------------------
+                        // Quit
+                        // -------------------------------------------
                         case 'q':
                                 g_test_finished = true;
                                 l_hlx->stop();
                                 l_sent_stop = true;
                                 break;
-
-                                //Toggle pause
-                        case 'P':
-                                //test_pause = 1 - test_pause;
-                                break;
-
-                                // Default
                         default:
                                 break;
                         }
