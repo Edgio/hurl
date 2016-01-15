@@ -1377,6 +1377,13 @@ int32_t t_hlx::async_dns_resolved_cb(const host_info *a_host_info, void *a_data)
         //NDBG_PRINT("l_subr: %p -HOST: %s\n", l_subr, l_subr->get_host().c_str());
         l_subr->set_host_info(*a_host_info);
         ++(l_t_hlx->m_stat.m_num_cln_resolved);
+
+        // Special handling for DUPE'd subr's
+        if(l_subr->get_type() == SUBR_TYPE_DUPE)
+        {
+                l_t_hlx->m_subr_queue.push(l_subr);
+        }
+
         l_t_hlx->subr_add(*l_subr);
         return STATUS_OK;
 }
