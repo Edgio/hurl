@@ -645,6 +645,10 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                         // Modified connection status
                         l_status = l_hstatus;
                 }
+                if(l_nconn->is_free())
+                {
+                        return STATUS_OK;
+                }
                 switch(l_hstatus)
                 {
                 case nconn::NC_STATUS_BREAK:
@@ -757,7 +761,6 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                                 l_t_hlx->m_stat.m_num_bytes_written += l_status;
                         }
                 }
-
                 int32_t l_hstatus;
                 l_hstatus = l_hconn->run_state_machine(HCONN_EV_CB_READABLE, l_status);
                 //NDBG_PRINT("%sREADABLE%s l_hstatus: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_hstatus);
@@ -765,6 +768,10 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                 {
                         // Modified connection status
                         l_status = l_hstatus;
+                }
+                if(l_nconn->is_free())
+                {
+                        return STATUS_OK;
                 }
                 switch(l_status)
                 {
