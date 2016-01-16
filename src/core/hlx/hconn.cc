@@ -156,10 +156,11 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
                                         }
                                         m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
                                         m_subr->bump_num_completed();
+                                        bool l_keepalive = m_subr->get_keepalive();
                                         bool l_complete = subr_complete();
                                         if(l_complete ||
                                            !m_nconn->can_reuse() ||
-                                           !m_subr->get_keepalive() ||
+                                           !l_keepalive ||
                                            ((m_hmsg != NULL) && (!m_hmsg->m_supports_keep_alives)))
                                         {
                                                 //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d m_subr->get_keepalive(): %d.\n",
