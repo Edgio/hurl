@@ -60,7 +60,12 @@ hmsg::hmsg(void):
 //: ----------------------------------------------------------------------------
 hmsg::~hmsg(void)
 {
-
+        if(m_body)
+        {
+                free(m_body);
+                m_body = NULL;
+                m_body_len = 0;
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -82,12 +87,12 @@ void hmsg::clear(void)
         m_headers = NULL;
 
         if(NULL != m_body)
+        {
                 // body to deal with
                 free(m_body);
+        }
         m_body = NULL;
-
         m_body_len = 0;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -124,18 +129,13 @@ const char *hmsg::get_body_data(void)
                 // nothing here yet
                 return m_body;
         }
-
         if(NULL == m_body){
                 // body not initialized yet
-
                 m_body = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
                 m_body_len = m_p_body.m_len + 1;
-
         }
-
         return m_body;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -146,7 +146,6 @@ uint64_t hmsg::get_body_len(void) const
 {
         return m_body_len;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -162,7 +161,6 @@ void hmsg::get_headers(kv_map_list_t *ao_headers) const
             ++i_k, ++i_v)
         {
                 // for each entry in the lists of headers
-
                 char *l_h_k_b = copy_part(*m_q, i_k->m_off, i_k->m_len);
                 std::string l_h_k = l_h_k_b;
                 if(l_h_k_b)
@@ -197,15 +195,12 @@ void hmsg::get_headers(kv_map_list_t *ao_headers) const
 //: ----------------------------------------------------------------------------
 const kv_map_list_t &hmsg::get_headers()
 {
-
-        if(NULL == m_headers){
+        if(NULL == m_headers)
+        {
                 // need to initialize
-
                 m_headers = new kv_map_list_t();
                 get_headers(m_headers);
-
         }
-
         return *m_headers;
 }
 

@@ -80,6 +80,7 @@ int main(void)
         g_hlx = new ns_hlx::hlx();
         g_hlx->register_lsnr(l_lsnr);
         g_hlx->set_num_threads(0);
+        //g_hlx->set_num_threads(1);
         //g_hlx->set_verbose(true);
         //g_hlx->set_color(true);
         //ProfilerStart("tmp.prof");
@@ -88,7 +89,7 @@ int main(void)
         //while(g_hlx->is_running())
         //{
         //        sleep(1);
-        //        g_hlx->display_stats();
+        //        //g_hlx->display_stats();
         //}
         //ProfilerStop();
         if(g_hlx) {delete g_hlx; g_hlx = NULL;}

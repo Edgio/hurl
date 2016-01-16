@@ -776,7 +776,7 @@ void display_results_line(settings_struct &a_settings)
         // Get stats
         a_settings.m_hlx->get_stats(l_total);
 
-        double l_reqs_per_s = ((double)(l_total.m_num_cln_reqs - a_settings.m_last_stat->m_num_cln_reqs)*1000.0) /
+        double l_reqs_per_s = ((double)(l_total.m_num_ups_reqs - a_settings.m_last_stat->m_num_ups_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_read_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
@@ -788,11 +788,11 @@ void display_results_line(settings_struct &a_settings)
         if(a_settings.m_color)
         {
                         printf("| %s%9" PRIu32 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s |  %10.2f | %10.2fs |\n",
-                                        ANSI_COLOR_FG_WHITE, l_total.m_cur_cln_conn_count, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_GREEN, l_total.m_num_cln_conn_started, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLUE, l_total.m_num_cln_conn_completed, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLACK, l_total.m_num_cln_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_MAGENTA, l_total.m_num_cln_idle_killed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_WHITE, l_total.m_cur_ups_conn_count, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_GREEN, l_total.m_num_ups_conn_started, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_num_ups_conn_completed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLACK, l_total.m_num_ups_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_MAGENTA, l_total.m_num_ups_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_YELLOW, l_kb_read_per_s, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_CYAN, l_kb_written_per_s, ANSI_COLOR_OFF,
@@ -802,11 +802,11 @@ void display_results_line(settings_struct &a_settings)
         else
         {
                 printf("| %9" PRIu32 " / %9" PRIu64 " / %9" PRIi64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f |  %10.2f | %10.2fs |\n",
-                                l_total.m_cur_cln_conn_count,
-                                l_total.m_num_cln_conn_started,
-                                l_total.m_num_cln_conn_completed,
-                                l_total.m_num_cln_reqs,
-                                l_total.m_num_cln_idle_killed,
+                                l_total.m_cur_ups_conn_count,
+                                l_total.m_num_ups_conn_started,
+                                l_total.m_num_ups_conn_completed,
+                                l_total.m_num_ups_reqs,
+                                l_total.m_num_ups_idle_killed,
                                 l_total.m_num_errors,
                                 l_kb_read_per_s,
                                 l_kb_written_per_s,

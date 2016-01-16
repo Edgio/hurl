@@ -291,6 +291,8 @@ void rqst::show(void)
         m_q->reset_read();
         cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
+        print_part(*m_q, m_p_url.m_off, m_p_url.m_len);
+        NDBG_OUTPUT("\r\n");
         for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)
         {
                 print_part(*m_q, i_k->m_off, i_k->m_len);

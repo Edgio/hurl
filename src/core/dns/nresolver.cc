@@ -282,6 +282,9 @@ static bool is_valid_ip_address(const char *a_str)
 //: ----------------------------------------------------------------------------
 int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
+        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           a_host.c_str(), a_port);
         int32_t l_status;
         if(!m_is_initd)
         {
@@ -291,7 +294,6 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
                         return STATUS_ERROR;
                 }
         }
-
         // ---------------------------------------
         // cache lookup
         // ---------------------------------------
@@ -332,6 +334,9 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
 //: ----------------------------------------------------------------------------
 int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
+        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           a_host.c_str(), a_port);
         // Initialize...
         host_info *l_host_info = NULL;
         l_host_info = new host_info();
@@ -358,10 +363,6 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
                 delete l_host_info;
                 return STATUS_ERROR;
         }
-
-        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_host.c_str(), a_port);
 
         // Find the first IPv4 and IPv6 entries.
         struct addrinfo* l_addrinfo_v4 = NULL;

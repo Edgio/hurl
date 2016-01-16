@@ -81,21 +81,24 @@ public:
         int32_t subr_add(subr &a_subr);
         int32_t queue_output(hconn &a_hconn);
         int32_t queue_api_resp(api_resp &a_api_resp, hconn &a_hconn);
+        void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
         // Needs to be public for now -to join externally
         pthread_t m_t_run_thread;
+        // TODO make private
+        t_stat_t m_stat;
 
         // -------------------------------------------------
         // Public Static (class) methods
         // -------------------------------------------------
-        static int32_t evr_loop_file_writeable_cb(void *a_data);
-        static int32_t evr_loop_file_readable_cb(void *a_data);
-        static int32_t evr_loop_file_error_cb(void *a_data);
-        static int32_t evr_loop_file_timeout_cb(void *a_data);
-        static int32_t evr_loop_timer_cb(void *a_data);
+        static int32_t evr_file_writeable_cb(void *a_data);
+        static int32_t evr_file_readable_cb(void *a_data);
+        static int32_t evr_file_error_cb(void *a_data);
+        static int32_t evr_file_timeout_cb(void *a_data);
+        static int32_t evr_timer_cb(void *a_data);
 
         // Resolver callback
 #ifdef ASYNC_DNS_SUPPORT
@@ -115,7 +118,6 @@ private:
         }
 
         int32_t cleanup_hconn(hconn &a_hconn);
-        int32_t handle_req(hconn &a_hconn, url_router *a_url_router);
 
         // Initialize
         int32_t init(void);
@@ -134,9 +136,6 @@ private:
         int32_t subr_try_start(subr &a_subr);
         int32_t subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
         int32_t subr_try_deq(void);
-        bool subr_complete(hconn &a_hconn);
-        int32_t subr_error(hconn &a_hconn);
-        void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
         int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
 #ifdef ASYNC_DNS_SUPPORT
         int32_t async_dns_init(void);
@@ -157,12 +156,10 @@ private:
         listening_nconn_list_t m_listening_nconn_list;
         subr_queue_t m_subr_queue;
 
-        default_rqst_h m_default_rqst_h;
         hconn_pool_t m_hconn_pool;
         resp_pool_t m_resp_pool;
         rqst_pool_t m_rqst_pool;
         nbq_pool_t m_nbq_pool;
-        t_stat_t m_stat;
 
 #ifdef ASYNC_DNS_SUPPORT
         bool m_async_dns_is_initd;

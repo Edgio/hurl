@@ -68,7 +68,7 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
 
         size_t l_parse_status = 0;
         //NDBG_PRINT("%sHTTP_PARSER%s: m_read_buf: %p, m_read_buf_idx: %d, l_bytes_read: %d\n",
-        //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
+        //                ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
         //                a_buf, (int)0, (int)a_len);
         l_parse_status = http_parser_execute(&(l_hconn->m_http_parser),
                                              &(l_hconn->m_http_parser_settings),

@@ -65,20 +65,20 @@ static void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_t
         add_stat(ao_stat_agg.m_stat_us_first_response , a_add_total_stat.m_stat_us_first_response);
         add_stat(ao_stat_agg.m_stat_us_end_to_end , a_add_total_stat.m_stat_us_end_to_end);
 
-        ao_stat_agg.m_num_cln_resolve_req += a_add_total_stat.m_num_cln_resolve_req;
-        ao_stat_agg.m_num_cln_resolve_active += a_add_total_stat.m_num_cln_resolve_active;
-        ao_stat_agg.m_num_cln_resolved += a_add_total_stat.m_num_cln_resolved;
+        ao_stat_agg.m_num_ups_resolve_req += a_add_total_stat.m_num_ups_resolve_req;
+        ao_stat_agg.m_num_ups_resolve_active += a_add_total_stat.m_num_ups_resolve_active;
+        ao_stat_agg.m_num_ups_resolved += a_add_total_stat.m_num_ups_resolved;
+        ao_stat_agg.m_num_ups_conn_started += a_add_total_stat.m_num_ups_conn_started;
+        ao_stat_agg.m_cur_ups_conn_count += a_add_total_stat.m_cur_ups_conn_count;
+        ao_stat_agg.m_num_ups_conn_completed += a_add_total_stat.m_num_ups_conn_completed;
+        ao_stat_agg.m_num_ups_reqs += a_add_total_stat.m_num_ups_reqs;
+        ao_stat_agg.m_num_ups_idle_killed += a_add_total_stat.m_num_ups_idle_killed;
+
         ao_stat_agg.m_num_cln_conn_started += a_add_total_stat.m_num_cln_conn_started;
         ao_stat_agg.m_cur_cln_conn_count += a_add_total_stat.m_cur_cln_conn_count;
         ao_stat_agg.m_num_cln_conn_completed += a_add_total_stat.m_num_cln_conn_completed;
         ao_stat_agg.m_num_cln_reqs += a_add_total_stat.m_num_cln_reqs;
         ao_stat_agg.m_num_cln_idle_killed += a_add_total_stat.m_num_cln_idle_killed;
-
-        ao_stat_agg.m_num_srv_conn_started += a_add_total_stat.m_num_srv_conn_started;
-        ao_stat_agg.m_cur_srv_conn_count += a_add_total_stat.m_cur_srv_conn_count;
-        ao_stat_agg.m_num_srv_conn_completed += a_add_total_stat.m_num_srv_conn_completed;
-        ao_stat_agg.m_num_srv_reqs += a_add_total_stat.m_num_srv_reqs;
-        ao_stat_agg.m_num_srv_idle_killed += a_add_total_stat.m_num_srv_idle_killed;
 
         ao_stat_agg.m_total_bytes += a_add_total_stat.m_total_bytes;
         ao_stat_agg.m_total_reqs += a_add_total_stat.m_total_reqs;
@@ -265,20 +265,20 @@ void hlx::display_stats(void)
                 //xstat_t m_stat_us_connect;
                 //xstat_t m_stat_us_first_response;
                 //xstat_t m_stat_us_end_to_end;
-                DISPLAY_DNS_STAT(m_num_cln_resolve_req);
-                DISPLAY_DNS_STAT(m_num_cln_resolve_active);
-                DISPLAY_DNS_STAT(m_num_cln_resolved);
-                DISPLAY_DNS_STAT(m_num_cln_resolve_ev);
-                DISPLAY_CLN_STAT(m_num_cln_conn_started);
-                DISPLAY_CLN_STAT(m_cur_cln_conn_count);
-                DISPLAY_CLN_STAT(m_num_cln_conn_completed);
-                DISPLAY_CLN_STAT(m_num_cln_reqs);
-                DISPLAY_CLN_STAT(m_num_cln_idle_killed);
-                DISPLAY_SRV_STAT(m_num_srv_conn_started);
-                DISPLAY_SRV_STAT(m_cur_srv_conn_count);
-                DISPLAY_SRV_STAT(m_num_srv_conn_completed);
-                DISPLAY_SRV_STAT(m_num_srv_reqs);
-                DISPLAY_SRV_STAT(m_num_srv_idle_killed);
+                DISPLAY_DNS_STAT(m_num_ups_resolve_req);
+                DISPLAY_DNS_STAT(m_num_ups_resolve_active);
+                DISPLAY_DNS_STAT(m_num_ups_resolved);
+                DISPLAY_DNS_STAT(m_num_ups_resolve_ev);
+                DISPLAY_CLN_STAT(m_num_ups_conn_started);
+                DISPLAY_CLN_STAT(m_cur_ups_conn_count);
+                DISPLAY_CLN_STAT(m_num_ups_conn_completed);
+                DISPLAY_CLN_STAT(m_num_ups_reqs);
+                DISPLAY_CLN_STAT(m_num_ups_idle_killed);
+                DISPLAY_SRV_STAT(m_num_cln_conn_started);
+                DISPLAY_SRV_STAT(m_cur_cln_conn_count);
+                DISPLAY_SRV_STAT(m_num_cln_conn_completed);
+                DISPLAY_SRV_STAT(m_num_cln_reqs);
+                DISPLAY_SRV_STAT(m_num_cln_idle_killed);
                 DISPLAY_GEN_STAT(m_num_run);
                 DISPLAY_GEN_STAT(m_total_bytes);
                 DISPLAY_GEN_STAT(m_total_reqs);

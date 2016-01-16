@@ -100,7 +100,9 @@ public:
                 NC_STATUS_ERROR = -4,
                 NC_STATUS_UNSUPPORTED = -5,
                 NC_STATUS_EOF = -6,
-                NC_STATUS_NONE = -7
+                NC_STATUS_BREAK = -7,
+                NC_STATUS_IDLE = -8,
+                NC_STATUS_NONE = -9
         } status_t;
 
         typedef enum mode_enum {

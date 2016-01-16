@@ -35,6 +35,20 @@
 #include "hlx/hlx.h"
 #include "ndebug.h"
 
+//: ----------------------------------------------------------------------------
+//: Constants
+//: ----------------------------------------------------------------------------
+// TODO -make enum
+#ifndef STATUS_AGAIN
+#define STATUS_AGAIN -2
+#endif
+
+#ifdef ASYNC_DNS_SUPPORT
+#ifndef STATUS_QUEUED_ASYNC_DNS
+#define STATUS_QUEUED_ASYNC_DNS -3
+#endif
+#endif
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -45,13 +59,37 @@ class nconn;
 //: ----------------------------------------------------------------------------
 //:
 //: ----------------------------------------------------------------------------
-typedef enum type_enum {
+typedef enum hconn_ev_cb_enum {
 
-        DATA_TYPE_NONE = 0,
-        DATA_TYPE_CLIENT,
-        DATA_TYPE_SERVER,
+        HCONN_EV_CB_READABLE = 0,
+        HCONN_EV_CB_WRITEABLE,
+        HCONN_EV_CB_TIMEOUT,
+        HCONN_EV_CB_ERROR,
+
+} hconn_ev_cb_t;
+
+//: ----------------------------------------------------------------------------
+//:
+//: ----------------------------------------------------------------------------
+typedef enum hconn_type_enum {
+
+        HCONN_TYPE_NONE = 0,
+        HCONN_TYPE_CLIENT,
+        HCONN_TYPE_UPSTREAM,
 
 } hconn_type_t;
+
+//: ----------------------------------------------------------------------------
+//: HL_HTTP_CLIENT_STATE
+//: ----------------------------------------------------------------------------
+typedef enum http_client_state_enum {
+
+        HTTP_CLIENT_STATE_NONE = 0,
+        HTTP_CLIENT_STATE_READ_RQST,
+        HTTP_CLIENT_STATE_UPST_RQST,
+        HTTP_CLIENT_STATE_SEND_RESP,
+
+} http_client_state_t;
 
 //: ----------------------------------------------------------------------------
 //: Connection data
@@ -77,6 +115,8 @@ public:
         bool m_save;
         bool m_supports_keep_alives;
         uint16_t m_status_code;
+        bool m_verbose;
+        bool m_color;
         url_router *m_url_router;
         nbq *m_in_q;
         nbq *m_out_q;
@@ -87,34 +127,17 @@ public:
         filesender *m_fs;
 
         // -------------------------------------------------
-        // Publice methods
+        // Public methods
         // -------------------------------------------------
+        static default_rqst_h s_default_rqst_h;
+
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
+        hconn(void);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
-
-        hconn(void):
-                m_type(DATA_TYPE_NONE),
-                m_nconn(NULL),
-                m_t_hlx(NULL),
-                m_timer_obj(NULL),
-                m_hmsg(NULL),
-                m_http_parser_settings(),
-                m_http_parser(),
-                m_cur_off(0),
-                m_cur_buf(NULL),
-                m_save(false),
-                m_supports_keep_alives(false),
-                m_status_code(0),
-                m_url_router(NULL),
-                m_in_q(NULL),
-                m_out_q(NULL),
-                m_subr(NULL),
-                m_idx(0),
-
-                // TODO TEST
-                m_fs(NULL)
-        {};
-
+        int32_t run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status);
 private:
         // -------------------------------------------------
         // Private methods
@@ -122,6 +145,9 @@ private:
         // Disallow copy/assign
         hconn& operator=(const hconn &);
         hconn(const hconn &);
+        int32_t handle_req(void);
+        int32_t subr_error(void);
+        bool subr_complete(void);
 
 };
 

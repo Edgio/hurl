@@ -58,7 +58,7 @@ state_top:
                 l_status = ncsetup(a_evr_loop);
                 if(l_status != NC_STATUS_OK)
                 {
-                        NDBG_PRINT("Error performing ncsetup\n");
+                        //NDBG_PRINT("Error performing ncsetup\n");
                         return NC_STATUS_ERROR;
                 }
 
@@ -242,7 +242,7 @@ int32_t nconn::nc_read(evr_loop *a_evr_loop, nbq *a_in_q)
         //NDBG_PRINT("%sTRY_READ%s: \n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         if(!a_in_q)
         {
-                NDBG_PRINT("Error a_in_q == NULL\n");
+                //NDBG_PRINT("Error a_in_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -259,7 +259,7 @@ int32_t nconn::nc_read(evr_loop *a_evr_loop, nbq *a_in_q)
                         int32_t l_status = a_in_q->b_write_add_avail();
                         if(l_status <= 0)
                         {
-                                NDBG_PRINT("Error performing b_write_add_avail\n");
+                                //NDBG_PRINT("Error performing b_write_add_avail\n");
                                 return NC_STATUS_ERROR;
                         }
                 }
@@ -485,7 +485,7 @@ int32_t nconn::nc_cleanup()
         m_num_reqs = 0;
         if(l_status != NC_STATUS_OK)
         {
-                NDBG_PRINT("Error performing nccleanup.\n");
+                //NDBG_PRINT("Error performing nccleanup.\n");
                 return STATUS_ERROR;
         }
         m_data = NULL;

@@ -108,10 +108,10 @@ int64_t nbq::write(const char *a_buf, uint64_t a_len)
                                 return -1;
                         }
                 }
-                //NDBG_PRINT("l_left: %u\n", l_left);
+                //NDBG_PRINT("l_left: %lu\n", l_left);
                 uint32_t l_write_avail = b_write_avail();
                 uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
-                //NDBG_PRINT("WRITIN bytes: %d\n", l_write);
+                //NDBG_PRINT("WRITIN bytes: %u\n", l_write);
                 //mem_display((const uint8_t *)l_buf, l_write);
                 memcpy(b_write_ptr(), l_buf, l_write);
                 b_write_incr(l_write);
@@ -215,7 +215,7 @@ uint64_t nbq::read_seek(uint64_t a_off)
         else if(a_off < m_cur_read_offset)
         {
                 reset_read();
-                l_d = m_cur_read_offset;
+                l_d = a_off;
         }
         if(l_d)
         {

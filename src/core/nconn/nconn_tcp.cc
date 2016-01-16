@@ -92,7 +92,6 @@ int32_t nconn_tcp::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 return NC_STATUS_UNSUPPORTED;
         }
         }
-
         return NC_STATUS_OK;
 }
 
@@ -139,7 +138,7 @@ int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
                                     EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
                                     this))
         {
-                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                 return NC_STATUS_ERROR;
         }
 
@@ -177,7 +176,7 @@ int32_t nconn_tcp::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
                                     EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                     this))
         {
-                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                 return NC_STATUS_ERROR;
         }
         return NC_STATUS_OK;
@@ -237,7 +236,7 @@ int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
                                     EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                     this))
         {
-                NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
                 return NC_STATUS_ERROR;
         }
 
@@ -262,10 +261,10 @@ int32_t nconn_tcp::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
         //                m_fd,
         //                l_status,
         //                strerror(errno));
+        //if(l_status > 0) mem_display((const uint8_t *)a_buf, l_status);
         if(l_status > 0)
         {
                 l_bytes_read += l_status;
-                //mem_display((const uint8_t *)a_buf, l_status);
                 return l_bytes_read;
         }
         else if(l_status == 0)
