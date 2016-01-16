@@ -279,6 +279,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::subr_add(subr &a_subr)
 {
+        a_subr.set_t_hlx(this);
         //NDBG_PRINT("Adding subreq.\n");
         if(m_stopped)
         {
@@ -630,7 +631,7 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                                                          nconn::NC_MODE_WRITE,
                                                          l_hconn->m_in_q,
                                                          l_hconn->m_out_q);
-                //NDBG_PRINT("%sWRITEABLE%s <--RUN_STATE_MACHINE--> l_status  = %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_status);
+                //NDBG_PRINT("%sWRITEABLE%s l_status =  %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_status);
                 if(l_status > 0)
                 {
                         l_t_hlx->m_stat.m_num_bytes_written += l_status;
@@ -744,7 +745,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                                                          l_mode,
                                                          l_hconn->m_in_q,
                                                          l_hconn->m_out_q);
-                //NDBG_PRINT("%sREADABLE%s <--RUN_STATE_MACHINE--> l_status:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_status);
+                //NDBG_PRINT("%sREADABLE%s l_status:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_status);
                 if(l_status > 0)
                 {
                         if(l_mode == nconn::NC_MODE_READ)
@@ -1180,7 +1181,6 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 {
 #ifdef ASYNC_DNS_SUPPORT
                         // If try fast fails lookup async
-                        a_subr.set_t_hlx(this);
                         if(!m_async_dns_is_initd)
                         {
                                 l_status = async_dns_init();
@@ -1250,10 +1250,21 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 }
                 l_nconn->set_host_info(l_host_info);
                 a_subr.set_host_info(l_host_info);
+                // Reset stats
+                l_nconn->reset_stats();
+        }
+        // If we grabbed an idle connection spoof the connect time
+        // for stats
+        else
+        {
+                // Reset stats
+                l_nconn->reset_stats();
+                if(l_nconn->get_collect_stats_flag())
+                {
+                        l_nconn->set_connect_start_time_us(get_time_us());
+                }
         }
 
-        // Reset stats
-        l_nconn->reset_stats();
 
         //NDBG_PRINT("%sSTARTING CONNECTION%s: HOST: %s\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_subr.get_host().c_str());
@@ -1593,18 +1604,14 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
                          hconn_type_t a_type,
                          bool a_save)
 {
-        hconn *l_hconn = m_hconn_pool.get_free();
-        if(l_hconn)
+        hconn *l_hconn = NULL;
+        if(!get_from_pool_if_null(l_hconn, m_hconn_pool))
         {
                 //NDBG_PRINT("REUSED!!!\n");
                 //l_hconn->m_resp.clear();
                 //l_hconn->m_rqst.clear();
         }
-        else
-        {
-                l_hconn = new hconn();
-                m_hconn_pool.add(l_hconn);
-        }
+
         //NDBG_PRINT("Adding http_data: %p.\n", l_hconn);
         l_hconn->m_t_hlx = this;
         l_hconn->m_url_router = a_url_router;
@@ -1613,7 +1620,6 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
         l_hconn->m_verbose = m_t_conf->m_verbose;
         l_hconn->m_color = m_t_conf->m_color;
         l_hconn->m_type = a_type;
-        l_hconn->m_supports_keep_alives = false;
         l_hconn->m_status_code = 0;
         l_hconn->m_http_parser_settings.on_status = hp_on_status;
         l_hconn->m_http_parser_settings.on_message_complete = hp_on_message_complete;

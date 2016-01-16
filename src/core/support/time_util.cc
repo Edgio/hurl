@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "time_util.h"
+#include "ndebug.h"
 
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
@@ -79,7 +80,7 @@ static __inline__ uint64_t get_rdtsc64()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static inline bool _use_cached_time(uint64_t l_last_rdtsc)
+static inline bool _use_cached_time(uint64_t &a_last_rdtsc)
 {
         if(!g_cyles_us)
         {
@@ -87,11 +88,11 @@ static inline bool _use_cached_time(uint64_t l_last_rdtsc)
                 usleep(100000);
                 g_cyles_us = (get_rdtsc64()-l_start)/100000;
         }
-        if((get_rdtsc64() - l_last_rdtsc) < MAX_TIMER_RESOLUTION_US*g_cyles_us)
+        if((get_rdtsc64() - a_last_rdtsc) < MAX_TIMER_RESOLUTION_US*g_cyles_us)
         {
                 return true;
         }
-        l_last_rdtsc = get_rdtsc64();
+        a_last_rdtsc = get_rdtsc64();
         return false;
 }
 

@@ -55,7 +55,6 @@ hconn::hconn(void):
         m_cur_off(0),
         m_cur_buf(NULL),
         m_save(false),
-        m_supports_keep_alives(false),
         m_status_code(0),
         m_verbose(false),
         m_color(false),
@@ -160,11 +159,12 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
                                         bool l_complete = subr_complete();
                                         if(l_complete ||
                                            !m_nconn->can_reuse() ||
-                                           !m_supports_keep_alives)
+                                           !m_subr->get_keepalive() ||
+                                           ((m_hmsg != NULL) && (!m_hmsg->m_supports_keep_alives)))
                                         {
-                                                //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d l_hconn->m_supports_keep_alives: %d.\n",
+                                                //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d m_subr->get_keepalive(): %d.\n",
                                                 //                l_complete, m_nconn->can_reuse(),
-                                                //                m_supports_keep_alives);
+                                                //                m_subr->get_keepalive());
                                                 return nconn::NC_STATUS_EOF;
                                         }
                                         return nconn::NC_STATUS_IDLE;
@@ -254,7 +254,8 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
                            !m_out_q->read_avail() &&
                            (m_type == HCONN_TYPE_CLIENT))
                         {
-                                if(m_supports_keep_alives)
+                                if((m_hmsg != NULL) &&
+                                   (!m_hmsg->m_supports_keep_alives))
                                 {
                                         return nconn::NC_STATUS_BREAK;
                                 }

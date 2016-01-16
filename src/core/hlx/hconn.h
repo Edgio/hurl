@@ -113,7 +113,6 @@ public:
         char * m_cur_buf;
 
         bool m_save;
-        bool m_supports_keep_alives;
         uint16_t m_status_code;
         bool m_verbose;
         bool m_color;

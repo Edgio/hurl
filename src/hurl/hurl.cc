@@ -1304,6 +1304,7 @@ int main(int argc, char** argv)
                         if(l_max_reqs_per_conn == 1)
                         {
                                 l_hlx->set_num_reqs_per_conn(-1);
+                                l_max_reqs_per_conn = -1;
                         }
                         break;
                 }
@@ -1649,8 +1650,16 @@ int main(int argc, char** argv)
 #endif
 
         // Message
-        fprintf(stdout, "Running %d threads %d parallel connections per thread with %d reqests per connection\n",
-                l_max_threads, l_start_parallel, l_max_reqs_per_conn);
+        if(l_max_reqs_per_conn < 0)
+        {
+                fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite reqests per connection\n",
+                        l_max_threads, l_start_parallel);
+        }
+        else
+        {
+                fprintf(stdout, "Running %d threads %d parallel connections per thread with %d reqests per connection\n",
+                        l_max_threads, l_start_parallel, l_max_reqs_per_conn);
+        }
 
         int32_t l_run_status = 0;
         l_run_status = l_hlx->run();

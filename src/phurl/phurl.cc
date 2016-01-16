@@ -229,7 +229,6 @@ typedef struct settings_struct
         bool m_quiet;
         bool m_show_stats;
         bool m_show_summary;
-        bool m_cli;
         ns_hlx::hlx *m_hlx;
         ns_hlx::subr *m_subr;
         host_list_t *m_host_list;
@@ -250,7 +249,6 @@ typedef struct settings_struct
                 m_quiet(false),
                 m_show_stats(false),
                 m_show_summary(false),
-                m_cli(false),
                 m_hlx(NULL),
                 m_subr(NULL),
                 m_host_list(NULL),
@@ -576,109 +574,6 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void show_help(void)
-{
-        printf(" phurl commands: \n");
-        printf("  h    Help or ?\n");
-        printf("  r    Run\n");
-        printf("  q    Quit\n");
-}
-
-#define MAX_CMD_SIZE 64
-int command_exec_cli(settings_struct_t &a_settings)
-{
-        bool l_done = false;
-        // -------------------------------------------
-        // Interactive mode banner
-        // -------------------------------------------
-        if(a_settings.m_color)
-        {
-                printf("%sphurl interactive mode%s: (%stype h for command help%s)\n",
-                                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF);
-        }
-        else
-        {
-                printf("phurl interactive mode: (type h for command help)\n");
-        }
-
-        // ---------------------------------------
-        //   Loop forever until user quits
-        // ---------------------------------------
-        while (!l_done && !g_cancelled)
-        {
-                // -------------------------------------------
-                // Interactive mode prompt
-                // -------------------------------------------
-                if(a_settings.m_color)
-                {
-                        printf("%sphurl>>%s", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        printf("phurl>>");
-                }
-                fflush(stdout);
-
-                char l_cmd[MAX_CMD_SIZE] = {' '};
-                char *l_status;
-                l_status = fgets(l_cmd, MAX_CMD_SIZE, stdin);
-                if(!l_status)
-                {
-                        printf("Error reading cmd from stdin\n");
-                        return -1;
-                }
-
-                switch (l_cmd[0])
-                {
-                // -------------------------------------------
-                // Quit
-                // -only works when not reading from stdin
-                // -------------------------------------------
-                case 'q':
-                {
-                        l_done = true;
-                        break;
-                }
-                // -------------------------------------------
-                // run
-                // -------------------------------------------
-                case 'r':
-                {
-                        int l_status;
-                        l_status = command_exec(a_settings, false);
-                        if(l_status != 0)
-                        {
-                                return -1;
-                        }
-                        break;
-                }
-                // -------------------------------------------
-                // Help
-                // -------------------------------------------
-                case 'h':
-                case '?':
-                {
-                        show_help();
-                        break;
-                }
-                // -------------------------------------------
-                // Default
-                // -------------------------------------------
-                default:
-                {
-                        break;
-                }
-                }
-        }
-        return 0;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int32_t add_line(FILE *a_file_ptr, host_list_t &a_host_list)
 {
         char l_readline[MAX_READLINE_SIZE];
@@ -771,9 +666,6 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -F, --tls_ca_file    SSL CA File.\n");
         fprintf(a_stream, "  -L, --tls_ca_path    SSL CA Path.\n");
         fprintf(a_stream, "  \n");
-        //fprintf(a_stream, "Command Line Client:\n");
-        //fprintf(a_stream, "  -I, --cli            Start interactive command line -URL not required.\n");
-        //fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --color          Color\n");
@@ -873,7 +765,6 @@ int main(int argc, char** argv)
                 { "tls_no_host",    0, 0, 'M' },
                 { "tls_ca_file",    1, 0, 'F' },
                 { "tls_ca_path",    1, 0, 'L' },
-                { "cli",            0, 0, 'I' },
                 { "verbose",        0, 0, 'v' },
                 { "color",          0, 0, 'c' },
                 { "quiet",          0, 0, 'q' },
@@ -938,9 +829,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -1108,14 +999,6 @@ int main(int argc, char** argv)
                 case 'L':
                 {
                         l_hlx->set_tls_client_ctx_ca_path(l_argument);
-                        break;
-                }
-                // ---------------------------------------
-                // cli
-                // ---------------------------------------
-                case 'I':
-                {
-                        l_settings.m_cli = true;
                         break;
                 }
                 // ---------------------------------------
@@ -1352,7 +1235,7 @@ int main(int argc, char** argv)
         }
 
         // Check for required url argument
-        if(l_url.empty() && !l_settings.m_cli)
+        if(l_url.empty())
         {
                 fprintf(stdout, "No URL specified.\n");
                 print_usage(stdout, -1);
@@ -1614,21 +1497,10 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Run command exec
         // -------------------------------------------
-        if(l_settings.m_cli)
+        l_status = command_exec(l_settings, true);
+        if(l_status != 0)
         {
-                l_status = command_exec_cli(l_settings);
-                if(l_status != 0)
-                {
-                        return -1;
-                }
-        }
-        else
-        {
-                l_status = command_exec(l_settings, true);
-                if(l_status != 0)
-                {
-                        return -1;
-                }
+                return -1;
         }
 
         // Stop hlx

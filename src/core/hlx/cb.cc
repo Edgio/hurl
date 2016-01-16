@@ -236,19 +236,11 @@ int hp_on_message_complete(http_parser* a_parser)
 {
         hconn *l_hconn = static_cast <hconn *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_hconn);
-        if(http_should_keep_alive(a_parser))
-        {
-                l_hconn->m_supports_keep_alives = true;
-        }
-        else
-        {
-                l_hconn->m_supports_keep_alives = false;
-        }
         if(l_hconn->m_hmsg)
         {
                 hmsg *l_hmsg = static_cast<hmsg *>(l_hconn->m_hmsg);
                 l_hmsg->m_complete = true;
-                l_hmsg->m_supports_keep_alives = l_hconn->m_supports_keep_alives;
+                l_hmsg->m_supports_keep_alives = http_should_keep_alive(a_parser);
         }
         return 0;
 }
