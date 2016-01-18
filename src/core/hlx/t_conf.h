@@ -49,7 +49,7 @@ typedef struct t_conf
         bool m_color;
         evr_loop_type_t m_evr_loop_type;
         int32_t m_num_parallel;
-        uint32_t m_timeout_s;
+        uint32_t m_timeout_ms;
         int32_t m_num_reqs_per_conn;
         bool m_collect_stats;
         uint32_t m_sock_opt_recv_buf_size;
@@ -82,7 +82,7 @@ typedef struct t_conf
                 m_color(false),
                 m_evr_loop_type(EVR_LOOP_EPOLL),
                 m_num_parallel(1024),
-                m_timeout_s(10),
+                m_timeout_ms(10000),
                 m_num_reqs_per_conn(-1),
                 m_collect_stats(false),
                 m_sock_opt_recv_buf_size(0),

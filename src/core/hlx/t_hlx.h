@@ -74,7 +74,7 @@ public:
         void *t_run(void *a_nothing);
         void stop(void);
         bool is_running(void) { return !m_stopped; }
-        uint32_t get_timeout_s(void) { return m_t_conf->m_timeout_s;};
+        uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
         hlx *get_hlx(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_hlx;}
         void get_stats_copy(t_stat_t &ao_stat);
         int32_t add_lsnr(lsnr &a_lsnr);

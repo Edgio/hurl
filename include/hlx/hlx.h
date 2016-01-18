@@ -302,7 +302,7 @@ public:
         void set_num_reqs_per_conn(int32_t a_num_reqs_per_conn);
         void set_start_time_ms(uint64_t a_start_time_ms);
         void set_collect_stats(bool a_val);
-        void set_timeout_s(uint32_t a_val);
+        void set_timeout_ms(uint32_t a_val);
 
         // Socket options
         void set_sock_opt_no_delay(bool a_val);
@@ -694,7 +694,7 @@ public:
         error_cb_t get_error_cb(void);
         completion_cb_t get_completion_cb(void);
         create_req_cb_t get_create_req_cb(void);
-        int32_t get_timeout_s(void);
+        int32_t get_timeout_ms(void);
         void *get_data(void);
         bool get_detach_resp(void);
         uint64_t get_uid(void);
@@ -719,7 +719,7 @@ public:
         void set_completion_cb(completion_cb_t a_cb);
         void set_create_req_cb(create_req_cb_t a_cb);
         void set_type(subr_type_t a_type);
-        void set_timeout_s(int32_t a_val);
+        void set_timeout_ms(int32_t a_val);
         void set_host(const std::string &a_val);
         void set_hostname(const std::string &a_val);
         void set_id(const std::string &a_val);
@@ -792,7 +792,7 @@ private:
         bool m_save;
         bool m_connect_only;
         bool m_is_multipath;
-        int32_t m_timeout_s;
+        int32_t m_timeout_ms;
         std::string m_path;
         std::string m_query;
         std::string m_fragment;

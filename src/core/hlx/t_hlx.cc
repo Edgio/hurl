@@ -432,7 +432,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         {
                 a_subr.set_start_time_ms(get_time_ms());
         }
-        l_status = m_evr_loop->add_timer(a_subr.get_timeout_s()*1000,
+        l_status = m_evr_loop->add_timer(a_subr.get_timeout_ms(),
                                          evr_file_timeout_cb,
                                          &a_nconn,
                                          &(a_hconn.m_timer_obj));
@@ -616,11 +616,11 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
         uint32_t l_timeout_ms = 0;
         if(l_hconn->m_subr)
         {
-                l_timeout_ms = l_hconn->m_subr->get_timeout_s()*1000;
+                l_timeout_ms = l_hconn->m_subr->get_timeout_ms();
         }
         else
         {
-                l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
+                l_timeout_ms = l_t_hlx->get_timeout_ms();
         }
 
         int32_t l_status = STATUS_OK;
@@ -729,11 +729,11 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
         uint32_t l_timeout_ms = 0;
         if(l_hconn->m_subr)
         {
-                l_timeout_ms = l_hconn->m_subr->get_timeout_s()*1000;
+                l_timeout_ms = l_hconn->m_subr->get_timeout_ms();
         }
         else
         {
-                l_timeout_ms = l_t_hlx->get_timeout_s()*1000;
+                l_timeout_ms = l_t_hlx->get_timeout_ms();
         }
 
         int32_t l_status = STATUS_OK;

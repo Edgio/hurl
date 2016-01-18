@@ -1075,7 +1075,7 @@ int main(int argc, char** argv)
                                 printf("Error connection timeout must be > 0\n");
                                 return -1;
                         }
-                        l_subr->set_timeout_s(l_timeout_s);
+                        l_subr->set_timeout_ms(l_timeout_s*1000);
                         break;
                 }
                 // ---------------------------------------

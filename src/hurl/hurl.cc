@@ -1447,7 +1447,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return -1;
                         }
-                        l_subr->set_timeout_s(l_subreq_timeout_s);
+                        l_subr->set_timeout_ms(l_subreq_timeout_s*1000);
                         break;
                 }
                 // ---------------------------------------

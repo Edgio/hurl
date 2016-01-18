@@ -47,7 +47,7 @@ subr::subr(void):
         m_save(true),
         m_connect_only(false),
         m_is_multipath(false),
-        m_timeout_s(10),
+        m_timeout_ms(10000),
         m_path(),
         m_query(),
         m_fragment(),
@@ -95,7 +95,7 @@ subr::subr(const subr &a_subr):
         m_save(a_subr.m_save),
         m_connect_only(a_subr.m_connect_only),
         m_is_multipath(a_subr.m_is_multipath),
-        m_timeout_s(a_subr.m_timeout_s),
+        m_timeout_ms(a_subr.m_timeout_ms),
         m_path(a_subr.m_path),
         m_query(a_subr.m_query),
         m_fragment(a_subr.m_fragment),
@@ -350,9 +350,9 @@ subr::create_req_cb_t subr::get_create_req_cb(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subr::get_timeout_s(void)
+int32_t subr::get_timeout_ms(void)
 {
-        return m_timeout_s;
+        return m_timeout_ms;
 }
 
 //: ----------------------------------------------------------------------------
@@ -641,9 +641,9 @@ void subr::set_type(subr_type_t a_type)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_timeout_s(int32_t a_val)
+void subr::set_timeout_ms(int32_t a_val)
 {
-        m_timeout_s = a_val;
+        m_timeout_ms = a_val;
 }
 
 //: ----------------------------------------------------------------------------

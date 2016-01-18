@@ -413,9 +413,9 @@ void hlx::set_collect_stats(bool a_val)
 //: \return:  NA
 //: \param:   a_val: timeout in seconds
 //: ----------------------------------------------------------------------------
-void hlx::set_timeout_s(uint32_t a_val)
+void hlx::set_timeout_ms(uint32_t a_val)
 {
-        m_t_conf->m_timeout_s = a_val;
+        m_t_conf->m_timeout_ms = a_val;
 }
 
 //: ----------------------------------------------------------------------------
