@@ -73,16 +73,17 @@ hconn::hconn(void):
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
+int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_status)
 {
-        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: EV_CB[%d] CONN_STATUS[%d]\n",
-        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_ev_cb, a_conn_status);
-        switch(a_ev_cb)
+
+        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN_MODE[%d] CONN_STATUS[%d]\n",
+        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_conn_mode, a_conn_status);
+        switch(a_conn_mode)
         {
         // -----------------------------------------------------------
         // Readable
         // -----------------------------------------------------------
-        case HCONN_EV_CB_READABLE:
+        case nconn::NC_MODE_READ:
         {
                 //NDBG_PRINT("LABEL[%s] l_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
                 switch(a_conn_status)
@@ -90,38 +91,12 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
                 case nconn::NC_STATUS_EOF:
                 {
                         // Connect only && done --early exit...
-                        if(m_nconn->get_connect_only())
-                        {
-                                //NDBG_PRINT("LABEL[%s] l_status: %d\n", l_nconn->get_label().c_str(), l_status);
-                                if(m_hmsg)
-                                {
-                                        resp *l_resp = static_cast<resp *>(m_hmsg);
-                                        l_resp->set_status(200);
-                                }
-                                m_status_code = 200;
-                                m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
-                        }
-                        if(m_subr)
-                        {
-                                m_subr->bump_num_completed();
-                                subr_complete();
-                        }
                         //NDBG_PRINT("Cleanup EOF\n");
                         return STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         // subr...
-                        if(m_subr)
-                        {
-                                if(m_hmsg)
-                                {
-                                        resp *l_resp = static_cast<resp *>(m_hmsg);
-                                        l_resp->set_status(901);
-                                }
-                                subr_error();
-                                // TODO Check error;
-                        }
                         //NDBG_PRINT("Error: nc_run_state_machine.\n");
                         return STATUS_OK;
                 }
@@ -144,54 +119,22 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
                                         if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
                                 }
 
-                                // ---------------------------------------------------
-                                // subr...
-                                // ---------------------------------------------------
-                                if(m_subr)
-                                {
-                                        // Get request time
-                                        if(m_nconn->get_collect_stats_flag())
-                                        {
-                                                m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));
-                                        }
-                                        m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
-                                        m_subr->bump_num_completed();
-                                        bool l_keepalive = m_subr->get_keepalive();
-                                        bool l_complete = subr_complete();
-                                        if(l_complete ||
-                                           !m_nconn->can_reuse() ||
-                                           !l_keepalive ||
-                                           ((m_hmsg != NULL) && (!m_hmsg->m_supports_keep_alives)))
-                                        {
-                                                //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d m_subr->get_keepalive(): %d.\n",
-                                                //                l_complete, m_nconn->can_reuse(),
-                                                //                m_subr->get_keepalive());
-                                                return nconn::NC_STATUS_EOF;
-                                        }
-                                        return nconn::NC_STATUS_IDLE;
-                                }
-                                // ---------------------------------------------------
-                                // server...
-                                // ---------------------------------------------------
-                                else
-                                {
-                                        //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
-                                        ++m_t_hlx->m_stat.m_num_cln_reqs;
+                                //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
+                                ++m_t_hlx->m_stat.m_num_cln_reqs;
 
-                                        // request handling...
-                                        if(handle_req() != STATUS_OK)
-                                        {
-                                                //NDBG_PRINT("Error performing handle_req\n");
-                                                return nconn::NC_STATUS_ERROR;
-                                        }
-                                        if(m_hmsg)
-                                        {
-                                                m_hmsg->clear();
-                                        }
-                                        if(m_in_q)
-                                        {
-                                                m_in_q->reset_write();
-                                        }
+                                // request handling...
+                                if(handle_req() != STATUS_OK)
+                                {
+                                        //NDBG_PRINT("Error performing handle_req\n");
+                                        return nconn::NC_STATUS_ERROR;
+                                }
+                                if(m_hmsg)
+                                {
+                                        m_hmsg->clear();
+                                }
+                                if(m_in_q)
+                                {
+                                        m_in_q->reset_write();
                                 }
                         }
                         //NDBG_PRINT("Error: nc_run_state_machine.\n");
@@ -202,7 +145,7 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
         // -----------------------------------------------------------
         // Writeable
         // -----------------------------------------------------------
-        case HCONN_EV_CB_WRITEABLE:
+        case nconn::NC_MODE_WRITE:
         {
                 // TODO Make callback...
                 if(m_fs)
@@ -223,43 +166,24 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
                 {
                 case nconn::NC_STATUS_ERROR:
                 {
-                        if(m_subr)
-                        {
-                                subr::error_cb_t l_error_cb = m_subr->get_error_cb();
-                                if(l_error_cb)
-                                {
-                                        l_error_cb(*m_subr, *m_nconn);
-                                }
-                        }
                         return STATUS_OK;
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        if(m_subr)
-                        {
-                                m_subr->bump_num_completed();
-                                bool l_complete = subr_complete();
-                                if(l_complete)
-                                {
-                                        //NDBG_PRINT("Cleanup subr complete\n");
-                                        return STATUS_OK;
-                                }
-                        }
                         //NDBG_PRINT("Cleanup EOF\n");
                         return STATUS_OK;
                 }
                 default:
                 {
                         if(!m_nconn->is_accepting() &&
-                           m_out_q &&
-                           !m_out_q->read_avail() &&
-                           (m_type == HCONN_TYPE_CLIENT))
+                            (m_out_q && !m_out_q->read_avail()))
                         {
                                 if((m_hmsg != NULL) &&
-                                   (!m_hmsg->m_supports_keep_alives))
+                                   (m_hmsg->m_supports_keep_alives))
                                 {
                                         return nconn::NC_STATUS_BREAK;
                                 }
+
                                 // No data left to send
                                 return nconn::NC_STATUS_EOF;
                         }
@@ -277,41 +201,220 @@ int32_t hconn::run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status)
         // -----------------------------------------------------------
         // Timeout
         // -----------------------------------------------------------
-        case HCONN_EV_CB_TIMEOUT:
+        case nconn::NC_MODE_TIMEOUT:
         {
-                if(m_type == HCONN_TYPE_UPSTREAM)
+                ++m_t_hlx->m_stat.m_num_cln_idle_killed;
+                return STATUS_OK;
+        }
+        // -----------------------------------------------------------
+        // Error
+        // -----------------------------------------------------------
+        case nconn::NC_MODE_ERROR:
+        {
+                return STATUS_OK;
+        }
+        // -----------------------------------------------------------
+        // Default
+        // -----------------------------------------------------------
+        default:
+        {
+                return STATUS_OK;
+        }
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_status)
+{
+        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN_MODE[%d] CONN_STATUS[%d]\n",
+        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_conn_mode, a_conn_status);
+        if(!m_subr)
+        {
+                //NDBG_PRINT("Error no subrequest associated with upstream hconn mode: %d status: %d\n",
+                //                a_conn_mode, a_conn_status);
+                return nconn::NC_STATUS_ERROR;
+        }
+
+        switch(a_conn_mode)
+        {
+        // -----------------------------------------------------------
+        // Readable
+        // -----------------------------------------------------------
+        case nconn::NC_MODE_READ:
+        {
+                //NDBG_PRINT("LABEL[%s] l_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
+                switch(a_conn_status)
                 {
-                        ++m_t_hlx->m_stat.m_num_ups_idle_killed;
-                        if(m_subr)
+                case nconn::NC_STATUS_EOF:
+                {
+                        // Connect only && done --early exit...
+                        if(m_subr->get_connect_only())
                         {
-                                subr_error();
-                                // TODO Check error;
+                                //NDBG_PRINT("LABEL[%s] l_status: %d\n", l_nconn->get_label().c_str(), l_status);
+                                if(m_hmsg)
+                                {
+                                        resp *l_resp = static_cast<resp *>(m_hmsg);
+                                        l_resp->set_status(200);
+                                }
+                                m_status_code = 200;
+                                m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
                         }
+                        m_subr->bump_num_completed();
+                        subr_complete();
+                        //NDBG_PRINT("Cleanup EOF\n");
+                        return STATUS_OK;
                 }
-                else if(m_type == HCONN_TYPE_CLIENT)
+                case nconn::NC_STATUS_ERROR:
                 {
-                        ++m_t_hlx->m_stat.m_num_cln_idle_killed;
+                        if(m_hmsg)
+                        {
+                                resp *l_resp = static_cast<resp *>(m_hmsg);
+                                l_resp->set_status(901);
+                        }
+                        subr_error();
+                        // TODO Check error;
+                        //NDBG_PRINT("Error: nc_run_state_machine.\n");
+                        return STATUS_OK;
+                }
+                default:
+                {
+                        //NDBG_PRINT("m_nconn->is_done(): %d\n", m_nconn->is_done());
+                        //NDBG_PRINT("m_hmsg:             %p\n", m_hmsg);
+                        //NDBG_PRINT("m_hmsg->m_complete: %d\n", m_hmsg->m_complete);
+                        // Handle completion
+                        if((m_nconn->is_done()) ||
+                           (m_hmsg &&
+                            m_hmsg->m_complete))
+                        {
+                                // Display...
+                                // TODO FIX!!!
+                                if(m_verbose && m_hmsg)
+                                {
+                                        if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                                        m_hmsg->show();
+                                        if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                                }
+
+                                // Get request time
+                                if(m_nconn->get_collect_stats_flag())
+                                {
+                                        m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));
+                                }
+                                m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
+                                m_subr->bump_num_completed();
+                                bool l_keepalive = m_subr->get_keepalive();
+                                bool l_complete = subr_complete();
+                                if(l_complete ||
+                                   !m_nconn->can_reuse() ||
+                                   !l_keepalive ||
+                                   ((m_hmsg != NULL) && (!m_hmsg->m_supports_keep_alives)))
+                                {
+                                        //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d m_subr->get_keepalive(): %d.\n",
+                                        //                l_complete, m_nconn->can_reuse(),
+                                        //                m_subr->get_keepalive());
+                                        return nconn::NC_STATUS_EOF;
+                                }
+                                return nconn::NC_STATUS_IDLE;
+                        }
+                        //NDBG_PRINT("Error: nc_run_state_machine.\n");
+                        return STATUS_OK;
+                }
+                }
+        }
+        // -----------------------------------------------------------
+        // Writeable
+        // -----------------------------------------------------------
+        case nconn::NC_MODE_WRITE:
+        {
+                //NDBG_PRINT("LABEL[%s] l_status: %d\n", l_nconn->get_label().c_str(), l_status);
+                switch(a_conn_status)
+                {
+                case nconn::NC_STATUS_ERROR:
+                {
+                        subr::error_cb_t l_error_cb = m_subr->get_error_cb();
+                        if(l_error_cb)
+                        {
+                                l_error_cb(*m_subr, *m_nconn);
+                        }
+                        return STATUS_OK;
+                }
+                case nconn::NC_STATUS_EOF:
+                {
+                        m_subr->bump_num_completed();
+                        bool l_complete = subr_complete();
+                        if(l_complete)
+                        {
+                                //NDBG_PRINT("Cleanup subr complete\n");
+                                return STATUS_OK;
+                        }
+                        //NDBG_PRINT("Cleanup EOF\n");
+                        return STATUS_OK;
+                }
+                default:
+                {
+                        if(a_conn_status == nconn::NC_STATUS_OK)
+                        {
+                                return nconn::NC_STATUS_BREAK;
+                        }
+                        return STATUS_OK;
+                }
+                }
+        }
+        // -----------------------------------------------------------
+        // Timeout
+        // -----------------------------------------------------------
+        case nconn::NC_MODE_TIMEOUT:
+        {
+                ++m_t_hlx->m_stat.m_num_ups_idle_killed;
+                if(m_subr)
+                {
+                        subr_error();
+                        // TODO Check error;
                 }
                 return STATUS_OK;
         }
         // -----------------------------------------------------------
         // Error
         // -----------------------------------------------------------
-        case HCONN_EV_CB_ERROR:
+        case nconn::NC_MODE_ERROR:
         {
-                if(m_type == HCONN_TYPE_UPSTREAM)
-                {
-                        if(m_subr)
-                        {
-                                subr_error();
-                                // TODO Check error;
-                        }
-                }
+                subr_error();
+                // TODO Check error;
                 return STATUS_OK;
         }
         // -----------------------------------------------------------
         // Default
         // -----------------------------------------------------------
+        default:
+        {
+                return STATUS_OK;
+        }
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t hconn::run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status)
+{
+        switch(m_type)
+        {
+        case HCONN_TYPE_CLIENT:
+        {
+                return run_state_machine_cln(a_conn_mode, a_conn_status);
+        }
+        case HCONN_TYPE_UPSTREAM:
+        {
+                return run_state_machine_ups(a_conn_mode, a_conn_status);
+        }
         default:
         {
                 return STATUS_OK;

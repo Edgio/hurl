@@ -28,6 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include "http_parser/http_parser.h"
 #include "evr.h"
+#include "nconn.h"
 
 // TODO TEST
 #include "file.h"
@@ -136,7 +137,7 @@ public:
         hconn(void);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
-        int32_t run_state_machine(hconn_ev_cb_t a_ev_cb, int32_t a_conn_status);
+        int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
 private:
         // -------------------------------------------------
         // Private methods
@@ -147,6 +148,8 @@ private:
         int32_t handle_req(void);
         int32_t subr_error(void);
         bool subr_complete(void);
+        int32_t run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_status);
+        int32_t run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_status);
 
 };
 

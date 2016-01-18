@@ -638,7 +638,7 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                 }
 
                 int32_t l_hstatus;
-                l_hstatus = l_hconn->run_state_machine(HCONN_EV_CB_WRITEABLE, l_status);
+                l_hstatus = l_hconn->run_state_machine(nconn::NC_MODE_WRITE, l_status);
                 //NDBG_PRINT("%sWRITEABLE%s l_hstatus = %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_hstatus);
                 if(l_hstatus != STATUS_OK)
                 {
@@ -649,7 +649,7 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                 {
                         return STATUS_OK;
                 }
-                switch(l_hstatus)
+                switch(l_status)
                 {
                 case nconn::NC_STATUS_BREAK:
                 {
@@ -762,7 +762,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                         }
                 }
                 int32_t l_hstatus;
-                l_hstatus = l_hconn->run_state_machine(HCONN_EV_CB_READABLE, l_status);
+                l_hstatus = l_hconn->run_state_machine(l_mode, l_status);
                 //NDBG_PRINT("%sREADABLE%s l_hstatus: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_hstatus);
                 if(l_hstatus != STATUS_OK)
                 {
@@ -859,7 +859,7 @@ int32_t t_hlx::evr_file_timeout_cb(void *a_data)
         //NDBG_PRINT("Error: evr_loop_file_timeout_cb\n");
         ++(l_t_hlx->m_stat.m_num_errors);
         int32_t l_hstatus;
-        l_hstatus = l_hconn->run_state_machine(HCONN_EV_CB_TIMEOUT, 0);
+        l_hstatus = l_hconn->run_state_machine(nconn::NC_MODE_TIMEOUT, 0);
         if(l_hstatus != STATUS_OK)
         {
                 // TODO???
@@ -905,7 +905,7 @@ int32_t t_hlx::evr_file_error_cb(void *a_data)
         NDBG_PRINT("Error: file_error_cb\n");
         ++l_t_hlx->m_stat.m_num_errors;
         int32_t l_hstatus;
-        l_hstatus = l_hconn->run_state_machine(HCONN_EV_CB_ERROR, 0);
+        l_hstatus = l_hconn->run_state_machine(nconn::NC_MODE_ERROR, 0);
         if(l_hstatus != STATUS_OK)
         {
                 // TODO???

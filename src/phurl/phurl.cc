@@ -1439,8 +1439,6 @@ int main(int argc, char** argv)
                 printf("Error: can't catch SIGINT\n");
                 return -1;
         }
-        // TODO???
-        signal(SIGPIPE, SIG_IGN);
 
         // Initializer hlx
         int l_status = 0;

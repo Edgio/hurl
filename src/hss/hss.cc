@@ -616,9 +616,6 @@ int main(int argc, char** argv)
                 printf("Error: can't catch SIGINT\n");
                 return -1;
         }
-        // TODO???
-        //signal(SIGPIPE, SIG_IGN);
-
         // -------------------------------------------
         // Profiling
         // -------------------------------------------

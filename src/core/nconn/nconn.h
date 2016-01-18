@@ -106,9 +106,11 @@ public:
         } status_t;
 
         typedef enum mode_enum {
-                NC_MODE_READ = 0,
+                NC_MODE_NONE = 0,
+                NC_MODE_READ,
                 NC_MODE_WRITE,
-                NC_MODE_NONE
+                NC_MODE_TIMEOUT,
+                NC_MODE_ERROR
         } mode_t;
 
         // -------------------------------------------------
