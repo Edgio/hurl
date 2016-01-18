@@ -753,7 +753,6 @@ int32_t nresolver::lookup_async(void* a_ctx,
         (void) l_delay;
 
 #endif
-
         // Check for expires
         uint32_t l_expire_s = m_timeout_s*m_retries*2;
         uint64_t l_now_s = get_time_s();
@@ -766,7 +765,8 @@ int32_t nresolver::lookup_async(void* a_ctx,
                 }
                 ao_lookup_job_pq.pop();
         }
-
+        // Get active number
+        a_active = dns_active(l_ctx);
         return STATUS_OK;
 }
 #endif
