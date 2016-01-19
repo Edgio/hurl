@@ -157,7 +157,7 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
 
 ## *hlxcore* hlx HTTP API Client/Server Library
-*hlxcore* is a library for creating simple simple API servers with support for subrequests.
+*hlxcore* is a library for creating simple API servers with support for subrequests and static files.
 
 ####An example
 ```cpp
