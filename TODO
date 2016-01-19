@@ -1,12 +1,15 @@
 0. hlx
   a. evr_kqueue + eventfd analog.
   b. fix stats stdev/var.
-  c. async dns timeouts
-  e. access logs???
-  f. rqst splitting (test with pipelined requests)
-  g. set separate timeouts resolve/connect/idle
-  h. error callback indicate error type
-  g. error responses for handlers
+  c. access logs???
+  d. rqst splitting (test with pipelined requests)
+  e. set separate timeouts resolve/connect/idle
+  f. error callback indicate error type
+  g. error responses for handlers ie for H_RESP_ERROR (5xx)
   h. if is interactive shell --> isatty(fileno(stdout)) -default to color
+
+1. blackbox tests
+  a. fix exe paths depending on cwd
+  b. add tests target
   
 
