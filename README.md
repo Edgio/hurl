@@ -199,11 +199,11 @@ int main(void)
 ```
 #####Build with:
 ```bash
-g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
+g++ example.cc -lhlxcore -lssl -lcrypto -lpthread -o example
 ```
 #####Running:
 ```bash
-./basic &
+./example &
 curl "127.0.0.1:12345/bananas"
 Hello World
 ```
