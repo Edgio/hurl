@@ -54,6 +54,7 @@ int32_t nbq_write_request_line(nbq &ao_q, const char *a_buf, uint32_t a_len)
 //: ----------------------------------------------------------------------------
 int32_t nbq_write_status(nbq &ao_q, http_status_t a_status)
 {
+        // TODO all statuses???
         switch(a_status)
         {
         case HTTP_STATUS_OK:
@@ -66,8 +67,14 @@ int32_t nbq_write_status(nbq &ao_q, http_status_t a_status)
                 ao_q.write("HTTP/1.1 404 Not Found\r\n", strlen("HTTP/1.1 404 Not Found\r\n"));
                 break;
         }
+        case HTTP_STATUS_NOT_IMPLEMENTED:
+        {
+                ao_q.write("HTTP/1.1 501 Not Implemented\r\n", strlen("HTTP/1.1 501 Not Implemented\r\n"));
+                break;
+        }
         default:
         {
+                ao_q.write("HTTP/1.1 400 Bad Request\r\n", strlen("HTTP/1.1 400 Bad Request\r\n"));
                 break;
         }
         }
