@@ -203,7 +203,7 @@ g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
 ```
 #####Running:
 ```bash
-./hlx_server_ex &
+./basic &
 curl "127.0.0.1:12345/bananas"
 Hello World
 ```
