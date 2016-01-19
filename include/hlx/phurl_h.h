@@ -134,7 +134,9 @@ public:
         // Protected methods
         // -------------------------------------------------
 protected:
-        h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap, const subr &a_subr);
+        bool init_resp(subr &a_subr);
+        h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
+                                        const url_pmap_t &a_url_pmap, subr &a_subr);
 
 private:
         // -------------------------------------------------

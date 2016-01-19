@@ -146,7 +146,7 @@ subr::~subr(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr_type_t subr::get_type(void)
+subr_type_t subr::get_type(void) const
 {
         return m_type;
 }
@@ -156,7 +156,7 @@ subr_type_t subr::get_type(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-scheme_t subr::get_scheme(void)
+scheme_t subr::get_scheme(void) const
 {
         return m_scheme;
 }
@@ -166,7 +166,7 @@ scheme_t subr::get_scheme(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_save(void)
+bool subr::get_save(void) const
 {
         return m_save;
 }
@@ -176,7 +176,7 @@ bool subr::get_save(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_connect_only(void)
+bool subr::get_connect_only(void) const
 {
         return m_connect_only;
 }
@@ -186,7 +186,7 @@ bool subr::get_connect_only(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &subr::get_host(void)
+const std::string &subr::get_host(void) const
 {
         return m_host;
 }
@@ -196,7 +196,7 @@ const std::string &subr::get_host(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &subr::get_hostname(void)
+const std::string &subr::get_hostname(void) const
 {
         return m_hostname;
 }
@@ -206,7 +206,7 @@ const std::string &subr::get_hostname(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &subr::get_id(void)
+const std::string &subr::get_id(void) const
 {
         return m_id;
 }
@@ -216,7 +216,7 @@ const std::string &subr::get_id(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const std::string &subr::get_where(void)
+const std::string &subr::get_where(void) const
 {
         return m_where;
 }
@@ -226,7 +226,7 @@ const std::string &subr::get_where(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint16_t subr::get_port(void)
+uint16_t subr::get_port(void) const
 {
         return m_port;
 }
@@ -236,7 +236,7 @@ uint16_t subr::get_port(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subr::get_num_to_request(void)
+int32_t subr::get_num_to_request(void) const
 {
         return m_num_to_request;
 }
@@ -246,7 +246,7 @@ int32_t subr::get_num_to_request(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint32_t subr::get_num_requested(void)
+uint32_t subr::get_num_requested(void) const
 {
         return m_num_requested;
 }
@@ -256,7 +256,7 @@ uint32_t subr::get_num_requested(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint32_t subr::get_num_completed(void)
+uint32_t subr::get_num_completed(void) const
 {
         return m_num_completed;
 }
@@ -266,7 +266,7 @@ uint32_t subr::get_num_completed(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_keepalive(void)
+bool subr::get_keepalive(void) const
 {
         return m_keepalive;
 }
@@ -276,7 +276,7 @@ bool subr::get_keepalive(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_is_done(void)
+bool subr::get_is_done(void) const
 {
         if((m_num_to_request < 0) || m_num_completed < (uint32_t)m_num_to_request)
         {
@@ -293,7 +293,7 @@ bool subr::get_is_done(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_is_pending_done(void)
+bool subr::get_is_pending_done(void) const
 {
         if((m_num_to_request < 0) || m_num_requested < (uint32_t)m_num_to_request)
         {
@@ -310,7 +310,7 @@ bool subr::get_is_pending_done(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_is_multipath(void)
+bool subr::get_is_multipath(void) const
 {
         return m_is_multipath;
 }
@@ -320,7 +320,7 @@ bool subr::get_is_multipath(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr::error_cb_t subr::get_error_cb(void)
+subr::error_cb_t subr::get_error_cb(void) const
 {
         return m_error_cb;
 }
@@ -330,7 +330,7 @@ subr::error_cb_t subr::get_error_cb(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr::completion_cb_t subr::get_completion_cb(void)
+subr::completion_cb_t subr::get_completion_cb(void) const
 {
         return m_completion_cb;
 }
@@ -340,7 +340,7 @@ subr::completion_cb_t subr::get_completion_cb(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr::create_req_cb_t subr::get_create_req_cb(void)
+subr::create_req_cb_t subr::get_create_req_cb(void) const
 {
         return m_create_req_cb;
 }
@@ -350,7 +350,7 @@ subr::create_req_cb_t subr::get_create_req_cb(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subr::get_timeout_ms(void)
+int32_t subr::get_timeout_ms(void) const
 {
         return m_timeout_ms;
 }
@@ -360,7 +360,7 @@ int32_t subr::get_timeout_ms(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void *subr::get_data(void)
+void *subr::get_data(void) const
 {
         return m_data;
 }
@@ -370,7 +370,7 @@ void *subr::get_data(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_detach_resp(void)
+bool subr::get_detach_resp(void) const
 {
         return m_detach_resp;
 }
@@ -380,7 +380,7 @@ bool subr::get_detach_resp(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t subr::get_uid(void)
+uint64_t subr::get_uid(void) const
 {
         return m_uid;
 }
@@ -390,7 +390,7 @@ uint64_t subr::get_uid(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hconn *subr::get_requester_hconn(void)
+hconn *subr::get_requester_hconn(void) const
 {
         return m_requester_hconn;
 }
@@ -400,7 +400,7 @@ hconn *subr::get_requester_hconn(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const host_info &subr::get_host_info(void)
+const host_info &subr::get_host_info(void) const
 {
         return m_host_info;
 }
@@ -410,7 +410,7 @@ const host_info &subr::get_host_info(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-t_hlx *subr::get_t_hlx(void)
+t_hlx *subr::get_t_hlx(void) const
 {
         return m_t_hlx;
 }
@@ -420,7 +420,7 @@ t_hlx *subr::get_t_hlx(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t subr::get_start_time_ms(void)
+uint64_t subr::get_start_time_ms(void) const
 {
         return m_start_time_ms;
 }
@@ -430,7 +430,7 @@ uint64_t subr::get_start_time_ms(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t subr::get_end_time_ms(void)
+uint64_t subr::get_end_time_ms(void) const
 {
         return m_end_time_ms;
 }
@@ -440,7 +440,7 @@ uint64_t subr::get_end_time_ms(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_tls_verify(void)
+bool subr::get_tls_verify(void) const
 {
         return m_tls_verify;
 }
@@ -450,7 +450,7 @@ bool subr::get_tls_verify(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_tls_sni(void)
+bool subr::get_tls_sni(void) const
 {
         return m_tls_sni;
 }
@@ -460,7 +460,7 @@ bool subr::get_tls_sni(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_tls_self_ok(void)
+bool subr::get_tls_self_ok(void) const
 {
         return m_tls_self_ok;
 }
@@ -470,7 +470,7 @@ bool subr::get_tls_self_ok(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool subr::get_tls_no_host_check(void)
+bool subr::get_tls_no_host_check(void) const
 {
         return m_tls_no_host_check;
 }

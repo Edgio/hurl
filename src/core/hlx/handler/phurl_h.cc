@@ -150,28 +150,48 @@ h_resp_t phurl_h::do_get(hconn &a_hconn,
         return do_get_w_subr_template(a_hconn, a_rqst, a_url_pmap, m_subr_template);
 }
 
+
+//: ----------------------------------------------------------------------------
+//: \details: Initialize
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool phurl_h::init_resp(subr &a_subr)
+{
+
+        // if the subr doesn't have a object to carry the response state, set it
+        phurl_h_resp *l_resp = static_cast <phurl_h_resp*>(a_subr.get_data());
+        if(NULL == l_resp){
+                // no state made already
+                // create a new phurl handler response to carry the state
+                l_resp = new phurl_h_resp();
+                a_subr.set_data(l_resp);
+        }
+        l_resp->m_phurl_h = this;
+        return true;
+
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn,
-                                         rqst &a_rqst,
-                                         const url_pmap_t &a_url_pmap,
-                                         const subr &a_subr)
+h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
+                                         const url_pmap_t &a_url_pmap, subr &a_subr)
 {
-        // Create request state
-        phurl_h_resp *l_fanout_resp = new phurl_h_resp();
-        l_fanout_resp->m_phurl_h = this;
+        // Create request state if not already made
+        init_resp(a_subr);
+
+        phurl_h_resp *l_floodecho_response = static_cast <phurl_h_resp*>(a_subr.get_data());
 
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
                 subr &l_subr = create_subr(a_hconn, a_subr);
                 l_subr.set_host(i_host->m_host);
                 l_subr.reset_label();
-                l_subr.set_data(l_fanout_resp);
 
-                l_fanout_resp->m_pending_uid_set.insert(l_subr.get_uid());
+                l_floodecho_response->m_pending_uid_set.insert(l_subr.get_uid());
 
                 int32_t l_status = 0;
                 l_status = queue_subr(a_hconn, l_subr);
