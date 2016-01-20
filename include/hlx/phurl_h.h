@@ -138,6 +138,11 @@ protected:
         h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                                         const url_pmap_t &a_url_pmap, subr &a_subr);
 
+        // -------------------------------------------------
+        // Protected members
+        // -------------------------------------------------
+        subr m_subr_template;
+        host_list_t m_host_list;
 private:
         // -------------------------------------------------
         // Private methods
@@ -145,12 +150,6 @@ private:
         // Disallow copy/assign
         phurl_h& operator=(const phurl_h &);
         phurl_h(const phurl_h &);
-
-        // -------------------------------------------------
-        // Private members
-        // -------------------------------------------------
-        subr m_subr_template;
-        host_list_t m_host_list;
 };
 
 } //namespace ns_hlx {

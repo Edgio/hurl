@@ -252,6 +252,33 @@ int api_resp::set_header(const std::string &a_key, const std::string &a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int api_resp::set_headerf(const std::string &a_key, const char* fmt, ...)
+{
+        // maximum size is going to be 8K for header for now
+        const int max_header_size = 8192;
+
+        char *val = static_cast <char*>(malloc(max_header_size));
+
+        va_list ap;
+        va_start(ap, fmt);
+        int res = vsnprintf(val, max_header_size, fmt, ap);
+        va_end(ap);
+
+        if (res < 0){
+                // failed
+                return -1;
+        }
+        // success
+
+        return set_header(a_key, std::string(val, res));
+
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void api_resp::set_body_data(const char *a_ptr, uint32_t a_len)
 {
         m_body_data = a_ptr;
