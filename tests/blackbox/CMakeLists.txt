@@ -2,8 +2,8 @@
 # Copyright (C) 2014 Verizon.  All Rights Reserved.
 # All Rights Reserved
 #
-#   Author: Reed P Morrison
-#   Date:   09/30/2015
+#   Author: David Andrews
+#   Date:   01/19/2016
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
-# include source and test directories
-add_subdirectory(whitebox)
-add_subdirectory(blackbox)
+# ------------------------------------------------------------------------------
+# tests
+# ------------------------------------------------------------------------------
+add_test(blackbox ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh)
