@@ -571,16 +571,6 @@ void t_hlx::stop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_hlx::get_stats_copy(t_stat_t &ao_stat)
-{
-        ao_stat = m_stat;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int32_t t_hlx::evr_file_writeable_cb(void *a_data)
 {
         //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_data);

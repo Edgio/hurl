@@ -25,7 +25,8 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
-#include "../../include/hlx/stat.h"
+#include "hlx/stat.h"
+#include "hlx/stat_h.h"
 #include "tinymt64.h"
 
 #include <string.h>
@@ -138,59 +139,6 @@ typedef std::vector <std::string> path_substr_vector_t;
 typedef std::vector <std::string> path_vector_t;
 typedef std::map<std::string, std::string> header_map_t;
 typedef std::vector <range_t> range_vector_t;
-
-//: ----------------------------------------------------------------------------
-//: Handler
-//: ----------------------------------------------------------------------------
-class stats_getter: public ns_hlx::default_rqst_h
-{
-public:
-        // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
-                                ns_hlx::rqst &a_rqst,
-                                const ns_hlx::url_pmap_t &a_url_pmap)
-        {
-                // Process request
-                if(!m_hlx)
-                {
-                        return ns_hlx::H_RESP_ERROR;
-                }
-                char *l_stats_buf = NULL;
-                uint32_t l_stats_buf_len;
-                int32_t l_status;
-                l_status = m_hlx->get_stats_json(&l_stats_buf, l_stats_buf_len);
-                if((l_status != HLX_STATUS_OK) || !l_stats_buf)
-                {
-                        return ns_hlx::H_RESP_ERROR;
-                }
-                char l_len_str[64];
-                sprintf(l_len_str, "%u", l_stats_buf_len);
-                ns_hlx::api_resp &l_api_resp = create_api_resp(a_hconn);
-                l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
-                l_api_resp.set_header("Content-Type", "application/json");
-                l_api_resp.set_header("Access-Control-Allow-Origin", "*");
-                l_api_resp.set_header("Access-Control-Allow-Credentials", "true");
-                l_api_resp.set_header("Access-Control-Max-Age", "86400");
-                l_api_resp.set_header("Content-Length", l_len_str);
-                l_api_resp.set_body_data(l_stats_buf, l_stats_buf_len);
-                queue_api_resp(a_hconn, l_api_resp);
-                if(l_stats_buf)
-                {
-                        free(l_stats_buf);
-                        l_stats_buf = NULL;
-                }
-                return ns_hlx::H_RESP_DONE;
-        }
-        // hlx client
-        ns_hlx::hlx *m_hlx;
-        stats_getter(void):
-                m_hlx(NULL)
-        {};
-private:
-        // Disallow copy/assign
-        stats_getter& operator=(const stats_getter &);
-        stats_getter(const stats_getter &);
-};
 
 //: ----------------------------------------------------------------------------
 //: Settings
@@ -389,7 +337,7 @@ void command_exec(settings_struct_t &a_settings)
                         // -------------------------------------------
                         case 'd':
                         {
-                                a_settings.m_hlx->display_stats();
+                                a_settings.m_hlx->display_stat();
                                 break;
                         }
                         // -------------------------------------------
@@ -1628,10 +1576,9 @@ int main(int argc, char** argv)
         if(l_http_data_port > 0)
         {
                 ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(l_http_data_port, ns_hlx::SCHEME_TCP);
-                stats_getter *l_stats_getter = new stats_getter();
-                l_stats_getter->m_hlx = l_hlx;
+                ns_hlx::stat_h *l_stat_h = new ns_hlx::stat_h();
                 int32_t l_status;
-                l_status = l_lsnr->register_endpoint("/", l_stats_getter);
+                l_status = l_lsnr->register_endpoint("/", l_stat_h);
                 if(l_status != 0)
                 {
                         printf("Error: adding endpoint: %s\n", "/");
@@ -1835,7 +1782,7 @@ void display_responses_line(settings_struct &a_settings)
         uint64_t l_cur_time_ms = hurl_get_time_ms();
 
         // Get stats
-        a_settings.m_hlx->get_stats(l_total);
+        a_settings.m_hlx->get_stat(l_total);
 
         double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
                               ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
@@ -1998,7 +1945,7 @@ void display_results_line(settings_struct &a_settings)
         uint64_t l_cur_time_ms = hurl_get_time_ms();
 
         // Get stats
-        a_settings.m_hlx->get_stats(l_total);
+        a_settings.m_hlx->get_stat(l_total);
         double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
@@ -2115,7 +2062,7 @@ void display_results(settings_struct &a_settings,
         ns_hlx::t_stat_t l_total;
 
         // Get stats
-        a_settings.m_hlx->get_stats(l_total);
+        a_settings.m_hlx->get_stat(l_total);
 
         std::string l_tag;
         // TODO Fix elapse and max parallel
@@ -2187,7 +2134,7 @@ void display_results_http_load_style(settings_struct &a_settings,
         ns_hlx::t_stat_t l_total;
 
         // Get stats
-        a_settings.m_hlx->get_stats(l_total);
+        a_settings.m_hlx->get_stat(l_total);
 
         std::string l_tag;
         // Separator

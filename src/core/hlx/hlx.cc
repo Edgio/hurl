@@ -33,10 +33,6 @@
 #include "nresolver.h"
 #include "nconn_tcp.h"
 
-#include "rapidjson/document.h"
-#include "rapidjson/stringbuffer.h"
-#include "rapidjson/prettywriter.h"
-
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
@@ -51,58 +47,6 @@ _obj.AddMember(_key,\
                 _l_js_alloc)
 
 namespace ns_hlx {
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static void add_to_total_stat_agg(t_stat_t &ao_stat_agg, const t_stat_t &a_add_total_stat)
-{
-
-        // Stats
-        add_stat(ao_stat_agg.m_stat_us_connect , a_add_total_stat.m_stat_us_connect);
-        add_stat(ao_stat_agg.m_stat_us_first_response , a_add_total_stat.m_stat_us_first_response);
-        add_stat(ao_stat_agg.m_stat_us_end_to_end , a_add_total_stat.m_stat_us_end_to_end);
-
-        ao_stat_agg.m_num_ups_resolve_req += a_add_total_stat.m_num_ups_resolve_req;
-        ao_stat_agg.m_num_ups_resolve_active += a_add_total_stat.m_num_ups_resolve_active;
-        ao_stat_agg.m_num_ups_resolved += a_add_total_stat.m_num_ups_resolved;
-        ao_stat_agg.m_num_ups_conn_started += a_add_total_stat.m_num_ups_conn_started;
-        ao_stat_agg.m_cur_ups_conn_count += a_add_total_stat.m_cur_ups_conn_count;
-        ao_stat_agg.m_num_ups_conn_completed += a_add_total_stat.m_num_ups_conn_completed;
-        ao_stat_agg.m_num_ups_reqs += a_add_total_stat.m_num_ups_reqs;
-        ao_stat_agg.m_num_ups_idle_killed += a_add_total_stat.m_num_ups_idle_killed;
-
-        ao_stat_agg.m_num_cln_conn_started += a_add_total_stat.m_num_cln_conn_started;
-        ao_stat_agg.m_cur_cln_conn_count += a_add_total_stat.m_cur_cln_conn_count;
-        ao_stat_agg.m_num_cln_conn_completed += a_add_total_stat.m_num_cln_conn_completed;
-        ao_stat_agg.m_num_cln_reqs += a_add_total_stat.m_num_cln_reqs;
-        ao_stat_agg.m_num_cln_idle_killed += a_add_total_stat.m_num_cln_idle_killed;
-
-        ao_stat_agg.m_total_bytes += a_add_total_stat.m_total_bytes;
-        ao_stat_agg.m_total_reqs += a_add_total_stat.m_total_reqs;
-        ao_stat_agg.m_num_errors += a_add_total_stat.m_num_errors;
-        ao_stat_agg.m_num_bytes_read += a_add_total_stat.m_num_bytes_read;
-        ao_stat_agg.m_num_bytes_written += a_add_total_stat.m_num_bytes_written;
-
-        for(status_code_count_map_t::const_iterator i_code =
-                        a_add_total_stat.m_status_code_count_map.begin();
-                        i_code != a_add_total_stat.m_status_code_count_map.end();
-                        ++i_code)
-        {
-                status_code_count_map_t::iterator i_code2;
-                i_code2 = ao_stat_agg.m_status_code_count_map.find(i_code->first);
-                if(i_code2 == ao_stat_agg.m_status_code_count_map.end())
-                {
-                        ao_stat_agg.m_status_code_count_map[i_code->first] = i_code->second;
-                }
-                else
-                {
-                        i_code2->second += i_code->second;
-                }
-        }
-}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -154,6 +98,10 @@ hlx::~hlx()
                 }
         }
         m_lsnr_list.clear();
+
+        // -------------------------------------------------
+        // tls cleanup
+        // -------------------------------------------------
         if(m_t_conf->m_tls_server_ctx)
         {
                 SSL_CTX_free(m_t_conf->m_tls_server_ctx);
@@ -164,6 +112,7 @@ hlx::~hlx()
                 SSL_CTX_free(m_t_conf->m_tls_client_ctx);
                 m_t_conf->m_tls_client_ctx = NULL;
         }
+
         if(m_nresolver)
         {
                 delete m_nresolver;
@@ -185,20 +134,88 @@ hlx::~hlx()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::get_stats(t_stat_t &ao_all_stats)
+void hlx::get_thread_stat(t_stat_list_t &ao_stat_list)
 {
-        // -------------------------------------------
         // Aggregate
-        // -------------------------------------------
         for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
            i_client != m_t_hlx_list.end();
            ++i_client)
         {
                 // Get stuff from client...
+                ao_stat_list.emplace(ao_stat_list.begin(), (*i_client)->get_stat());
+                // TODO
+                //t_stat_t l_stat;
+                //(*i_client)->get_stats_copy(l_stat);
+                //add_to_total_stat_agg(ao_stats, l_stat);
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Aggregate thread stats.
+//: \return:  NA
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
+{
+        add_stat(ao_total.m_stat_us_connect , a_stat.m_stat_us_connect);
+        add_stat(ao_total.m_stat_us_first_response , a_stat.m_stat_us_first_response);
+        add_stat(ao_total.m_stat_us_end_to_end , a_stat.m_stat_us_end_to_end);
+
+        ao_total.m_num_ups_resolve_req += a_stat.m_num_ups_resolve_req;
+        ao_total.m_num_ups_resolve_active += a_stat.m_num_ups_resolve_active;
+        ao_total.m_num_ups_resolved += a_stat.m_num_ups_resolved;
+        ao_total.m_num_ups_conn_started += a_stat.m_num_ups_conn_started;
+        ao_total.m_cur_ups_conn_count += a_stat.m_cur_ups_conn_count;
+        ao_total.m_num_ups_conn_completed += a_stat.m_num_ups_conn_completed;
+        ao_total.m_num_ups_reqs += a_stat.m_num_ups_reqs;
+        ao_total.m_num_ups_idle_killed += a_stat.m_num_ups_idle_killed;
+
+        ao_total.m_num_cln_conn_started += a_stat.m_num_cln_conn_started;
+        ao_total.m_cur_cln_conn_count += a_stat.m_cur_cln_conn_count;
+        ao_total.m_num_cln_conn_completed += a_stat.m_num_cln_conn_completed;
+        ao_total.m_num_cln_reqs += a_stat.m_num_cln_reqs;
+        ao_total.m_num_cln_idle_killed += a_stat.m_num_cln_idle_killed;
+
+        ao_total.m_total_bytes += a_stat.m_total_bytes;
+        ao_total.m_total_reqs += a_stat.m_total_reqs;
+        ao_total.m_num_errors += a_stat.m_num_errors;
+        ao_total.m_num_bytes_read += a_stat.m_num_bytes_read;
+        ao_total.m_num_bytes_written += a_stat.m_num_bytes_written;
+
+        for(status_code_count_map_t::const_iterator i_code =
+                        a_stat.m_status_code_count_map.begin();
+                        i_code != a_stat.m_status_code_count_map.end();
+                        ++i_code)
+        {
+                status_code_count_map_t::iterator i_code2;
+                i_code2 = ao_total.m_status_code_count_map.find(i_code->first);
+                if(i_code2 == ao_total.m_status_code_count_map.end())
+                {
+                        ao_total.m_status_code_count_map[i_code->first] = i_code->second;
+                }
+                else
+                {
+                        i_code2->second += i_code->second;
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Get hlx stats
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx::get_stat(const t_stat_list_t &a_stat_list, t_stat_t &ao_stat)
+{
+        // Aggregate
+        for(t_stat_list_t::const_iterator i_s = a_stat_list.begin();
+            i_s != a_stat_list.end();
+            ++i_s)
+        {
+                // Get stuff from client...
                 // TODO
                 t_stat_t l_stat;
-                (*i_client)->get_stats_copy(l_stat);
-                add_to_total_stat_agg(ao_all_stats, l_stat);
+                aggregate_stat(ao_stat, *i_s);
         }
 }
 
@@ -207,36 +224,12 @@ void hlx::get_stats(t_stat_t &ao_all_stats)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len)
+void hlx::get_stat(t_stat_t &ao_stat)
 {
-        t_stat_t l_total;
-
-        uint64_t l_time_ms = get_time_ms();
-        // Get stats
-        get_stats(l_total);
-
-        rapidjson::Document l_body;
-        l_body.SetObject(); // Define doc as object -rather than array
-        rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
-        rapidjson::Value l_data_array(rapidjson::kArrayType);
-
-        // Single member array...
-        rapidjson::Value l_s;
-        l_s.SetObject();
-        JS_ADD_MEMBER(l_s, "key", "NA", l_alloc);
-        l_s.AddMember("count", l_total.m_total_reqs, l_alloc);
-        l_s.AddMember("time", l_time_ms, l_alloc);
-
-        l_body.AddMember("data", l_data_array, l_alloc);
-
-        rapidjson::StringBuffer l_strbuf;
-        rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
-        l_body.Accept(l_writer);
-
-        ao_json_buf_len = l_strbuf.GetSize();
-        *ao_json_buf = (char *)malloc(sizeof(char)*(ao_json_buf_len+1));
-        strncpy(*ao_json_buf, l_strbuf.GetString(), ao_json_buf_len);
-        return HLX_STATUS_OK;
+        t_stat_list_t l_stat_list;
+        get_thread_stat(l_stat_list);
+        get_stat(l_stat_list, ao_stat);
+        // TODO Cache stats -up to second???
 }
 
 //: ----------------------------------------------------------------------------
@@ -248,7 +241,7 @@ int32_t hlx::get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len)
 #define DISPLAY_CLN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_GREEN,   #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
 #define DISPLAY_SRV_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_BLUE,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
 #define DISPLAY_GEN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_CYAN,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
-void hlx::display_stats(void)
+void hlx::display_stat(void)
 {
         uint32_t i_t = 0;
         for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
@@ -257,8 +250,7 @@ void hlx::display_stats(void)
         {
                 // Get stuff from client...
                 // TODO
-                t_stat_t l_stat;
-                (*i_client)->get_stats_copy(l_stat);
+                const t_stat_t &l_stat = (*i_client)->get_stat();
                 NDBG_OUTPUT("+-----------------------------------------------------------\n");
                 NDBG_OUTPUT("| THREAD [%6d]\n", i_t);
                 NDBG_OUTPUT("+-----------------------------------------------------------\n");
@@ -628,58 +620,6 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
         }
         return HLX_STATUS_OK;
 }
-
-#if 0
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::add_subr_t(subr &a_subr)
-{
-        if(a_subr.get_type() == SUBR_TYPE_DUPE)
-        {
-                uint32_t l_num_hlx = (uint32_t)m_t_hlx_list.size();
-                uint32_t i_hlx_idx = 0;
-                for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                                i_t != m_t_hlx_list.end();
-                                ++i_t, ++i_hlx_idx)
-                {
-                        subr &l_subr = create_subr(a_subr);
-
-                        // Recalculate num fetches per thread
-                        if(l_subr.get_num_to_request() > 0)
-                        {
-                                uint32_t l_num_fetches_per_thread =
-                                                l_subr.get_num_to_request() / l_num_hlx;
-                                uint32_t l_remainder_fetches =
-                                                l_subr.get_num_to_request() % l_num_hlx;
-                                if (i_hlx_idx == (l_num_hlx - 1))
-                                {
-                                        l_num_fetches_per_thread += l_remainder_fetches;
-                                }
-                                //NDBG_PRINT("Num to fetch: %d\n", (int)l_num_fetches_per_thread);
-                                l_subr.set_num_to_request(l_num_fetches_per_thread);
-                        }
-                        if(l_subr.get_num_to_request() != 0)
-                        {
-                                //a_http_req.m_sr_child_list.push_back(&l_rqst);
-                                (*i_t)->subr_add(l_subr);
-                        }
-                }
-                delete &a_subr;
-        }
-        else if(a_subr.get_type() == SUBR_TYPE_NONE)
-        {
-                (*m_t_hlx_subr_iter)->subr_add(a_subr);
-                ++m_t_hlx_subr_iter;
-                if(m_t_hlx_subr_iter == m_t_hlx_list.end())
-                {
-                        m_t_hlx_subr_iter = m_t_hlx_list.begin();
-                }
-        }
-}
-#endif
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

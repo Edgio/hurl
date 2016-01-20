@@ -136,18 +136,23 @@ typedef enum http_status_enum {
 // Subreq types
 // ---------------------------------------
 typedef enum {
+
         SUBR_TYPE_NONE = 0,
         SUBR_TYPE_DUPE = 1
+
 } subr_type_t;
 
 // ---------------------------------------
 // Handler status
 // ---------------------------------------
 typedef enum {
+
         H_RESP_NONE = 0,
         H_RESP_DONE,
         H_RESP_DEFERRED,
-        H_RESP_ERROR
+        H_RESP_SERVER_ERROR,
+        H_RESP_CLIENT_ERROR
+
 } h_resp_t;
 
 // ---------------------------------------
@@ -273,6 +278,7 @@ struct case_i_comp {
 #define URL_PARAM_MAP_T
 typedef std::map <std::string, std::string> url_pmap_t;
 #endif
+typedef std::list <t_stat_t> t_stat_list_t;
 typedef std::list <cr_t> cr_list_t;
 typedef std::list <std::string> str_list_t;
 typedef std::map <std::string, str_list_t, case_i_comp> kv_map_list_t;
@@ -334,9 +340,10 @@ public:
         bool is_running(void);
 
         // Stats
-        void get_stats(t_stat_t &ao_all_stats);
-        int32_t get_stats_json(char **ao_json_buf, uint32_t &ao_json_buf_len);
-        void display_stats(void);
+        void get_stat(t_stat_t &ao_stat);
+        void get_stat(const t_stat_list_t &a_stat_list, t_stat_t &ao_stat);
+        void get_thread_stat(t_stat_list_t &ao_stat);
+        void display_stat(void);
 
         // TLS config
         // Server ctx
@@ -357,13 +364,13 @@ public:
         nresolver *get_nresolver(void);
 
 private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
         // Disallow copy/assign
         hlx& operator=(const hlx &);
         hlx(const hlx &);
 
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
         int init(void);
         int init_t_hlx_list(void);
 
@@ -590,6 +597,12 @@ public:
         // -------------------------------------------------
         h_resp_t send_not_found(hconn &a_hconn, const rqst &a_rqst);
         h_resp_t send_not_implemented(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_internal_server_error(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_bad_request(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_json_resp(hconn &a_hconn, const rqst &a_rqst,
+                                http_status_t a_status, const char *a_json_resp);
+        h_resp_t send_json_resp_err(hconn &a_hconn, const rqst &a_rqst,
+                                    http_status_t a_status);
 
 private:
         // Disallow copy/assign
@@ -638,13 +651,12 @@ public:
         int32_t init(void);
 
 private:
-        // Disallow copy/assign
-        lsnr& operator=(const lsnr &);
-        lsnr(const lsnr &);
-
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
+        // Disallow copy/assign
+        lsnr& operator=(const lsnr &);
+        lsnr(const lsnr &);
 
         // -------------------------------------------------
         // Private members
@@ -853,6 +865,10 @@ public:
         int set_header(const std::string &a_key, const std::string &a_val);
         void set_body_data(const char *a_ptr, uint32_t a_len);
 
+        void add_std_headers(http_status_t a_status,
+                             const char *a_content_type,
+                             uint64_t a_len,
+                             const rqst &a_rqst);
         // Clear
         void clear_headers(void);
 
@@ -908,7 +924,7 @@ int32_t queue_subr(hconn &a_hconn, subr &a_subr);
 api_resp &create_api_resp(hconn &a_hconn);
 int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
 int32_t queue_resp(hconn &a_hconn);
-
+void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str);
 
 } //namespace ns_hlx {
 

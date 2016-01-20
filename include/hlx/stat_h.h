@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    file_h.h
+//: \file:    stat_h.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    12/12/2015
@@ -20,8 +20,8 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _FILE_H_H
-#define _FILE_H_H
+#ifndef _STAT_H_H
+#define _STAT_H_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
@@ -33,29 +33,23 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: file_h
 //: ----------------------------------------------------------------------------
-class file_h: public default_rqst_h
+class stat_h: public default_rqst_h
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        file_h(void);
-        ~file_h();
+        stat_h(void);
+        ~stat_h();
         h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-
-protected:
-        // -------------------------------------------------
-        // Protected methods
-        // -------------------------------------------------
-        h_resp_t get_file(hconn &a_hconn, rqst &a_rqst, const std::string &a_path);
 
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        file_h& operator=(const file_h &);
-        file_h(const file_h &);
+        stat_h& operator=(const stat_h &);
+        stat_h(const stat_h &);
 };
 
 } //namespace ns_hlx {

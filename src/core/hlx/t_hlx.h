@@ -76,7 +76,7 @@ public:
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
         hlx *get_hlx(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_hlx;}
-        void get_stats_copy(t_stat_t &ao_stat);
+        const t_stat_t &get_stat(void) { return m_stat;}
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
         int32_t queue_output(hconn &a_hconn);

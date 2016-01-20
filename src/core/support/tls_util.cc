@@ -153,6 +153,7 @@ static unsigned long pthreads_thread_id(void)
         return(ret);
 
 }
+
 //: ----------------------------------------------------------------------------
 //: \details: OpenSSL can safely be used in multi-threaded applications provided
 //:           that at least two callback functions are set, locking_function and
@@ -160,7 +161,7 @@ static unsigned long pthreads_thread_id(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void init_tls_locking(void)
+static void tls_init_locking(void)
 {
         int l_num_locks = CRYPTO_num_locks();
         g_lock_cs = (pthread_mutex_t *)OPENSSL_malloc(l_num_locks * sizeof(pthread_mutex_t));
@@ -195,7 +196,7 @@ void tls_init(void)
         OpenSSL_add_all_algorithms();
 
         // Set up for thread safety
-        init_tls_locking();
+        tls_init_locking();
 
         // We MUST have entropy, or else there's no point to crypto.
         if (!RAND_poll())

@@ -27,6 +27,8 @@
 #include "hlx/hlx.h"
 #include "nbq.h"
 #include "string_util.h"
+#include "time_util.h"
+#include "http_resp.h"
 
 #include <string.h>
 
@@ -54,29 +56,16 @@ int32_t nbq_write_request_line(nbq &ao_q, const char *a_buf, uint32_t a_len)
 //: ----------------------------------------------------------------------------
 int32_t nbq_write_status(nbq &ao_q, http_status_t a_status)
 {
-        // TODO all statuses???
-        switch(a_status)
+        http_resp_strs::code_resp_map_t::const_iterator i_r = http_resp_strs::S_CODE_RESP_MAP.find(a_status);
+        if(i_r != http_resp_strs::S_CODE_RESP_MAP.end())
         {
-        case HTTP_STATUS_OK:
-        {
-                ao_q.write("HTTP/1.1 200 OK\r\n", strlen("HTTP/1.1 200 OK\r\n"));
-                break;
+                ao_q.write("HTTP/1.1 ", strlen("HTTP/1.1 "));
+                ao_q.write(i_r->second.c_str(), i_r->second.length());
+                ao_q.write("\r\n", strlen("\r\n"));
         }
-        case HTTP_STATUS_NOT_FOUND:
+        else
         {
-                ao_q.write("HTTP/1.1 404 Not Found\r\n", strlen("HTTP/1.1 404 Not Found\r\n"));
-                break;
-        }
-        case HTTP_STATUS_NOT_IMPLEMENTED:
-        {
-                ao_q.write("HTTP/1.1 501 Not Implemented\r\n", strlen("HTTP/1.1 501 Not Implemented\r\n"));
-                break;
-        }
-        default:
-        {
-                ao_q.write("HTTP/1.1 400 Bad Request\r\n", strlen("HTTP/1.1 400 Bad Request\r\n"));
-                break;
-        }
+                ao_q.write("HTTP/1.1 900 Missing\r\n", strlen("HTTP/1.1 900 Missing"));
         }
         return 0;
 }
@@ -127,6 +116,32 @@ int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str)
+{
+        ao_resp_str += "{ \"errors\": [";
+        ao_resp_str += "{\"code\": ";
+        char l_status_code_str[8];
+        sprintf(l_status_code_str, "%u", a_status);
+        ao_resp_str += l_status_code_str;
+        ao_resp_str += ", \"message\": \"";
+        http_resp_strs::code_resp_map_t::const_iterator i_r = http_resp_strs::S_CODE_RESP_MAP.find(a_status);
+        if(i_r != http_resp_strs::S_CODE_RESP_MAP.end())
+        {
+                ao_resp_str += i_r->second;
+        }
+        else
+        {
+                ao_resp_str += "Missing";
+        }
+        ao_resp_str += "\"}],";
+        ao_resp_str += " \"success\": false}\r\n";
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 api_resp::api_resp():
                 m_status(HTTP_STATUS_OK),
                 m_headers(),
@@ -148,6 +163,26 @@ api_resp::~api_resp()
                 m_body_data = NULL;
                 m_body_data_len = 0;
         }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void api_resp::add_std_headers(http_status_t a_status,
+                             const char *a_content_type,
+                             uint64_t a_len,
+                             const rqst &a_rqst)
+{
+        set_status(a_status);
+        set_header("Server","hss/0.0.1");
+        set_header("Date", get_date_str());
+        set_header("Content-type", a_content_type);
+        set_header("Connection", a_rqst.m_supports_keep_alives ? "keep-alive" : "close");
+        char l_length_str[64];
+        sprintf(l_length_str, "%lu", a_len);
+        set_header("Content-Length", l_length_str);
 }
 
 //: ----------------------------------------------------------------------------

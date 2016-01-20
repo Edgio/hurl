@@ -197,8 +197,8 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                 l_status = queue_subr(a_hconn, l_subr);
                 if(l_status != HLX_STATUS_OK)
                 {
-                        printf("Error: performing add_subreq.\n");
-                        return H_RESP_ERROR;
+                        //("Error: performing add_subreq.\n");
+                        return H_RESP_SERVER_ERROR;
                 }
         }
         return H_RESP_DONE;

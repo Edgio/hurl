@@ -494,8 +494,14 @@ int32_t hconn::handle_req(void)
         {
                 break;
         }
-        case H_RESP_ERROR:
+        case H_RESP_CLIENT_ERROR:
         {
+                l_hdlr_status = s_default_rqst_h.send_bad_request(*this, *l_rqst);
+                break;
+        }
+        case H_RESP_SERVER_ERROR:
+        {
+                l_hdlr_status = s_default_rqst_h.send_internal_server_error(*this, *l_rqst);
                 break;
         }
         default:
@@ -504,11 +510,10 @@ int32_t hconn::handle_req(void)
         }
         }
         // TODO Handler errors?
-        if(l_hdlr_status == H_RESP_ERROR)
+        if(l_hdlr_status == H_RESP_SERVER_ERROR)
         {
                 return STATUS_ERROR;
         }
-
         return STATUS_OK;
 }
 

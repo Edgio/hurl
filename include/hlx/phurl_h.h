@@ -130,10 +130,10 @@ public:
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
         static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
 
+protected:
         // -------------------------------------------------
         // Protected methods
         // -------------------------------------------------
-protected:
         bool init_resp(subr &a_subr);
         h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                                         const url_pmap_t &a_url_pmap, subr &a_subr);
@@ -147,7 +147,7 @@ private:
         phurl_h(const phurl_h &);
 
         // -------------------------------------------------
-        // Public members
+        // Private members
         // -------------------------------------------------
         subr m_subr_template;
         host_list_t m_host_list;

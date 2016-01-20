@@ -507,7 +507,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         // -------------------------------------------
                         case 'd':
                         {
-                                a_settings.m_hlx->display_stats();
+                                a_settings.m_hlx->display_stat();
                                 break;
                         }
                         // -------------------------------------------
@@ -1677,7 +1677,7 @@ void display_status_line(settings_struct_t &a_settings)
 
         // Get stats
         ns_hlx::t_stat_t l_total;
-        a_settings.m_hlx->get_stats(l_total);
+        a_settings.m_hlx->get_stat(l_total);
         uint32_t l_num_done = l_total.m_total_reqs;
         uint32_t l_num_resolve_active = l_total.m_num_ups_resolve_active;
         uint32_t l_num_resolve_req = l_total.m_num_ups_resolve_req;
@@ -2063,9 +2063,7 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
                                 JS_ADD_MEMBER("body", "NO_RESPONSE");
                         }
                 }
-
                 l_js_array.PushBack(l_obj, l_js_allocator);
-
         }
 
         // TODO -Can I just create an array -do I have to stick in a document?
