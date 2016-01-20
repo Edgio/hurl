@@ -28,21 +28,6 @@ Running 1 parallel connections with: 1 reqs/conn, 1 threads
 |     15737 /     15737 |         0 |         0 |     13047.57 |     1.20s |   13030.00s |    10.55s |
 ...
 ```
-*hurl* can be queried:
-```bash
-~>curl -s http://127.0.0.1:12345 | json_pp
-{
-   "data" : [
-      {
-         "value" : {
-            "count" : 331578,
-            "time" : 1414786046242
-         },
-         "key" : "http://127.0.0.1:8089/index.html"
-      }
-   ]
-}
-```
 
 ####An example
 ```bash
