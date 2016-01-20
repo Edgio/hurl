@@ -5,11 +5,10 @@
   d. rqst splitting (test with pipelined requests)
   e. set separate timeouts resolve/connect/idle
   f. error callback indicate error type
-  g. error responses for handlers ie for H_RESP_ERROR (5xx)
-  h. if is interactive shell --> isatty(fileno(stdout)) -default to color
 
 1. blackbox tests
   a. fix exe paths depending on cwd
   b. add tests target
   
-
+2. hurl/phurl/hss
+  a. if is interactive shell --> isatty(fileno(stdout)) -default to color
