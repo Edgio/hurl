@@ -27,3 +27,8 @@ cmake_minimum_required(VERSION 2.8.0)
 # tests
 # ------------------------------------------------------------------------------
 add_test(blackbox ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh)
+
+
+add_custom_target(blackbox
+        ${CMAKE_SOURCE_DIR}/tests/blackbox/run_tests.sh
+        DEPENDS blackbox)
