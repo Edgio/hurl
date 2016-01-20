@@ -38,45 +38,48 @@
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
-#define SET_NCONN_OPT(_conn, _opt, _buf, _len) \
-do { \
-        int _status = 0; \
-        _status = _conn.set_opt((_opt), (_buf), (_len)); \
-        if (_status != STATUS_OK) { \
-                NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
-                return STATUS_ERROR;\
-        } \
-} while(0)
+#define SET_NCONN_OPT(_conn, _opt, _buf, _len)                          \
+        do {                                                            \
+                int _status = 0;                                        \
+                _status = _conn.set_opt((_opt), (_buf), (_len));        \
+                if (_status != STATUS_OK) {                             \
+                        NDBG_PRINT("STATUS_ERROR: Failed to set_opt %d.  Status: %d.\n", _opt, _status); \
+                        return STATUS_ERROR;                            \
+                }                                                       \
+        } while(0)
 
-#define GET_NCONN_OPT(_conn, _opt, _buf, _len) \
-do { \
-        int _status = 0; \
-        _status = _conn.get_opt((_opt), (_buf), (_len)); \
-        if (_status != STATUS_OK) { \
-                NDBG_PRINT("STATUS_ERROR: Failed to get_opt %d.  Status: %d.\n", _opt, _status); \
-                return STATUS_ERROR;\
-        } \
-} while(0)
+#define GET_NCONN_OPT(_conn, _opt, _buf, _len)                          \
+        do {                                                            \
+                int _status = 0;                                        \
+                _status = _conn.get_opt((_opt), (_buf), (_len));        \
+                if (_status != STATUS_OK) {                             \
+                        NDBG_PRINT("STATUS_ERROR: Failed to get_opt %d.  Status: %d.\n", _opt, _status); \
+                        return STATUS_ERROR;                            \
+                }                                                       \
+        } while(0)
 
 // TODO -display errors?
 #if 0
-#define NCONN_ERROR(...)\
-do { \
-        char _buf[1024];\
-        sprintf(_buf, __VA_ARGS__);\
-        m_last_error = _buf;\
-        fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
-        fprintf(stdout, __VA_ARGS__);\
-        fprintf(stdout, "\n");\
-        fflush(stdout); \
+#define NCONN_ERROR(status, ...)                                        \
+        do {                                                            \
+                char _buf[1024];                                        \
+                snprintf(_buf, sizeof(_buf), __VA_ARGS__);              \
+                m_last_error.assign(_buf);                              \
+                m_conn_status = status;                                 \
+                fprintf(stdout, "%s:%s.%d: ", __FILE__, __FUNCTION__, __LINE__); \
+                fprintf(stdout, __VA_ARGS__);                           \
+                fprintf(stdout, "\n");                                  \
+                fflush(stdout);                                         \
+                #endif
 } while(0)
 #else
-#define NCONN_ERROR(...)\
-do { \
-        char _buf[1024];\
-        sprintf(_buf, __VA_ARGS__);\
-        m_last_error = _buf;\
-} while(0)
+#define NCONN_ERROR(status, ...)                                \
+          do {                                                  \
+                  char _buf[1024];                              \
+                  snprintf(_buf, sizeof(_buf), __VA_ARGS__);    \
+                  m_last_error.assign(_buf);                    \
+                  m_conn_status = status;                       \
+          } while(0)
 #endif
 
 namespace ns_hlx {
@@ -254,6 +257,3 @@ private:
 } //namespace ns_hlx {
 
 #endif
-
-
-

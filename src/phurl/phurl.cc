@@ -366,7 +366,7 @@ static int32_t s_error_cb(ns_hlx::subr &a_subr,
                 ++(l_settings->m_summary_info.m_error_addr_timeout);
                 break;
         }
-        case ns_hlx::CONN_STATUS_ERROR_TLS:
+        case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS:
         {
                 // Get last error
                 SSL *l_tls = ns_hlx::nconn_get_SSL(a_nconn);
@@ -396,7 +396,7 @@ static int32_t s_error_cb(ns_hlx::subr &a_subr,
                 break;
 
         }
-        case ns_hlx::CONN_STATUS_ERROR_TLS_HOST:
+        case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS_HOST:
         {
                 ++(l_settings->m_summary_info.m_tls_error_hostname);
                 break;
