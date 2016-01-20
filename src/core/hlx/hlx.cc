@@ -176,6 +176,7 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         ao_total.m_num_cln_reqs += a_stat.m_num_cln_reqs;
         ao_total.m_num_cln_idle_killed += a_stat.m_num_cln_idle_killed;
 
+        ao_total.m_num_run += a_stat.m_num_run;
         ao_total.m_total_bytes += a_stat.m_total_bytes;
         ao_total.m_total_reqs += a_stat.m_total_reqs;
         ao_total.m_num_errors += a_stat.m_num_errors;
