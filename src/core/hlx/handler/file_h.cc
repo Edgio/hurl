@@ -98,8 +98,12 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         // ---------------------------------------
         // Write headers
         // ---------------------------------------
+        if(!get_hlx(a_hconn))
+        {
+                return H_RESP_SERVER_ERROR;
+        }
         nbq_write_status(l_q, HTTP_STATUS_OK);
-        nbq_write_header(l_q, "Server", "hss/0.0.1");
+        nbq_write_header(l_q, "Server", get_hlx(a_hconn)->get_server_name().c_str());
         nbq_write_header(l_q, "Date", get_date_str());
 
         // Get extension

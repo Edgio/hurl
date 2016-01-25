@@ -1157,7 +1157,8 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
         {
                 // Check for available proxy connections
                 // If we maxed out -try again later...
-                if(!m_nconn_proxy_pool.num_free())
+                if(!m_nconn_proxy_pool.num_free() &&
+                   !m_nconn_proxy_pool.num_idle())
                 {
                         return STATUS_AGAIN;
                 }
@@ -1385,6 +1386,8 @@ int32_t t_hlx::subr_try_deq(void)
                         continue;
                 }
         }
+        // stats
+        m_stat.m_num_ups_subr_pending = m_subr_queue.size();
         return STATUS_OK;
 }
 
@@ -1412,12 +1415,8 @@ void *t_hlx::t_run(void *a_nothing)
         //uint64_t l_num_run = 0;
 
         // Pre-queue'd subrequests
-        l_status = subr_try_deq();
-        if(l_status != STATUS_OK)
-        {
-                //NDBG_PRINT("Error performing subr_try_deq.\n");
-                //return NULL;
-        }
+        subr_try_deq();
+        // status???
 
         // -------------------------------------------------
         // Run server
@@ -1661,5 +1660,45 @@ void t_hlx::add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);
         ++m_stat.m_status_code_count_map[a_status_code];
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_hlx::add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb,
+                         void *a_data, void **ao_timer)
+{
+        if(!m_evr_loop)
+        {
+                return STATUS_ERROR;
+        }
+        evr_timer_event_t *l_t = NULL;
+        int32_t l_status;
+        l_status = m_evr_loop->add_timer(a_time_ms, a_timer_cb,
+                                         a_data, &l_t);
+        if(l_status != STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
+        *ao_timer = l_t;
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_hlx::cancel_timer(void *a_timer)
+{
+        if(!m_evr_loop)
+        {
+                return STATUS_ERROR;
+        }
+        evr_timer_event_t *l_t = static_cast<evr_timer_event_t *>(a_timer);
+        return m_evr_loop->cancel_timer(l_t);
+}
+
 
 } //namespace ns_hlx {

@@ -485,6 +485,56 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         //bool l_sent_stop = false;
         //bool l_first_time = true;
         nonblock(NB_ENABLE);
+        int l_status;
+
+        ns_hlx::hlx::t_hlx_list_t &l_t_hlx_list = a_settings.m_hlx->get_t_hlx_list();
+        ns_hlx::hlx::t_hlx_list_t::iterator i_t = l_t_hlx_list.begin();
+        for(host_list_t::iterator i_host = a_settings.m_host_list->begin();
+            i_host != a_settings.m_host_list->end();
+            ++i_host)
+        {
+                ns_hlx::subr *l_subr = new ns_hlx::subr(*(a_settings.m_subr));
+                l_subr->set_uid(a_settings.m_hlx->get_next_subr_uuid());
+                l_subr->set_host(i_host->m_host);
+                if(!i_host->m_hostname.empty())
+                {
+                        l_subr->set_hostname(i_host->m_hostname);
+                }
+                if(!i_host->m_id.empty())
+                {
+                        l_subr->set_id(i_host->m_id);
+                }
+                if(!i_host->m_where.empty())
+                {
+                        l_subr->set_where(i_host->m_where);
+                }
+                if(i_host->m_port != 0)
+                {
+                        l_subr->set_port(i_host->m_port);
+                }
+                l_subr->reset_label();
+                l_subr->set_data(&a_settings);
+                pthread_mutex_lock(&(a_settings.m_mutex));
+                a_settings.m_pending_uid_set.insert(l_subr->get_uid());
+                pthread_mutex_unlock(&(a_settings.m_mutex));
+
+                ns_hlx::add_subr_t_hlx((*i_t), *l_subr);
+                ++i_t;
+                if(i_t == l_t_hlx_list.end())
+                {
+                        i_t = l_t_hlx_list.begin();
+                }
+        }
+
+        // Set num to request
+        a_settings.m_total_reqs = (uint32_t)a_settings.m_host_list->size();
+
+        // run...
+        l_status = a_settings.m_hlx->run();
+        if(HLX_STATUS_OK != l_status)
+        {
+                return -1;
+        }
 
         //printf("Adding subr\n\n");
 
@@ -552,6 +602,12 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                 //}
         }
 
+        // Stop hlx
+        a_settings.m_hlx->stop();
+
+        // wait for completion...
+        a_settings.m_hlx->wait_till_stopped();
+
         // Send stop -if unsent
         //if(!l_sent_stop && a_send_stop)
         //{
@@ -566,6 +622,109 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                 display_status_line(a_settings);
         }
         nonblock(NB_DISABLE);
+        return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void show_help(void)
+{
+        printf(" phurl commands: \n");
+        printf("  h    Help or ?\n");
+        printf("  r    Run\n");
+        printf("  q    Quit\n");
+}
+
+#define MAX_CMD_SIZE 64
+int command_exec_cli(settings_struct_t &a_settings)
+{
+        bool l_done = false;
+        // -------------------------------------------
+        // Interactive mode banner
+        // -------------------------------------------
+        if(a_settings.m_color)
+        {
+                printf("%sphurl interactive mode%s: (%stype h for command help%s)\n",
+                                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF);
+        }
+        else
+        {
+                printf("phurl interactive mode: (type h for command help)\n");
+        }
+
+        // ---------------------------------------
+        //   Loop forever until user quits
+        // ---------------------------------------
+        while (!l_done && !g_cancelled)
+        {
+                // -------------------------------------------
+                // Interactive mode prompt
+                // -------------------------------------------
+                if(a_settings.m_color)
+                {
+                        printf("%sphurl>>%s", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+                }
+                else
+                {
+                        printf("phurl>>");
+                }
+                fflush(stdout);
+
+                char l_cmd[MAX_CMD_SIZE] = {' '};
+                char *l_status;
+                l_status = fgets(l_cmd, MAX_CMD_SIZE, stdin);
+                if(!l_status)
+                {
+                        printf("Error reading cmd from stdin\n");
+                        return -1;
+                }
+
+                switch (l_cmd[0])
+                {
+                // -------------------------------------------
+                // Quit
+                // -only works when not reading from stdin
+                // -------------------------------------------
+                case 'q':
+                {
+                        l_done = true;
+                        break;
+                }
+                // -------------------------------------------
+                // run
+                // -------------------------------------------
+                case 'r':
+                {
+                        int l_status;
+                        l_status = command_exec(a_settings, false);
+                        if(l_status != 0)
+                        {
+                                return -1;
+                        }
+                        break;
+                }
+                // -------------------------------------------
+                // Help
+                // -------------------------------------------
+                case 'h':
+                case '?':
+                {
+                        show_help();
+                        break;
+                }
+                // -------------------------------------------
+                // Default
+                // -------------------------------------------
+                default:
+                {
+                        break;
+                }
+                }
+        }
         return 0;
 }
 
@@ -656,7 +815,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).\n");
         fprintf(a_stream, "  -C, --connect_only   Only connect -do not send request.\n");
         fprintf(a_stream, "  \n");
-        fprintf(a_stream, "SSL Settings:\n");
+        fprintf(a_stream, "TLS Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
         fprintf(a_stream, "  -O, --tls_options    SSL Options string.\n");
         fprintf(a_stream, "  -K, --tls_verify     Verify server certificate.\n");
@@ -665,6 +824,9 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -M, --tls_no_host    Skip host name checking.\n");
         fprintf(a_stream, "  -F, --tls_ca_file    SSL CA File.\n");
         fprintf(a_stream, "  -L, --tls_ca_path    SSL CA Path.\n");
+        fprintf(a_stream, "  \n");
+        fprintf(a_stream, "Command Line Client:\n");
+        fprintf(a_stream, "  -I, --cli            Start interactive command line -URL not required.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
@@ -729,7 +891,7 @@ int main(int argc, char** argv)
         //l_subr->set_header("Connection", "keep-alive");
         l_subr->set_completion_cb(s_completion_cb);
         l_subr->set_error_cb(s_error_cb);
-        //l_subr->set_keepalive(true);
+        l_subr->set_keepalive(true);
 
         // -------------------------------------------
         // Get args...
@@ -765,6 +927,7 @@ int main(int argc, char** argv)
                 { "tls_no_host",    0, 0, 'M' },
                 { "tls_ca_file",    1, 0, 'F' },
                 { "tls_ca_path",    1, 0, 'L' },
+                { "cli",            0, 0, 'I' },
                 { "verbose",        0, 0, 'v' },
                 { "color",          0, 0, 'c' },
                 { "quiet",          0, 0, 'q' },
@@ -789,6 +952,7 @@ int main(int argc, char** argv)
         std::string l_url;
         std::string l_ai_cache;
         std::string l_output_file = "";
+        bool l_cli = false;
 
         // Defaults
         output_type_t l_output_mode = OUTPUT_JSON;
@@ -829,9 +993,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DkA:CRcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -999,6 +1163,14 @@ int main(int argc, char** argv)
                 case 'L':
                 {
                         l_hlx->set_tls_client_ctx_ca_path(l_argument);
+                        break;
+                }
+                // ---------------------------------------
+                // cli
+                // ---------------------------------------
+                case 'I':
+                {
+                        l_cli = true;
                         break;
                 }
                 // ---------------------------------------
@@ -1440,8 +1612,16 @@ int main(int argc, char** argv)
                 return -1;
         }
 
-        // Initializer hlx
-        int l_status = 0;
+        // -------------------------------------------
+        // Setup to run -but don't start
+        // -------------------------------------------
+        int32_t l_status = 0;
+        l_status = l_hlx->init_run();
+        if(HLX_STATUS_OK != l_status)
+        {
+                printf("Error: performing hlx::init_run\n");
+                return -1;
+        }
 
 #ifdef ENABLE_PROFILER
         // Start Profiler
@@ -1450,62 +1630,25 @@ int main(int argc, char** argv)
                 ProfilerStart(l_gprof_file.c_str());
         }
 #endif
-
-        for(host_list_t::iterator i_host = l_settings.m_host_list->begin();
-            i_host != l_settings.m_host_list->end();
-            ++i_host)
-        {
-                ns_hlx::subr *l_subr = new ns_hlx::subr(*(l_settings.m_subr));
-                l_subr->set_uid(l_hlx->get_next_subr_uuid());
-                l_subr->set_host(i_host->m_host);
-                if(!i_host->m_hostname.empty())
-                {
-                        l_subr->set_hostname(i_host->m_hostname);
-                }
-                if(!i_host->m_id.empty())
-                {
-                        l_subr->set_id(i_host->m_id);
-                }
-                if(!i_host->m_where.empty())
-                {
-                        l_subr->set_where(i_host->m_where);
-                }
-                if(i_host->m_port != 0)
-                {
-                        l_subr->set_port(i_host->m_port);
-                }
-                l_subr->reset_label();
-                l_subr->set_data(&l_settings);
-                pthread_mutex_lock(&(l_settings.m_mutex));
-                l_settings.m_pending_uid_set.insert(l_subr->get_uid());
-                pthread_mutex_unlock(&(l_settings.m_mutex));
-                l_hlx->pre_queue_subr(*l_subr);
-        }
-
-        // Set num to request
-        l_settings.m_total_reqs = (uint32_t)l_host_list->size();
-
-        // run...
-        l_status = l_hlx->run();
-        if(HLX_STATUS_OK != l_status)
-        {
-                return -1;
-        }
-
         // -------------------------------------------
         // Run command exec
         // -------------------------------------------
-        l_status = command_exec(l_settings, true);
-        if(l_status != 0)
+        if(l_cli)
         {
-                return -1;
+                l_status = command_exec_cli(l_settings);
+                if(l_status != 0)
+                {
+                        return -1;
+                }
         }
-
-        // Stop hlx
-        l_hlx->stop();
-
-        // wait for completion...
-        l_hlx->wait_till_stopped();
+        else
+        {
+                l_status = command_exec(l_settings, true);
+                if(l_status != 0)
+                {
+                        return -1;
+                }
+        }
 
 #ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
@@ -2103,7 +2246,5 @@ std::string dump_all_responses(phurl_resp_list_t &a_resp_list, bool a_color, boo
                 break;
         }
         }
-
         return l_responses_str;
-
 }

@@ -25,7 +25,6 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
-
 #include <string.h>
 
 namespace ns_hlx {
@@ -38,9 +37,15 @@ namespace ns_hlx {
 h_resp_t rqst_h::send_json_resp(hconn &a_hconn, const rqst &a_rqst,
                                 http_status_t a_status, const char *a_json_resp)
 {
+        hlx *l_hlx = get_hlx(a_hconn);
+        if(!l_hlx)
+        {
+                return H_RESP_SERVER_ERROR;
+        }
         api_resp &l_api_resp = create_api_resp(a_hconn);
         l_api_resp.add_std_headers(a_status, "application/json",
-                                   strlen(a_json_resp), a_rqst);
+                                   strlen(a_json_resp), a_rqst,
+                                   *(l_hlx));
         l_api_resp.set_body_data(a_json_resp, strlen(a_json_resp));
         queue_api_resp(a_hconn, l_api_resp);
         return H_RESP_DONE;

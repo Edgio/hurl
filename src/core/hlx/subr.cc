@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
+#include "t_hlx.h"
 #include "ndebug.h"
 #include "string_util.h"
 #include "http_parser/http_parser.h"
@@ -1203,6 +1204,32 @@ int32_t subr::init_with_url(const std::string &a_url)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: Cancel active or remove pending subrequest
+//: \return:  status OK on success ERROR on fail
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t subr::cancel(void)
+{
+        // -------------------------------------------------
+        // Cancel pending -remove from pending queue and NULL *
+        // Cancel active -call cleanup...
+        // -------------------------------------------------
+
+        // -------------------------------------------------
+        // TODO
+        // -------------------------------------------------
+        // 1. subr hconn reference?
+        // 2. subr enum state (ACTIVE or QUEUED)
+        // 3. change pending subr stat name to queued
+        // 4. add iter to subr to get subr ptr from subr q
+        // 5. update iter if subr pop'd/push'd
+        // 6. add subr active map <uuid, subr *>
+        // -------------------------------------------------
+
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -1232,6 +1259,7 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         // Add repo headers
         // -------------------------------------------
         bool l_specd_host = false;
+        bool l_specd_ua = false;
 
         // Loop over reqlet map
         for(kv_map_list_t::const_iterator i_hl = a_subr.get_headers().begin();
@@ -1251,6 +1279,11 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
                         {
                                 l_specd_host = true;
                         }
+                        if (strcasecmp(i_hl->first.c_str(), "user-agent") == 0)
+                        {
+                                l_specd_ua = true;
+                        }
+
                 }
         }
 
@@ -1259,7 +1292,22 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         // -------------------------------------------
         if (!l_specd_host)
         {
-                nbq_write_header(ao_q, "Host", strlen("Host"), a_subr.get_host().c_str(), a_subr.get_host().length());
+                nbq_write_header(ao_q, "Host", strlen("Host"),
+                                 a_subr.get_host().c_str(), a_subr.get_host().length());
+        }
+
+        // -------------------------------------------
+        // Default server if unspecified
+        // -------------------------------------------
+        if (!l_specd_ua)
+        {
+                if(!a_subr.m_t_hlx->get_hlx())
+                {
+                        return STATUS_ERROR;
+                }
+                const std::string &l_ua = a_subr.m_t_hlx->get_hlx()->get_server_name();
+                nbq_write_header(ao_q, "User-Agent", strlen("User-Agent"),
+                                l_ua.c_str(), l_ua.length());
         }
 
         // -------------------------------------------

@@ -52,10 +52,8 @@ int32_t break_header_string(const std::string &a_header_str,
 	{
 		return -1;
 	}
-
 	ao_header_key = a_header_str.substr(0, l_colon_pos);
 	ao_header_val = a_header_str.substr(l_colon_pos+1, a_header_str.length());
-
 	return 0;
 }
 
@@ -69,11 +67,14 @@ std::string get_file_wo_path(std::string &a_filename)
         std::string fName(a_filename);
         size_t pos = fName.rfind("/");
 
-        if(pos == std::string::npos)  //No extension.
+        if(pos == std::string::npos)
+        {
                 return fName;
-        if(pos == 0)    //. is at the front. Not an extension.
+        }
+        if(pos == 0)
+        {
                 return fName;
-
+        }
         return fName.substr(pos + 1, fName.length());
 }
 
@@ -86,12 +87,14 @@ std::string get_file_path(std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind("/");
-
-        if(pos == std::string::npos)  //No extension.
+        if(pos == std::string::npos)
+        {
                 return fName;
-        if(pos == 0)    //. is at the front. Not an extension.
+        }
+        if(pos == 0)
+        {
                 return fName;
-
+        }
         return fName.substr(0, pos);
 }
 
@@ -104,12 +107,14 @@ std::string get_base_filename(std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind(".");
-
-        if(pos == std::string::npos)  //No extension.
+        if(pos == std::string::npos)
+        {
                 return fName;
-        if(pos == 0)    //. is at the front. Not an extension.
+        }
+        if(pos == 0)
+        {
                 return fName;
-
+        }
         return fName.substr(0, pos);
 }
 
@@ -122,12 +127,14 @@ std::string get_file_ext(std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind(".");
-
-        if(pos == std::string::npos)  //No extension.
-                return NULL;
-        if(pos == 0)    //. is at the front. Not an extension.
-                return NULL;
-
+        if(pos == std::string::npos)
+        {
+                return std::string();
+        }
+        if(pos == 0)
+        {
+                return std::string();
+        }
         return fName.substr(pos + 1, fName.length());
 }
 
@@ -140,14 +147,15 @@ std::string get_file_wo_ext(std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind(".");
-
-        if(pos == std::string::npos)  //No extension.
-                return NULL;
-        if(pos == 0)    //. is at the front. Not an extension.
-                return NULL;
-
+        if(pos == std::string::npos)
+        {
+                return std::string();
+        }
+        if(pos == 0)
+        {
+                return std::string();
+        }
         return fName.substr(0, pos);
 }
 
 } //namespace ns_hlx {
-

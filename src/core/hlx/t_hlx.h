@@ -82,6 +82,8 @@ public:
         int32_t queue_output(hconn &a_hconn);
         int32_t queue_api_resp(api_resp &a_api_resp, hconn &a_hconn);
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
+        int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
+        int32_t cancel_timer(void *a_timer);
 
         // -------------------------------------------------
         // Public members

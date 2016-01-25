@@ -317,6 +317,10 @@ public:
         void set_collect_stats(bool a_val);
         void set_timeout_ms(uint32_t a_val);
 
+        // Server name
+        void set_server_name(const std::string &a_name);
+        const std::string &get_server_name(void) const;
+
         // Socket options
         void set_sock_opt_no_delay(bool a_val);
         void set_sock_opt_send_buf_size(uint32_t a_send_buf_size);
@@ -330,10 +334,13 @@ public:
         int32_t register_lsnr(lsnr *a_lsnr);
 
         // Subrequests
-        void pre_queue_subr(subr &a_subr);
         uint64_t get_next_subr_uuid(void);
 
+        // Helper for apps
+        t_hlx_list_t &get_t_hlx_list(void);
+
         // Running...
+        int32_t init_run(void); // init for running but don't start
         int32_t run(void);
         int32_t stop(void);
         int32_t wait_till_stopped(void);
@@ -381,15 +388,14 @@ private:
         bool m_stats;
         uint32_t m_num_threads;
         lsnr_list_t m_lsnr_list;
-        subr_queue_t m_subr_pre_queue;
         nresolver *m_nresolver;
         bool m_use_ai_cache;
         std::string m_ai_cache;
         uint64_t m_start_time_ms;
         t_hlx_list_t m_t_hlx_list;
-        t_hlx_list_t::iterator m_t_hlx_subr_iter;
         bool m_is_initd;
         uint64_atomic_t m_cur_subr_uid;
+        std::string m_server_name;
 };
 
 //: ----------------------------------------------------------------------------
@@ -788,6 +794,9 @@ public:
         // Initialize
         int32_t init_with_url(const std::string &a_url);
 
+        // Cancel
+        int32_t cancel(void);
+
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
@@ -865,11 +874,9 @@ public:
         int set_header(const std::string &a_key, const std::string &a_val);
         int set_headerf(const std::string &a_key, const char* fmt, ...) __attribute__((format(__printf__,3,4)));;
         void set_body_data(const char *a_ptr, uint32_t a_len);
-
-        void add_std_headers(http_status_t a_status,
-                             const char *a_content_type,
-                             uint64_t a_len,
-                             const rqst &a_rqst);
+        void add_std_headers(http_status_t a_status, const char *a_content_type,
+                             uint64_t a_len, const rqst &a_rqst,
+                             const hlx &a_hlx);
         // Clear
         void clear_headers(void);
 
@@ -920,12 +927,23 @@ const std::string &nconn_get_last_error_str(nconn &a_nconn);
 subr &create_subr(hconn &a_hconn);
 subr &create_subr(hconn &a_hconn, const subr &a_subr);
 int32_t queue_subr(hconn &a_hconn, subr &a_subr);
+int32_t add_subr_t_hlx(void *a_t_hlx, subr &a_subr);
 
 // API Responses
 api_resp &create_api_resp(hconn &a_hconn);
 int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
 int32_t queue_resp(hconn &a_hconn);
 void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str);
+
+// Timer
+typedef int32_t (*timer_cb_t)(void *);
+int32_t add_timer(hconn &a_hconn, uint32_t a_ms,
+                  timer_cb_t a_cb, void *a_data,
+                  void **ao_timer);
+int32_t cancel_timer(hconn &a_hconn, void *a_timer);
+
+// Helper
+hlx *get_hlx(hconn &a_hconn);
 
 } //namespace ns_hlx {
 

@@ -58,15 +58,14 @@ hlx::hlx(void):
         m_stats(false),
         m_num_threads(1),
         m_lsnr_list(),
-        m_subr_pre_queue(),
         m_nresolver(NULL),
         m_use_ai_cache(true),
         m_ai_cache(NRESOLVER_DEFAULT_AI_CACHE_FILE),
         m_start_time_ms(0),
         m_t_hlx_list(),
-        m_t_hlx_subr_iter(),
         m_is_initd(false),
-        m_cur_subr_uid(0)
+        m_cur_subr_uid(0),
+        m_server_name("hlx")
 {
         m_t_conf = new t_conf();
 }
@@ -88,6 +87,7 @@ hlx::~hlx()
                 }
         }
         m_t_hlx_list.clear();
+
         for(lsnr_list_t::iterator i_t = m_lsnr_list.begin();
                         i_t != m_lsnr_list.end();
                         ++i_t)
@@ -169,6 +169,7 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         ao_total.m_num_ups_conn_completed += a_stat.m_num_ups_conn_completed;
         ao_total.m_num_ups_reqs += a_stat.m_num_ups_reqs;
         ao_total.m_num_ups_idle_killed += a_stat.m_num_ups_idle_killed;
+        ao_total.m_num_ups_subr_pending += a_stat.m_num_ups_subr_pending;
 
         ao_total.m_num_cln_conn_started += a_stat.m_num_cln_conn_started;
         ao_total.m_cur_cln_conn_count += a_stat.m_cur_cln_conn_count;
@@ -267,6 +268,7 @@ void hlx::display_stat(void)
                 DISPLAY_CLN_STAT(m_num_ups_conn_completed);
                 DISPLAY_CLN_STAT(m_num_ups_reqs);
                 DISPLAY_CLN_STAT(m_num_ups_idle_killed);
+                DISPLAY_CLN_STAT(m_num_ups_subr_pending);
                 DISPLAY_SRV_STAT(m_num_cln_conn_started);
                 DISPLAY_SRV_STAT(m_cur_cln_conn_count);
                 DISPLAY_SRV_STAT(m_num_cln_conn_completed);
@@ -409,6 +411,26 @@ void hlx::set_collect_stats(bool a_val)
 void hlx::set_timeout_ms(uint32_t a_val)
 {
         m_t_conf->m_timeout_ms = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Set server name -used for requests/response headers
+//: \return:  NA
+//: \param:   a_name: server name
+//: ----------------------------------------------------------------------------
+void hlx::set_server_name(const std::string &a_name)
+{
+        m_server_name = a_name;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Get server name -used for requests/response headers
+//: \return:  server name
+//: \param:   NA
+//: ----------------------------------------------------------------------------
+const std::string &hlx::get_server_name(void) const
+{
+        return m_server_name;
 }
 
 //: ----------------------------------------------------------------------------
@@ -627,16 +649,6 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::pre_queue_subr(subr &a_subr)
-{
-        m_subr_pre_queue.push(&a_subr);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 uint64_t hlx::get_next_subr_uuid(void)
 {
         return ++m_cur_subr_uid;
@@ -647,10 +659,18 @@ uint64_t hlx::get_next_subr_uuid(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::run(void)
+hlx::t_hlx_list_t &hlx::get_t_hlx_list(void)
 {
-        //NDBG_PRINT("Running...\n");
+        return m_t_hlx_list;
+}
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t hlx::init_run(void)
+{
         int l_status = 0;
         if(!m_is_initd)
         {
@@ -660,7 +680,6 @@ int32_t hlx::run(void)
                         return HLX_STATUS_ERROR;
                 }
         }
-
         if(m_t_hlx_list.empty())
         {
                 l_status = init_t_hlx_list();
@@ -669,12 +688,24 @@ int32_t hlx::run(void)
                         return HLX_STATUS_ERROR;
                 }
         }
+        return HLX_STATUS_OK;
+}
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t hlx::run(void)
+{
+        //NDBG_PRINT("Running...\n");
+        int32_t l_status;
+        l_status = init_run();
+        if(HLX_STATUS_OK != l_status)
+        {
+                return HLX_STATUS_ERROR;
+        }
         set_start_time_ms(get_time_ms());
-
-        // -------------------------------------------
-        // Run...
-        // -------------------------------------------
         if(m_num_threads == 0)
         {
                 (*(m_t_hlx_list.begin()))->t_run(NULL);
@@ -688,9 +719,7 @@ int32_t hlx::run(void)
                         (*i_t)->run();
                 }
         }
-
         return HLX_STATUS_OK;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -707,17 +736,6 @@ int hlx::stop(void)
         {
                 (*i_t)->stop();
         }
-        for(lsnr_list_t::iterator i_t = m_lsnr_list.begin();
-                        i_t != m_lsnr_list.end();
-                        ++i_t)
-        {
-                if(*i_t)
-                {
-                        delete *i_t;
-                }
-        }
-        m_lsnr_list.clear();
-
         return l_retval;
 }
 
@@ -884,59 +902,6 @@ int hlx::init_t_hlx_list(void)
                         }
                         m_t_hlx_list.push_back(l_t_hlx);
                 }
-        }
-        m_t_hlx_subr_iter = m_t_hlx_list.begin();
-
-        // -------------------------------------------
-        // Add any subreqs...
-        // -------------------------------------------
-        while(m_subr_pre_queue.size())
-        {
-                subr *l_subr = m_subr_pre_queue.front();
-
-                if(l_subr->get_type() == SUBR_TYPE_DUPE)
-                {
-                        uint32_t l_num_hlx = (uint32_t)m_t_hlx_list.size();
-                        uint32_t i_hlx_idx = 0;
-                        for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                            i_t != m_t_hlx_list.end();
-                            ++i_t, ++i_hlx_idx)
-                        {
-                                subr *l_duped_subr = new subr(*l_subr);
-                                l_duped_subr->set_uid(get_next_subr_uuid());
-
-                                // Recalculate num fetches per thread
-                                if(l_duped_subr->get_num_to_request() > 0)
-                                {
-                                        uint32_t l_num_fetches_per_thread =
-                                                        l_duped_subr->get_num_to_request() / l_num_hlx;
-                                        uint32_t l_remainder_fetches =
-                                                        l_duped_subr->get_num_to_request() % l_num_hlx;
-                                        if (i_hlx_idx == (l_num_hlx - 1))
-                                        {
-                                                l_num_fetches_per_thread += l_remainder_fetches;
-                                        }
-                                        //NDBG_PRINT("Num to fetch: %d\n", (int)l_num_fetches_per_thread);
-                                        l_duped_subr->set_num_to_request(l_num_fetches_per_thread);
-                                }
-                                if(l_duped_subr->get_num_to_request() != 0)
-                                {
-                                        //a_http_req.m_sr_child_list.push_back(&l_rqst);
-                                        (*i_t)->subr_add(*l_duped_subr);
-                                }
-                        }
-                        delete l_subr;
-                }
-                else if(l_subr->get_type() == SUBR_TYPE_NONE)
-                {
-                        (*m_t_hlx_subr_iter)->subr_add(*l_subr);
-                        ++m_t_hlx_subr_iter;
-                        if(m_t_hlx_subr_iter == m_t_hlx_list.end())
-                        {
-                                m_t_hlx_subr_iter = m_t_hlx_list.begin();
-                        }
-                }
-                m_subr_pre_queue.pop();
         }
         return STATUS_OK;
 }

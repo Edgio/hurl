@@ -173,13 +173,12 @@ api_resp::~api_resp()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void api_resp::add_std_headers(http_status_t a_status,
-                             const char *a_content_type,
-                             uint64_t a_len,
-                             const rqst &a_rqst)
+void api_resp::add_std_headers(http_status_t a_status, const char *a_content_type,
+                               uint64_t a_len, const rqst &a_rqst,
+                               const hlx &a_hlx)
 {
         set_status(a_status);
-        set_header("Server","hss/0.0.1");
+        set_header("Server", a_hlx.get_server_name());
         set_header("Date", get_date_str());
         set_header("Content-type", a_content_type);
         set_header("Connection", a_rqst.m_supports_keep_alives ? "keep-alive" : "close");

@@ -208,7 +208,6 @@ void display_results_http_load_style(settings_struct &a_settings,
                                      double a_elapsed_time,
                                      bool a_one_line_flag = false);
 // Specifying urls instead of hosts
-int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subr *a_subr, const std::string &a_url);
 int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 
 //: ----------------------------------------------------------------------------
@@ -1510,6 +1509,15 @@ int main(int argc, char** argv)
         }
 
         // -------------------------------------------
+        // Add url from command line
+        // -------------------------------------------
+        if(!l_url.length())
+        {
+                fprintf(stdout, "Error: No specified URL on cmd line.\n");
+                print_usage(stdout, -1);
+        }
+
+        // -------------------------------------------
         // Sigint handler3
         // -------------------------------------------
         if (signal(SIGINT, sig_handler) == SIG_ERR)
@@ -1521,26 +1529,16 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Add url from command line
         // -------------------------------------------
-        if(l_url.length())
+        //printf("Adding url: %s\n", l_url.c_str());
+        // Set url
+        int32_t l_status = 0;
+        l_status = l_subr->init_with_url(l_url);
+        if(l_status != 0)
         {
-                //printf("Adding url: %s\n", l_url.c_str());
-                int32_t l_status;
-                // Set url
-                l_status = l_subr->init_with_url(l_url);
-                if(l_status != 0)
-                {
-                        printf("Error: performing init_with_url: %s\n", l_url.c_str());
-                        return -1;
-                }
-                // Set callback
-                l_subr->set_completion_cb(s_completion_cb);
-                l_hlx->pre_queue_subr(*l_subr);
+                printf("Error: performing init_with_url: %s\n", l_url.c_str());
+                return -1;
         }
-        else
-        {
-                fprintf(stdout, "Error: No specified URL on cmd line.\n");
-                print_usage(stdout, -1);
-        }
+        l_subr->set_completion_cb(s_completion_cb);
 
         // -------------------------------------------
         // Paths...
@@ -1587,7 +1585,6 @@ int main(int argc, char** argv)
                 l_hlx->register_lsnr(l_lsnr);
         }
 
-
 #ifdef ENABLE_PROFILER
         // Start Profiler
         if (!l_gprof_file.empty())
@@ -1606,11 +1603,64 @@ int main(int argc, char** argv)
                         l_max_threads, l_start_parallel, l_max_reqs_per_conn);
         }
 
-        int32_t l_run_status = 0;
-        l_run_status = l_hlx->run();
-        if(0 != l_run_status)
+        // -------------------------------------------
+        // Setup to run -but don't start
+        // -------------------------------------------
+        l_status = l_hlx->init_run();
+        if(HLX_STATUS_OK != l_status)
         {
-                printf("Error: performing hurl::run");
+                printf("Error: performing hlx::init_run\n");
+                return -1;
+        }
+
+        // -------------------------------------------
+        // Add subrequests
+        // -------------------------------------------
+        ns_hlx::hlx::t_hlx_list_t &l_t_hlx_list = l_hlx->get_t_hlx_list();
+        uint32_t l_num_hlx = (uint32_t)l_t_hlx_list.size();
+        uint32_t i_hlx_idx = 0;
+        for(ns_hlx::hlx::t_hlx_list_t::iterator i_t = l_t_hlx_list.begin();
+            i_t != l_t_hlx_list.end();
+            ++i_t, ++i_hlx_idx)
+        {
+                if(!(*i_t))
+                {
+                        continue;
+                }
+                ns_hlx::subr *l_duped_subr = new ns_hlx::subr(*l_subr);
+                l_duped_subr->set_uid(l_hlx->get_next_subr_uuid());
+
+                // Recalculate num fetches per thread
+                if(l_duped_subr->get_num_to_request() > 0)
+                {
+                        uint32_t l_num_fetches_per_thread =
+                                        l_duped_subr->get_num_to_request() / l_num_hlx;
+                        uint32_t l_remainder_fetches =
+                                        l_duped_subr->get_num_to_request() % l_num_hlx;
+                        if (i_hlx_idx == (l_num_hlx - 1))
+                        {
+                                l_num_fetches_per_thread += l_remainder_fetches;
+                        }
+                        //NDBG_PRINT("Num to fetch: %d\n", (int)l_num_fetches_per_thread);
+                        l_duped_subr->set_num_to_request(l_num_fetches_per_thread);
+                }
+                if(l_duped_subr->get_num_to_request() != 0)
+                {
+                        //a_http_req.m_sr_child_list.push_back(&l_rqst);
+                        l_status = add_subr_t_hlx(*i_t, *l_duped_subr);
+                        if(l_status != HLX_STATUS_OK)
+                        {
+                                printf("Error: performing add_subr_t_hlx\n");
+                                return -1;
+                        }
+                }
+        }
+        delete l_subr;
+
+        l_status = l_hlx->run();
+        if(HLX_STATUS_OK != l_status)
+        {
+                printf("Error: performing hlx::run");
                 return -1;
         }
 
@@ -2144,23 +2194,6 @@ void display_results_http_load_style(settings_struct &a_settings,
         // TODO Fix elapse and max parallel
         l_tag = "State";
         show_total_agg_stat_legacy(l_tag, l_total, l_sep, a_elapsed_time, a_settings.m_num_parallel);
-}
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t add_url(ns_hlx::hlx *a_hlx, ns_hlx::subr *a_subr, const std::string &a_url)
-{
-
-        ns_hlx::subr *l_subr = new ns_hlx::subr(*a_subr);
-        l_subr->set_uid(a_hlx->get_next_subr_uuid());
-        l_subr->init_with_url(a_url);
-        //printf("Adding url: %s\n", a_url.c_str());
-        a_hlx->pre_queue_subr(*l_subr);
-        return 0;
 }
 
 //: ----------------------------------------------------------------------------

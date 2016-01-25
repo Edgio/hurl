@@ -28,7 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
 
-#include <set>
+#include <map>
 
 namespace ns_hlx {
 
@@ -73,7 +73,7 @@ private:
 //: Types
 //: ----------------------------------------------------------------------------
 typedef std::list <hlx_resp *> hlx_resp_list_t;
-typedef std::set <uint64_t> resp_uid_set_t;
+typedef std::map <uint64_t, subr *> subr_uid_map_t;
 typedef std::list <struct host_s> host_list_t;
 
 //: ----------------------------------------------------------------------------
@@ -87,14 +87,24 @@ public:
         // -------------------------------------------------
         phurl_h_resp(void);
         ~phurl_h_resp(void);
+        int32_t cancel_pending(void);
+        float get_done_ratio(void);
+
+        // -------------------------------------------------
+        // Public static methods
+        // -------------------------------------------------
+        static int32_t s_timeout_cb(void *a_data);
 
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        resp_uid_set_t m_pending_uid_set;
+        subr_uid_map_t m_pending_subr_uid_map;
         hlx_resp_list_t m_resp_list;
         phurl_h *m_phurl_h;
         void *m_data;
+        void *m_timer;
+        uint64_t m_size;
+        float m_completion_ratio;
 
 private:
         // -------------------------------------------------
@@ -122,6 +132,8 @@ public:
         void set_host_list(const host_list_t &a_host_list);
         const subr &get_subr_template(void);
         subr &get_subr_template_mutable(void);
+        void set_timeout_ms(uint32_t a_val);
+        void set_completion_ratio(float a_ratio);
         virtual int32_t create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp);
 
         // -------------------------------------------------
@@ -134,15 +146,18 @@ protected:
         // -------------------------------------------------
         // Protected methods
         // -------------------------------------------------
-        bool init_resp(subr &a_subr);
         h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
-                                        const url_pmap_t &a_url_pmap, subr &a_subr);
+                                        const url_pmap_t &a_url_pmap, const subr &a_subr,
+                                        phurl_h_resp *a_phr = NULL);
 
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
         subr m_subr_template;
         host_list_t m_host_list;
+        uint32_t m_timeout_ms;
+        float m_completion_ratio;
+
 private:
         // -------------------------------------------------
         // Private methods

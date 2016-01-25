@@ -26,6 +26,8 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
 #include "hlx/phurl_h.h"
+#include "hconn.h"
+#include "t_hlx.h"
 #include "ndebug.h"
 
 namespace ns_hlx {
@@ -36,10 +38,13 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 phurl_h_resp::phurl_h_resp(void) :
-        m_pending_uid_set(),
+        m_pending_subr_uid_map(),
         m_resp_list(),
         m_phurl_h(NULL),
-        m_data(NULL)
+        m_data(NULL),
+        m_timer(NULL),
+        m_size(0),
+        m_completion_ratio(100.0)
 {
 }
 
@@ -70,10 +75,70 @@ phurl_h_resp::~phurl_h_resp(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t phurl_h_resp::cancel_pending(void)
+{
+        for(subr_uid_map_t::iterator i_s = m_pending_subr_uid_map.begin();
+            i_s != m_pending_subr_uid_map.end();
+            ++i_s)
+        {
+                if(i_s->second)
+                {
+                        int32_t l_status;
+                        l_status = i_s->second->cancel();
+                        if(l_status != STATUS_OK)
+                        {
+                                // TODO ???
+                        }
+                }
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+float phurl_h_resp::get_done_ratio(void)
+{
+        float l_size = (float)m_size;
+        float l_done = (float)(m_pending_subr_uid_map.size());
+        return 100.0*((l_size - l_done)/l_size);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t phurl_h_resp::s_timeout_cb(void *a_data)
+{
+        phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_data);
+        if(!l_phr)
+        {
+                return STATUS_ERROR;
+        }
+        int32_t l_status;
+        l_status = l_phr->cancel_pending();
+        if(l_status != STATUS_OK)
+        {
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 phurl_h::phurl_h(void):
         default_rqst_h(),
         m_subr_template(),
-        m_host_list()
+        m_host_list(),
+        m_timeout_ms(0),
+        m_completion_ratio(100.0)
 {
         // Setup template
         m_subr_template.init_with_url("http://blorp/");
@@ -121,6 +186,16 @@ subr &phurl_h::get_subr_template_mutable(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void phurl_h::set_timeout_ms(uint32_t a_val)
+{
+        m_timeout_ms = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void phurl_h::add_host(const std::string a_host, uint16_t a_port)
 {
         // Setup host list
@@ -150,54 +225,54 @@ h_resp_t phurl_h::do_get(hconn &a_hconn,
         return do_get_w_subr_template(a_hconn, a_rqst, a_url_pmap, m_subr_template);
 }
 
-
-//: ----------------------------------------------------------------------------
-//: \details: Initialize
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool phurl_h::init_resp(subr &a_subr)
-{
-
-        // if the subr doesn't have a object to carry the response state, set it
-        phurl_h_resp *l_resp = static_cast <phurl_h_resp*>(a_subr.get_data());
-        if(NULL == l_resp){
-                // no state made already
-                // create a new phurl handler response to carry the state
-                l_resp = new phurl_h_resp();
-                a_subr.set_data(l_resp);
-        }
-        l_resp->m_phurl_h = this;
-        return true;
-
-}
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
-                                         const url_pmap_t &a_url_pmap, subr &a_subr)
+                                         const url_pmap_t &a_url_pmap, const subr &a_subr,
+                                         phurl_h_resp *a_phr)
 {
         // Create request state if not already made
-        init_resp(a_subr);
-
-        phurl_h_resp *l_floodecho_response = static_cast <phurl_h_resp*>(a_subr.get_data());
-
+        phurl_h_resp *l_phr = a_phr;
+        if(!l_phr)
+        {
+                l_phr = new phurl_h_resp();
+                l_phr->m_phurl_h = this;
+        }
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
                 subr &l_subr = create_subr(a_hconn, a_subr);
                 l_subr.set_host(i_host->m_host);
                 l_subr.reset_label();
+                l_subr.set_data(l_phr);
 
-                l_floodecho_response->m_pending_uid_set.insert(l_subr.get_uid());
+                // Add to pending map
+                l_phr->m_pending_subr_uid_map[l_subr.get_uid()] = &l_subr;
 
                 int32_t l_status = 0;
                 l_status = queue_subr(a_hconn, l_subr);
                 if(l_status != HLX_STATUS_OK)
                 {
                         //("Error: performing add_subreq.\n");
+                        return H_RESP_SERVER_ERROR;
+                }
+        }
+        l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
+        l_phr->m_completion_ratio = m_completion_ratio;
+        if(m_timeout_ms)
+        {
+                // TODO set timeout
+                if(!a_hconn.m_t_hlx)
+                {
+                        return H_RESP_SERVER_ERROR;
+                }
+                // TODO -cancel pending???
+                int32_t l_status;
+                l_status = add_timer(a_hconn, m_timeout_ms, phurl_h_resp::s_timeout_cb, l_phr, &(l_phr->m_timer));
+                if(l_status != HLX_STATUS_OK)
+                {
                         return H_RESP_SERVER_ERROR;
                 }
         }
@@ -211,32 +286,54 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
 //: ----------------------------------------------------------------------------
 int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 {
-        phurl_h_resp *l_fanout_resp = static_cast<phurl_h_resp *>(a_subr.get_data());
-        if(!l_fanout_resp)
+        phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
+        if(!l_phr)
         {
-                return -1;
+                return STATUS_ERROR;
         }
         hlx_resp *l_resp = new hlx_resp();
         l_resp->m_resp = &a_resp;
         l_resp->m_subr = &a_subr;
-        l_fanout_resp->m_pending_uid_set.erase(a_subr.get_uid());
-        l_fanout_resp->m_resp_list.push_back(l_resp);
+        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
+        l_phr->m_resp_list.push_back(l_resp);
         // Check for done
-        if(l_fanout_resp->m_pending_uid_set.empty())
+        bool l_done = false;
+        if(l_phr->m_pending_subr_uid_map.empty())
         {
-                if(!l_fanout_resp->m_phurl_h)
+                l_done = true;
+        }
+        else if(l_phr->m_completion_ratio < 100.0)
+        {
+                // -------------------------------
+                // Check for ratio
+                // -------------------------------
+                if(l_phr->get_done_ratio() >= l_phr->m_completion_ratio)
                 {
-                        return -1;
+                        // Cancel pending
+                        int32_t l_status;
+                        l_status = l_phr->cancel_pending();
+                        if(l_status != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
+                        l_done = true;
+                }
+        }
+        if(l_done)
+        {
+                if(!l_phr->m_phurl_h)
+                {
+                        return STATUS_ERROR;
                 }
                 int32_t l_status;
                 // Create resp will destroy fanout resp obj
-                l_status = l_fanout_resp->m_phurl_h->create_resp(a_subr, l_fanout_resp);
-                if(l_status != 0)
+                l_status = l_phr->m_phurl_h->create_resp(a_subr, l_phr);
+                if(l_status != STATUS_OK)
                 {
-                        return -1;
+                        return STATUS_ERROR;
                 }
         }
-        return 0;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -246,28 +343,28 @@ int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 //: ----------------------------------------------------------------------------
 int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
 {
-        phurl_h_resp *l_fanout_resp = static_cast<phurl_h_resp *>(a_subr.get_data());
-        if(!l_fanout_resp)
+        phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
+        if(!l_phr)
         {
-                return -1;
+                return STATUS_ERROR;
         }
-        l_fanout_resp->m_pending_uid_set.erase(a_subr.get_uid());
+        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
         // Check for done
-        if(l_fanout_resp->m_pending_uid_set.empty())
+        if(l_phr->m_pending_subr_uid_map.empty())
         {
-                if(!l_fanout_resp->m_phurl_h)
+                if(!l_phr->m_phurl_h)
                 {
-                        return -1;
+                        return STATUS_ERROR;
                 }
                 int32_t l_status;
                 // Create resp will destroy fanout resp obj
-                l_status = l_fanout_resp->m_phurl_h->create_resp(a_subr, l_fanout_resp);
+                l_status = l_phr->m_phurl_h->create_resp(a_subr, l_phr);
                 if(l_status != 0)
                 {
-                        return -1;
+                        return STATUS_ERROR;
                 }
         }
-        return 0;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -304,7 +401,7 @@ int32_t phurl_h::create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp)
         // Queue
         queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
         delete a_fanout_resp;
-        return 0;
+        return STATUS_OK;
 }
 
 } //namespace ns_hlx {

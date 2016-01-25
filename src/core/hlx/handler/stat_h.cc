@@ -25,8 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/stat_h.h"
-#include "t_hlx.h"
-#include "hconn.h"
+#include "hlx/stat.h"
 #include "ndebug.h"
 
 #include "rapidjson/document.h"
@@ -75,12 +74,11 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
                 }
         }
 
-        if((a_hconn.m_t_hlx == NULL) ||
-           (a_hconn.m_t_hlx->get_hlx() == NULL))
+        hlx *l_hlx = get_hlx(a_hconn);
+        if(!l_hlx)
         {
                 return H_RESP_SERVER_ERROR;
         }
-        hlx *l_hlx = a_hconn.m_t_hlx->get_hlx();
 
         // -------------------------------------------------
         // Create body...
@@ -106,6 +104,7 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         ADD_MEMBER(num_ups_conn_completed);
         ADD_MEMBER(num_ups_reqs);
         ADD_MEMBER(num_ups_idle_killed);
+        ADD_MEMBER(num_ups_subr_pending);
 
         ADD_MEMBER(num_cln_conn_started);
         ADD_MEMBER(cur_cln_conn_count);
@@ -133,10 +132,9 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         l_body.Accept(l_writer);
 
         api_resp &l_api_resp = create_api_resp(a_hconn);
-        l_api_resp.add_std_headers(HTTP_STATUS_OK,
-                                   "application/json",
-                                   l_strbuf.GetSize(),
-                                   a_rqst);
+        l_api_resp.add_std_headers(HTTP_STATUS_OK, "application/json",
+                                   l_strbuf.GetSize(), a_rqst,
+                                   *(l_hlx));
         l_api_resp.set_body_data(l_strbuf.GetString(), l_strbuf.GetSize());
         queue_api_resp(a_hconn, l_api_resp);
         return H_RESP_DONE;

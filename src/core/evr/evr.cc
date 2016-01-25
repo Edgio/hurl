@@ -327,7 +327,7 @@ int32_t evr_loop::del_fd(int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, evr_timer_event_t **ao_timer)
+int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, evr_timer_event_t **ao_timer)
 {
         evr_timer_event_t *l_timer_event = new evr_timer_event_t();
 

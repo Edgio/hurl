@@ -177,7 +177,7 @@ public:
         // -------------------------------------------
         // Timer events...
         // -------------------------------------------
-        int32_t add_timer(uint64_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, evr_timer_event_t **ao_timer);
+        int32_t add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, evr_timer_event_t **ao_timer);
         int32_t cancel_timer(evr_timer_event_t *a_timer);
         int32_t signal_control(void);
         int32_t clear_control(void);

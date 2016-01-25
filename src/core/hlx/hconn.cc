@@ -441,7 +441,7 @@ int32_t hconn::handle_req(void)
                 return STATUS_ERROR;
         }
         url_pmap_t l_pmap;
-        //NDBG_PRINT("a_url_router:   %p\n", a_url_router);
+        //NDBG_PRINT("a_url_router:   %p\n", m_url_router);
         //NDBG_PRINT("a_req.m_method: %d\n", l_rqst->m_method);
         rqst_h *l_rqst_h = (rqst_h *)m_url_router->find_route(l_rqst->get_url_path(),l_pmap);
         //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
@@ -509,6 +509,7 @@ int32_t hconn::handle_req(void)
                 break;
         }
         }
+
         // TODO Handler errors?
         if(l_hdlr_status == H_RESP_SERVER_ERROR)
         {
@@ -650,7 +651,32 @@ int32_t queue_subr(hconn &a_hconn, subr &a_subr)
 {
         a_subr.set_requester_hconn(&a_hconn);
         a_hconn.m_t_hlx->subr_add(a_subr);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: add subr to t_hlx
+//:           WARNING only meant to be run if t_hlx is stopped.
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t add_subr_t_hlx(void *a_t_hlx, subr &a_subr)
+{
+        if(!a_t_hlx)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        t_hlx *l_hlx = static_cast<t_hlx *>(a_t_hlx);
+        if(l_hlx->is_running())
+        {
+                return HLX_STATUS_ERROR;
+        }
+        int32_t l_status = l_hlx->subr_add(a_subr);
+        if(l_status != STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -696,6 +722,62 @@ int32_t queue_resp(hconn &a_hconn)
         }
         a_hconn.m_t_hlx->queue_output(a_hconn);
         return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t add_timer(hconn &a_hconn, uint32_t a_ms,
+                  timer_cb_t a_cb, void *a_data,
+                  void **ao_timer)
+{
+        if(!a_hconn.m_t_hlx)
+        {
+            return HLX_STATUS_ERROR;
+        }
+        int32_t l_status;
+        l_status = a_hconn.m_t_hlx->add_timer(a_ms, a_cb, a_data, ao_timer);
+        if(l_status != STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t cancel_timer(hconn &a_hconn, void *a_timer)
+{
+        if(!a_hconn.m_t_hlx)
+        {
+            return HLX_STATUS_ERROR;
+        }
+        int32_t l_status;
+        l_status = a_hconn.m_t_hlx->cancel_timer(a_timer);
+        if(l_status != STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+hlx *get_hlx(hconn &a_hconn)
+{
+        if(!a_hconn.m_t_hlx || !a_hconn.m_t_hlx->get_hlx())
+        {
+                return NULL;
+        }
+        return a_hconn.m_t_hlx->get_hlx();
 }
 
 } //namespace ns_hlx {
