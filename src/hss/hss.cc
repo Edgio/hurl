@@ -45,12 +45,6 @@
 #define NB_ENABLE  1
 #define NB_DISABLE 0
 
-// Version
-#define HSS_VERSION_MAJOR 0
-#define HSS_VERSION_MINOR 0
-#define HSS_VERSION_MACRO 1
-#define HSS_VERSION_PATCH "alpha"
-
 //: ----------------------------------------------------------------------------
 //: Status
 //: ----------------------------------------------------------------------------
@@ -295,11 +289,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         // print out the version information
         fprintf(a_stream, "hlx Simple File Server (hss).\n");
         fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
-        fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
-                        HSS_VERSION_MAJOR,
-                        HSS_VERSION_MINOR,
-                        HSS_VERSION_MACRO,
-                        HSS_VERSION_PATCH);
+        fprintf(a_stream, "               Version: %s\n", HLX_VERSION);
         exit(a_exit_code);
 
 }

@@ -200,16 +200,6 @@ else()
   add_definitions(-O2)
 endif()
 
-# ------------------------------------------------------------------------------
-# include source and test directories
-# ------------------------------------------------------------------------------
-add_subdirectory(src)
-add_subdirectory(examples)
-
-if (BUILD_TESTS)
-  enable_testing()
-  add_subdirectory(tests)
-endif()
 
 # ------------------------------------------------------------------------------
 # Debian Package Support
@@ -221,6 +211,8 @@ if(NOT ${VERSION} MATCHES ^[0-9]+.[0-9]+)
         message(FATAL_ERROR "Most recent tag '${VERSION}' does not match required version regex: ^[0-9]+.[0-9]+
 Does it start with a number?")
 endif()
+
+add_definitions(-DHLX_VERSION="${VERSION}")
 
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
@@ -238,3 +230,16 @@ message("    Package Version:                           ${CPACK_DEBIAN_PACKAGE_V
 message("")
 
 INCLUDE(CPack)
+
+
+
+# ------------------------------------------------------------------------------
+# include source and test directories
+# ------------------------------------------------------------------------------
+add_subdirectory(src)
+add_subdirectory(examples)
+
+if (BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

@@ -73,12 +73,6 @@
 
 #define MAX_READLINE_SIZE 1024
 
-// Version
-#define PHURL_VERSION_MAJOR 0
-#define PHURL_VERSION_MINOR 0
-#define PHURL_VERSION_MACRO 1
-#define PHURL_VERSION_PATCH "alpha"
-
 //: ----------------------------------------------------------------------------
 //: Status
 //: ----------------------------------------------------------------------------
@@ -772,11 +766,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         // print out the version information
         fprintf(a_stream, "phurl HTTP Parallel Curl.\n");
         fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
-        fprintf(a_stream, "               Version: %d.%d.%d.%s\n",
-                        PHURL_VERSION_MAJOR,
-                        PHURL_VERSION_MINOR,
-                        PHURL_VERSION_MACRO,
-                        PHURL_VERSION_PATCH);
+        fprintf(a_stream, "               Version: %s\n", HLX_VERSION);
         exit(a_exit_code);
 
 }
