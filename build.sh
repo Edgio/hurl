@@ -23,6 +23,14 @@
 # ------------------------------------------------------------------------------
 # To build...
 # ------------------------------------------------------------------------------
+which cmake || {
+	echo "Failed to find cmake.  Please install with:   sudo apt-get install cmake"
+	exit 1
+}
+which g++ || { 
+	echo "Failed to find g++ Please install with:   sudo apt-get install g++"
+	exit 1
+}
 mkdir -p build
 pushd build && \
     cmake ../ && \

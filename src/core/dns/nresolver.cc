@@ -30,7 +30,7 @@
 #include "time_util.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
-#include <udns.h>
+#include "udns-0.4/udns.h"
 #endif
 
 #include <unistd.h>
