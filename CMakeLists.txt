@@ -74,6 +74,7 @@ endif()
 # ------------------------------------------------------------------------------
 # Resolve dependencies
 # ------------------------------------------------------------------------------
+
 # \brief   Find ubuntu packages based on their (optional) include and (required) library test files
 # \details
 # \param   output_var_prefix    The prefix for variables output_var_prefix{_INCLUDE_DIR,_LIBS} that are set on success
@@ -92,7 +93,8 @@ macro(find_ubuntu_package output_var_prefix include_test_file
                           message(STATUS "Found ${output_var_prefix} include: ${${output_var_prefix}_INCLUDE_DIR}")
                   endif()
           else()
-                  message(FATAL_ERROR "Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
+                  message("Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
+                  SET(FAILED_PACKAGES 1)
           endif()
   endif()
   find_library(${output_var_prefix}_LIBS ${library_test_file})
@@ -100,7 +102,8 @@ macro(find_ubuntu_package output_var_prefix include_test_file
           message(STATUS "Found ${output_var_prefix} lib: ${${output_var_prefix}_LIBS}")
           LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
   else()
-          message(FATAL_ERROR "Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
+          message("Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
+          SET(FAILED_PACKAGES 1)
   endif()
   if (NOT "${ubuntu_package}" STREQUAL "")
           LIST(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS_LIST "${ubuntu_package}")
@@ -184,11 +187,10 @@ endif()
 set(LIBRARIES ${LIBRARIES} dl)
 message(STATUS "Libraries: ${LIBRARIES}")
 
-find_package( ZLIB REQUIRED )
-if ( ZLIB_FOUND )
-    include_directories( ${ZLIB_INCLUDE_DIRS} )
-    set(LIBRARIES ${LIBRARIES} ${ZLIB_LIBRARIES})
-endif( ZLIB_FOUND )
+if (FAILED_PACKAGES)
+	message(FATAL_ERROR "Please install suggested packages and try again.")
+endif()
+
 
 # ------------------------------------------------------------------------------
 #
