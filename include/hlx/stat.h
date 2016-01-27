@@ -30,6 +30,7 @@
 
 // For fixed size types
 #include <stdint.h>
+#include <string>
 #include <map>
 
 namespace ns_hlx {
