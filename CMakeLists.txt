@@ -184,6 +184,12 @@ endif()
 set(LIBRARIES ${LIBRARIES} dl)
 message(STATUS "Libraries: ${LIBRARIES}")
 
+find_package( ZLIB REQUIRED )
+if ( ZLIB_FOUND )
+    include_directories( ${ZLIB_INCLUDE_DIRS} )
+    set(LIBRARIES ${LIBRARIES} ${ZLIB_LIBRARIES})
+endif( ZLIB_FOUND )
+
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
