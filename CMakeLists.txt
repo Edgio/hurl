@@ -94,6 +94,7 @@ macro(find_ubuntu_package output_var_prefix include_test_file
                   endif()
           else()
                   message("Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
+                  LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
                   SET(FAILED_PACKAGES 1)
           endif()
   endif()
@@ -103,6 +104,7 @@ macro(find_ubuntu_package output_var_prefix include_test_file
           LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
   else()
           message("Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
+          LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
           SET(FAILED_PACKAGES 1)
   endif()
   if (NOT "${ubuntu_package}" STREQUAL "")
@@ -118,6 +120,8 @@ find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a
         libssl1.0.0 libssl-dev)
 find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a
         libssl1.0.0 libssl-dev)
+find_ubuntu_package(LIBZ zlib.h libz.a
+    zlib1g zlib1g-dev)
 
 # ------------------------------------------------------------------------------
 # Build PROFILER
@@ -137,7 +141,7 @@ if (BUILD_TCMALLOC)
   find_ubuntu_package(LIBZMA lzma.h liblzma.a
           liblzma5 liblzma-dev)
   find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a
-          libunwind8 libunwind8-dev)
+          "libunwind8|libunwind7" "libunwind8-dev|libunwind7-dev")
   LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
 endif()
 
@@ -181,16 +185,17 @@ if(BUILD_UDNS)
     add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
+if (FAILED_PACKAGES)
+	LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
+	string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
+	message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
+endif()
+
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} dl)
 message(STATUS "Libraries: ${LIBRARIES}")
-
-if (FAILED_PACKAGES)
-	message(FATAL_ERROR "Please install suggested packages and try again.")
-endif()
-
 
 # ------------------------------------------------------------------------------
 #
