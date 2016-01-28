@@ -74,6 +74,30 @@ endif()
 # ------------------------------------------------------------------------------
 # Resolve dependencies
 # ------------------------------------------------------------------------------
+# Find if a Python module is installed
+# Initial version from: http://www.cmake.org/pipermail/cmake/2011-January/041666.html
+# by Mark Mill (mmoll@rice.edu)
+# To use do: find_python_module(PyQt4 REQUIRED)
+function(find_python_module module)
+        SET(PYTHON_EXECUTABLE python)
+        string(TOUPPER ${module} module_upper)
+        if(ARGC GREATER 1 AND ARGV1 STREQUAL "REQUIRED")
+                set(${module}_FIND_REQUIRED TRUE)
+        endif()
+        # A module's location is usually a directory, but for binary modules
+        # it's a .so file.
+        execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
+                "import re, ${module}; print(re.compile('/__init__.py.*').sub('',${module}.__file__))"
+                RESULT_VARIABLE _${module}_status
+                OUTPUT_VARIABLE _${module}_location
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if("${_${module}_location}" STREQUAL "")
+                message(FATAL_ERROR "Failed to find Python module ${module}")
+        else()
+                message(STATUS "Found Python module ${module} at ${_${module}_location}")
+        endif()
+endfunction(find_python_module)
 
 # \brief   Find ubuntu packages based on their (optional) include and (required) library test files
 # \details
@@ -98,14 +122,16 @@ macro(find_ubuntu_package output_var_prefix include_test_file
                   SET(FAILED_PACKAGES 1)
           endif()
   endif()
-  find_library(${output_var_prefix}_LIBS ${library_test_file})
-  if (${output_var_prefix}_LIBS)
-          message(STATUS "Found ${output_var_prefix} lib: ${${output_var_prefix}_LIBS}")
-          LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
-  else()
-          message("Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
-          LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
-          SET(FAILED_PACKAGES 1)
+  if (NOT "${library_test_file}" STREQUAL "")
+          find_library(${output_var_prefix}_LIBS ${library_test_file})
+          if (${output_var_prefix}_LIBS)
+                  message(STATUS "Found ${output_var_prefix} lib: ${${output_var_prefix}_LIBS}")
+                  LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
+          else()
+                  message("Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
+                  LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
+                  SET(FAILED_PACKAGES 1)
+          endif()
   endif()
   if (NOT "${ubuntu_package}" STREQUAL "")
           LIST(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS_LIST "${ubuntu_package}")
@@ -186,16 +212,24 @@ if(BUILD_UDNS)
 endif()
 
 if (FAILED_PACKAGES)
-	LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
-	string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
-	message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
+    LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
+    string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
+    message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
 endif()
+
 
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} dl)
 message(STATUS "Libraries: ${LIBRARIES}")
+
+
+# ------------------------------------------------------------------------------
+# Look for required python files
+# ------------------------------------------------------------------------------
+find_python_module(nose REQUIRED)
+find_python_module(requests REQUIRED)
 
 # ------------------------------------------------------------------------------
 #

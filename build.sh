@@ -23,14 +23,14 @@
 # ------------------------------------------------------------------------------
 # To build...
 # ------------------------------------------------------------------------------
-which cmake g++ make python-nose python-requests || {
-	echo "Failed to find required build packages. Please install with:   sudo apt-get install cmake make g++ python-nose python-requests"
-	exit 1
+which cmake g++ make || {
+    echo "Failed to find required build packages. Please install with:   sudo apt-get install cmake make g++"
+    exit 1
 }
 mkdir -p build
 pushd build && \
     cmake ../ && \
     make package && \
-	make test && \
+    make test && \
     popd && \
 exit $?
