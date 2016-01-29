@@ -327,9 +327,10 @@ public:
         void set_sock_opt_send_buf_size(uint32_t a_send_buf_size);
         void set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size);
 
-        // Address info cache
-        void set_use_ai_cache(bool a_val);
-        void set_ai_cache(const std::string &a_ai_cache);
+        // DNS settings
+        void set_dns_use_sync(bool a_val);
+        void set_dns_use_ai_cache(bool a_val);
+        void set_dns_ai_cache_file(const std::string &a_file);
 
         // Listeners
         int32_t register_lsnr(lsnr *a_lsnr);
@@ -368,8 +369,9 @@ public:
         int set_tls_client_ctx_options(const std::string &a_tls_options_str);
         int set_tls_client_ctx_options(long a_tls_options);
 
-        // Resolver
+        // DNS Resolver
         nresolver *get_nresolver(void);
+        bool get_dns_use_sync(void);
 
 private:
         // -------------------------------------------------
@@ -390,8 +392,9 @@ private:
         uint32_t m_num_threads;
         lsnr_list_t m_lsnr_list;
         nresolver *m_nresolver;
-        bool m_use_ai_cache;
-        std::string m_ai_cache;
+        bool m_dns_use_sync;
+        bool m_dns_use_ai_cache;
+        std::string m_dns_ai_cache_file;
         uint64_t m_start_time_ms;
         t_hlx_list_t m_t_hlx_list;
         bool m_is_initd;

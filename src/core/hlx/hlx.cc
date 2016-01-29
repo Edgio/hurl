@@ -59,8 +59,9 @@ hlx::hlx(void):
         m_num_threads(1),
         m_lsnr_list(),
         m_nresolver(NULL),
-        m_use_ai_cache(true),
-        m_ai_cache(NRESOLVER_DEFAULT_AI_CACHE_FILE),
+        m_dns_use_sync(false),
+        m_dns_use_ai_cache(true),
+        m_dns_ai_cache_file(NRESOLVER_DEFAULT_AI_CACHE_FILE),
         m_start_time_ms(0),
         m_t_hlx_list(),
         m_is_initd(false),
@@ -306,6 +307,16 @@ nresolver *hlx::get_nresolver(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+bool hlx::get_dns_use_sync(void)
+{
+        return m_dns_use_sync;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 bool hlx::is_running(void)
 {
         for (t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
@@ -468,9 +479,9 @@ void hlx::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_use_ai_cache(bool a_val)
+void hlx::set_dns_use_sync(bool a_val)
 {
-        m_use_ai_cache = a_val;
+        m_dns_use_sync = a_val;
 }
 
 //: ----------------------------------------------------------------------------
@@ -478,9 +489,19 @@ void hlx::set_use_ai_cache(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_ai_cache(const std::string &a_ai_cache)
+void hlx::set_dns_use_ai_cache(bool a_val)
 {
-        m_ai_cache = a_ai_cache;
+        m_dns_use_ai_cache = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx::set_dns_ai_cache_file(const std::string &a_file)
+{
+        m_dns_ai_cache_file = a_file;
 }
 
 //: ----------------------------------------------------------------------------
@@ -774,11 +795,11 @@ int hlx::init(void)
         // Init resolver with cache
         // -------------------------------------------
         int32_t l_ldb_init_status;
-        l_ldb_init_status = m_nresolver->init(m_use_ai_cache, m_ai_cache);
+        l_ldb_init_status = m_nresolver->init(m_dns_use_ai_cache, m_dns_ai_cache_file);
         if(STATUS_OK != l_ldb_init_status)
         {
                 NDBG_PRINT("Error performing resolver init with ai_cache: %s\n",
-                           m_ai_cache.c_str());
+                           m_dns_ai_cache_file.c_str());
                 return HLX_STATUS_ERROR;
         }
 

@@ -1178,29 +1178,34 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 if(l_status != STATUS_OK)
                 {
 #ifdef ASYNC_DNS_SUPPORT
-                        // If try fast fails lookup async
-                        if(!m_async_dns_is_initd)
+                        if(!m_t_conf->m_hlx->get_dns_use_sync())
                         {
-                                l_status = async_dns_init();
+                                // If try fast fails lookup async
+                                if(!m_async_dns_is_initd)
+                                {
+                                        l_status = async_dns_init();
+                                        if(l_status != STATUS_OK)
+                                        {
+                                                return STATUS_ERROR;
+                                        }
+                                }
+
+                                // TODO DEBUG???
+                                //m_stat.m_subr_pending_resolv_map[a_subr.get_label()] = &a_subr;
+
+                                ++(m_stat.m_num_ups_resolve_req);
+                                //NDBG_PRINT("%sl_subr label%s: %s --HOST: %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_subr.get_label().c_str(), a_subr.get_host().c_str());
+                                l_status = async_dns_lookup(a_subr.get_host(), a_subr.get_port(), &a_subr);
                                 if(l_status != STATUS_OK)
                                 {
+                                        //NDBG_PRINT("Error performing async_dns_lookup\n");
                                         return STATUS_ERROR;
                                 }
+                                return STATUS_QUEUED_ASYNC_DNS;
                         }
-
-                        // TODO DEBUG???
-                        //m_stat.m_subr_pending_resolv_map[a_subr.get_label()] = &a_subr;
-
-                        ++(m_stat.m_num_ups_resolve_req);
-                        //NDBG_PRINT("%sl_subr label%s: %s --HOST: %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_subr.get_label().c_str(), a_subr.get_host().c_str());
-                        l_status = async_dns_lookup(a_subr.get_host(), a_subr.get_port(), &a_subr);
-                        if(l_status != STATUS_OK)
+                        else
                         {
-                                //NDBG_PRINT("Error performing async_dns_lookup\n");
-                                return STATUS_ERROR;
-                        }
-                        return STATUS_QUEUED_ASYNC_DNS;
-#else
+#endif
                         // sync dns
                         l_status = l_nresolver->lookup_sync(a_subr.get_host(), a_subr.get_port(), l_host_info);
                         if(l_status != STATUS_OK)
@@ -1223,7 +1228,10 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                         {
                                 ++(m_stat.m_num_ups_resolved);
                         }
+#ifdef ASYNC_DNS_SUPPORT
+                        }
 #endif
+
                 }
 
                 // Get new connection
