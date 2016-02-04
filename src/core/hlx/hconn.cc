@@ -240,6 +240,14 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 return nconn::NC_STATUS_ERROR;
         }
 
+        // Check for cancelled...
+        if(m_subr->get_state() == subr::SUBR_STATE_CANCELLED)
+        {
+                subr_error();
+                // TODO Check error;
+                return STATUS_OK;
+        }
+
         switch(a_conn_mode)
         {
         // -----------------------------------------------------------
@@ -533,7 +541,7 @@ bool hconn::subr_complete(void)
         resp *l_resp = static_cast<resp *>(m_hmsg);
 
         bool l_complete = false;
-        if(m_subr->get_type() != SUBR_TYPE_DUPE)
+        if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
         {
                 m_subr->set_end_time_ms(get_time_ms());
         }
@@ -556,7 +564,7 @@ bool hconn::subr_complete(void)
         }
         else
         {
-                if(m_subr->get_type() != SUBR_TYPE_DUPE)
+                if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
                 {
                         delete m_subr;
                         m_subr = NULL;
@@ -574,22 +582,31 @@ int32_t hconn::subr_error(void)
 {
         nconn *l_nconn = m_nconn;
         resp *l_resp = static_cast<resp *>(m_hmsg);
+
+        if(!m_subr)
+        {
+                return STATUS_ERROR;
+        }
         m_subr->bump_num_completed();
-        if(m_subr->get_type() != SUBR_TYPE_DUPE)
+        if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
         {
                 m_subr->set_end_time_ms(get_time_ms());
         }
-        if(l_nconn->get_collect_stats_flag())
+
+        if(l_nconn && l_nconn->get_collect_stats_flag())
         {
                 l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
+                l_nconn->reset_stats();
         }
-        // TODO ??? why two status codes ???
-        m_status_code = l_resp->get_status();
 
-        // TODO FIX!!!
-        //m_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_resp->get_status());
+        if(l_resp)
+        {
+                // TODO ??? why two status codes ???
+                m_status_code = l_resp->get_status();
+                // TODO FIX!!!
+                //m_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_resp->get_status());
+        }
 
-        l_nconn->reset_stats();
         subr::error_cb_t l_error_cb = m_subr->get_error_cb();
         if(l_error_cb)
         {
@@ -607,7 +624,7 @@ int32_t hconn::subr_error(void)
         }
         else
         {
-                if(m_subr->get_type() != SUBR_TYPE_DUPE)
+                if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
                 {
                         delete m_subr;
                         m_subr = NULL;
@@ -759,6 +776,50 @@ int32_t cancel_timer(hconn &a_hconn, void *a_timer)
         }
         int32_t l_status;
         l_status = a_hconn.m_t_hlx->cancel_timer(a_timer);
+        if(l_status != STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t add_timer(void *a_t_hlx, uint32_t a_ms,
+                  timer_cb_t a_cb, void *a_data,
+                  void **ao_timer)
+{
+        if(!a_t_hlx)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        t_hlx *l_hlx = static_cast<t_hlx *>(a_t_hlx);
+        int32_t l_status;
+        l_status = l_hlx->add_timer(a_ms, a_cb, a_data, ao_timer);
+        if(l_status != STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t cancel_timer(void *a_t_hlx, void *a_timer)
+{
+        if(!a_t_hlx)
+        {
+            return HLX_STATUS_ERROR;
+        }
+        t_hlx *l_hlx = static_cast<t_hlx *>(a_t_hlx);
+        int32_t l_status;
+        l_status = l_hlx->cancel_timer(a_timer);
         if(l_status != STATUS_OK)
         {
                 return HLX_STATUS_ERROR;

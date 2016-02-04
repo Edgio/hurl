@@ -32,6 +32,38 @@
 
 namespace ns_hlx {
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+hlx_resp::hlx_resp():
+        m_subr(NULL),
+        m_resp(NULL),
+        m_error_str()
+{
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+hlx_resp::~hlx_resp()
+{
+        if(m_resp)
+        {
+                delete m_resp;
+                m_resp = NULL;
+        }
+        if(m_subr)
+        {
+                delete m_subr;
+                m_subr = NULL;
+        }
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -44,7 +76,8 @@ phurl_h_resp::phurl_h_resp(void) :
         m_data(NULL),
         m_timer(NULL),
         m_size(0),
-        m_completion_ratio(100.0)
+        m_completion_ratio(100.0),
+        m_delete(true)
 {
 }
 
@@ -59,11 +92,6 @@ phurl_h_resp::~phurl_h_resp(void)
         {
                 if(*i_resp)
                 {
-                        if((*i_resp)->m_resp)
-                        {
-                                delete (*i_resp)->m_resp;
-                                (*i_resp)->m_resp = NULL;
-                        }
                         delete *i_resp;
                         *i_resp = NULL;
                 }
@@ -77,9 +105,9 @@ phurl_h_resp::~phurl_h_resp(void)
 //: ----------------------------------------------------------------------------
 int32_t phurl_h_resp::cancel_pending(void)
 {
-        for(subr_uid_map_t::iterator i_s = m_pending_subr_uid_map.begin();
-            i_s != m_pending_subr_uid_map.end();
-            ++i_s)
+        subr_uid_map_t l_map = m_pending_subr_uid_map;
+        //NDBG_PRINT("Cancel pending size: %lu\n", l_map.size());
+        for(subr_uid_map_t::iterator i_s = l_map.begin(); i_s != l_map.end(); ++i_s)
         {
                 if(i_s->second)
                 {
@@ -90,6 +118,11 @@ int32_t phurl_h_resp::cancel_pending(void)
                                 // TODO ???
                         }
                 }
+        }
+        subr_uid_map_t::iterator i_s = l_map.begin();
+        if(i_s->second && i_s->second->get_t_hlx())
+        {
+                i_s->second->get_t_hlx()->signal();
         }
         return STATUS_OK;
 }
@@ -126,7 +159,6 @@ int32_t phurl_h_resp::s_timeout_cb(void *a_data)
         }
         return STATUS_OK;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -189,6 +221,16 @@ subr &phurl_h::get_subr_template_mutable(void)
 void phurl_h::set_timeout_ms(uint32_t a_val)
 {
         m_timeout_ms = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void phurl_h::set_completion_ratio(float a_ratio)
+{
+        m_completion_ratio = a_ratio;
 }
 
 //: ----------------------------------------------------------------------------
@@ -294,46 +336,9 @@ int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
         hlx_resp *l_resp = new hlx_resp();
         l_resp->m_resp = &a_resp;
         l_resp->m_subr = &a_subr;
-        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
         l_phr->m_resp_list.push_back(l_resp);
-        // Check for done
-        bool l_done = false;
-        if(l_phr->m_pending_subr_uid_map.empty())
-        {
-                l_done = true;
-        }
-        else if(l_phr->m_completion_ratio < 100.0)
-        {
-                // -------------------------------
-                // Check for ratio
-                // -------------------------------
-                if(l_phr->get_done_ratio() >= l_phr->m_completion_ratio)
-                {
-                        // Cancel pending
-                        int32_t l_status;
-                        l_status = l_phr->cancel_pending();
-                        if(l_status != STATUS_OK)
-                        {
-                                return STATUS_ERROR;
-                        }
-                        l_done = true;
-                }
-        }
-        if(l_done)
-        {
-                if(!l_phr->m_phurl_h)
-                {
-                        return STATUS_ERROR;
-                }
-                int32_t l_status;
-                // Create resp will destroy fanout resp obj
-                l_status = l_phr->m_phurl_h->create_resp(a_subr, l_phr);
-                if(l_status != STATUS_OK)
-                {
-                        return STATUS_ERROR;
-                }
-        }
-        return STATUS_OK;
+        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
+        return s_done_check(a_subr, l_phr);
 }
 
 //: ----------------------------------------------------------------------------
@@ -349,19 +354,60 @@ int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
                 return STATUS_ERROR;
         }
         l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
-        // Check for done
-        if(l_phr->m_pending_subr_uid_map.empty())
+        return s_done_check(a_subr, l_phr);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
+{
+        // Skip done check if was cancelled.
+        if(a_subr.get_state() == subr::SUBR_STATE_CANCELLED)
         {
-                if(!l_phr->m_phurl_h)
+                return STATUS_OK;
+        }
+
+        bool l_done = false;
+        if(a_phr->m_pending_subr_uid_map.empty())
+        {
+                l_done = true;
+        }
+        else if(a_phr->m_completion_ratio < 100.0)
+        {
+                // -------------------------------
+                // Check for ratio
+                // -------------------------------
+                if(a_phr->get_done_ratio() >= a_phr->m_completion_ratio)
+                {
+                        // Cancel pending
+                        int32_t l_status;
+                        l_status = a_phr->cancel_pending();
+                        if(l_status != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
+                        l_done = true;
+                }
+        }
+        if(l_done)
+        {
+                if(!a_phr->m_phurl_h)
                 {
                         return STATUS_ERROR;
                 }
                 int32_t l_status;
                 // Create resp will destroy fanout resp obj
-                l_status = l_phr->m_phurl_h->create_resp(a_subr, l_phr);
-                if(l_status != 0)
+                l_status = a_phr->m_phurl_h->create_resp(a_subr, a_phr);
+                if(l_status != STATUS_OK)
                 {
                         return STATUS_ERROR;
+                }
+                if(a_phr->m_delete)
+                {
+                        delete a_phr;
                 }
         }
         return STATUS_OK;
@@ -400,7 +446,6 @@ int32_t phurl_h::create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp)
 
         // Queue
         queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
-        delete a_fanout_resp;
         return STATUS_OK;
 }
 

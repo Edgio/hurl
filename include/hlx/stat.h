@@ -97,7 +97,7 @@ typedef struct t_stat_struct
         uint64_t m_num_ups_conn_completed;
         uint64_t m_num_ups_reqs;
         uint64_t m_num_ups_idle_killed;
-        uint64_t m_num_ups_subr_pending;
+        uint64_t m_num_ups_subr_queued;
 
         // TODO DEBUG???
         //subr_pending_resolv_map_t m_subr_pending_resolv_map;
@@ -132,7 +132,7 @@ typedef struct t_stat_struct
                 m_num_ups_conn_completed(0),
                 m_num_ups_reqs(0),
                 m_num_ups_idle_killed(0),
-                m_num_ups_subr_pending(0),
+                m_num_ups_subr_queued(0),
 
                 // TODO DEBUG???
                 //m_subr_pending_resolv_map(),
@@ -169,6 +169,7 @@ typedef struct t_stat_struct
                 m_num_ups_conn_completed = 0;
                 m_num_ups_reqs = 0;
                 m_num_ups_idle_killed = 0;
+                m_num_ups_subr_queued = 0;
 
                 // TODO DEBUG???
                 //m_subr_pending_resolv_map.clear();

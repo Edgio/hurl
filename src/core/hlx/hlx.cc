@@ -170,7 +170,7 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         ao_total.m_num_ups_conn_completed += a_stat.m_num_ups_conn_completed;
         ao_total.m_num_ups_reqs += a_stat.m_num_ups_reqs;
         ao_total.m_num_ups_idle_killed += a_stat.m_num_ups_idle_killed;
-        ao_total.m_num_ups_subr_pending += a_stat.m_num_ups_subr_pending;
+        ao_total.m_num_ups_subr_queued += a_stat.m_num_ups_subr_queued;
 
         ao_total.m_num_cln_conn_started += a_stat.m_num_cln_conn_started;
         ao_total.m_cur_cln_conn_count += a_stat.m_cur_cln_conn_count;
@@ -269,7 +269,7 @@ void hlx::display_stat(void)
                 DISPLAY_CLN_STAT(m_num_ups_conn_completed);
                 DISPLAY_CLN_STAT(m_num_ups_reqs);
                 DISPLAY_CLN_STAT(m_num_ups_idle_killed);
-                DISPLAY_CLN_STAT(m_num_ups_subr_pending);
+                DISPLAY_CLN_STAT(m_num_ups_subr_queued);
                 DISPLAY_SRV_STAT(m_num_cln_conn_started);
                 DISPLAY_SRV_STAT(m_cur_cln_conn_count);
                 DISPLAY_SRV_STAT(m_num_cln_conn_completed);
@@ -897,6 +897,12 @@ int hlx::init_t_hlx_list(void)
                                 }
                         }
                 }
+                l_status = l_t_hlx->init();
+                if(l_status != STATUS_OK)
+                {
+                        NDBG_PRINT("Error performing init.\n");
+                        return STATUS_ERROR;
+                }
                 m_t_hlx_list.push_back(l_t_hlx);
         }
         else
@@ -920,6 +926,12 @@ int hlx::init_t_hlx_list(void)
                                                 return STATUS_ERROR;
                                         }
                                 }
+                        }
+                        l_status = l_t_hlx->init();
+                        if(l_status != STATUS_OK)
+                        {
+                                NDBG_PRINT("Error performing init.\n");
+                                return STATUS_ERROR;
                         }
                         m_t_hlx_list.push_back(l_t_hlx);
                 }

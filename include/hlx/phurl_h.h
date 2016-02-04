@@ -59,10 +59,9 @@ class hlx_resp
 public:
         subr *m_subr;
         resp *m_resp;
-        hlx_resp():
-                m_subr(NULL),
-                m_resp(NULL)
-        {}
+        std::string m_error_str;
+        hlx_resp();
+        ~hlx_resp();
 private:
         // Disallow copy/assign
         hlx_resp& operator=(const hlx_resp &);
@@ -105,6 +104,7 @@ public:
         void *m_timer;
         uint64_t m_size;
         float m_completion_ratio;
+        bool m_delete;
 
 private:
         // -------------------------------------------------
@@ -141,6 +141,7 @@ public:
         // -------------------------------------------------
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
         static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
+        static int32_t s_done_check(subr &a_subr, phurl_h_resp *a_phr);
 
 protected:
         // -------------------------------------------------

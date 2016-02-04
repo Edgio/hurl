@@ -40,7 +40,8 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 subr::subr(void):
-        m_type(SUBR_TYPE_NONE),
+        m_state(SUBR_STATE_NONE),
+        m_kind(SUBR_KIND_NONE),
         m_scheme(SCHEME_NONE),
         m_host(),
         m_port(0),
@@ -70,6 +71,7 @@ subr::subr(void):
         m_data(NULL),
         m_detach_resp(false),
         m_uid(0),
+        m_hconn(NULL),
         m_requester_hconn(NULL),
         m_host_info(),
         m_t_hlx(NULL),
@@ -88,7 +90,8 @@ subr::subr(void):
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 subr::subr(const subr &a_subr):
-        m_type(a_subr.m_type),
+        m_state(a_subr.m_state),
+        m_kind(a_subr.m_kind),
         m_scheme(a_subr.m_scheme),
         m_host(a_subr.m_host),
         m_port(a_subr.m_port),
@@ -118,6 +121,7 @@ subr::subr(const subr &a_subr):
         m_data(a_subr.m_data),
         m_detach_resp(a_subr.m_detach_resp),
         m_uid(a_subr.m_uid),
+        m_hconn(a_subr.m_hconn),
         m_requester_hconn(a_subr.m_requester_hconn),
         m_host_info(a_subr.m_host_info),
         m_t_hlx(a_subr.m_t_hlx),
@@ -147,9 +151,19 @@ subr::~subr(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr_type_t subr::get_type(void) const
+subr::subr_state_t subr::get_state(void) const
 {
-        return m_type;
+        return m_state;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+subr::subr_kind_t subr::get_kind(void) const
+{
+        return m_kind;
 }
 
 //: ----------------------------------------------------------------------------
@@ -534,6 +548,26 @@ const std::string &subr::get_label(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void subr::set_state(subr_state_t a_state)
+{
+        m_state = a_state;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_kind(subr_kind_t a_kind)
+{
+        m_kind = a_kind;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void subr::set_scheme(scheme_t a_scheme)
 {
         m_scheme = a_scheme;
@@ -632,16 +666,6 @@ void subr::set_create_req_cb(create_req_cb_t a_cb)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_type(subr_type_t a_type)
-{
-        m_type = a_type;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 void subr::set_timeout_ms(int32_t a_val)
 {
         m_timeout_ms = a_val;
@@ -725,6 +749,16 @@ void subr::set_detach_resp(bool a_val)
 void subr::set_uid(uint64_t a_uid)
 {
         m_uid = a_uid;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_hconn(hconn *a_hconn)
+{
+        m_hconn = a_hconn;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1211,21 +1245,51 @@ int32_t subr::init_with_url(const std::string &a_url)
 int32_t subr::cancel(void)
 {
         // -------------------------------------------------
-        // Cancel pending -remove from pending queue and NULL *
-        // Cancel active -call cleanup...
+        // Cancel subr based on state
         // -------------------------------------------------
-
-        // -------------------------------------------------
-        // TODO
-        // -------------------------------------------------
-        // 1. subr hconn reference?
-        // 2. subr enum state (ACTIVE or QUEUED)
-        // 3. change pending subr stat name to queued
-        // 4. add iter to subr to get subr ptr from subr q
-        // 5. update iter if subr pop'd/push'd
-        // 6. add subr active map <uuid, subr *>
-        // -------------------------------------------------
-
+        switch(m_state)
+        {
+        case SUBR_STATE_QUEUED:
+        {
+                // Mark as cancelled let dequeue handle cleanup
+                m_state = SUBR_STATE_CANCELLED;
+                break;
+        }
+        case SUBR_STATE_DNS_LOOKUP:
+        {
+                // Set to cancelled and let async resolver handle cleanup
+                m_state = SUBR_STATE_CANCELLED;
+                break;
+        }
+        case SUBR_STATE_ACTIVE:
+        {
+                m_state = SUBR_STATE_CANCELLED;
+                if(m_hconn &&
+                   m_hconn->m_t_hlx &&
+                   m_hconn->m_nconn)
+                {
+                        m_hconn->m_nconn->set_status(CONN_STATUS_CANCELLED);
+                        int32_t l_status;
+                        l_status = m_hconn->m_t_hlx->evr_file_error_cb(m_hconn->m_nconn);
+                        // Warning subr_error deletes subr so "this" is
+                        // invalid after call...
+                        if(l_status != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
+                        return STATUS_OK;
+                }
+                else
+                {
+                        return STATUS_ERROR;
+                }
+                break;
+        }
+        default:
+        {
+                break;
+        }
+        }
         return STATUS_OK;
 }
 

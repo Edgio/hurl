@@ -138,6 +138,8 @@ public:
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
+        int32_t subr_error(void);
+        bool subr_complete(void);
 private:
         // -------------------------------------------------
         // Private methods
@@ -146,8 +148,6 @@ private:
         hconn& operator=(const hconn &);
         hconn(const hconn &);
         int32_t handle_req(void);
-        int32_t subr_error(void);
-        bool subr_complete(void);
         int32_t run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_status);
         int32_t run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_status);
 

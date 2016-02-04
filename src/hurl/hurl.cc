@@ -1001,7 +1001,7 @@ int main(int argc, char** argv)
         //l_subr->set_header("Connection","keep-alive");
 
         l_subr->set_num_to_request(-1);
-        l_subr->set_type(ns_hlx::SUBR_TYPE_DUPE);
+        l_subr->set_kind(ns_hlx::subr::SUBR_KIND_DUPE);
         l_subr->set_create_req_cb(s_create_request_cb);
         //l_subr->set_num_reqs_per_conn(1);
 

@@ -66,6 +66,10 @@ hmsg::~hmsg(void)
                 m_body = NULL;
                 m_body_len = 0;
         }
+        if(m_headers)
+        {
+                delete m_headers;
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -83,8 +87,11 @@ void hmsg::clear(void)
         m_complete = false;
         m_supports_keep_alives = false;
 
-        delete m_headers;
-        m_headers = NULL;
+        if(m_headers)
+        {
+                delete m_headers;
+                m_headers = NULL;
+        }
 
         if(NULL != m_body)
         {

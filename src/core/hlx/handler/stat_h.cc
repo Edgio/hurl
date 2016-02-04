@@ -104,7 +104,7 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         ADD_MEMBER(num_ups_conn_completed);
         ADD_MEMBER(num_ups_reqs);
         ADD_MEMBER(num_ups_idle_killed);
-        ADD_MEMBER(num_ups_subr_pending);
+        ADD_MEMBER(num_ups_subr_queued);
 
         ADD_MEMBER(num_cln_conn_started);
         ADD_MEMBER(cur_cln_conn_count);

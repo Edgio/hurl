@@ -78,6 +78,7 @@ endif()
 # Initial version from: http://www.cmake.org/pipermail/cmake/2011-January/041666.html
 # by Mark Mill (mmoll@rice.edu)
 # To use do: find_python_module(PyQt4 REQUIRED)
+# ------------------------------------------------------------------------------
 function(find_python_module module)
         SET(PYTHON_EXECUTABLE python)
         string(TOUPPER ${module} module_upper)
@@ -99,6 +100,7 @@ function(find_python_module module)
         endif()
 endfunction(find_python_module)
 
+# ------------------------------------------------------------------------------
 # \brief   Find ubuntu packages based on their (optional) include and (required) library test files
 # \details
 # \param   output_var_prefix    The prefix for variables output_var_prefix{_INCLUDE_DIR,_LIBS} that are set on success
@@ -106,6 +108,7 @@ endfunction(find_python_module)
 # \param   library_test_file    The file to look for and add to the LIBRARIES variable
 # \param   ubuntu_package       The package to add to CPACK package depends list
 # \param   ubuntu_build_package The package to suggest installing to proceed building properly
+# ------------------------------------------------------------------------------
 macro(find_ubuntu_package output_var_prefix include_test_file
                 library_test_file ubuntu_package
                 ubuntu_build_package)

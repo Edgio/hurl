@@ -70,6 +70,7 @@ public:
         // -------------------------------------------------
         t_hlx(const t_conf *a_t_conf);
         ~t_hlx();
+        int32_t init(void);
         int run(void);
         void *t_run(void *a_nothing);
         void stop(void);
@@ -84,6 +85,7 @@ public:
         void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
         int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
         int32_t cancel_timer(void *a_timer);
+        void signal(void);
 
         // -------------------------------------------------
         // Public members
@@ -120,9 +122,6 @@ private:
         }
 
         int32_t cleanup_hconn(hconn &a_hconn);
-
-        // Initialize
-        int32_t init(void);
 
         // Get new client connection
         nconn *get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router);

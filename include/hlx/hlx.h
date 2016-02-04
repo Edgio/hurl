@@ -134,16 +134,6 @@ typedef enum http_status_enum {
 } http_status_t;
 
 // ---------------------------------------
-// Subreq types
-// ---------------------------------------
-typedef enum {
-
-        SUBR_TYPE_NONE = 0,
-        SUBR_TYPE_DUPE = 1
-
-} subr_type_t;
-
-// ---------------------------------------
 // Handler status
 // ---------------------------------------
 typedef enum {
@@ -175,7 +165,7 @@ typedef enum {
         CONN_STATUS_ERROR_RECV                  = -9,   // connected, sent, error receiving, explicit
         // CONN_STATUS_ERROR_RECV_TIMEOUT          = -10,  // connected, sent, error receiving, timed out
         CONN_STATUS_ERROR_TIMEOUT               = -11,   // got a timeout waiting for something, generic.  TODO: deprecate after independent connect/send/recv timeout support
-
+        CONN_STATUS_CANCELLED                   = -100
 } conn_status_t;
 
 //: ----------------------------------------------------------------------------
@@ -269,10 +259,12 @@ public:
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-struct case_i_comp {
-    bool operator() (const std::string& lhs, const std::string& rhs) const {
-        return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
-    }
+struct case_i_comp
+{
+        bool operator() (const std::string& lhs, const std::string& rhs) const
+        {
+                return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+        }
 };
 
 #ifndef URL_PARAM_MAP_T
@@ -688,6 +680,21 @@ public:
         // -------------------------------------------------
         // Public types
         // -------------------------------------------------
+        // state
+        typedef enum {
+                SUBR_STATE_NONE = 0,
+                SUBR_STATE_QUEUED,
+                SUBR_STATE_DNS_LOOKUP,
+                SUBR_STATE_ACTIVE,
+                SUBR_STATE_CANCELLED
+        } subr_state_t;
+
+        // kind
+        typedef enum {
+                SUBR_KIND_NONE = 0,
+                SUBR_KIND_DUPE
+        } subr_kind_t;
+
         // ---------------------------------------
         // Callbacks
         // ---------------------------------------
@@ -703,7 +710,8 @@ public:
         ~subr();
 
         // Getters
-        subr_type_t get_type() const;
+        subr_state_t get_state() const;
+        subr_kind_t get_kind() const;
         scheme_t get_scheme(void) const;
         bool get_save(void) const;
         bool get_connect_only(void) const;
@@ -726,6 +734,7 @@ public:
         void *get_data(void) const;
         bool get_detach_resp(void) const;
         uint64_t get_uid(void) const;
+        hconn *get_hconn(void) const;
         hconn *get_requester_hconn(void) const;
         const host_info &get_host_info(void) const;
         t_hlx *get_t_hlx(void) const;
@@ -738,6 +747,8 @@ public:
         const std::string &get_label(void);
 
         // Setters
+        void set_state(subr_state_t a_state);
+        void set_kind(subr_kind_t a_kind);
         void set_scheme(scheme_t a_scheme);
         void set_save(bool a_val);
         void set_connect_only(bool a_val);
@@ -747,7 +758,6 @@ public:
         void set_error_cb(error_cb_t a_cb);
         void set_completion_cb(completion_cb_t a_cb);
         void set_create_req_cb(create_req_cb_t a_cb);
-        void set_type(subr_type_t a_type);
         void set_timeout_ms(int32_t a_val);
         void set_host(const std::string &a_val);
         void set_hostname(const std::string &a_val);
@@ -757,6 +767,7 @@ public:
         void set_data(void *a_data);
         void set_detach_resp(bool a_val);
         void set_uid(uint64_t a_uid);
+        void set_hconn(hconn *a_hconn);
         void set_requester_hconn(hconn *a_hconn);
         void set_host_info(const host_info &a_host_info);
         void set_t_hlx(t_hlx *a_t_hlx);
@@ -816,7 +827,8 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        subr_type_t m_type;
+        subr_state_t m_state;
+        subr_kind_t m_kind;
         scheme_t m_scheme;
         std::string m_host;
         uint16_t m_port;
@@ -846,6 +858,7 @@ private:
         void *m_data;
         bool m_detach_resp;
         uint64_t m_uid;
+        hconn *m_hconn;
         hconn *m_requester_hconn;
         host_info m_host_info;
         t_hlx *m_t_hlx;
@@ -939,12 +952,18 @@ int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
 int32_t queue_resp(hconn &a_hconn);
 void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str);
 
-// Timer
+// Timer by hconn
 typedef int32_t (*timer_cb_t)(void *);
 int32_t add_timer(hconn &a_hconn, uint32_t a_ms,
                   timer_cb_t a_cb, void *a_data,
                   void **ao_timer);
 int32_t cancel_timer(hconn &a_hconn, void *a_timer);
+
+// Timer by t_hlx
+int32_t add_timer(void *a_t_hlx, uint32_t a_ms,
+                  timer_cb_t a_cb, void *a_data,
+                  void **ao_timer);
+int32_t cancel_timer(void *a_t_hlx, void *a_timer);
 
 // Helper
 hlx *get_hlx(hconn &a_hconn);

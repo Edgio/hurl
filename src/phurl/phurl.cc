@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
+#include "hlx/phurl_h.h"
 #include "support/tls_util.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -145,6 +146,7 @@ typedef std::map <std::string, uint32_t> summary_map_t;
 // Summary info
 typedef struct summary_info_struct {
         uint32_t m_success;
+        uint32_t m_cancelled;
         uint32_t m_error_addr;
         uint32_t m_error_addr_timeout;
         uint32_t m_error_conn;
@@ -158,6 +160,7 @@ typedef struct summary_info_struct {
         summary_map_t m_tls_ciphers;
         summary_info_struct():
                 m_success(),
+                m_cancelled(),
                 m_error_addr(),
                 m_error_addr_timeout(),
                 m_error_conn(),
@@ -172,24 +175,14 @@ typedef struct summary_info_struct {
         {};
 } summary_info_t;
 
-typedef struct phurl_resp_struct {
-        ns_hlx::subr *m_subr;
-        ns_hlx::resp *m_resp;
+typedef struct tls_info_struct {
         const char *m_tls_info_cipher_str;
         const char *m_tls_info_protocol_str;
-        std::string m_error_str;
-        phurl_resp_struct():
-                m_subr(NULL),
-                m_resp(NULL),
+        tls_info_struct():
                 m_tls_info_cipher_str(NULL),
-                m_tls_info_protocol_str(NULL),
-                m_error_str()
+                m_tls_info_protocol_str(NULL)
         {}
-private:
-        // Disallow copy/assign
-        phurl_resp_struct& operator=(const phurl_resp_struct &);
-        phurl_resp_struct(const phurl_resp_struct &);
-} phurl_resp_t;
+} tls_info_t;
 
 // Host
 typedef struct host_struct {
@@ -207,11 +200,15 @@ typedef struct host_struct {
                 m_url(),
                 m_port(0)
         {};
-} host_t;
+} phurl_host_t;
 
-typedef std::list <phurl_resp_t *> phurl_resp_list_t;
+//typedef std::list <phurl_resp_t *> phurl_resp_list_t;
+typedef std::list <ns_hlx::phurl_h_resp *> phurl_h_resp_list_t;
 typedef std::set <uint64_t> phurl_uid_set_t;
-typedef std::list <host_t> host_list_t;
+typedef std::list <phurl_host_t> phurl_host_list_t;
+typedef std::map <std::string, tls_info_t> tls_info_map_t;
+
+class broadcast_h;
 
 //: ----------------------------------------------------------------------------
 //: Settings
@@ -224,15 +221,15 @@ typedef struct settings_struct
         bool m_show_stats;
         bool m_show_summary;
         ns_hlx::hlx *m_hlx;
-        ns_hlx::subr *m_subr;
-        host_list_t *m_host_list;
+        broadcast_h *m_broadcast_h;
+        phurl_h_resp_list_t m_phr_list;
+        phurl_host_list_t *m_host_list;
         uint32_t m_total_reqs;
 
         // Results
         pthread_mutex_t m_mutex;
-        phurl_uid_set_t m_pending_uid_set;
-        phurl_resp_list_t m_resp_list;
         summary_info_t m_summary_info;
+        tls_info_map_t m_tls_info_map;
 
         // ---------------------------------
         // Defaults...
@@ -244,14 +241,13 @@ typedef struct settings_struct
                 m_show_stats(false),
                 m_show_summary(false),
                 m_hlx(NULL),
-                m_subr(NULL),
+                m_broadcast_h(NULL),
+                m_phr_list(),
                 m_host_list(NULL),
                 m_total_reqs(0),
                 m_mutex(),
-                m_pending_uid_set(),
-                m_resp_list(),
-                m_summary_info()
-
+                m_summary_info(),
+                m_tls_info_map()
         {
                 pthread_mutex_init(&m_mutex, NULL);
         }
@@ -276,136 +272,250 @@ settings_struct_t *g_settings = NULL;
 void display_status_line(settings_struct_t &a_settings);
 void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts);
 int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
-std::string dump_all_responses(phurl_resp_list_t &a_resp_list, bool a_color, bool a_pretty, output_type_t a_output_type, int a_part_map);
+std::string dump_all_responses(settings_struct_t &a_settings,
+                               phurl_h_resp_list_t &a_resp_list,
+                               bool a_color, bool a_pretty,
+                               output_type_t a_output_type, int a_part_map);
 
 //: ----------------------------------------------------------------------------
-//: \details: Completion callback
+//: Handler
+//: ----------------------------------------------------------------------------
+class broadcast_h: public ns_hlx::phurl_h
+{
+public:
+        int32_t do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
+                       const phurl_host_list_t &a_host_list, ns_hlx::phurl_h_resp *a_phr);
+
+        int32_t create_resp(ns_hlx::subr &a_subr,
+                            ns_hlx::phurl_h_resp *l_fanout_resp);
+
+        static int32_t s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn,
+                                       ns_hlx::resp &a_resp);
+        static int32_t s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn);
+};
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_completion_cb(ns_hlx::subr &a_subr,
-                               ns_hlx::nconn &a_nconn,
-                               ns_hlx::resp &a_resp)
+int32_t broadcast_h::do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
+                            const phurl_host_list_t &a_host_list, ns_hlx::phurl_h_resp *a_phr)
 {
-        settings_struct_t *l_settings = static_cast<settings_struct_t *>(a_subr.get_data());
-        if(!l_settings)
+        if(!a_hlx)
         {
-                return -1;
+                return HLX_STATUS_ERROR;
         }
 
-        phurl_resp_t *l_resp = new phurl_resp_t();
-        l_resp->m_resp = &a_resp;
-        l_resp->m_subr = &a_subr;
+        // Create request state if not already made
+        a_phr->m_phurl_h = this;
 
-        SSL *l_SSL = ns_hlx::nconn_get_SSL(a_nconn);
-        if(l_SSL)
+        for(phurl_host_list_t::const_iterator i_host = a_host_list.begin(); i_host != a_host_list.end(); ++i_host)
         {
-                int32_t l_protocol_num = ns_hlx::get_tls_info_protocol_num(l_SSL);
-                l_resp->m_tls_info_cipher_str = ns_hlx::get_tls_info_cipher_str(l_SSL);
-                l_resp->m_tls_info_protocol_str = ns_hlx::get_tls_info_protocol_str(l_protocol_num);
-#if 0
-                SSL_SESSION *m_tls_session = SSL_get_session(m_tls);
-                SSL_SESSION_print_fp(stdout, m_tls_session);
-                X509* l_cert = NULL;
-                l_cert = SSL_get_peer_certificate(m_tls);
-                if(NULL == l_cert)
+                // Make subr
+                ns_hlx::subr *l_subr = new ns_hlx::subr(m_subr_template);
+                l_subr->set_uid(a_hlx->get_next_subr_uuid());
+                l_subr->set_host(i_host->m_host);
+                if(!i_host->m_hostname.empty())
                 {
-                        NDBG_PRINT("SSL_get_peer_certificate error.  tls: %p\n", m_tls);
-                        return NC_STATUS_ERROR;
+                        l_subr->set_hostname(i_host->m_hostname);
                 }
-                X509_print_fp(stdout, l_cert);
-#endif
+                if(!i_host->m_id.empty())
+                {
+                        l_subr->set_id(i_host->m_id);
+                }
+                if(!i_host->m_where.empty())
+                {
+                        l_subr->set_where(i_host->m_where);
+                }
+                if(i_host->m_port != 0)
+                {
+                        l_subr->set_port(i_host->m_port);
+                }
+                l_subr->reset_label();
+                l_subr->set_data(a_phr);
+
+                // Add to pending map
+                a_phr->m_pending_subr_uid_map[l_subr->get_uid()] = l_subr;
+
+                int32_t l_status = 0;
+                l_status = add_subr_t_hlx(a_t_hlx, *l_subr);
+                if(l_status != HLX_STATUS_OK)
+                {
+                        //("Error: performing add_subreq.\n");
+                        return HLX_STATUS_ERROR;
+                }
         }
-
-        pthread_mutex_lock(&(l_settings->m_mutex));
-        l_settings->m_pending_uid_set.erase(a_subr.get_uid());
-        l_settings->m_resp_list.push_back(l_resp);
-        ++(l_settings->m_summary_info.m_success);
-        if(l_resp->m_tls_info_cipher_str) ++(l_settings->m_summary_info.m_tls_ciphers[l_resp->m_tls_info_cipher_str]);
-        if(l_resp->m_tls_info_protocol_str) ++(l_settings->m_summary_info.m_tls_protocols[l_resp->m_tls_info_protocol_str]);
-        pthread_mutex_unlock(&(l_settings->m_mutex));
-
-        return 0;
+        a_phr->m_size = a_phr->m_pending_subr_uid_map.size();
+        a_phr->m_completion_ratio = m_completion_ratio;
+        if(m_timeout_ms)
+        {
+                if(!a_t_hlx)
+                {
+                        return HLX_STATUS_ERROR;
+                }
+                //printf("Add timeout: %u\n", m_timeout_ms);
+                int32_t l_status;
+                l_status = add_timer(a_t_hlx, m_timeout_ms, ns_hlx::phurl_h_resp::s_timeout_cb, a_phr, &(a_phr->m_timer));
+                if(l_status != HLX_STATUS_OK)
+                {
+                        return HLX_STATUS_ERROR;
+                }
+        }
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: Completion callback
+//: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_error_cb(ns_hlx::subr &a_subr,
-                          ns_hlx::nconn &a_nconn)
+int32_t broadcast_h::create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *a_fanout_resp)
 {
-        settings_struct_t *l_settings = static_cast<settings_struct_t *>(a_subr.get_data());
-        if(!l_settings)
+        //printf("%s.%s.%d: %sDONE%s\n",__FILE__,__FUNCTION__,__LINE__, ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t broadcast_h::s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn, ns_hlx::resp &a_resp)
+{
+        ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
+        if(!l_phr)
         {
-                return -1;
+                return STATUS_ERROR;
         }
-        phurl_resp_t *l_resp = new phurl_resp_t();
+        ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
+        l_resp->m_resp = &a_resp;
+        l_resp->m_subr = &a_subr;
+        l_phr->m_resp_list.push_back(l_resp);
+        settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
+        if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
+        if(l_s)
+        {
+                ++(l_s->m_summary_info.m_success);
+                SSL *l_SSL = ns_hlx::nconn_get_SSL(a_nconn);
+                if(l_SSL)
+                {
+                        int32_t l_protocol_num = ns_hlx::get_tls_info_protocol_num(l_SSL);
+                        tls_info_t l_ti;
+                        l_ti.m_tls_info_cipher_str = ns_hlx::get_tls_info_cipher_str(l_SSL);
+                        l_ti.m_tls_info_protocol_str = ns_hlx::get_tls_info_protocol_str(l_protocol_num);
+                        l_s->m_tls_info_map[a_subr.get_host()] = l_ti;
+                        ++(l_s->m_summary_info.m_tls_ciphers[l_ti.m_tls_info_cipher_str]);
+                        ++(l_s->m_summary_info.m_tls_protocols[l_ti.m_tls_info_protocol_str]);
+#if 0
+                        SSL_SESSION *m_tls_session = SSL_get_session(m_tls);
+                        SSL_SESSION_print_fp(stdout, m_tls_session);
+                        X509* l_cert = NULL;
+                        l_cert = SSL_get_peer_certificate(m_tls);
+                        if(NULL == l_cert)
+                        {
+                                NDBG_PRINT("SSL_get_peer_certificate error.  tls: %p\n", m_tls);
+                                return NC_STATUS_ERROR;
+                        }
+                        X509_print_fp(stdout, l_cert);
+#endif
+                }
+        }
+        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
+        if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
+        return s_done_check(a_subr, l_phr);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
+{
+
+        ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
+        if(!l_phr)
+        {
+                return STATUS_ERROR;
+        }
+        ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = NULL;
         l_resp->m_subr = &a_subr;
         l_resp->m_error_str = ns_hlx::nconn_get_last_error_str(a_nconn);
+        l_phr->m_resp_list.push_back(l_resp);
         ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(a_nconn);
-        pthread_mutex_lock(&(l_settings->m_mutex));
-        ++(l_settings->m_summary_info.m_error_conn);
-        switch(l_conn_status)
+        settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
+        if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
+        if(l_s)
         {
-        case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE:
-        {
-                ++(l_settings->m_summary_info.m_error_addr);
-                break;
-        }
-        case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_TIMEOUT:
-        {
-                ++(l_settings->m_summary_info.m_error_addr_timeout);
-                break;
-        }
-        case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS:
-        {
-                // Get last error
-                SSL *l_tls = ns_hlx::nconn_get_SSL(a_nconn);
-                long l_tls_vr = SSL_get_verify_result(l_tls);
-                if ((l_tls_vr == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
-                    (l_tls_vr == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
+                switch(l_conn_status)
                 {
-                        ++(l_settings->m_summary_info.m_tls_error_self_signed);
-                }
-                else if(l_tls_vr == X509_V_ERR_CERT_HAS_EXPIRED)
+                case ns_hlx::CONN_STATUS_CANCELLED:
                 {
-                        ++(l_settings->m_summary_info.m_tls_error_expired);
+                        ++(l_s->m_summary_info.m_cancelled);
+                        break;
                 }
-                else if((l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) ||
-                        (l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY))
+                case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE:
                 {
-                        ++(l_settings->m_summary_info.m_tls_error_issuer);
+                        ++(l_s->m_summary_info.m_error_addr);
+                        break;
                 }
-                else
+                case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_TIMEOUT:
                 {
-                        //long l_err = ns_hlx::nconn_get_last_SSL_err(a_nconn);
-                        //printf("ERRORXXXX: %ld\n", l_err);
-                        //printf("ERRORXXXX: %s\n", ERR_error_string(l_err,NULL));
-                        //printf("ERRORXXXX: %s\n", l_resp->m_error_str.c_str());
-                        ++(l_settings->m_summary_info.m_tls_error_other);
+                        ++(l_s->m_summary_info.m_error_addr_timeout);
+                        break;
                 }
-                break;
+                case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS:
+                {
+                        ++(l_s->m_summary_info.m_error_conn);
 
-        }
-        case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS_HOST:
-        {
-                ++(l_settings->m_summary_info.m_tls_error_hostname);
-                break;
-        }
-        default:
-        {
-                ++(l_settings->m_summary_info.m_error_unknown);
-                break;
-        }
-        }
+                        // Get last error
+                        SSL *l_tls = ns_hlx::nconn_get_SSL(a_nconn);
+                        long l_tls_vr = SSL_get_verify_result(l_tls);
+                        if ((l_tls_vr == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
+                            (l_tls_vr == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
+                        {
+                                ++(l_s->m_summary_info.m_tls_error_self_signed);
+                        }
+                        else if(l_tls_vr == X509_V_ERR_CERT_HAS_EXPIRED)
+                        {
+                                ++(l_s->m_summary_info.m_tls_error_expired);
+                        }
+                        else if((l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) ||
+                                (l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY))
+                        {
+                                ++(l_s->m_summary_info.m_tls_error_issuer);
+                        }
+                        else
+                        {
+                                //long l_err = ns_hlx::nconn_get_last_SSL_err(a_nconn);
+                                //printf("ERRORXXXX: %ld\n", l_err);
+                                //printf("ERRORXXXX: %s\n", ERR_error_string(l_err,NULL));
+                                //printf("ERRORXXXX: %s\n", l_resp->m_error_str.c_str());
+                                ++(l_s->m_summary_info.m_tls_error_other);
+                        }
+                        break;
 
-        l_settings->m_pending_uid_set.erase(a_subr.get_uid());
-        l_settings->m_resp_list.push_back(l_resp);
-        pthread_mutex_unlock(&(l_settings->m_mutex));
-        return 0;
+                }
+                case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS_HOST:
+                {
+                        ++(l_s->m_summary_info.m_error_conn);
+                        ++(l_s->m_summary_info.m_tls_error_hostname);
+                        break;
+                }
+                default:
+                {
+                        //printf("CONN STATUS: %d\n", l_conn_status);
+                        ++(l_s->m_summary_info.m_error_conn);
+                        ++(l_s->m_summary_info.m_error_unknown);
+                        break;
+                }
+                }
+        }
+        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
+        if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
+        return s_done_check(a_subr, l_phr);
 }
 
 //: ----------------------------------------------------------------------------
@@ -481,47 +591,40 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         nonblock(NB_ENABLE);
         int l_status;
 
-        ns_hlx::hlx::t_hlx_list_t &l_t_hlx_list = a_settings.m_hlx->get_t_hlx_list();
-        ns_hlx::hlx::t_hlx_list_t::iterator i_t = l_t_hlx_list.begin();
-        for(host_list_t::iterator i_host = a_settings.m_host_list->begin();
-            i_host != a_settings.m_host_list->end();
-            ++i_host)
+        if(!a_settings.m_host_list)
         {
-                ns_hlx::subr *l_subr = new ns_hlx::subr(*(a_settings.m_subr));
-                l_subr->set_uid(a_settings.m_hlx->get_next_subr_uuid());
-                l_subr->set_host(i_host->m_host);
-                if(!i_host->m_hostname.empty())
-                {
-                        l_subr->set_hostname(i_host->m_hostname);
-                }
-                if(!i_host->m_id.empty())
-                {
-                        l_subr->set_id(i_host->m_id);
-                }
-                if(!i_host->m_where.empty())
-                {
-                        l_subr->set_where(i_host->m_where);
-                }
-                if(i_host->m_port != 0)
-                {
-                        l_subr->set_port(i_host->m_port);
-                }
-                l_subr->reset_label();
-                l_subr->set_data(&a_settings);
-                pthread_mutex_lock(&(a_settings.m_mutex));
-                a_settings.m_pending_uid_set.insert(l_subr->get_uid());
-                pthread_mutex_unlock(&(a_settings.m_mutex));
-
-                ns_hlx::add_subr_t_hlx((*i_t), *l_subr);
-                ++i_t;
-                if(i_t == l_t_hlx_list.end())
-                {
-                        i_t = l_t_hlx_list.begin();
-                }
+                return -1;
         }
 
-        // Set num to request
-        a_settings.m_total_reqs = (uint32_t)a_settings.m_host_list->size();
+        // Split host list between threads...
+        ns_hlx::hlx::t_hlx_list_t &l_t_hlx_list = a_settings.m_hlx->get_t_hlx_list();
+        size_t l_num_per = a_settings.m_host_list->size() / l_t_hlx_list.size();
+        phurl_host_list_t::iterator i_h = a_settings.m_host_list->begin();
+        for(ns_hlx::hlx::t_hlx_list_t::iterator i_t = l_t_hlx_list.begin();
+            (i_t != l_t_hlx_list.end()) && (i_h != a_settings.m_host_list->end());
+            ++i_t)
+        {
+                phurl_host_list_t l_host_list;
+                for(size_t i_h_i = 0;
+                    (i_h_i < l_num_per) && (i_h != a_settings.m_host_list->end());
+                    ++i_h_i, ++i_h)
+                {
+                        l_host_list.push_back(*i_h);
+                }
+                ns_hlx::phurl_h_resp *l_phr = new ns_hlx::phurl_h_resp();
+                l_phr->m_delete = false;
+                l_phr->m_data = &a_settings;
+                a_settings.m_phr_list.push_back(l_phr);
+                l_status = a_settings.m_broadcast_h->do_get(a_settings.m_hlx,
+                                                            *i_t,
+                                                            l_host_list,
+                                                            l_phr);
+                if(HLX_STATUS_OK != l_status)
+                {
+                        return -1;
+                }
+        }
+        a_settings.m_total_reqs = a_settings.m_host_list->size();
 
         // run...
         l_status = a_settings.m_hlx->run();
@@ -583,33 +686,34 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         display_status_line(a_settings);
                 }
 
-                pthread_mutex_lock(&(a_settings.m_mutex));
-                if(a_settings.m_pending_uid_set.empty())
+                if(!g_test_finished)
                 {
                         g_test_finished = true;
+                        pthread_mutex_lock(&(a_settings.m_mutex));
+                        for(phurl_h_resp_list_t::iterator i_p = a_settings.m_phr_list.begin();
+                            i_p != a_settings.m_phr_list.end();
+                            ++i_p)
+                        {
+                                if(!(*i_p)) { continue; }
+                                //printf("%s.%s.%d: left: %lu\n", __FILE__,__FUNCTION__,__LINE__, (*i_p)->m_pending_subr_uid_map.size());
+                                if((*i_p)->m_pending_subr_uid_map.size())
+                                {
+                                        g_test_finished = false;
+                                        break;
+                                }
+                        }
+                        pthread_mutex_unlock(&(a_settings.m_mutex));
                 }
-                pthread_mutex_unlock(&(a_settings.m_mutex));
                 //if (!a_settings.m_hlx->is_running())
                 //{
                 //        //printf("IS NOT RUNNING.\n");
                 //        g_test_finished = true;
                 //}
         }
-
-        // Stop hlx
+        //printf("%s.%s.%d: STOP\n", __FILE__,__FUNCTION__,__LINE__);
         a_settings.m_hlx->stop();
-
-        // wait for completion...
         a_settings.m_hlx->wait_till_stopped();
 
-        // Send stop -if unsent
-        //if(!l_sent_stop && a_send_stop)
-        //{
-        //        a_settings.m_hlx->stop();
-        //        l_sent_stop = true;
-        //}
-        // wait for completion...
-        //a_settings.m_hlx->wait_till_stopped();
         // One more status for the lovers
         if(a_settings.m_show_stats)
         {
@@ -727,7 +831,7 @@ int command_exec_cli(settings_struct_t &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t add_line(FILE *a_file_ptr, host_list_t &a_host_list)
+int32_t add_line(FILE *a_file_ptr, phurl_host_list_t &a_host_list)
 {
         char l_readline[MAX_READLINE_SIZE];
         while(fgets(l_readline, sizeof(l_readline), a_file_ptr))
@@ -746,7 +850,7 @@ int32_t add_line(FILE *a_file_ptr, host_list_t &a_host_list)
                 l_readline[l_readline_len - 1] = '\0';
                 std::string l_string(l_readline);
                 l_string.erase( std::remove_if( l_string.begin(), l_string.end(), ::isspace ), l_string.end() );
-                host_t l_host;
+                phurl_host_t l_host;
                 l_host.m_host = l_string;
                 if(!l_string.empty())
                         a_host_list.push_back(l_host);
@@ -805,6 +909,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -k, --no_cache       Don't use addr info cache.\n");
         fprintf(a_stream, "  -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).\n");
         fprintf(a_stream, "  -C, --connect_only   Only connect -do not send request.\n");
+        fprintf(a_stream, "  -Q, --complete_time  Cancel requests after N seconds.\n");
+        fprintf(a_stream, "  -W, --complete_ratio Cancel requests after %% complete (0.0-->100.0).\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "TLS Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
@@ -863,11 +969,12 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Subrequest settings
         // -------------------------------------------------
-        ns_hlx::subr *l_subr = new ns_hlx::subr();
-        l_settings.m_subr = l_subr;
-        host_list_t *l_host_list = new host_list_t();
+        broadcast_h *l_broadcast_h = new broadcast_h();
+        l_settings.m_broadcast_h = l_broadcast_h;
+        phurl_host_list_t *l_host_list = new phurl_host_list_t();
         l_settings.m_host_list = l_host_list;
 
+        ns_hlx::subr *l_subr = &(l_broadcast_h->get_subr_template_mutable());
         l_subr->set_save(true);
         l_subr->set_detach_resp(true);
 
@@ -880,8 +987,8 @@ int main(int argc, char** argv)
         //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
         //l_subr->set_header("Connection", "keep-alive");
-        l_subr->set_completion_cb(s_completion_cb);
-        l_subr->set_error_cb(s_error_cb);
+        l_subr->set_completion_cb(broadcast_h::s_completion_cb);
+        l_subr->set_error_cb(broadcast_h::s_error_cb);
         l_subr->set_keepalive(true);
 
         // -------------------------------------------
@@ -911,6 +1018,8 @@ int main(int argc, char** argv)
                 { "no_cache",       0, 0, 'k' },
                 { "ai_cache",       1, 0, 'A' },
                 { "connect_only",   0, 0, 'C' },
+                { "complete_time",  1, 0, 'Q' },
+                { "complete_ratio", 1, 0, 'W' },
                 { "cipher",         1, 0, 'y' },
                 { "tls_options",    1, 0, 'O' },
                 { "tls_verify",     0, 0, 'K' },
@@ -985,9 +1094,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CRcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CQ:W:Rcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CRcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CQ:W:Rcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -1303,6 +1412,31 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
+                // completion time
+                // ---------------------------------------
+                case 'Q':
+                {
+                        // Set complete time in ms seconds
+                        int l_completion_time_s = atoi(optarg);
+                        // TODO Check value...
+                        l_broadcast_h->set_timeout_ms(l_completion_time_s*1000);
+                        break;
+                }
+                // ---------------------------------------
+                // completion ratio
+                // ---------------------------------------
+                case 'W':
+                {
+                        double l_ratio = atof(optarg);
+                        if((l_ratio < 0.0) || (l_ratio > 100.0))
+                        {
+                                printf("Error: completion ratio must be > 0.0 and < 100.0\n");
+                                return -1;
+                        }
+                        l_broadcast_h->set_completion_ratio((float)l_ratio);
+                        break;
+                }
+                // ---------------------------------------
                 // verbose
                 // ---------------------------------------
                 case 'v':
@@ -1555,7 +1689,7 @@ int main(int argc, char** argv)
                                                 l_host_file_json_str.c_str());
                                 return STATUS_ERROR;
                         }
-                        host_t l_host;
+                        phurl_host_t l_host;
                         // "host" : "coolhost.com:443",
                         // "hostname" : "coolhost.com",
                         // "id" : "DE4D",
@@ -1597,7 +1731,7 @@ int main(int argc, char** argv)
         if(l_settings.m_verbose)
         {
                 printf("Showing hostname list:\n");
-                for(host_list_t::iterator i_host = l_host_list->begin(); i_host != l_host_list->end(); ++i_host)
+                for(phurl_host_list_t::iterator i_host = l_host_list->begin(); i_host != l_host_list->end(); ++i_host)
                 {
                         printf("%s\n", i_host->m_host.c_str());
                 }
@@ -1666,8 +1800,13 @@ int main(int argc, char** argv)
         {
                 bool l_use_color = l_settings.m_color;
                 if(!l_output_file.empty()) l_use_color = false;
+                // TODO REMOVE...
+                UNUSED(l_use_color);
                 std::string l_responses_str;
-                l_responses_str = dump_all_responses(l_settings.m_resp_list, l_use_color, l_output_pretty, l_output_mode, l_output_part);
+                l_responses_str = dump_all_responses(l_settings,
+                                                     l_settings.m_phr_list,
+                                                     l_use_color, l_output_pretty,
+                                                     l_output_mode, l_output_part);
                 if(l_output_file.empty())
                 {
                         printf("%s\n", l_responses_str.c_str());
@@ -1726,34 +1865,24 @@ int main(int argc, char** argv)
                 l_host_list = NULL;
         }
 
-        for(phurl_resp_list_t::iterator i_rx = l_settings.m_resp_list.begin();
-            i_rx != l_settings.m_resp_list.end();
-            ++i_rx)
+        if(l_broadcast_h)
         {
-                if(*i_rx)
+                delete l_broadcast_h;
+                l_broadcast_h = NULL;
+        }
+
+        // Cleanup
+        for(phurl_h_resp_list_t::iterator i_hr = l_settings.m_phr_list.begin();
+            i_hr != l_settings.m_phr_list.end();
+            ++i_hr)
+        {
+                if(*i_hr)
                 {
-                        if((*i_rx)->m_subr)
-                        {
-                                delete (*i_rx)->m_subr;
-                                (*i_rx)->m_subr = NULL;
-                        }
-                        if((*i_rx)->m_resp)
-                        {
-                                delete (*i_rx)->m_resp;
-                                (*i_rx)->m_resp = NULL;
-                        }
-                        delete *i_rx;
+                        delete *i_hr;
+                        *i_hr = NULL;
                 }
         }
-
-        if(l_subr)
-        {
-                delete l_subr;
-                l_subr = NULL;
-        }
-
         return 0;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -1780,6 +1909,7 @@ void display_summary(settings_struct_t &a_settings, uint32_t a_num_hosts)
         printf("****************** %sSUMMARY%s ****************** \n", l_header_str.c_str(), l_off_color.c_str());
         printf("| total hosts:                     %u\n",a_num_hosts);
         printf("| success:                         %u\n",l_summary_info.m_success);
+        printf("| cancelled:                       %u\n",l_summary_info.m_cancelled);
         printf("| error address lookup:            %u\n",l_summary_info.m_error_addr);
         printf("| error address timeout:           %u\n",l_summary_info.m_error_addr_timeout);
         printf("| error connectivity:              %u\n",l_summary_info.m_error_conn);
@@ -1907,7 +2037,8 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string dump_all_responses_line_dl(phurl_resp_list_t &a_resp_list,
+std::string dump_all_responses_line_dl(settings_struct_t &a_settings,
+                                       phurl_h_resp_list_t &a_resp_list,
                                        bool a_color,
                                        bool a_pretty,
                                        int a_part_map)
@@ -1933,122 +2064,124 @@ std::string dump_all_responses_line_dl(phurl_resp_list_t &a_resp_list,
                 l_off_color = ANSI_COLOR_OFF;
         }
 
-        int l_cur_reqlet = 0;
-        for(phurl_resp_list_t::const_iterator i_rx = a_resp_list.begin();
-            i_rx != a_resp_list.end();
-            ++i_rx, ++l_cur_reqlet)
+        for(phurl_h_resp_list_t::const_iterator i_hr = a_resp_list.begin();
+            i_hr != a_resp_list.end();
+            ++i_hr)
         {
-
-                ns_hlx::subr *l_subr = (*i_rx)->m_subr;
-                ns_hlx::resp *l_resp = (*i_rx)->m_resp;
-                if(!l_subr)
+                for(ns_hlx::hlx_resp_list_t::const_iterator i_rx = (*i_hr)->m_resp_list.begin();
+                    i_rx != (*i_hr)->m_resp_list.end();
+                    ++i_rx)
                 {
-                        continue;
-                }
-
-                bool l_fbf = false;
-                // Host
-                if(a_part_map & PART_HOST)
-                {
-                        sprintf(l_buf, "\"%shost%s\": \"%s\"",
-                                        l_host_color.c_str(), l_off_color.c_str(),
-                                        l_subr->get_host().c_str());
-                        ARESP(l_buf);
-                        l_fbf = true;
-                }
-
-                // Server
-                if(a_part_map & PART_SERVER)
-                {
-
-                        if(l_fbf) {ARESP(", "); l_fbf = false;}
-                        sprintf(l_buf, "\"%sserver%s\": \"%s:%d\"",
-                                        l_server_color.c_str(), l_server_color.c_str(),
-                                        l_subr->get_host().c_str(),
-                                        l_subr->get_port()
-                                        );
-                        ARESP(l_buf);
-                        l_fbf = true;
-
-                        if(!l_subr->get_id().empty())
+                        ns_hlx::subr *l_subr = (*i_rx)->m_subr;
+                        ns_hlx::resp *l_resp = (*i_rx)->m_resp;
+                        if(!l_subr)
                         {
-                                if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                sprintf(l_buf, "\"%sid%s\": \"%s\"",
-                                                l_id_color.c_str(), l_id_color.c_str(),
-                                                l_subr->get_id().c_str()
-                                                );
+                                continue;
+                        }
+
+                        bool l_fbf = false;
+                        // Host
+                        if(a_part_map & PART_HOST)
+                        {
+                                sprintf(l_buf, "\"%shost%s\": \"%s\"",
+                                                l_host_color.c_str(), l_off_color.c_str(),
+                                                l_subr->get_host().c_str());
                                 ARESP(l_buf);
                                 l_fbf = true;
                         }
 
-                        if(!l_subr->get_where().empty())
+                        // Server
+                        if(a_part_map & PART_SERVER)
+                        {
+
+                                if(l_fbf) {ARESP(", "); l_fbf = false;}
+                                sprintf(l_buf, "\"%sserver%s\": \"%s:%d\"",
+                                                l_server_color.c_str(), l_server_color.c_str(),
+                                                l_subr->get_host().c_str(),
+                                                l_subr->get_port()
+                                                );
+                                ARESP(l_buf);
+                                l_fbf = true;
+
+                                if(!l_subr->get_id().empty())
+                                {
+                                        if(l_fbf) {ARESP(", "); l_fbf = false;}
+                                        sprintf(l_buf, "\"%sid%s\": \"%s\"",
+                                                        l_id_color.c_str(), l_id_color.c_str(),
+                                                        l_subr->get_id().c_str()
+                                                        );
+                                        ARESP(l_buf);
+                                        l_fbf = true;
+                                }
+
+                                if(!l_subr->get_where().empty())
+                                {
+                                        if(l_fbf) {ARESP(", "); l_fbf = false;}
+                                        sprintf(l_buf, "\"%swhere%s\": \"%s\"",
+                                                        l_id_color.c_str(), l_id_color.c_str(),
+                                                        l_subr->get_where().c_str()
+                                                        );
+                                        ARESP(l_buf);
+                                        l_fbf = true;
+                                }
+
+
+                                l_fbf = true;
+                        }
+
+                        if(!l_resp)
+                        {
+                                ARESP("\n");
+                                continue;
+                        }
+                        // Status Code
+                        if(a_part_map & PART_STATUS_CODE)
                         {
                                 if(l_fbf) {ARESP(", "); l_fbf = false;}
-                                sprintf(l_buf, "\"%swhere%s\": \"%s\"",
-                                                l_id_color.c_str(), l_id_color.c_str(),
-                                                l_subr->get_where().c_str()
-                                                );
+                                const char *l_status_val_color = "";
+                                if(a_color)
+                                {
+                                        if(l_resp->get_status() == 200) l_status_val_color = ANSI_COLOR_FG_GREEN;
+                                        else l_status_val_color = ANSI_COLOR_FG_RED;
+                                }
+                                sprintf(l_buf, "\"%sstatus-code%s\": %s%d%s",
+                                                l_status_color.c_str(), l_off_color.c_str(),
+                                                l_status_val_color, l_resp->get_status(), l_off_color.c_str());
                                 ARESP(l_buf);
                                 l_fbf = true;
                         }
 
+                        // Headers
+                        // TODO -only in json mode for now
+                        if(a_part_map & PART_HEADERS)
+                        {
+                                // nuthin
+                        }
 
-                        l_fbf = true;
-                }
-
-                if(!l_resp)
-                {
+                        // Body
+                        if(a_part_map & PART_BODY)
+                        {
+                                if(l_fbf) {ARESP(", "); l_fbf = false;}
+                                //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
+                                const char *l_body_buf = l_resp->get_body_data();
+                                uint64_t l_body_len = l_resp->get_body_len();
+                                if(l_body_len)
+                                {
+                                        sprintf(l_buf, "\"%sbody%s\": %s",
+                                                        l_body_color.c_str(), l_off_color.c_str(),
+                                                        l_body_buf);
+                                }
+                                else
+                                {
+                                        sprintf(l_buf, "\"%sbody%s\": \"NO_RESPONSE\"",
+                                                        l_body_color.c_str(), l_off_color.c_str());
+                                }
+                                ARESP(l_buf);
+                                l_fbf = true;
+                        }
                         ARESP("\n");
-                        continue;
                 }
-                // Status Code
-                if(a_part_map & PART_STATUS_CODE)
-                {
-                        if(l_fbf) {ARESP(", "); l_fbf = false;}
-                        const char *l_status_val_color = "";
-                        if(a_color)
-                        {
-                                if(l_resp->get_status() == 200) l_status_val_color = ANSI_COLOR_FG_GREEN;
-                                else l_status_val_color = ANSI_COLOR_FG_RED;
-                        }
-                        sprintf(l_buf, "\"%sstatus-code%s\": %s%d%s",
-                                        l_status_color.c_str(), l_off_color.c_str(),
-                                        l_status_val_color, l_resp->get_status(), l_off_color.c_str());
-                        ARESP(l_buf);
-                        l_fbf = true;
-                }
-
-                // Headers
-                // TODO -only in json mode for now
-                if(a_part_map & PART_HEADERS)
-                {
-                        // nuthin
-                }
-
-                // Body
-                if(a_part_map & PART_BODY)
-                {
-                        if(l_fbf) {ARESP(", "); l_fbf = false;}
-                        //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const char *l_body_buf = l_resp->get_body_data();
-                        uint64_t l_body_len = l_resp->get_body_len();
-                        if(l_body_len)
-                        {
-                                sprintf(l_buf, "\"%sbody%s\": %s",
-                                                l_body_color.c_str(), l_off_color.c_str(),
-                                                l_body_buf);
-                        }
-                        else
-                        {
-                                sprintf(l_buf, "\"%sbody%s\": \"NO_RESPONSE\"",
-                                                l_body_color.c_str(), l_off_color.c_str());
-                        }
-                        ARESP(l_buf);
-                        l_fbf = true;
-                }
-                ARESP("\n");
         }
-
         return l_responses_str;
 }
 
@@ -2062,151 +2195,163 @@ l_obj.AddMember(_key,\
                 rapidjson::Value(_val, l_js_allocator).Move(),\
                 l_js_allocator)
 
-std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_map)
+std::string dump_all_responses_json(settings_struct_t &a_settings,
+                                    phurl_h_resp_list_t &a_resp_list,
+                                    int a_part_map)
 {
         rapidjson::Document l_js_doc;
         l_js_doc.SetObject();
         rapidjson::Value l_js_array(rapidjson::kArrayType);
         rapidjson::Document::AllocatorType& l_js_allocator = l_js_doc.GetAllocator();
 
-        for(phurl_resp_list_t::const_iterator i_rx = a_resp_list.begin();
-            i_rx != a_resp_list.end();
-            ++i_rx)
+        for(phurl_h_resp_list_t::const_iterator i_hr = a_resp_list.begin();
+            i_hr != a_resp_list.end();
+            ++i_hr)
         {
-
-                ns_hlx::subr *l_subr = (*i_rx)->m_subr;
-                ns_hlx::resp *l_resp = (*i_rx)->m_resp;
-                if(!l_subr)
+                for(ns_hlx::hlx_resp_list_t::const_iterator i_rx = (*i_hr)->m_resp_list.begin();
+                    i_rx != (*i_hr)->m_resp_list.end();
+                    ++i_rx)
                 {
-                        continue;
-                }
-
-                rapidjson::Value l_obj;
-                l_obj.SetObject();
-
-                // Host
-                if(a_part_map & PART_HOST)
-                {
-                        JS_ADD_MEMBER("host", l_subr->get_host().c_str());
-                }
-
-                // Server
-                if(a_part_map & PART_SERVER)
-                {
-                        char l_server_buf[1024];
-                        sprintf(l_server_buf, "%s:%d",
-                                        l_subr->get_host().c_str(),
-                                        l_subr->get_port());
-                        JS_ADD_MEMBER("server", l_server_buf);
-
-                        if(!l_subr->get_id().empty())
+                        ns_hlx::subr *l_subr = (*i_rx)->m_subr;
+                        ns_hlx::resp *l_resp = (*i_rx)->m_resp;
+                        if(!l_subr)
                         {
-                                JS_ADD_MEMBER("id", l_subr->get_id().c_str());
+                                continue;
                         }
-                        if(!l_subr->get_where().empty())
+
+                        rapidjson::Value l_obj;
+                        l_obj.SetObject();
+
+                        // Host
+                        if(a_part_map & PART_HOST)
                         {
-                                JS_ADD_MEMBER("where", l_subr->get_where().c_str());
+                                JS_ADD_MEMBER("host", l_subr->get_host().c_str());
                         }
-                        if(l_subr->get_port() != 0)
+
+                        // Server
+                        if(a_part_map & PART_SERVER)
                         {
-                                l_obj.AddMember("port", l_subr->get_port(), l_js_allocator);
+                                char l_server_buf[1024];
+                                sprintf(l_server_buf, "%s:%d",
+                                                l_subr->get_host().c_str(),
+                                                l_subr->get_port());
+                                JS_ADD_MEMBER("server", l_server_buf);
+
+                                if(!l_subr->get_id().empty())
+                                {
+                                        JS_ADD_MEMBER("id", l_subr->get_id().c_str());
+                                }
+                                if(!l_subr->get_where().empty())
+                                {
+                                        JS_ADD_MEMBER("where", l_subr->get_where().c_str());
+                                }
+                                if(l_subr->get_port() != 0)
+                                {
+                                        l_obj.AddMember("port", l_subr->get_port(), l_js_allocator);
+                                }
                         }
-                }
 
-                if(!l_resp)
-                {
-                        l_js_array.PushBack(l_obj, l_js_allocator);
-                        continue;
-                }
-
-                // Status Code
-                if(a_part_map & PART_STATUS_CODE)
-                {
-                        l_obj.AddMember("status-code", l_resp->get_status(), l_js_allocator);
-                }
-
-                // Headers
-                const ns_hlx::kv_map_list_t &l_headers = l_resp->get_headers();
-                if(a_part_map & PART_HEADERS)
-                {
-                        for(ns_hlx::kv_map_list_t::const_iterator i_header = l_headers.begin();
-                            i_header != l_headers.end();
-                            ++i_header)
+                        if(!l_resp)
                         {
-                                for(ns_hlx::str_list_t::const_iterator i_val = i_header->second.begin();
-                                    i_val != i_header->second.end();
+                                l_js_array.PushBack(l_obj, l_js_allocator);
+                                continue;
+                        }
+
+                        // Status Code
+                        if(a_part_map & PART_STATUS_CODE)
+                        {
+                                l_obj.AddMember("status-code", l_resp->get_status(), l_js_allocator);
+                        }
+
+                        // Headers
+                        const ns_hlx::kv_map_list_t &l_headers = l_resp->get_headers();
+                        if(a_part_map & PART_HEADERS)
+                        {
+                                for(ns_hlx::kv_map_list_t::const_iterator i_header = l_headers.begin();
+                                    i_header != l_headers.end();
+                                    ++i_header)
+                                {
+                                        for(ns_hlx::str_list_t::const_iterator i_val = i_header->second.begin();
+                                            i_val != i_header->second.end();
+                                            ++i_val)
+                                        {
+                                                l_obj.AddMember(rapidjson::Value(i_header->first.c_str(), l_js_allocator).Move(),
+                                                                rapidjson::Value(i_val->c_str(), l_js_allocator).Move(),
+                                                                l_js_allocator);
+                                        }
+                                }
+                        }
+                        // ---------------------------------------------------
+                        // SSL connection info
+                        // ---------------------------------------------------
+                        // TODO Add flag -only add to output if flag
+                        // ---------------------------------------------------
+                        // Find tls_info for host
+                        if(a_settings.m_tls_info_map.find(l_subr->get_host()) != a_settings.m_tls_info_map.end())
+                        {
+                                tls_info_t l_info = a_settings.m_tls_info_map[l_subr->get_host()];
+                                // TODO
+                                if(l_info.m_tls_info_cipher_str)
+                                {
+                                        l_obj.AddMember(rapidjson::Value("Cipher", l_js_allocator).Move(),
+                                                        rapidjson::Value(l_info.m_tls_info_cipher_str, l_js_allocator).Move(),
+                                                        l_js_allocator);
+                                }
+                                if(l_info.m_tls_info_protocol_str)
+                                {
+                                        l_obj.AddMember(rapidjson::Value("Protocol", l_js_allocator).Move(),
+                                                        rapidjson::Value(l_info.m_tls_info_protocol_str, l_js_allocator).Move(),
+                                                        l_js_allocator);
+                                }
+                        }
+
+                        // Search for json
+                        bool l_content_type_json = false;
+                        ns_hlx::kv_map_list_t::const_iterator i_h = l_headers.find("Content-type");
+                        if(i_h != l_headers.end())
+                        {
+                                for(ns_hlx::str_list_t::const_iterator i_val = i_h->second.begin();
+                                    i_val != i_h->second.end();
                                     ++i_val)
                                 {
-                                        l_obj.AddMember(rapidjson::Value(i_header->first.c_str(), l_js_allocator).Move(),
-                                                        rapidjson::Value(i_val->c_str(), l_js_allocator).Move(),
-                                                        l_js_allocator);
+                                        if((*i_val) == "application/json")
+                                        {
+                                                l_content_type_json = true;
+                                        }
                                 }
                         }
-                }
-                // ---------------------------------------------------
-                // SSL connection info
-                // ---------------------------------------------------
-                // TODO Add flag -only add to output if flag
-                // ---------------------------------------------------
-                if((*i_rx)->m_tls_info_cipher_str)
-                {
-                        l_obj.AddMember(rapidjson::Value("Cipher", l_js_allocator).Move(),
-                                        rapidjson::Value((*i_rx)->m_tls_info_cipher_str, l_js_allocator).Move(),
-                                        l_js_allocator);
-                }
-                if((*i_rx)->m_tls_info_protocol_str)
-                {
-                        l_obj.AddMember(rapidjson::Value("Protocol", l_js_allocator).Move(),
-                                        rapidjson::Value((*i_rx)->m_tls_info_protocol_str, l_js_allocator).Move(),
-                                        l_js_allocator);
-                }
 
-                // Search for json
-                bool l_content_type_json = false;
-                ns_hlx::kv_map_list_t::const_iterator i_h = l_headers.find("Content-type");
-                if(i_h != l_headers.end())
-                {
-                        for(ns_hlx::str_list_t::const_iterator i_val = i_h->second.begin();
-                            i_val != i_h->second.end();
-                            ++i_val)
+                        // Body
+                        if(a_part_map & PART_BODY)
                         {
-                                if((*i_val) == "application/json")
+
+                                //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
+                                const char *l_body_buf = l_resp->get_body_data();
+                                uint64_t l_body_len = l_resp->get_body_len();
+                                if(l_body_len)
                                 {
-                                        l_content_type_json = true;
-                                }
-                        }
-                }
+                                        // Append json
+                                        if(l_content_type_json)
+                                        {
+                                                rapidjson::Document l_doc_body;
+                                                l_doc_body.Parse(l_body_buf);
+                                                l_obj.AddMember("body",
+                                                                rapidjson::Value(l_doc_body, l_js_allocator).Move(),
+                                                                l_js_allocator);
 
-                // Body
-                if(a_part_map & PART_BODY)
-                {
-
-                        //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const char *l_body_buf = l_resp->get_body_data();
-                        uint64_t l_body_len = l_resp->get_body_len();
-                        if(l_body_len)
-                        {
-                                // Append json
-                                if(l_content_type_json)
-                                {
-                                        rapidjson::Document l_doc_body;
-                                        l_doc_body.Parse(l_body_buf);
-                                        l_obj.AddMember("body",
-                                                        rapidjson::Value(l_doc_body, l_js_allocator).Move(),
-                                                        l_js_allocator);
-
+                                        }
+                                        else
+                                        {
+                                                JS_ADD_MEMBER("body", l_body_buf);
+                                        }
                                 }
                                 else
                                 {
-                                        JS_ADD_MEMBER("body", l_body_buf);
+                                        JS_ADD_MEMBER("body", "NO_RESPONSE");
                                 }
                         }
-                        else
-                        {
-                                JS_ADD_MEMBER("body", "NO_RESPONSE");
-                        }
+                        l_js_array.PushBack(l_obj, l_js_allocator);
                 }
-                l_js_array.PushBack(l_obj, l_js_allocator);
         }
 
         // TODO -Can I just create an array -do I have to stick in a document?
@@ -2217,7 +2362,6 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
 
         //NDBG_PRINT("Document: \n%s\n", l_strbuf.GetString());
         std::string l_responses_str = l_strbuf.GetString();
-
         return l_responses_str;
 }
 
@@ -2226,19 +2370,22 @@ std::string dump_all_responses_json(phurl_resp_list_t &a_resp_list, int a_part_m
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string dump_all_responses(phurl_resp_list_t &a_resp_list, bool a_color, bool a_pretty, output_type_t a_output_type, int a_part_map)
+std::string dump_all_responses(settings_struct_t &a_settings,
+                               phurl_h_resp_list_t &a_resp_list,
+                               bool a_color, bool a_pretty,
+                               output_type_t a_output_type, int a_part_map)
 {
         std::string l_responses_str = "";
         switch(a_output_type)
         {
         case OUTPUT_LINE_DELIMITED:
         {
-                l_responses_str = dump_all_responses_line_dl(a_resp_list, a_color, a_pretty, a_part_map);
+                l_responses_str = dump_all_responses_line_dl(a_settings, a_resp_list, a_color, a_pretty, a_part_map);
                 break;
         }
         case OUTPUT_JSON:
         {
-                l_responses_str = dump_all_responses_json(a_resp_list, a_part_map);
+                l_responses_str = dump_all_responses_json(a_settings, a_resp_list, a_part_map);
                 break;
         }
         default:
