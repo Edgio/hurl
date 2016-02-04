@@ -77,6 +77,7 @@ Stat Options:
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
+
 ## *phurl* Parallel Curl
 *phurl* is a parallel curling utility useful for pulling a single url from many different hosts. *phurl* supports reading line delimited hosts from stdin, a shell command string, or a file.
 
@@ -110,11 +111,14 @@ Settings:
   -R, --recv_buffer    Socket receive buffer size.
   -S, --send_buffer    Socket send buffer size.
   -D, --no_delay       Socket TCP no-delay.
+  -n, --no_async_dns   Use getaddrinfo to resolve.
   -k, --no_cache       Don't use addr info cache.
   -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).
   -C, --connect_only   Only connect -do not send request.
+  -Q, --complete_time  Cancel requests after N seconds.
+  -W, --complete_ratio Cancel requests after % complete (0.0-->100.0).
   
-SSL Settings:
+TLS Settings:
   -y, --cipher         Cipher --see "openssl ciphers" for list.
   -O, --tls_options    SSL Options string.
   -K, --tls_verify     Verify server certificate.
@@ -123,6 +127,9 @@ SSL Settings:
   -M, --tls_no_host    Skip host name checking.
   -F, --tls_ca_file    SSL CA File.
   -L, --tls_ca_path    SSL CA Path.
+  
+Command Line Client:
+  -I, --cli            Start interactive command line -URL not required.
   
 Print Options:
   -v, --verbose        Verbose logging
