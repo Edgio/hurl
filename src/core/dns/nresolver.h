@@ -168,7 +168,8 @@ public:
                              void *a_data,
                              uint64_t &a_active,
                              lookup_job_q_t &ao_lookup_job_q,
-                             lookup_job_pq_t &ao_lookup_job_pq);
+                             lookup_job_pq_t &ao_lookup_job_pq,
+                             void **ao_job_handle);
         int32_t handle_io(void* a_ctx);
         void set_timeout_s(uint32_t a_val) { m_timeout_s = a_val;}
         void set_retries(uint32_t a_val) { m_retries = a_val;}

@@ -240,14 +240,6 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 return nconn::NC_STATUS_ERROR;
         }
 
-        // Check for cancelled...
-        if(m_subr->get_state() == subr::SUBR_STATE_CANCELLED)
-        {
-                subr_error();
-                // TODO Check error;
-                return STATUS_OK;
-        }
-
         switch(a_conn_mode)
         {
         // -----------------------------------------------------------
@@ -282,11 +274,15 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         if(m_hmsg)
                         {
                                 resp *l_resp = static_cast<resp *>(m_hmsg);
-                                l_resp->set_status(901);
+                                l_resp->set_status(HTTP_STATUS_BAD_GATEWAY);
                         }
-                        subr_error();
-                        // TODO Check error;
-                        //NDBG_PRINT("Error: nc_run_state_machine.\n");
+                        int32_t l_status;
+                        l_status = subr_error(HTTP_STATUS_BAD_GATEWAY);
+                        if(l_status != STATUS_OK)
+                        {
+                                //NDBG_PRINT("Error: subr_error.\n");
+                                return STATUS_ERROR;
+                        }
                         return STATUS_OK;
                 }
                 default:
@@ -381,8 +377,12 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 ++m_t_hlx->m_stat.m_num_ups_idle_killed;
                 if(m_subr)
                 {
-                        subr_error();
-                        // TODO Check error;
+                        int32_t l_status;
+                        l_status = subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
+                        if(l_status != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
                 }
                 return STATUS_OK;
         }
@@ -391,8 +391,12 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         case nconn::NC_MODE_ERROR:
         {
-                subr_error();
-                // TODO Check error;
+                int32_t l_status;
+                l_status = subr_error(HTTP_STATUS_BAD_GATEWAY);
+                if(l_status != STATUS_OK)
+                {
+                        return STATUS_ERROR;
+                }
                 return STATUS_OK;
         }
         // -----------------------------------------------------------
@@ -578,11 +582,10 @@ bool hconn::subr_complete(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hconn::subr_error(void)
+int32_t hconn::subr_error(uint16_t a_status)
 {
         nconn *l_nconn = m_nconn;
-        resp *l_resp = static_cast<resp *>(m_hmsg);
-
+        m_status_code = a_status;
         if(!m_subr)
         {
                 return STATUS_ERROR;
@@ -592,21 +595,11 @@ int32_t hconn::subr_error(void)
         {
                 m_subr->set_end_time_ms(get_time_ms());
         }
-
         if(l_nconn && l_nconn->get_collect_stats_flag())
         {
                 l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
                 l_nconn->reset_stats();
         }
-
-        if(l_resp)
-        {
-                // TODO ??? why two status codes ???
-                m_status_code = l_resp->get_status();
-                // TODO FIX!!!
-                //m_t_hlx->add_stat_to_agg(l_nconn->get_stats(), l_resp->get_status());
-        }
-
         subr::error_cb_t l_error_cb = m_subr->get_error_cb();
         if(l_error_cb)
         {
@@ -669,6 +662,20 @@ int32_t queue_subr(hconn &a_hconn, subr &a_subr)
         a_subr.set_requester_hconn(&a_hconn);
         a_hconn.m_t_hlx->subr_add(a_subr);
         return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint16_t get_status_code(subr &a_subr)
+{
+        if(!a_subr.get_hconn())
+        {
+                return HTTP_STATUS_INTERNAL_SERVER_ERROR;
+        }
+        return a_subr.get_hconn()->m_status_code;
 }
 
 //: ----------------------------------------------------------------------------

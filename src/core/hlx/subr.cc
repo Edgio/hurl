@@ -26,6 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
 #include "t_hlx.h"
+#include "nconn_tcp.h"
 #include "ndebug.h"
 #include "string_util.h"
 #include "http_parser/http_parser.h"
@@ -77,6 +78,8 @@ subr::subr(void):
         m_t_hlx(NULL),
         m_start_time_ms(0),
         m_end_time_ms(0),
+        m_lookup_job(NULL),
+        m_i_q(),
         m_tls_verify(false),
         m_tls_sni(false),
         m_tls_self_ok(false),
@@ -127,6 +130,8 @@ subr::subr(const subr &a_subr):
         m_t_hlx(a_subr.m_t_hlx),
         m_start_time_ms(a_subr.m_start_time_ms),
         m_end_time_ms(a_subr.m_end_time_ms),
+        m_lookup_job(a_subr.m_lookup_job),
+        m_i_q(a_subr.m_i_q),
         m_tls_verify(a_subr.m_tls_verify),
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
@@ -405,6 +410,16 @@ uint64_t subr::get_uid(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+hconn *subr::get_hconn(void)
+{
+        return m_hconn;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 hconn *subr::get_requester_hconn(void) const
 {
         return m_requester_hconn;
@@ -448,6 +463,16 @@ uint64_t subr::get_start_time_ms(void) const
 uint64_t subr::get_end_time_ms(void) const
 {
         return m_end_time_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void *subr::get_lookup_job(void)
+{
+        return m_lookup_job;
 }
 
 //: ----------------------------------------------------------------------------
@@ -809,6 +834,26 @@ void subr::set_start_time_ms(uint64_t a_val)
 void subr::set_end_time_ms(uint64_t a_val)
 {
         m_end_time_ms = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_lookup_job(void *a_data)
+{
+        m_lookup_job = a_data;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_i_q(subr_list_t::iterator a_i_q)
+{
+        m_i_q = a_i_q;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1251,28 +1296,63 @@ int32_t subr::cancel(void)
         {
         case SUBR_STATE_QUEUED:
         {
-                // Mark as cancelled let dequeue handle cleanup
-                m_state = SUBR_STATE_CANCELLED;
+                // Delete from queue
+                *m_i_q = NULL;
+                bump_num_completed();
+                bump_num_requested();
+                if(m_error_cb)
+                {
+                        nconn_tcp l_nconn;
+                        l_nconn.set_status(CONN_STATUS_CANCELLED);
+                        m_error_cb(*(this), l_nconn);
+                        // TODO Check status...
+                }
+                if(!get_detach_resp())
+                {
+                        delete this;
+                        return STATUS_OK;
+                }
                 break;
         }
         case SUBR_STATE_DNS_LOOKUP:
         {
-                // Set to cancelled and let async resolver handle cleanup
-                m_state = SUBR_STATE_CANCELLED;
+                // Get lookup job
+                nresolver::lookup_job *l_job = static_cast<nresolver::lookup_job *>(m_lookup_job);
+                if(l_job)
+                {
+                        l_job->m_cb = NULL;
+                }
+                bump_num_requested();
+                bump_num_completed();
+                if(m_error_cb)
+                {
+                        nconn_tcp l_nconn;
+                        l_nconn.set_status(CONN_STATUS_CANCELLED);
+                        m_error_cb(*(this), l_nconn);
+                        // TODO Check status...
+                }
+                if(!get_detach_resp())
+                {
+                        delete this;
+                        return STATUS_OK;
+                }
                 break;
         }
         case SUBR_STATE_ACTIVE:
         {
-                m_state = SUBR_STATE_CANCELLED;
                 if(m_hconn &&
                    m_hconn->m_t_hlx &&
                    m_hconn->m_nconn)
                 {
+                        //NDBG_PRINT("%sCANCEL%s: nconn: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_hconn->m_nconn);
                         m_hconn->m_nconn->set_status(CONN_STATUS_CANCELLED);
                         int32_t l_status;
-                        l_status = m_hconn->m_t_hlx->evr_file_error_cb(m_hconn->m_nconn);
-                        // Warning subr_error deletes subr so "this" is
-                        // invalid after call...
+                        l_status = m_hconn->subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
+                        if(l_status != STATUS_OK)
+                        {
+                                // TODO Check error;
+                        }
+                        l_status = m_hconn->m_t_hlx->cleanup_hconn(*m_hconn);
                         if(l_status != STATUS_OK)
                         {
                                 return STATUS_ERROR;

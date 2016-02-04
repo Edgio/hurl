@@ -60,6 +60,7 @@ public:
         subr *m_subr;
         resp *m_resp;
         std::string m_error_str;
+        uint16_t m_status_code;
         hlx_resp();
         ~hlx_resp();
 private:
@@ -105,6 +106,7 @@ public:
         uint64_t m_size;
         float m_completion_ratio;
         bool m_delete;
+        bool m_cancelled;
 
 private:
         // -------------------------------------------------

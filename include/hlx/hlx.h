@@ -275,7 +275,7 @@ typedef std::list <t_stat_t> t_stat_list_t;
 typedef std::list <cr_t> cr_list_t;
 typedef std::list <std::string> str_list_t;
 typedef std::map <std::string, str_list_t, case_i_comp> kv_map_list_t;
-typedef std::queue <subr *> subr_queue_t;
+typedef std::list <subr *> subr_list_t;
 typedef atomic_gcc_builtin<uint64_t> uint64_atomic_t;
 typedef std::map <std::string, std::string> query_map_t;
 
@@ -685,8 +685,7 @@ public:
                 SUBR_STATE_NONE = 0,
                 SUBR_STATE_QUEUED,
                 SUBR_STATE_DNS_LOOKUP,
-                SUBR_STATE_ACTIVE,
-                SUBR_STATE_CANCELLED
+                SUBR_STATE_ACTIVE
         } subr_state_t;
 
         // kind
@@ -734,12 +733,13 @@ public:
         void *get_data(void) const;
         bool get_detach_resp(void) const;
         uint64_t get_uid(void) const;
-        hconn *get_hconn(void) const;
+        hconn *get_hconn(void);
         hconn *get_requester_hconn(void) const;
         const host_info &get_host_info(void) const;
         t_hlx *get_t_hlx(void) const;
         uint64_t get_start_time_ms(void) const;
         uint64_t get_end_time_ms(void) const;
+        void * get_lookup_job(void);
         bool get_tls_verify(void) const;
         bool get_tls_sni(void) const;
         bool get_tls_self_ok(void) const;
@@ -773,6 +773,8 @@ public:
         void set_t_hlx(t_hlx *a_t_hlx);
         void set_start_time_ms(uint64_t a_val);
         void set_end_time_ms(uint64_t a_val);
+        void set_lookup_job(void *a_data);
+        void set_i_q(subr_list_t::iterator a_i_q);
         void set_tls_verify(bool a_val);
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
@@ -864,6 +866,8 @@ private:
         t_hlx *m_t_hlx;
         uint64_t m_start_time_ms;
         uint64_t m_end_time_ms;
+        void *m_lookup_job;
+        subr_list_t::iterator m_i_q;
         bool m_tls_verify;
         bool m_tls_sni;
         bool m_tls_self_ok;
@@ -945,6 +949,7 @@ subr &create_subr(hconn &a_hconn);
 subr &create_subr(hconn &a_hconn, const subr &a_subr);
 int32_t queue_subr(hconn &a_hconn, subr &a_subr);
 int32_t add_subr_t_hlx(void *a_t_hlx, subr &a_subr);
+uint16_t get_status_code(subr &a_subr);
 
 // API Responses
 api_resp &create_api_resp(hconn &a_hconn);

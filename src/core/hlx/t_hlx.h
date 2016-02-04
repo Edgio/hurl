@@ -86,6 +86,7 @@ public:
         int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
         int32_t cancel_timer(void *a_timer);
         void signal(void);
+        int32_t cleanup_hconn(hconn &a_hconn);
 
         // -------------------------------------------------
         // Public members
@@ -121,8 +122,6 @@ private:
                 return reinterpret_cast<t_hlx *>(a_context)->t_run(NULL);
         }
 
-        int32_t cleanup_hconn(hconn &a_hconn);
-
         // Get new client connection
         nconn *get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router);
         int32_t config_conn(nconn &a_nconn,
@@ -141,7 +140,7 @@ private:
 #ifdef ASYNC_DNS_SUPPORT
         int32_t async_dns_init(void);
         int32_t async_dns_handle_ev(void);
-        int32_t async_dns_lookup(const std::string &a_host, uint16_t a_port, void *a_data);
+        int32_t async_dns_lookup(const std::string &a_host, uint16_t a_port, subr *a_subr);
 #endif
 
         // -------------------------------------------------
@@ -155,7 +154,7 @@ private:
         evr_loop *m_evr_loop;
         scheme_t m_scheme;
         listening_nconn_list_t m_listening_nconn_list;
-        subr_queue_t m_subr_queue;
+        subr_list_t m_subr_list;
 
         hconn_pool_t m_hconn_pool;
         resp_pool_t m_resp_pool;

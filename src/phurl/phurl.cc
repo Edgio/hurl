@@ -433,7 +433,6 @@ int32_t broadcast_h::s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_ncon
 //: ----------------------------------------------------------------------------
 int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
 {
-
         ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
         {

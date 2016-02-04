@@ -157,6 +157,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
                 ns_hlx::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
+                void *l_job_handle = NULL;
 
                 // Set globals
                 g_lkp_sucess = 0;
@@ -169,7 +170,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "google.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(GOOD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Good
@@ -178,7 +179,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "yahoo.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(GOOD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -187,7 +188,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "arfarhfarfbloop", 9874,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -196,7 +197,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "wonbaombaboiuiuiuoad.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
 
@@ -213,7 +214,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                              l_unused, 0,
                                                              test_resolved_cb,
                                                              NULL,
-                                                             l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                             l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                         REQUIRE((l_status == 0));
                         if(g_dns_reqs_qd == 0)
                         {
@@ -272,6 +273,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
                 ns_hlx::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
+                void *l_job_handle = NULL;
 
                 // Set globals
                 g_lkp_sucess = 0;
@@ -284,7 +286,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "google.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Good
@@ -293,7 +295,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "yahoo.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -302,7 +304,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "arfarhfarfbloop", 9874,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
@@ -311,7 +313,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      "wonbaombaboiuiuiuoad.com", 80,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
 
 
@@ -329,7 +331,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                              l_unused, 0,
                                                              test_resolved_cb,
                                                              NULL,
-                                                             l_active, l_lookup_job_q, l_lookup_job_pq);
+                                                             l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                         REQUIRE((l_status == 0));
                         if(g_dns_reqs_qd == 0)
                         {

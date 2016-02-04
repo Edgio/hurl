@@ -672,7 +672,8 @@ int32_t nresolver::lookup_async(void* a_ctx,
                                 void *a_data,
                                 uint64_t &a_active,
                                 lookup_job_q_t &ao_lookup_job_q,
-                                lookup_job_pq_t &ao_lookup_job_pq)
+                                lookup_job_pq_t &ao_lookup_job_pq,
+                                void **ao_job_handle)
 {
         //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_host: %s a_ctx: %p\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
@@ -704,6 +705,10 @@ int32_t nresolver::lookup_async(void* a_ctx,
                 l_job->m_cb = a_cb;
                 l_job->m_nresolver = this;
                 l_job->m_data = a_data;
+                if(ao_job_handle)
+                {
+                        *ao_job_handle = l_job;
+                }
                 //NDBG_PRINT("%sADD    LOOKUP%s: HOST: %s\n",
                 //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
                 //           l_job->m_host.c_str());
