@@ -1352,15 +1352,11 @@ int32_t subr::cancel(void)
                         {
                                 // TODO Check error;
                         }
-                        l_status = m_hconn->m_t_hlx->cleanup_hconn(*m_hconn);
-                        if(l_status != STATUS_OK)
-                        {
-                                return STATUS_ERROR;
-                        }
-                        return STATUS_OK;
+                        return m_hconn->m_t_hlx->cleanup_hconn(*m_hconn);
                 }
                 else
                 {
+                        //NDBG_PRINT("ERROR\n");
                         return STATUS_ERROR;
                 }
                 break;

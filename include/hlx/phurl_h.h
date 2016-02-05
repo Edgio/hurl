@@ -92,7 +92,7 @@ public:
         // -------------------------------------------------
         phurl_h_resp(void);
         ~phurl_h_resp(void);
-        int32_t cancel_pending(void);
+        int32_t done(void);
         float get_done_ratio(void);
 
         // -------------------------------------------------
@@ -112,7 +112,7 @@ public:
         uint64_t m_size;
         float m_completion_ratio;
         bool m_delete;
-        bool m_cancelled;
+        bool m_done;
         create_resp_cb_t m_create_resp_cb;
 
 private:

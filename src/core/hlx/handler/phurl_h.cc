@@ -70,7 +70,7 @@ phurl_h_resp::phurl_h_resp(void) :
         m_size(0),
         m_completion_ratio(100.0),
         m_delete(true),
-        m_cancelled(false),
+        m_done(false),
         m_create_resp_cb(NULL)
 {
 }
@@ -97,9 +97,16 @@ phurl_h_resp::~phurl_h_resp(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h_resp::cancel_pending(void)
+int32_t phurl_h_resp::done(void)
 {
-        m_cancelled = true;
+        if(m_done)
+        {
+                return STATUS_OK;
+        }
+        m_done = true;
+        // ---------------------------------------
+        // Cancel pending...
+        // ---------------------------------------
         subr_uid_map_t l_map = m_pending_subr_uid_map;
         //NDBG_PRINT("Cancel pending size: %lu\n", l_map.size());
         for(subr_uid_map_t::iterator i_s = l_map.begin(); i_s != l_map.end(); ++i_s)
@@ -114,12 +121,23 @@ int32_t phurl_h_resp::cancel_pending(void)
                         }
                 }
         }
-        subr_uid_map_t::iterator i_s = l_map.begin();
-        if(i_s->second && i_s->second->get_t_hlx())
+        // ---------------------------------------
+        // Create Response...
+        // ---------------------------------------
+        int32_t l_status = STATUS_OK;
+        if(m_create_resp_cb)
         {
-                i_s->second->get_t_hlx()->signal();
+                l_status = m_create_resp_cb(this);
+                if(l_status != STATUS_OK)
+                {
+                        //return STATUS_ERROR;
+                }
         }
-        return STATUS_OK;
+        if(m_delete)
+        {
+                delete this;
+        }
+        return l_status;
 }
 
 //: ----------------------------------------------------------------------------
@@ -141,31 +159,12 @@ float phurl_h_resp::get_done_ratio(void)
 //: ----------------------------------------------------------------------------
 int32_t phurl_h_resp::s_timeout_cb(void *a_data)
 {
-        //NDBG_PRINT("TIMEOUT\n");
         phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_data);
         if(!l_phr)
         {
                 return STATUS_ERROR;
         }
-        int32_t l_status;
-        l_status = l_phr->cancel_pending();
-        if(l_status != STATUS_OK)
-        {
-                return STATUS_ERROR;
-        }
-        if(l_phr->m_create_resp_cb)
-        {
-                l_status = l_phr->m_create_resp_cb(l_phr);
-                if(l_status != STATUS_OK)
-                {
-                        return STATUS_ERROR;
-                }
-        }
-        if(l_phr->m_delete)
-        {
-                delete l_phr;
-        }
-        return STATUS_OK;
+        return l_phr->done();
 }
 
 //: ----------------------------------------------------------------------------
@@ -385,50 +384,26 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
         {
                 return STATUS_ERROR;
         }
-        if(!a_phr->m_cancelled)
+        if(a_phr->m_done)
         {
-                bool l_cancelled = false;
-                if((a_phr->m_completion_ratio < 100.0) &&
-                   (a_phr->get_done_ratio() >= a_phr->m_completion_ratio))
+                return STATUS_OK;
+        }
+        if(( (a_phr->m_completion_ratio < 100.0) &&
+             (a_phr->get_done_ratio() >= a_phr->m_completion_ratio)) ||
+           !(a_phr->m_pending_subr_uid_map.size()))
+        {
+                // Cancel pending
+                int32_t l_status;
+                if(a_subr.get_hconn())
                 {
-                        l_cancelled = true;
-                        // Cancel pending
-                        int32_t l_status;
-                        if(a_subr.get_hconn())
-                        {
-                                l_status = cancel_timer(*a_subr.get_hconn(), a_phr->m_timer);
-                                if(l_status != STATUS_OK)
-                                {
-                                        // TODO ???
-                                        // warn -still need to cancel...
-                                }
-                        }
-                        l_status = a_phr->cancel_pending();
+                        l_status = cancel_timer(*a_subr.get_hconn(), a_phr->m_timer);
                         if(l_status != STATUS_OK)
                         {
-                                return STATUS_ERROR;
+                                // TODO ???
+                                // warn -still need to cancel...
                         }
                 }
-                if(l_cancelled || !(a_phr->m_pending_subr_uid_map.size()))
-                {
-                        if(!a_phr->m_phurl_h)
-                        {
-                                return STATUS_ERROR;
-                        }
-                        if(a_phr->m_create_resp_cb)
-                        {
-                                int32_t l_status;
-                                l_status = a_phr->m_create_resp_cb(a_phr);
-                                if(l_status != STATUS_OK)
-                                {
-                                        return STATUS_ERROR;
-                                }
-                        }
-                        if(a_phr->m_delete)
-                        {
-                                delete a_phr;
-                        }
-                }
+                return a_phr->done();
         }
         return STATUS_OK;
 }
