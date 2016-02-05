@@ -64,12 +64,14 @@ phurl_h_resp::phurl_h_resp(void) :
         m_pending_subr_uid_map(),
         m_resp_list(),
         m_phurl_h(NULL),
+        m_requester_hconn(NULL),
         m_data(NULL),
         m_timer(NULL),
         m_size(0),
         m_completion_ratio(100.0),
         m_delete(true),
-        m_cancelled(false)
+        m_cancelled(false),
+        m_create_resp_cb(NULL)
 {
 }
 
@@ -150,6 +152,18 @@ int32_t phurl_h_resp::s_timeout_cb(void *a_data)
         if(l_status != STATUS_OK)
         {
                 return STATUS_ERROR;
+        }
+        if(l_phr->m_create_resp_cb)
+        {
+                l_status = l_phr->m_create_resp_cb(l_phr);
+                if(l_status != STATUS_OK)
+                {
+                        return STATUS_ERROR;
+                }
+        }
+        if(l_phr->m_delete)
+        {
+                delete l_phr;
         }
         return STATUS_OK;
 }
@@ -295,8 +309,10 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                         return H_RESP_SERVER_ERROR;
                 }
         }
+        l_phr->m_requester_hconn = &a_hconn;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
         l_phr->m_completion_ratio = m_completion_ratio;
+        l_phr->m_create_resp_cb = s_create_resp;
         if(m_timeout_ms)
         {
                 // TODO set timeout
@@ -369,9 +385,9 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
         {
                 return STATUS_ERROR;
         }
-        bool l_cancelled = false;
         if(!a_phr->m_cancelled)
         {
+                bool l_cancelled = false;
                 if((a_phr->m_completion_ratio < 100.0) &&
                    (a_phr->get_done_ratio() >= a_phr->m_completion_ratio))
                 {
@@ -393,28 +409,26 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
                                 return STATUS_ERROR;
                         }
                 }
-        }
-        if(l_cancelled)
-        {
-                return STATUS_OK;
-        }
-        if(a_phr->m_pending_subr_uid_map.size())
-        {
-                return STATUS_OK;
-        }
-        if(!a_phr->m_phurl_h)
-        {
-                return STATUS_ERROR;
-        }
-        int32_t l_status;
-        l_status = a_phr->m_phurl_h->create_resp(a_subr, a_phr);
-        if(l_status != STATUS_OK)
-        {
-                return STATUS_ERROR;
-        }
-        if(a_phr->m_delete)
-        {
-                delete a_phr;
+                if(l_cancelled || !(a_phr->m_pending_subr_uid_map.size()))
+                {
+                        if(!a_phr->m_phurl_h)
+                        {
+                                return STATUS_ERROR;
+                        }
+                        if(a_phr->m_create_resp_cb)
+                        {
+                                int32_t l_status;
+                                l_status = a_phr->m_create_resp_cb(a_phr);
+                                if(l_status != STATUS_OK)
+                                {
+                                        return STATUS_ERROR;
+                                }
+                        }
+                        if(a_phr->m_delete)
+                        {
+                                delete a_phr;
+                        }
+                }
         }
         return STATUS_OK;
 }
@@ -424,13 +438,14 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp)
+int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
 {
+        //NDBG_PRINT("DONE\n");
         // Get body of resp
         char l_buf[2048];
         l_buf[0] = '\0';
-        for(hlx_resp_list_t::iterator i_resp = a_fanout_resp->m_resp_list.begin();
-            i_resp != a_fanout_resp->m_resp_list.end();
+        for(hlx_resp_list_t::iterator i_resp = a_phr->m_resp_list.begin();
+            i_resp != a_phr->m_resp_list.end();
             ++i_resp)
         {
                 char *l_status_buf = NULL;
@@ -444,14 +459,19 @@ int32_t phurl_h::create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp)
         char l_len_str[64];
         sprintf(l_len_str, "%lu", l_len);
 
+        if(!a_phr->m_requester_hconn)
+        {
+                return STATUS_ERROR;
+        }
+
         // Create resp
-        api_resp &l_api_resp = create_api_resp(*(a_subr.get_requester_hconn()));
+        api_resp &l_api_resp = create_api_resp(*(a_phr->m_requester_hconn));
         l_api_resp.set_status(HTTP_STATUS_OK);
         l_api_resp.set_header("Content-Length", l_len_str);
         l_api_resp.set_body_data(l_buf, l_len);
 
         // Queue
-        queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
+        queue_api_resp(*(a_phr->m_requester_hconn), l_api_resp);
         return STATUS_OK;
 }
 

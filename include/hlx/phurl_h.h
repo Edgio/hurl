@@ -83,6 +83,11 @@ class phurl_h_resp
 {
 public:
         // -------------------------------------------------
+        // Types
+        // -------------------------------------------------
+        typedef int32_t (*create_resp_cb_t)(phurl_h_resp *);
+
+        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
         phurl_h_resp(void);
@@ -101,12 +106,14 @@ public:
         subr_uid_map_t m_pending_subr_uid_map;
         hlx_resp_list_t m_resp_list;
         phurl_h *m_phurl_h;
+        hconn *m_requester_hconn;
         void *m_data;
         void *m_timer;
         uint64_t m_size;
         float m_completion_ratio;
         bool m_delete;
         bool m_cancelled;
+        create_resp_cb_t m_create_resp_cb;
 
 private:
         // -------------------------------------------------
@@ -136,7 +143,6 @@ public:
         subr &get_subr_template_mutable(void);
         void set_timeout_ms(uint32_t a_val);
         void set_completion_ratio(float a_ratio);
-        virtual int32_t create_resp(subr &a_subr, phurl_h_resp *a_fanout_resp);
 
         // -------------------------------------------------
         // Public static methods
@@ -144,6 +150,7 @@ public:
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
         static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
         static int32_t s_done_check(subr &a_subr, phurl_h_resp *a_phr);
+        static int32_t s_create_resp(phurl_h_resp *a_phr);
 
 protected:
         // -------------------------------------------------
