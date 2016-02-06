@@ -732,6 +732,7 @@ void show_help(void)
         printf(" phurl commands: \n");
         printf("  h    Help or ?\n");
         printf("  r    Run\n");
+        printf("  d    Display Stats\n");
         printf("  q    Quit\n");
 }
 
@@ -802,6 +803,15 @@ int command_exec_cli(settings_struct_t &a_settings)
                         {
                                 return -1;
                         }
+                        break;
+                }
+                // -------------------------------------------
+                // Display
+                // -only works when not reading from stdin
+                // -------------------------------------------
+                case 'd':
+                {
+                        a_settings.m_hlx->display_stat();
                         break;
                 }
                 // -------------------------------------------
@@ -985,7 +995,7 @@ int main(int argc, char** argv)
         //l_hlx->set_header("x-select-backend", "self");
         //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
-        //l_subr->set_header("Connection", "keep-alive");
+        l_subr->set_header("Connection", "keep-alive");
         l_subr->set_completion_cb(broadcast_h::s_completion_cb);
         l_subr->set_error_cb(broadcast_h::s_error_cb);
         l_subr->set_keepalive(true);

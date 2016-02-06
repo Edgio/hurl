@@ -160,8 +160,7 @@ public:
                  evr_file_cb_t a_write_cb = NULL,
                  evr_file_cb_t a_error_cb = NULL,
                  evr_loop_type_t a_type = EVR_LOOP_EPOLL,
-                 uint32_t a_max_conn = 1,
-                 bool a_use_lock = false);
+                 uint32_t a_max_conn = 1);
         ~evr_loop();
         int32_t run(void);
 
@@ -195,11 +194,8 @@ private:
 
         // Timer priority queue -used as min heap
         evr_timer_pq_t m_timer_pq;
-        pthread_mutex_t m_timer_pq_mutex;
-        bool m_use_lock;
         uint32_t m_max_connections;
         evr_loop_type_t m_loop_type;
-        bool m_is_running;
 
         // TODO EPOLL Specific
         struct epoll_event *m_epoll_event_vector;

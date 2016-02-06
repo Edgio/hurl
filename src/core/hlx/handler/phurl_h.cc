@@ -402,6 +402,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
                                 // TODO ???
                                 // warn -still need to cancel...
                         }
+                        a_phr->m_timer = NULL;
                 }
                 return a_phr->done();
         }

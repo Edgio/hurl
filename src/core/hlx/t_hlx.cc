@@ -128,7 +128,7 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_t_run_thread(),
         m_stat(),
         m_t_conf(a_t_conf),
-        m_nconn_pool(-1),
+        m_nconn_pool(1000000),
         m_nconn_proxy_pool(a_t_conf->m_num_parallel),
         m_stopped(true),
         m_start_time_s(0),
@@ -215,9 +215,7 @@ int32_t t_hlx::init(void)
                                   evr_file_writeable_cb,
                                   evr_file_error_cb,
                                   m_t_conf->m_evr_loop_type,
-                                  // TODO Need to make epoll vector resizeable...
-                                  512,
-                                  false);
+                                  512); // TODO Need to make epoll vector resizeable...
         m_is_initd = true;
         return STATUS_OK;
 }
@@ -1171,7 +1169,7 @@ int32_t t_hlx::async_dns_resolved_cb(const host_info *a_host_info, void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::subr_try_start(subr &a_subr)
 {
-        //NDBG_PRINT("l_subr label: %s --HOST: %s\n", l_subr->get_label().c_str(), l_subr->get_host().c_str());
+        //NDBG_PRINT("l_subr label: %s --HOST: %s\n", a_subr.get_label().c_str(), a_subr.get_host().c_str());
         // Only run on resolved
         int32_t l_status;
         std::string l_error;
@@ -1179,6 +1177,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
         // Try get idle from proxy pool
         nconn *l_nconn = NULL;
         l_nconn = m_nconn_proxy_pool.get_idle(a_subr.get_label());
+        //NDBG_PRINT("l_nconn: %p\n", l_nconn);
         if(!l_nconn)
         {
                 // Check for available proxy connections

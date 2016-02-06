@@ -53,7 +53,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(int32_t a_size);
+        nconn_pool(uint32_t a_size);
         ~nconn_pool();
         nconn * get(scheme_t a_scheme);
         nconn * get_idle(const std::string &a_label);

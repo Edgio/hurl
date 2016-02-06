@@ -47,14 +47,10 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
                    evr_file_cb_t a_write_cb,
                    evr_file_cb_t a_error_cb,
                    evr_loop_type_t a_type,
-                   uint32_t a_max_conn,
-                   bool a_use_lock):
+                   uint32_t a_max_conn):
         m_timer_pq(),
-        m_timer_pq_mutex(),
-        m_use_lock(a_use_lock),
         m_max_connections(a_max_conn),
         m_loop_type(a_type),
-        m_is_running(false),
         m_epoll_event_vector(NULL),
         m_stopped(false),
         m_evr(NULL),
@@ -85,12 +81,6 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
                 //NDBG_PRINT("Using evr_epoll\n");
                 m_evr = new evr_epoll(m_max_connections);
         }
-
-        if(m_use_lock)
-        {
-                pthread_mutex_init(&m_timer_pq_mutex, NULL);
-        }
-
         m_control_fd = add_event(NULL);
         if(m_control_fd == STATUS_ERROR)
         {
@@ -136,19 +126,6 @@ evr_loop::~evr_loop(void)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::run(void)
 {
-
-        //NDBG_PRINT("TID[%lu]: Try Running\n", pthread_self());
-
-        if(m_is_running)
-        {
-                // is already running
-                return STATUS_OK;
-        }
-
-        //NDBG_PRINT("TID[%lu]: Running\n", pthread_self());
-
-        m_is_running = true;
-
         // -------------------------------------------
         // TODO:
         // EPOLL specific for now
@@ -160,48 +137,27 @@ int32_t evr_loop::run(void)
         while(!m_timer_pq.empty())
         {
                 uint64_t l_now_ms = get_time_ms();
-
-                if(m_use_lock)
-                {
-                        pthread_mutex_lock(&m_timer_pq_mutex);
-                }
-
                 l_timer_event = m_timer_pq.top();
                 if(l_now_ms < l_timer_event->m_time_ms)
                 {
                         l_time_diff_ms = l_timer_event->m_time_ms - l_now_ms;
-
-                        if(m_use_lock)
-                        {
-                                pthread_mutex_unlock(&m_timer_pq_mutex);
-                        }
                         break;
                 }
                 else
                 {
                         // Delete
                         m_timer_pq.pop();
-
-                        if(m_use_lock)
-                        {
-                                pthread_mutex_unlock(&m_timer_pq_mutex);
-                        }
-
                         // If not cancelled
                         if(l_timer_event->m_state != EVR_TIMER_CANCELLED)
                         {
                                 //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer_event,l_now_ms);
                                 l_timer_event->m_timer_cb(l_timer_event->m_data);
                         }
-
-
-
                         //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer_event);
                         delete l_timer_event;
                         l_timer_event = NULL;
                 }
         }
-
 
         // -------------------------------------------
         // Wait for events
@@ -279,8 +235,6 @@ int32_t evr_loop::run(void)
                         }
                 }
         }
-
-        m_is_running = false;
         return STATUS_OK;
 }
 
@@ -335,22 +289,9 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb, void 
         l_timer_event->m_state = EVR_TIMER_ACTIVE;
         l_timer_event->m_time_ms = get_time_ms() + a_time_ms;
         l_timer_event->m_timer_cb = a_timer_cb;
-
         //NDBG_PRINT("%sADDING__%s[%p] TIMER: %p at %lu ms --> %lu\n",ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,a_data,l_timer_event,a_time_ms, l_timer_event->m_time_ms);
         //NDBG_PRINT_BT();
-
-        // Add to pq
-        if(m_use_lock)
-        {
-                pthread_mutex_lock(&m_timer_pq_mutex);
-        }
         m_timer_pq.push(l_timer_event);
-
-        if(m_use_lock)
-        {
-                pthread_mutex_unlock(&m_timer_pq_mutex);
-        }
-
         *ao_timer = l_timer_event;
         return STATUS_OK;
 }
