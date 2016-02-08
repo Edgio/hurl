@@ -139,7 +139,7 @@ public:
         h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         void add_host(const std::string a_host, uint16_t a_port = 80);
         void set_host_list(const host_list_t &a_host_list);
-        const subr &get_subr_template(void);
+        const subr &get_subr_template(void) const;
         subr &get_subr_template_mutable(void);
         void set_timeout_ms(uint32_t a_val);
         void set_completion_ratio(float a_ratio);

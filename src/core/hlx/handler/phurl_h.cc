@@ -205,7 +205,7 @@ phurl_h::~phurl_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const subr &phurl_h::get_subr_template(void)
+const subr &phurl_h::get_subr_template(void) const
 {
         return m_subr_template;
 }
