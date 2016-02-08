@@ -90,7 +90,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        phurl_h_resp(void);
+        phurl_h_resp(uint32_t a_timeout_ms=10000, float a_completion_ratio=100.0);
         ~phurl_h_resp(void);
         int32_t done(void);
         float get_done_ratio(void);
@@ -110,6 +110,7 @@ public:
         void *m_data;
         void *m_timer;
         uint64_t m_size;
+        uint32_t m_timeout_ms;
         float m_completion_ratio;
         bool m_delete;
         bool m_done;
@@ -141,8 +142,6 @@ public:
         void set_host_list(const host_list_t &a_host_list);
         const subr &get_subr_template(void) const;
         subr &get_subr_template_mutable(void);
-        void set_timeout_ms(uint32_t a_val);
-        void set_completion_ratio(float a_ratio);
 
         // -------------------------------------------------
         // Public static methods
@@ -158,16 +157,15 @@ protected:
         // -------------------------------------------------
         h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                                         const url_pmap_t &a_url_pmap, const subr &a_subr,
-                                        phurl_h_resp *a_phr = NULL);
+                                        phurl_h_resp *a_phr = NULL,
+                                        uint32_t a_timeout_ms = 10000,
+                                        float a_completion_ratio = 100.0);
 
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
         subr m_subr_template;
         host_list_t m_host_list;
-        uint32_t m_timeout_ms;
-        float m_completion_ratio;
-
 private:
         // -------------------------------------------------
         // Private methods

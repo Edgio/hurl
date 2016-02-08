@@ -225,6 +225,8 @@ typedef struct settings_struct
         phurl_h_resp_list_t m_phr_list;
         phurl_host_list_t *m_host_list;
         uint32_t m_total_reqs;
+        uint32_t m_timeout_ms;
+        float m_completion_ratio;
 
         // Results
         pthread_mutex_t m_mutex;
@@ -245,6 +247,8 @@ typedef struct settings_struct
                 m_phr_list(),
                 m_host_list(NULL),
                 m_total_reqs(0),
+                m_timeout_ms(10000),
+                m_completion_ratio(100.0),
                 m_mutex(),
                 m_summary_info(),
                 m_tls_info_map()
@@ -347,8 +351,9 @@ int32_t broadcast_h::do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
                 }
         }
         a_phr->m_size = a_phr->m_pending_subr_uid_map.size();
-        a_phr->m_completion_ratio = m_completion_ratio;
-        if(m_timeout_ms)
+        a_phr->m_completion_ratio = g_settings->m_completion_ratio;
+        a_phr->m_timeout_ms = g_settings->m_timeout_ms;
+        if(a_phr->m_timeout_ms)
         {
                 if(!a_t_hlx)
                 {
@@ -356,7 +361,7 @@ int32_t broadcast_h::do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
                 }
                 //printf("Add timeout: %u\n", m_timeout_ms);
                 int32_t l_status;
-                l_status = add_timer(a_t_hlx, m_timeout_ms, ns_hlx::phurl_h_resp::s_timeout_cb, a_phr, &(a_phr->m_timer));
+                l_status = add_timer(a_t_hlx, a_phr->m_timeout_ms, ns_hlx::phurl_h_resp::s_timeout_cb, a_phr, &(a_phr->m_timer));
                 if(l_status != HLX_STATUS_OK)
                 {
                         return HLX_STATUS_ERROR;
@@ -1428,7 +1433,7 @@ int main(int argc, char** argv)
                         // Set complete time in ms seconds
                         int l_completion_time_s = atoi(optarg);
                         // TODO Check value...
-                        l_broadcast_h->set_timeout_ms(l_completion_time_s*1000);
+                        l_settings.m_timeout_ms = l_completion_time_s*1000;
                         break;
                 }
                 // ---------------------------------------
@@ -1442,7 +1447,7 @@ int main(int argc, char** argv)
                                 printf("Error: completion ratio must be > 0.0 and < 100.0\n");
                                 return -1;
                         }
-                        l_broadcast_h->set_completion_ratio((float)l_ratio);
+                        l_settings.m_completion_ratio = (float)l_ratio;
                         break;
                 }
                 // ---------------------------------------

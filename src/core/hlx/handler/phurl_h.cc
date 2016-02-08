@@ -60,7 +60,7 @@ hlx_resp::~hlx_resp()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-phurl_h_resp::phurl_h_resp(void) :
+phurl_h_resp::phurl_h_resp(uint32_t a_timeout_ms, float a_completion_ratio) :
         m_pending_subr_uid_map(),
         m_resp_list(),
         m_phurl_h(NULL),
@@ -68,7 +68,8 @@ phurl_h_resp::phurl_h_resp(void) :
         m_data(NULL),
         m_timer(NULL),
         m_size(0),
-        m_completion_ratio(100.0),
+        m_timeout_ms(a_timeout_ms),
+        m_completion_ratio(a_completion_ratio),
         m_delete(true),
         m_done(false),
         m_create_resp_cb(NULL)
@@ -175,9 +176,7 @@ int32_t phurl_h_resp::s_timeout_cb(void *a_data)
 phurl_h::phurl_h(void):
         default_rqst_h(),
         m_subr_template(),
-        m_host_list(),
-        m_timeout_ms(0),
-        m_completion_ratio(100.0)
+        m_host_list()
 {
         // Setup template
         m_subr_template.init_with_url("http://blorp/");
@@ -225,26 +224,6 @@ subr &phurl_h::get_subr_template_mutable(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void phurl_h::set_timeout_ms(uint32_t a_val)
-{
-        m_timeout_ms = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void phurl_h::set_completion_ratio(float a_ratio)
-{
-        m_completion_ratio = a_ratio;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 void phurl_h::add_host(const std::string a_host, uint16_t a_port)
 {
         // Setup host list
@@ -281,7 +260,9 @@ h_resp_t phurl_h::do_get(hconn &a_hconn,
 //: ----------------------------------------------------------------------------
 h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                                          const url_pmap_t &a_url_pmap, const subr &a_subr,
-                                         phurl_h_resp *a_phr)
+                                         phurl_h_resp *a_phr,
+                                         uint32_t a_timeout_ms,
+                                         float a_completion_ratio)
 {
         // Create request state if not already made
         phurl_h_resp *l_phr = a_phr;
@@ -310,9 +291,10 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
         }
         l_phr->m_requester_hconn = &a_hconn;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
-        l_phr->m_completion_ratio = m_completion_ratio;
+        l_phr->m_timeout_ms = a_timeout_ms;
+        l_phr->m_completion_ratio = a_completion_ratio;
         l_phr->m_create_resp_cb = s_create_resp;
-        if(m_timeout_ms)
+        if(l_phr->m_timeout_ms)
         {
                 // TODO set timeout
                 if(!a_hconn.m_t_hlx)
@@ -321,7 +303,7 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                 }
                 // TODO -cancel pending???
                 int32_t l_status;
-                l_status = add_timer(a_hconn, m_timeout_ms, phurl_h_resp::s_timeout_cb, l_phr, &(l_phr->m_timer));
+                l_status = add_timer(a_hconn, l_phr->m_timeout_ms, phurl_h_resp::s_timeout_cb, l_phr, &(l_phr->m_timer));
                 if(l_status != HLX_STATUS_OK)
                 {
                         return H_RESP_SERVER_ERROR;
