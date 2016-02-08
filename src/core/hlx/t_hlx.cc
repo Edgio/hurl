@@ -450,7 +450,6 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
         //           a_subr.m_host.c_str(), a_nconn.get_data());
-        ++m_stat.m_num_ups_conn_started;
         l_status = a_nconn.nc_run_state_machine(m_evr_loop,
                                                 nconn::NC_MODE_WRITE,
                                                 a_hconn.m_in_q,
@@ -659,11 +658,13 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_EOF:
                 {
+                        //NDBG_PRINT("CLEANUP.\n");
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
+                        //NDBG_PRINT("CLEANUP.\n");
                         ++(l_t_hlx->m_stat.m_num_errors);
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_ERROR;
@@ -802,11 +803,13 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_EOF:
                 {
+                        //NDBG_PRINT("CLEANUP.\n");
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
+                        //NDBG_PRINT("CLEANUP.\n");
                         ++(l_t_hlx->m_stat.m_num_errors);
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_ERROR;
@@ -1267,6 +1270,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                         //NDBG_PRINT("Returning NULL\n");
                         return STATUS_AGAIN;
                 }
+                ++m_stat.m_num_ups_conn_started;
                 ++m_stat.m_cur_ups_conn_count;
                 // Configure connection
                 l_status = config_conn(*l_nconn,

@@ -130,7 +130,9 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 }
                                 if(m_hmsg)
                                 {
+                                        bool l_ka = m_hmsg->m_supports_keep_alives;
                                         m_hmsg->clear();
+                                        m_hmsg->m_supports_keep_alives = l_ka;
                                 }
                                 if(m_in_q)
                                 {
@@ -178,6 +180,8 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         if(!m_nconn->is_accepting() &&
                             (m_out_q && !m_out_q->read_avail()))
                         {
+                                //NDBG_PRINT("m_hmsg: %p\n", m_hmsg);
+                                //if(m_hmsg) NDBG_PRINT("m_hmsg->m_supports_keep_alives: %d\n", m_hmsg->m_supports_keep_alives);
                                 if((m_hmsg != NULL) &&
                                    (m_hmsg->m_supports_keep_alives))
                                 {
@@ -232,7 +236,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
 int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_status)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN_MODE[%d] CONN_STATUS[%d]\n",
-        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_conn_mode, a_conn_status);
+        //                ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_conn_mode, a_conn_status);
         if(!m_subr)
         {
                 //NDBG_PRINT("Error no subrequest associated with upstream hconn mode: %d status: %d\n",

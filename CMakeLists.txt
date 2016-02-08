@@ -33,6 +33,7 @@ option(DEBUG_MODE       "Compile in debug mode." OFF)
 option(BUILD_TESTS      "Build the unit tests." ON)
 option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
 option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
+option(BUILD_SYMBOLS    "Build with Symbols" ON)
 option(BUILD_EFENCE     "Build with tcmalloc" OFF)
 option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
 option(BUILD_UDNS       "Build with udns (async dns support)" ON)
@@ -61,6 +62,7 @@ message("    Fortify Source:                            " "FORTIFY              
 message("    Build unit tests:                          " "BUILD_TESTS             " ${BUILD_TESTS})
 message("    Install path:                              " "INSTALL_PREFIX          " ${CMAKE_INSTALL_PREFIX})
 message("    Enable google cpu/heap profiler support:   " "BUILD_PROFILER          " ${BUILD_PROFILER})
+message("    Build Symbols                              " "BUILD_SYMBOLS           " ${BUILD_SYMBOLS})
 message("    Build with tcmalloc:                       " "BUILD_TCMALLOC          " ${BUILD_TCMALLOC})
 message("    Build with efence:                         " "BUILD_EFENCE            " ${BUILD_EFENCE})
 message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
@@ -249,7 +251,9 @@ if (DEBUG_MODE)
 else()
   add_definitions(-O2)
 endif()
-
+if (BUILD_SYMBOLS)
+  add_definitions(-ggdb)
+endif()
 
 # ------------------------------------------------------------------------------
 # Debian Package Support
