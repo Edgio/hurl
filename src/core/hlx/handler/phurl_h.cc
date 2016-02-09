@@ -53,11 +53,6 @@ hlx_resp::hlx_resp():
 //: ----------------------------------------------------------------------------
 hlx_resp::~hlx_resp()
 {
-        if(m_resp)
-        {
-                delete m_resp;
-                m_resp = NULL;
-        }
         if(m_subr)
         {
                 delete m_subr;
@@ -97,6 +92,21 @@ phurl_h_resp::~phurl_h_resp(void)
         {
                 if(*i_resp)
                 {
+                        if(m_requester_hconn && m_requester_hconn->m_t_hlx)
+                        {
+                                t_hlx *l_t_hlx = m_requester_hconn->m_t_hlx;
+                                resp *l_resp = (*i_resp)->m_resp;
+                                if(l_resp)
+                                {
+                                        if(l_resp->get_q())
+                                        {
+                                                l_t_hlx->release_nbq(l_resp->get_q());
+                                                l_resp->set_q(NULL);
+                                        }
+                                        l_t_hlx->release_resp((*i_resp)->m_resp);
+                                        (*i_resp)->m_resp = NULL;
+                                }
+                        }
                         delete *i_resp;
                         *i_resp = NULL;
                 }

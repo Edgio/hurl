@@ -233,7 +233,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
         l_status = init();
         if(l_status != STATUS_OK)
         {
-                NDBG_PRINT("Error performing init.\n");
+                //NDBG_PRINT("Error performing init.\n");
                 return STATUS_ERROR;
         }
         nconn *l_nconn = NULL;
@@ -246,13 +246,13 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
                         delete l_nconn;
                         l_nconn = NULL;
                 }
-                NDBG_PRINT("Error: performing config_conn\n");
+                //NDBG_PRINT("Error: performing config_conn\n");
                 return STATUS_ERROR;
         }
         hconn *l_hconn = get_hconn(a_lsnr.get_url_router(), HCONN_TYPE_CLIENT, false);
         if(!l_hconn)
         {
-                NDBG_PRINT("Error: performing get_hconn\n");
+                //NDBG_PRINT("Error: performing get_hconn\n");
                 return STATUS_ERROR;
         }
         l_nconn->set_data(l_hconn);
@@ -265,7 +265,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
                         delete l_nconn;
                         l_nconn = NULL;
                 }
-                NDBG_PRINT("Error performing nc_set_listening.\n");
+                //NDBG_PRINT("Error performing nc_set_listening.\n");
                 return STATUS_ERROR;
         }
         m_listening_nconn_list.push_back(l_nconn);
@@ -355,23 +355,9 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         //                a_subr.get_label().c_str(),
         //                &a_nconn);
         resp *l_resp = static_cast<resp *>(a_hconn.m_hmsg);
-        if(a_subr.get_detach_resp())
+        if(!get_from_pool_if_null(l_resp, m_resp_pool))
         {
-                if(!l_resp)
-                {
-                        l_resp = new resp();
-                }
-                else
-                {
-                        l_resp->clear();
-                }
-        }
-        else
-        {
-                if(!get_from_pool_if_null(l_resp, m_resp_pool))
-                {
-                        l_resp->clear();
-                }
+                l_resp->clear();
         }
         a_hconn.m_hmsg = l_resp;
 
@@ -964,7 +950,7 @@ int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
         l_status = l_new_nconn->nc_set_accepting(m_evr_loop, l_fd);
         if(l_status != STATUS_OK)
         {
-                NDBG_PRINT("Error: performing run_state_machine\n");
+                //NDBG_PRINT("Error: performing run_state_machine\n");
                 cleanup_hconn(*(static_cast<hconn *>(l_new_nconn->get_data())));
                 return STATUS_ERROR;
         }
@@ -1009,7 +995,7 @@ int32_t t_hlx::async_dns_init(void)
         l_status = fcntl(m_async_dns_fd, F_SETFL, O_NONBLOCK | O_RDWR);
         if (l_status == -1)
         {
-                NDBG_PRINT("Error fcntl(FD_CLOEXEC) failed: %s\n", strerror(errno));
+                //NDBG_PRINT("Error fcntl(FD_CLOEXEC) failed: %s\n", strerror(errno));
                 return STATUS_ERROR;
         }
         // Create fake connection object to work with hlx event handlers
@@ -1019,7 +1005,7 @@ int32_t t_hlx::async_dns_init(void)
         hconn *l_hconn = get_hconn(NULL, HCONN_TYPE_CLIENT, false);
         if(!l_hconn)
         {
-                NDBG_PRINT("Error: performing config_conn\n");
+                //NDBG_PRINT("Error: performing config_conn\n");
                 return STATUS_ERROR;
         }
         l_hconn->m_nconn = m_async_dns_nconn;
@@ -1567,6 +1553,34 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         }
         m_hconn_pool.release(&a_hconn);
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void t_hlx::release_resp(resp *a_resp)
+{
+        if(!a_resp)
+        {
+                return;
+        }
+        m_resp_pool.release(a_resp);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void t_hlx::release_nbq(nbq *a_nbq)
+{
+        if(!a_nbq)
+        {
+                return;
+        }
+        m_nbq_pool.release(a_nbq);
 }
 
 //: ----------------------------------------------------------------------------

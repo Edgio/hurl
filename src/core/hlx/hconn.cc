@@ -617,12 +617,9 @@ int32_t hconn::subr_error(uint16_t a_status)
         }
         if(l_detach_resp)
         {
-                if(m_hmsg)
-                {
-                        delete m_hmsg;
-                        m_hmsg = NULL;
-                }
                 m_subr = NULL;
+                m_hmsg = NULL;
+                m_in_q = NULL;
         }
         else
         {

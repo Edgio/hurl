@@ -87,6 +87,8 @@ public:
         int32_t cancel_timer(void *a_timer);
         void signal(void);
         int32_t cleanup_hconn(hconn &a_hconn);
+        void release_resp(resp *a_resp);
+        void release_nbq(nbq *a_nbq);
 
         // -------------------------------------------------
         // Public members
