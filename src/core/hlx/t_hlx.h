@@ -136,6 +136,22 @@ private:
         int32_t subr_try_start(subr &a_subr);
         int32_t subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
         int32_t subr_try_deq(void);
+
+        inline void subr_dequeue(void)
+        {
+                m_subr_list.pop_front();
+                --m_subr_list_size;
+        }
+        inline void subr_enqueue(subr &a_subr)
+        {
+                m_subr_list.push_back(&a_subr);
+                ++m_subr_list_size;
+        }
+        inline uint64_t subr_queue_size(void)
+        {
+                return m_subr_list_size;
+        }
+
         int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
 #ifdef ASYNC_DNS_SUPPORT
         int32_t async_dns_init(void);
@@ -155,6 +171,7 @@ private:
         scheme_t m_scheme;
         listening_nconn_list_t m_listening_nconn_list;
         subr_list_t m_subr_list;
+        uint64_t m_subr_list_size;
 
         hconn_pool_t m_hconn_pool;
         resp_pool_t m_resp_pool;

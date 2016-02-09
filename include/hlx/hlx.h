@@ -306,6 +306,7 @@ public:
         void set_num_threads(uint32_t a_num_threads);
         void set_num_parallel(uint32_t a_num_parallel);
         void set_num_reqs_per_conn(int32_t a_num_reqs_per_conn);
+        void set_max_concurrent_ups_per_host(int32_t a_max_concurrent_ups_per_host);
         void set_start_time_ms(uint64_t a_start_time_ms);
         void set_collect_stats(bool a_val);
         void set_timeout_ms(uint32_t a_val);

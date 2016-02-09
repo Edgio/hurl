@@ -35,11 +35,14 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn_pool::nconn_pool(uint32_t a_size):
+nconn_pool::nconn_pool(uint32_t a_size, int32_t a_max_concurrent_conn_per_label):
                        m_nconn_obj_pool(),
                        m_idle_conn_ncache(a_size),
                        m_initd(false),
-                       m_pool_size(a_size)
+                       m_pool_size(a_size),
+                       m_active_conn_map(),
+                       m_max_concurrent_conn_per_label(a_max_concurrent_conn_per_label)
+
 {
         //NDBG_PRINT("a_size: %d\n", a_size);
 }
@@ -103,11 +106,21 @@ nconn *nconn_pool::create_conn(scheme_t a_scheme)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *nconn_pool::get(scheme_t a_scheme)
+nconn *nconn_pool::get(const std::string &a_label, scheme_t a_scheme)
 {
         if(!m_initd)
         {
                 init();
+        }
+
+        //NDBG_PRINT("m_per_label_max_num: %d\n",m_max_concurrent_conn_per_label);
+        //if(m_active_conn_map.find(a_label) != m_active_conn_map.end())
+        //NDBG_PRINT("LABEL[%s]: size: %u\n",a_label.c_str(), m_active_conn_map[a_label]);
+        if((m_max_concurrent_conn_per_label > 0) &&
+           (m_active_conn_map.find(a_label) != m_active_conn_map.end()) &&
+            m_active_conn_map[a_label] >= (uint32_t)m_max_concurrent_conn_per_label)
+        {
+                return NULL;
         }
 
         //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: l_nconn: %p m_nconn_obj_pool.used_size() = %lu\n",
@@ -121,7 +134,6 @@ nconn *nconn_pool::get(scheme_t a_scheme)
                 // Evict from idle_conn_ncache
                 m_idle_conn_ncache.evict();
         }
-
         if(m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size)
         {
                 return NULL;
@@ -158,6 +170,9 @@ nconn *nconn_pool::get(scheme_t a_scheme)
                 m_nconn_obj_pool.add(l_nconn);
         }
 
+        l_nconn->set_label(a_label);
+        ++m_active_conn_map[a_label];
+
         //NDBG_PRINT("%sGET_CONNECTION%s: ERASED[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
         return l_nconn;
@@ -178,6 +193,7 @@ nconn *nconn_pool::get_idle(const std::string &a_label)
         nconn* l_nconn_lkp = m_idle_conn_ncache.get(a_label);
         if(l_nconn_lkp)
         {
+                ++m_active_conn_map[a_label];
                 return l_nconn_lkp;
         }
         return NULL;
@@ -198,6 +214,10 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
         {
                 //NDBG_PRINT("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
+        }
+        if(m_active_conn_map.find(a_nconn->get_label()) != m_active_conn_map.end())
+        {
+                --m_active_conn_map[a_nconn->get_label()];
         }
         id_t l_id = m_idle_conn_ncache.insert(a_nconn->get_label(), a_nconn);
         //NDBG_PRINT("%sADD_IDLE%s: size: %lu LABEL: %s ID: %u\n",
@@ -220,19 +240,16 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
         {
                 init();
         }
-
         if(!a_nconn)
         {
                 //NDBG_PRINT("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
-
         if(STATUS_OK != a_nconn->nc_cleanup())
         {
                 //NDBG_PRINT("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
-
         a_nconn->reset_stats();
         m_nconn_obj_pool.release(a_nconn);
         return STATUS_OK;
@@ -269,19 +286,20 @@ int32_t nconn_pool::release(nconn *a_nconn)
         {
                 init();
         }
-
         if(!a_nconn)
         {
                 //NDBG_PRINT("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
-
+        if(m_active_conn_map.find(a_nconn->get_label()) != m_active_conn_map.end())
+        {
+                --m_active_conn_map[a_nconn->get_label()];
+        }
         if(STATUS_OK != cleanup(a_nconn))
         {
                 //NDBG_PRINT("Error performing cleanup\n");
                 return STATUS_ERROR;
         }
-
         if(m_idle_conn_ncache.size() &&
            a_nconn->get_data())
         {
@@ -291,7 +309,6 @@ int32_t nconn_pool::release(nconn *a_nconn)
                 //           m_idle_conn_ncache.size(),
                 //           l_id);
         }
-
         return STATUS_OK;
 }
 

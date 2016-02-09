@@ -128,14 +128,15 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_t_run_thread(),
         m_stat(),
         m_t_conf(a_t_conf),
-        m_nconn_pool(1000000),
-        m_nconn_proxy_pool(a_t_conf->m_num_parallel),
+        m_nconn_pool(1000000, -1),
+        m_nconn_proxy_pool(a_t_conf->m_num_parallel, a_t_conf->m_max_concurrent_conn_per_label),
         m_stopped(true),
         m_start_time_s(0),
         m_evr_loop(NULL),
         m_scheme(SCHEME_TCP),
         m_listening_nconn_list(),
         m_subr_list(),
+        m_subr_list_size(0),
         m_hconn_pool(),
         m_resp_pool(),
         m_rqst_pool(),
@@ -181,7 +182,8 @@ t_hlx::~t_hlx()
                 {
                         delete l_subr;
                 }
-                m_subr_list.pop_front();
+                //m_subr_list.pop_front();
+                subr_dequeue();
         }
 #ifdef ASYNC_DNS_SUPPORT
         if(m_t_conf && m_t_conf->m_hlx && m_t_conf->m_hlx->get_nresolver())
@@ -282,7 +284,8 @@ int32_t t_hlx::subr_add(subr &a_subr)
         if(m_stopped)
         {
                 a_subr.set_state(subr::SUBR_STATE_QUEUED);
-                m_subr_list.push_back(&a_subr);
+                //m_subr_list.push_back(&a_subr);
+                subr_enqueue(a_subr);
                 a_subr.set_i_q(--(m_subr_list.end()));
         }
         else
@@ -292,7 +295,8 @@ int32_t t_hlx::subr_add(subr &a_subr)
                 if(l_status == STATUS_AGAIN)
                 {
                         a_subr.set_state(subr::SUBR_STATE_QUEUED);
-                        m_subr_list.push_back(&a_subr);
+                        //m_subr_list.push_back(&a_subr);
+                        subr_enqueue(a_subr);
                         a_subr.set_i_q(--(m_subr_list.end()));
                         return STATUS_OK;
                 }
@@ -479,7 +483,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
 nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router)
 {
         nconn *l_nconn;
-        l_nconn = m_nconn_pool.get(a_scheme);
+        l_nconn = m_nconn_pool.get("CLIENT", a_scheme);
         if(!l_nconn)
         {
                 //NDBG_PRINT("Error: performing m_nconn_pool.get\n");
@@ -1157,7 +1161,8 @@ int32_t t_hlx::async_dns_resolved_cb(const host_info *a_host_info, void *a_data)
         // Special handling for DUPE'd subr's
         if(l_subr->get_kind() == subr::SUBR_KIND_DUPE)
         {
-                l_t_hlx->m_subr_list.push_back(l_subr);
+                //l_t_hlx->m_subr_list.push_back(l_subr);
+                l_t_hlx->subr_enqueue(*l_subr);
                 l_subr->set_i_q(--(l_t_hlx->m_subr_list.end()));
         }
         l_t_hlx->subr_add(*l_subr);
@@ -1190,6 +1195,8 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 {
                         return STATUS_AGAIN;
                 }
+
+                // Check active connections per this label
 
                 nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
                 if(!l_nresolver)
@@ -1249,7 +1256,8 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                                         l_nconn_status.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
                                         l_error_cb(a_subr, l_nconn_status);
                                 }
-                                m_subr_list.pop_front();
+                                //m_subr_list.pop_front();
+                                subr_dequeue();
                                 a_subr.set_i_q(m_subr_list.end());
                                 return STATUS_ERROR;
                         }
@@ -1260,11 +1268,9 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
 #ifdef ASYNC_DNS_SUPPORT
                         }
 #endif
-
                 }
-
                 // Get new connection
-                l_nconn = m_nconn_proxy_pool.get(a_subr.get_scheme());
+                l_nconn = m_nconn_proxy_pool.get(a_subr.get_label(), a_subr.get_scheme());
                 if(!l_nconn)
                 {
                         //NDBG_PRINT("Returning NULL\n");
@@ -1363,7 +1369,6 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
         // Setup nconn
         l_nconn->set_data(l_hconn);
         l_nconn->set_read_cb(http_parse);
-        l_nconn->set_label(a_subr.get_label());
 
         // Setup hconn
         l_hconn->m_nconn = l_nconn;
@@ -1394,13 +1399,14 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::subr_try_deq(void)
 {
-        while(m_subr_list.size() &&
+        while(subr_queue_size() &&
               !m_stopped)
         {
                 subr *l_subr = m_subr_list.front();
                 if(!l_subr)
                 {
-                        m_subr_list.pop_front();
+                        //m_subr_list.pop_front();
+                        subr_dequeue();
                 }
                 else
                 {
@@ -1412,7 +1418,8 @@ int32_t t_hlx::subr_try_deq(void)
                                 {
                                         //NDBG_PRINT("POP'ing: host: %s\n",
                                         //           l_subr->get_label().c_str());
-                                        m_subr_list.pop_front();
+                                        //m_subr_list.pop_front();
+                                        subr_dequeue();
                                         l_subr->set_i_q(m_subr_list.end());
                                 }
                         }
@@ -1424,12 +1431,14 @@ int32_t t_hlx::subr_try_deq(void)
                         else if(l_status == STATUS_QUEUED_ASYNC_DNS)
                         {
                                 l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
-                                m_subr_list.pop_front();
+                                //m_subr_list.pop_front();
+                                subr_dequeue();
                                 l_subr->set_i_q(m_subr_list.end());
                         }
                         else
                         {
-                                m_subr_list.pop_front();
+                                //m_subr_list.pop_front();
+                                subr_dequeue();
                                 l_subr->set_i_q(m_subr_list.end());
                         }
                 }

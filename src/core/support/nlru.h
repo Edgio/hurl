@@ -62,6 +62,7 @@ public:
                         m_label_id_set_map(),
                         m_item_list_map(),
                         m_item_list(),
+                        m_item_list_size(0),
                         m_id_label_map(),
                         m_max_entries(a_max_entries),
                         m_delete_cb(NULL),
@@ -103,6 +104,7 @@ public:
                 id_t l_id = m_next_id++;
                 //printf("%s.%s.%d: a_label: %s --size: %lu a_new_entry: %p\n", __FILE__,__FUNCTION__,__LINE__, a_label.c_str(), size(), a_new_entry);
 
+                ++m_item_list_size;
                 m_item_list.push_front(std::make_pair(l_id, a_new_entry));
                 label_id_set_map_t::iterator i_set = m_label_id_set_map.find(a_label);
                 if(i_set == m_label_id_set_map.end())
@@ -119,7 +121,7 @@ public:
                 m_id_label_map[l_id] = a_label;
 
                 //printf("%s.%s.%d: ID: %d, m_item_list.size(): %d m_max_entries: %d\n", __FILE__,__FUNCTION__,__LINE__,(int)l_id, (int)m_item_list.size(), (int)m_max_entries);
-                if (m_item_list.size() > m_max_entries)
+                if (m_item_list_size > m_max_entries)
                 {
                         //printf("Evict\n");
                         evict();
@@ -172,7 +174,7 @@ public:
         // ---------------------------------------
         uint64_t size(void)
         {
-                return m_item_list.size();
+                return m_item_list_size;
         };
 
         // ---------------------------------------
@@ -212,6 +214,7 @@ public:
                         m_label_id_set_map.erase(i_set);
                 }
 
+                --m_item_list_size;
                 m_item_list.erase(i_id->second);
                 m_item_list_map.erase(i_id);
                 //printf("%s.%s.%d: delete -i_label: %u\n", __FILE__,__FUNCTION__,__LINE__,(unsigned int)i_label->first);
@@ -277,6 +280,7 @@ private:
         label_id_set_map_t m_label_id_set_map;
         item_list_map_t m_item_list_map;
         item_list_t m_item_list;
+        uint64_t m_item_list_size;
         id_label_map_t m_id_label_map;
 
         uint32_t m_max_entries;

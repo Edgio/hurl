@@ -982,6 +982,7 @@ int main(int argc, char** argv)
         l_hlx->set_num_threads(l_max_threads);
         l_hlx->set_num_parallel(l_start_parallel);
         l_hlx->set_num_reqs_per_conn(1);
+        l_hlx->set_max_concurrent_ups_per_host(-1);
 
         // -------------------------------------------------
         // Subrequest settings

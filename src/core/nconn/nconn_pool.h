@@ -38,6 +38,7 @@
 namespace ns_hlx {
 
 typedef nlru <nconn> idle_conn_lru_t;
+typedef std::map <std::string, uint32_t> active_conn_map_t;
 
 //: ----------------------------------------------------------------------------
 //: \class: nconn_pool
@@ -53,9 +54,9 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint32_t a_size);
+        nconn_pool(uint32_t a_size, int32_t a_max_concurrent_conn_per_label = -1);
         ~nconn_pool();
-        nconn * get(scheme_t a_scheme);
+        nconn * get(const std::string &a_label, scheme_t a_scheme);
         nconn * get_idle(const std::string &a_label);
         nconn *create_conn(scheme_t a_scheme);
         int32_t add_idle(nconn *a_nconn);
@@ -85,6 +86,8 @@ private:
         idle_conn_lru_t m_idle_conn_ncache;
         bool m_initd;
         int32_t m_pool_size;
+        active_conn_map_t m_active_conn_map;
+        int32_t m_max_concurrent_conn_per_label;
 };
 
 } //namespace ns_hlx {

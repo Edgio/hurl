@@ -399,6 +399,16 @@ void hlx::set_num_reqs_per_conn(int32_t a_num_reqs_per_conn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void hlx::set_max_concurrent_ups_per_host(int32_t a_max_concurrent_ups_per_host)
+{
+        m_t_conf->m_max_concurrent_conn_per_label = a_max_concurrent_ups_per_host;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void hlx::set_start_time_ms(uint64_t a_start_time_ms)
 {
         m_start_time_ms = a_start_time_ms;
