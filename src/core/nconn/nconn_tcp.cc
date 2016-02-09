@@ -558,7 +558,10 @@ int32_t nconn_tcp::nccleanup(void)
         // Shut down connection
         //NDBG_PRINT("CLOSE[%d] %s--CONN--%s last_state: %d\n", m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_tcp_state);
         //NDBG_PRINT_BT();
-        close(m_fd);
+        if(m_fd > 0)
+        {
+                close(m_fd);
+        }
         m_fd = -1;
 
         // Reset all the values

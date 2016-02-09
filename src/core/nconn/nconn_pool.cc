@@ -54,19 +54,10 @@ nconn_pool::nconn_pool(uint32_t a_size, int32_t a_max_concurrent_conn_per_label)
 //: ----------------------------------------------------------------------------
 nconn_pool::~nconn_pool(void)
 {
-        // TODO rethink this...
-#if 0
-        for(nconn_obj_pool_t::obj_idx_set_t::iterator i_idx = m_nconn_obj_pool.m_used_idx_set.begin();
-                        i_idx != m_nconn_obj_pool.m_used_idx_set.end();
-                        ++i_idx)
+        while(m_idle_conn_ncache.size())
         {
-                int32_t l_status = cleanup(m_nconn_obj_pool.m_obj_vec[*i_idx]);
-                if(l_status != STATUS_OK)
-                {
-                        NDBG_PRINT("Error performing cleanup\n");
-                }
+                m_idle_conn_ncache.evict();
         }
-#endif
 }
 
 //: ----------------------------------------------------------------------------
