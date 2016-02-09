@@ -544,27 +544,32 @@ int32_t hconn::handle_req(void)
 //: ----------------------------------------------------------------------------
 bool hconn::subr_complete(void)
 {
-        subr *l_subr = m_subr;
-        nconn *l_nconn = m_nconn;
         resp *l_resp = static_cast<resp *>(m_hmsg);
-
+        if(!l_resp || !m_subr || !m_nconn)
+        {
+                return true;
+        }
         bool l_complete = false;
         if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
         {
                 m_subr->set_end_time_ms(get_time_ms());
         }
-        subr::completion_cb_t l_completion_cb = l_subr->get_completion_cb();
+        // Get vars -completion -can delete subr object
+        bool l_connect_only = m_subr->get_connect_only();
+        bool l_detach_resp = m_subr->get_detach_resp();
+        subr::subr_kind_t l_kind = m_subr->get_kind();
+        subr::completion_cb_t l_completion_cb = m_subr->get_completion_cb();
         // Call completion handler
         if(l_completion_cb)
         {
-                l_completion_cb(*l_subr, *l_nconn, *l_resp);
+                l_completion_cb(*m_subr, *m_nconn, *l_resp);
         }
         // Connect only
-        if(l_subr->get_connect_only())
+        if(l_connect_only)
         {
                 l_complete = true;
         }
-        if(m_subr->get_detach_resp())
+        if(l_detach_resp)
         {
                 m_subr = NULL;
                 m_hmsg = NULL;
@@ -572,7 +577,7 @@ bool hconn::subr_complete(void)
         }
         else
         {
-                if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
+                if(l_kind != subr::SUBR_KIND_DUPE)
                 {
                         delete m_subr;
                         m_subr = NULL;
@@ -588,7 +593,6 @@ bool hconn::subr_complete(void)
 //: ----------------------------------------------------------------------------
 int32_t hconn::subr_error(uint16_t a_status)
 {
-        nconn *l_nconn = m_nconn;
         m_status_code = a_status;
         if(!m_subr)
         {
@@ -599,18 +603,19 @@ int32_t hconn::subr_error(uint16_t a_status)
         {
                 m_subr->set_end_time_ms(get_time_ms());
         }
-        if(l_nconn && l_nconn->get_collect_stats_flag())
+        if(m_nconn && m_nconn->get_collect_stats_flag())
         {
-                l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
-                l_nconn->reset_stats();
+                m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));
+                m_nconn->reset_stats();
         }
+        bool l_detach_resp = m_subr->get_detach_resp();
+        subr::subr_kind_t l_kind = m_subr->get_kind();
         subr::error_cb_t l_error_cb = m_subr->get_error_cb();
         if(l_error_cb)
         {
-                l_error_cb(*(m_subr), *l_nconn);
+                l_error_cb(*(m_subr), *m_nconn);
         }
-
-        if(m_subr->get_detach_resp())
+        if(l_detach_resp)
         {
                 if(m_hmsg)
                 {
@@ -621,7 +626,7 @@ int32_t hconn::subr_error(uint16_t a_status)
         }
         else
         {
-                if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
+                if(l_kind != subr::SUBR_KIND_DUPE)
                 {
                         delete m_subr;
                         m_subr = NULL;
