@@ -1506,7 +1506,10 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         // Add back to free list
         if(a_hconn.m_type == HCONN_TYPE_CLIENT)
         {
-                --m_stat.m_cur_cln_conn_count;
+                if(m_stat.m_cur_cln_conn_count > 0)
+                {
+                        --m_stat.m_cur_cln_conn_count;
+                }
                 ++m_stat.m_num_cln_conn_completed;
                 if(STATUS_OK != m_nconn_pool.release(a_hconn.m_nconn))
                 {
@@ -1522,7 +1525,10 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         }
         else if(a_hconn.m_type == HCONN_TYPE_UPSTREAM)
         {
-                --m_stat.m_cur_ups_conn_count;
+                if(m_stat.m_cur_ups_conn_count > 0)
+                {
+                        --m_stat.m_cur_ups_conn_count;
+                }
                 ++m_stat.m_num_ups_conn_completed;
                 if(STATUS_OK != m_nconn_proxy_pool.release(a_hconn.m_nconn))
                 {
