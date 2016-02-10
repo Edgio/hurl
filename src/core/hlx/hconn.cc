@@ -182,12 +182,12 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         {
                                 //NDBG_PRINT("m_hmsg: %p\n", m_hmsg);
                                 //if(m_hmsg) NDBG_PRINT("m_hmsg->m_supports_keep_alives: %d\n", m_hmsg->m_supports_keep_alives);
+                                m_out_q->reset_write();
                                 if((m_hmsg != NULL) &&
                                    (m_hmsg->m_supports_keep_alives))
                                 {
                                         return nconn::NC_STATUS_BREAK;
                                 }
-
                                 // No data left to send
                                 return nconn::NC_STATUS_EOF;
                         }

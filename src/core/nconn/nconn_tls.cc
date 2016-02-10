@@ -635,7 +635,7 @@ int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                 if(l_tls_error == SSL_ERROR_WANT_READ)
                 {
                         if (0 != a_evr_loop->mod_fd(m_fd,
-                                                    EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET,
+                                                    EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
                                                     this))
                         {
                                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
@@ -646,7 +646,7 @@ int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                 else if(l_tls_error == SSL_ERROR_WANT_WRITE)
                 {
                         if (0 != a_evr_loop->mod_fd(m_fd,
-                                                    EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
+                                                    EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
                                                     this))
                         {
                                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
