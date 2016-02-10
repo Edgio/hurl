@@ -1515,8 +1515,8 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 {
                         return STATUS_ERROR;
                 }
+                m_stat.m_cur_cln_conn_count = m_nconn_pool.num_idle();
                 a_hconn.m_nconn = NULL;
-
                 if(a_hconn.m_hmsg)
                 {
                         m_rqst_pool.release(static_cast<rqst *>(a_hconn.m_hmsg));
@@ -1525,15 +1525,13 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         }
         else if(a_hconn.m_type == HCONN_TYPE_UPSTREAM)
         {
-                if(m_stat.m_cur_ups_conn_count > 0)
-                {
-                        --m_stat.m_cur_ups_conn_count;
-                }
                 ++m_stat.m_num_ups_conn_completed;
                 if(STATUS_OK != m_nconn_proxy_pool.release(a_hconn.m_nconn))
                 {
                         return STATUS_ERROR;
                 }
+                m_stat.m_cur_ups_conn_count = m_nconn_proxy_pool.num_idle();
+                a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {
                         m_resp_pool.release(static_cast<resp *>(a_hconn.m_hmsg));
