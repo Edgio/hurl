@@ -178,7 +178,7 @@ float phurl_h_resp::get_done_ratio(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h_resp::s_timeout_cb(void *a_data)
+int32_t phurl_h_resp::s_timeout_cb(void *a_ctx, void *a_data)
 {
         phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_data);
         if(!l_phr)

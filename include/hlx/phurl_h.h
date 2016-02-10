@@ -98,7 +98,7 @@ public:
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static int32_t s_timeout_cb(void *a_data);
+        static int32_t s_timeout_cb(void *a_ctx, void *a_data);
 
         // -------------------------------------------------
         // Public members

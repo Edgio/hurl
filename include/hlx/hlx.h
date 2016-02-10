@@ -959,7 +959,7 @@ int32_t queue_resp(hconn &a_hconn);
 void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str);
 
 // Timer by hconn
-typedef int32_t (*timer_cb_t)(void *);
+typedef int32_t (*timer_cb_t)(void *, void *);
 int32_t add_timer(hconn &a_hconn, uint32_t a_ms,
                   timer_cb_t a_cb, void *a_data,
                   void **ao_timer);

@@ -151,7 +151,7 @@ int32_t evr_loop::run(void)
                         if(l_timer_event->m_state != EVR_TIMER_CANCELLED)
                         {
                                 //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer_event,l_now_ms);
-                                l_timer_event->m_timer_cb(l_timer_event->m_data);
+                                l_timer_event->m_timer_cb(l_timer_event->m_ctx, l_timer_event->m_data);
                         }
                         //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer_event);
                         delete l_timer_event;
@@ -281,10 +281,12 @@ int32_t evr_loop::del_fd(int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb, void *a_data, evr_timer_event_t **ao_timer)
+int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb,
+                            void *a_ctx, void *a_data,
+                            evr_timer_event_t **ao_timer)
 {
         evr_timer_event_t *l_timer_event = new evr_timer_event_t();
-
+        l_timer_event->m_ctx = a_ctx;
         l_timer_event->m_data = a_data;
         l_timer_event->m_state = EVR_TIMER_ACTIVE;
         l_timer_event->m_time_ms = get_time_ms() + a_time_ms;

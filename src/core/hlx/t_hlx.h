@@ -104,8 +104,8 @@ public:
         static int32_t evr_file_writeable_cb(void *a_data);
         static int32_t evr_file_readable_cb(void *a_data);
         static int32_t evr_file_error_cb(void *a_data);
-        static int32_t evr_file_timeout_cb(void *a_data);
-        static int32_t evr_timer_cb(void *a_data);
+        static int32_t evr_file_timeout_cb(void *a_ctx, void *a_data);
+        static int32_t evr_timer_cb(void *a_ctx, void *a_data);
 
         // Resolver callback
 #ifdef ASYNC_DNS_SUPPORT

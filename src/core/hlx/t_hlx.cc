@@ -428,7 +428,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         }
         l_status = m_evr_loop->add_timer(a_subr.get_timeout_ms(),
                                          evr_file_timeout_cb,
-                                         &a_nconn,
+                                         this, &a_nconn,
                                          &(a_hconn.m_timer_obj));
         if(l_status != STATUS_OK)
         {
@@ -666,9 +666,8 @@ done:
         // Add idle timeout
         if(!l_hconn->m_timer_obj)
         {
-                l_t_hlx->m_evr_loop->add_timer(l_timeout_ms,
-                                               evr_file_timeout_cb,
-                                               l_nconn,
+                l_t_hlx->m_evr_loop->add_timer(l_timeout_ms, evr_file_timeout_cb,
+                                               l_t_hlx, l_nconn,
                                                &(l_hconn->m_timer_obj));
         }
         return STATUS_OK;
@@ -811,9 +810,8 @@ done:
         // Add idle timeout
         if(!l_hconn->m_timer_obj)
         {
-                l_t_hlx->m_evr_loop->add_timer(l_timeout_ms,
-                                               evr_file_timeout_cb,
-                                               l_nconn,
+                l_t_hlx->m_evr_loop->add_timer(l_timeout_ms, evr_file_timeout_cb,
+                                               l_t_hlx, l_nconn,
                                                &(l_hconn->m_timer_obj));
         }
         return STATUS_OK;
@@ -824,7 +822,7 @@ done:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_hlx::evr_file_timeout_cb(void *a_data)
+int32_t t_hlx::evr_file_timeout_cb(void *a_ctx, void *a_data)
 {
         //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
@@ -868,7 +866,7 @@ int32_t t_hlx::evr_file_timeout_cb(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_hlx::evr_timer_cb(void *a_data)
+int32_t t_hlx::evr_timer_cb(void *a_ctx, void *a_data)
 {
         //NDBG_PRINT("%sTIMER%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         if(!a_data)
@@ -1088,6 +1086,7 @@ int32_t t_hlx::async_dns_lookup(const std::string &a_host, uint16_t a_port, subr
         {
                 m_evr_loop->add_timer(1000,                     // Timeout ms
                                       evr_file_timeout_cb,      // timeout cb
+                                      NULL,                     // ctx * (unused)
                                       m_async_dns_nconn,        // data *
                                       &m_async_dns_timer_obj);  // timer obj
         }
@@ -1744,7 +1743,8 @@ int32_t t_hlx::add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb,
         evr_timer_event_t *l_t = NULL;
         int32_t l_status;
         l_status = m_evr_loop->add_timer(a_time_ms, a_timer_cb,
-                                         a_data, &l_t);
+                                         this, a_data,
+                                         &l_t);
         if(l_status != STATUS_OK)
         {
                 return STATUS_ERROR;
