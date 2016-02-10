@@ -679,7 +679,7 @@ uint16_t get_status_code(subr &a_subr)
 {
         if(!a_subr.get_hconn())
         {
-                return HTTP_STATUS_INTERNAL_SERVER_ERROR;
+                return a_subr.get_fallback_status_code();
         }
         return a_subr.get_hconn()->m_status_code;
 }

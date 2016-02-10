@@ -83,7 +83,8 @@ subr::subr(void):
         m_tls_verify(false),
         m_tls_sni(false),
         m_tls_self_ok(false),
-        m_tls_no_host_check(false)
+        m_tls_no_host_check(false),
+        m_fallback_status_code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
 {
 }
 
@@ -135,7 +136,8 @@ subr::subr(const subr &a_subr):
         m_tls_verify(a_subr.m_tls_verify),
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
-        m_tls_no_host_check(a_subr.m_tls_no_host_check)
+        m_tls_no_host_check(a_subr.m_tls_no_host_check),
+        m_fallback_status_code(a_subr.m_fallback_status_code)
 {
 }
 
@@ -566,6 +568,16 @@ const std::string &subr::get_label(void)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+http_status_t subr::get_fallback_status_code(void)
+{
+        return m_fallback_status_code;
+}
+
+//: ----------------------------------------------------------------------------
 //:                                  Setters
 //: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
@@ -894,6 +906,16 @@ void subr::set_tls_self_ok(bool a_val)
 void subr::set_tls_no_host_check(bool a_val)
 {
         m_tls_no_host_check = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_fallback_status_code(http_status_t a_status)
+{
+        m_fallback_status_code = a_status;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1298,6 +1320,7 @@ int32_t subr::cancel(void)
         {
                 // Delete from queue
                 *m_i_q = NULL;
+                m_fallback_status_code = HTTP_STATUS_GATEWAY_TIMEOUT;
                 bump_num_completed();
                 bump_num_requested();
                 if(m_error_cb)
@@ -1322,6 +1345,7 @@ int32_t subr::cancel(void)
                 {
                         l_job->m_cb = NULL;
                 }
+                m_fallback_status_code = HTTP_STATUS_GATEWAY_TIMEOUT;
                 bump_num_requested();
                 bump_num_completed();
                 if(m_error_cb)

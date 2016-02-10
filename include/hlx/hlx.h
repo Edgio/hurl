@@ -746,6 +746,7 @@ public:
         bool get_tls_self_ok(void) const;
         bool get_tls_no_host_check(void) const;
         const std::string &get_label(void);
+        http_status_t get_fallback_status_code(void);
 
         // Setters
         void set_state(subr_state_t a_state);
@@ -780,6 +781,7 @@ public:
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
         void set_tls_no_host_check(bool a_val);
+        void set_fallback_status_code(http_status_t a_status);
 
         // Request Parts
         // Getters
@@ -873,6 +875,7 @@ private:
         bool m_tls_sni;
         bool m_tls_self_ok;
         bool m_tls_no_host_check;
+        http_status_t m_fallback_status_code;
 };
 
 //: ----------------------------------------------------------------------------
