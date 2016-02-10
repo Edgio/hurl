@@ -1242,9 +1242,6 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                                         l_nconn_status.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
                                         l_error_cb(a_subr, l_nconn_status);
                                 }
-                                //m_subr_list.pop_front();
-                                subr_dequeue();
-                                a_subr.set_i_q(m_subr_list.end());
                                 return STATUS_ERROR;
                         }
                         else
@@ -1391,7 +1388,6 @@ int32_t t_hlx::subr_try_deq(void)
                 subr *l_subr = m_subr_list.front();
                 if(!l_subr)
                 {
-                        //m_subr_list.pop_front();
                         subr_dequeue();
                 }
                 else
@@ -1404,7 +1400,6 @@ int32_t t_hlx::subr_try_deq(void)
                                 {
                                         //NDBG_PRINT("POP'ing: host: %s\n",
                                         //           l_subr->get_label().c_str());
-                                        //m_subr_list.pop_front();
                                         subr_dequeue();
                                         l_subr->set_i_q(m_subr_list.end());
                                 }
@@ -1417,13 +1412,11 @@ int32_t t_hlx::subr_try_deq(void)
                         else if(l_status == STATUS_QUEUED_ASYNC_DNS)
                         {
                                 l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
-                                //m_subr_list.pop_front();
                                 subr_dequeue();
                                 l_subr->set_i_q(m_subr_list.end());
                         }
                         else
                         {
-                                //m_subr_list.pop_front();
                                 subr_dequeue();
                                 l_subr->set_i_q(m_subr_list.end());
                         }
