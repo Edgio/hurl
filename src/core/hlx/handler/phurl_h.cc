@@ -294,6 +294,7 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
         {
                 subr &l_subr = create_subr(a_hconn, a_subr);
                 l_subr.set_host(i_host->m_host);
+                l_subr.set_port(i_host->m_port);
                 l_subr.reset_label();
                 l_subr.set_data(l_phr);
 
