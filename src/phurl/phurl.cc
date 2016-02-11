@@ -994,16 +994,15 @@ int main(int argc, char** argv)
 
         // Setup default headers before the user
         l_subr->set_header("User-Agent", "Verizon Digital Media Parallel Curl phurl ");
-        l_subr->set_header("Accept", "*/*");
+        //l_subr->set_header("Accept", "*/*");
         //l_hlx->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
         //l_hlx->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
         //l_hlx->set_header("x-select-backend", "self");
         //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
-        l_subr->set_header("Connection", "keep-alive");
         l_subr->set_completion_cb(broadcast_h::s_completion_cb);
         l_subr->set_error_cb(broadcast_h::s_error_cb);
-        l_subr->set_keepalive(true);
+        //l_subr->set_keepalive(true);
 
         // -------------------------------------------
         // Get args...

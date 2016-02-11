@@ -204,7 +204,6 @@ phurl_h::phurl_h(void):
         m_subr_template.set_error_cb(s_error_cb);
         m_subr_template.set_header("User-Agent", "hlx");
         m_subr_template.set_header("Accept", "*/*");
-        m_subr_template.set_header("Connection", "keep-alive");
         m_subr_template.set_keepalive(true);
         m_subr_template.set_save(true);
         m_subr_template.set_detach_resp(true);
