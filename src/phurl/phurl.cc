@@ -296,6 +296,7 @@ public:
         static int32_t s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn,
                                        ns_hlx::resp &a_resp);
         static int32_t s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn);
+        static int32_t s_create_resp(ns_hlx::phurl_h_resp *a_phr);
 };
 
 //: ----------------------------------------------------------------------------
@@ -310,10 +311,9 @@ int32_t broadcast_h::do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
         {
                 return HLX_STATUS_ERROR;
         }
-
         // Create request state if not already made
         a_phr->m_phurl_h = this;
-
+        a_phr->m_create_resp_cb = broadcast_h::s_create_resp;
         for(phurl_host_list_t::const_iterator i_host = a_host_list.begin(); i_host != a_host_list.end(); ++i_host)
         {
                 // Make subr
@@ -520,6 +520,16 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
         l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
         if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
         return s_done_check(a_subr, l_phr);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t broadcast_h::s_create_resp(ns_hlx::phurl_h_resp *a_phr)
+{
+        return 0;
 }
 
 //: ----------------------------------------------------------------------------
