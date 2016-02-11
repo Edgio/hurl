@@ -77,7 +77,7 @@ phurl_h_resp::phurl_h_resp(uint32_t a_timeout_ms, float a_completion_ratio) :
         m_completion_ratio(a_completion_ratio),
         m_delete(true),
         m_done(false),
-        m_create_resp_cb(NULL)
+        m_create_resp_cb(phurl_h::s_create_resp)
 {
 }
 
@@ -289,7 +289,6 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
         if(!l_phr)
         {
                 l_phr = new phurl_h_resp();
-                l_phr->m_phurl_h = this;
         }
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
@@ -309,11 +308,13 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                         return H_RESP_SERVER_ERROR;
                 }
         }
+        l_phr->m_phurl_h = this;
         l_phr->m_requester_hconn = &a_hconn;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
         l_phr->m_timeout_ms = a_timeout_ms;
+
         l_phr->m_completion_ratio = a_completion_ratio;
-        l_phr->m_create_resp_cb = s_create_resp;
+
         if(l_phr->m_timeout_ms)
         {
                 // TODO set timeout
