@@ -623,6 +623,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                     (i_h_i < l_num_per) && (i_h != a_settings.m_host_list->end());
                     ++i_h_i, ++i_h)
                 {
+                        //printf("%s.%s.%d: PUSHING: host: %s\n", __FILE__,__FUNCTION__,__LINE__,i_h->m_host.c_str());
                         l_host_list.push_back(*i_h);
                 }
                 ns_hlx::phurl_h_resp *l_phr = new ns_hlx::phurl_h_resp();

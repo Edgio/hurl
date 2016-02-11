@@ -1442,9 +1442,11 @@ void *t_hlx::t_run(void *a_nothing)
         }
         m_stopped = false;
 
+        // Reset stats...
+        m_stat.clear();
+
         // Set start time
         m_start_time_s = get_time_s();
-
         // TODO Test -remove
         //uint64_t l_last_time_ms = get_time_ms();
         //uint64_t l_num_run = 0;

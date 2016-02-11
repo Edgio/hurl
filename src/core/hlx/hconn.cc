@@ -315,18 +315,30 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 }
                                 m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
                                 m_subr->bump_num_completed();
+                                bool l_hmsg_keep_alive = false;
+                                if(m_hmsg)
+                                {
+                                        l_hmsg_keep_alive = m_hmsg->m_supports_keep_alives;
+                                }
+                                bool l_nconn_can_reuse = m_nconn->can_reuse();
                                 bool l_keepalive = m_subr->get_keepalive();
                                 bool l_complete = subr_complete();
+                                //NDBG_PRINT("l_hmsg_keep_alive:     %d\n", l_hmsg_keep_alive);
+                                //NDBG_PRINT("l_keepalive:           %d\n", l_keepalive);
+                                //NDBG_PRINT("l_complete:            %d\n", l_complete);
+                                //NDBG_PRINT("m_nconn->can_reuse():  %d\n", l_nconn_can_reuse);
                                 if(l_complete ||
-                                   !m_nconn->can_reuse() ||
+                                   !l_nconn_can_reuse ||
                                    !l_keepalive ||
-                                   ((m_hmsg != NULL) && (!m_hmsg->m_supports_keep_alives)))
+                                   !l_hmsg_keep_alive)
                                 {
                                         //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d m_subr->get_keepalive(): %d.\n",
-                                        //                l_complete, m_nconn->can_reuse(),
-                                        //                m_subr->get_keepalive());
+                                        //                l_complete, l_nconn_can_reuse,
+                                        //                l_keepalive);
+                                        //NDBG_PRINT("EOF\n");
                                         return nconn::NC_STATUS_EOF;
                                 }
+                                //NDBG_PRINT("IDLE\n");
                                 return nconn::NC_STATUS_IDLE;
                         }
                         //NDBG_PRINT("Error: nc_run_state_machine.\n");
@@ -547,6 +559,7 @@ bool hconn::subr_complete(void)
         resp *l_resp = static_cast<resp *>(m_hmsg);
         if(!l_resp || !m_subr || !m_nconn)
         {
+                //NDBG_PRINT("COMPLETE\n");
                 return true;
         }
         bool l_complete = false;
@@ -567,6 +580,7 @@ bool hconn::subr_complete(void)
         // Connect only
         if(l_connect_only)
         {
+                //NDBG_PRINT("COMPLETE\n");
                 l_complete = true;
         }
         if(l_detach_resp)
