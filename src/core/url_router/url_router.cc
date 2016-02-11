@@ -176,14 +176,14 @@ static inline int32_t string_diff(const std::string &a1, const std::string &a2)
         const char *l_d1 = a1.data();
         const char *l_d2 = a2.data();
         uint32_t l_d2_len = a2.length();
-
-        const char * o = l_d1;
-        while ( *l_d1 == *l_d2 && l_d2_len-- > 0 )
+        const char *l_o = l_d1;
+        while ( (*l_d1 == *l_d2) &&
+                (l_d2_len-- > 0) )
         {
                 l_d1++;
                 l_d2++;
         }
-        return l_d1 - o;
+        return l_d1 - l_o;
 }
 
 //: ----------------------------------------------------------------------------
@@ -200,12 +200,9 @@ static inline int32_t pattern_diff(const pattern_t &a1, const pattern_t &a2)
             i_a1 != a1.end() && i_a2 != a2.end();
             ++i_a1, ++i_a2)
         {
-
                 //NDBG_PRINT("Checking: %s :: %s\n",
                 //           i_a1->m_str.c_str(), i_a2->m_str.c_str());
-
                 int32_t l_diff = string_diff(i_a1->m_str, i_a2->m_str);
-
                 //NDBG_PRINT("Diff:     %d\n", l_diff);
                 if((l_diff > 0) &&
                    ((uint32_t)l_diff) != i_a1->m_str.length())
@@ -247,7 +244,6 @@ static inline pattern_t pattern_sub(const pattern_t &a_pattern,
                                     uint32_t a_offset,
                                     uint32_t a_len)
 {
-
         //NDBG_PRINT("%sSUB%s: a_pattern: %s\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
         //           pattern_str(a_pattern).c_str());
@@ -255,7 +251,6 @@ static inline pattern_t pattern_sub(const pattern_t &a_pattern,
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_offset);
         //NDBG_PRINT("%sSUB%s: a_len:     %u\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_len);
-
         pattern_t l_retval;
         bool l_found = (a_offset == 0);
         uint32_t l_off = 0;
@@ -312,11 +307,9 @@ static inline pattern_t pattern_sub(const pattern_t &a_pattern,
                         break;
                 }
         }
-
         //NDBG_PRINT("%sSUB%s: l_retval:  %s\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
         //           pattern_str(l_retval).c_str());
-
         return l_retval;
 }
 
@@ -371,6 +364,8 @@ public:
         edge *append_edge(node *a_node, const pattern_t &a_pattern);
         void append_edge(edge *a_edge);
         const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
+        int32_t collision_test(pattern_t a_pattern);
+        void display_trie(uint32_t a_indent);
 
         // -------------------------------------------------
         // Public members
@@ -436,14 +431,12 @@ private:
 //: ----------------------------------------------------------------------------
 node *edge::branch(uint32_t a_offset)
 {
-
         //NDBG_PRINT("%sBRANCH%s: m_pattern:        %s\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
         //           pattern_str(m_pattern).c_str());
         //NDBG_PRINT("%sBRANCH%s: a_pattern_offset: %u\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
         //           a_offset);
-
         // Create new node starting at pattern offset
         node *l_new_child = new node();
 
@@ -452,7 +445,6 @@ node *edge::branch(uint32_t a_offset)
                                                 a_offset,
                                                 pattern_len(m_pattern)),
                                     l_new_child);
-
         // Migrate child edges to new node
         for(edge_list_t::const_iterator i_edge = m_child->m_edge_list.begin();
             i_edge != m_child->m_edge_list.end();
@@ -461,28 +453,20 @@ node *edge::branch(uint32_t a_offset)
                 l_new_child->append_edge(*i_edge);
         }
         m_child->m_edge_list.clear();
-
         // Migrate the endpoint
         l_new_child->m_endpoint = m_child->m_endpoint;
         m_child->m_endpoint = 0;
-
         // Migrate the data
         l_new_child->m_data = m_child->m_data;
         m_child->m_data = NULL;
-
         // Append edge to old child
         m_child->append_edge(l_new_edge);
-
         // Truncate original edge pattern
-
         m_pattern = pattern_sub(m_pattern, 0, a_offset);
-
         //NDBG_PRINT("%sBRANCH%s: m_pattern:        %s\n",
         //           ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
         //           pattern_str(m_pattern).c_str());
-
         return l_new_child;
-
 }
 
 //: ----------------------------------------------------------------------------
@@ -816,6 +800,19 @@ convert_path_to_pattern_done:
 //: ----------------------------------------------------------------------------
 node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
 {
+        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%s: a_path%s: %s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, (pattern_str(a_pattern)).c_str());
+        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        // Test for collisions
+        if(collision_test(a_pattern) != 0)
+        {
+                return NULL;
+        }
+        //NDBG_PRINT("%s: PASSED %s\n",
+        //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
         int32_t l_status;
 
         // length of common prefix
@@ -824,27 +821,19 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         // common edge
         edge *l_common_edge = NULL;
 
-        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n",
-        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-        //NDBG_PRINT("%s: a_path%s: %s\n",
-        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, (pattern_str(a_pattern)).c_str());
-        //NDBG_PRINT("%s: ---------------------------------------------------------- :%s\n",
-        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-
         l_status = find_longest_common_prefix(a_pattern, l_prefix_len, &l_common_edge);
         if(l_status != 0)
         {
                 //printf("Error performing find_longest_common_prefix\n");
                 return NULL;
         }
-
         //NDBG_PRINT("l_prefix_len:                      %d\n", l_prefix_len);
         //if(l_common_edge)
         //{
         //        NDBG_PRINT("l_common_edge->m_pattern.length(): %d\n",
-        //                   (int)(pattern_len(a_pattern)));
+        //                   (int)(pattern_len(l_common_edge->m_pattern)));
         //        NDBG_PRINT("l_common_edge->m_pattern:          %s\n",
-        //                   (pattern_str(a_pattern)).c_str());
+        //                   (pattern_str(l_common_edge->m_pattern)).c_str());
         //}
 
         // common prefix not found, insert a new edge for this pattern
@@ -891,6 +880,7 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 }
                 // insert new path to this node
                 node *l_new_node;
+                //NDBG_PRINT("INSERT_ROUTE: a_data: %p\n", a_data);
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
                 {
@@ -902,8 +892,8 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
         }
         else if (l_prefix_len < pattern_len(l_common_edge->m_pattern))
         {
-                //NDBG_PRINT("%s: l_prefix_len < pattern_len(l_common_edge->m_pattern) :%s\n",
-                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
+                //NDBG_PRINT("%s: l_prefix_len < pattern_len(l_common_edge->m_pattern) :%s l_prefix_len: %u\n",
+                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_prefix_len);
                 // partially matched with pattern
                 // split endpoint
                 // Create new node -branched at prefix
@@ -915,6 +905,16 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                         return NULL;
                 }
                 // Get subpath string
+                //NDBG_PRINT("ce_pattern:             %s\n", pattern_str(l_common_edge->m_pattern).c_str());
+                //NDBG_PRINT("a_pattern:              %s\n", pattern_str(a_pattern).c_str());
+                //NDBG_PRINT("l_prefix_len:           %u\n", l_prefix_len);
+                //NDBG_PRINT("pattern_len(a_pattern): %u\n", pattern_len(a_pattern));
+                //NDBG_PRINT("diff_len:               %u\n", pattern_len(a_pattern) - l_prefix_len);
+                if(!(pattern_len(a_pattern) - l_prefix_len))
+                {
+                        l_common_edge->m_child->m_data = a_data;
+                        return l_common_edge->m_child;
+                }
                 pattern_t l_subpattern = pattern_sub(a_pattern,
                                                      l_prefix_len,
                                                      pattern_len(a_pattern) - l_prefix_len);
@@ -922,6 +922,7 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
                 //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
                 //           (pattern_str(l_subpattern)).c_str());
                 // Insert the remainder of the path at the new branch
+                //NDBG_PRINT("INSERT_ROUTE: a_data: %p\n", a_data);
                 l_new_node = l_common_edge->m_child->insert_route(l_subpattern, a_data);
                 if(!l_new_node)
                 {
@@ -944,6 +945,36 @@ node* node::insert_route(const pattern_t &a_pattern, const void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t node::collision_test(pattern_t a_pattern)
+{
+        int32_t l_status;
+        uint32_t l_prefix_len = 0;
+        edge *l_common_edge = NULL;
+        l_status = find_longest_common_prefix(a_pattern, l_prefix_len, &l_common_edge);
+        if(l_status != 0)
+        {
+                return -1;
+        }
+        if(l_prefix_len &&
+           (l_prefix_len == pattern_len(l_common_edge->m_pattern)))
+        {
+                pattern_t l_subpattern = pattern_sub(a_pattern,
+                                                     l_prefix_len,
+                                                     pattern_len(a_pattern) - l_prefix_len);
+                if(!pattern_len(l_subpattern))
+                {
+                        return -1;
+                }
+                return l_common_edge->m_child->collision_test(l_subpattern);
+        }
+        return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
                                  uint32_t &ao_prefix_len,
                                  edge **ao_common_edge)
@@ -953,7 +984,6 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
         int32_t l_common_prefix_len = 0;
         ao_prefix_len = 0;
         edge *l_edge = NULL;
-
         for(edge_list_t::const_iterator i_edge = m_edge_list.begin();
             i_edge != m_edge_list.end();
             ++i_edge)
@@ -968,9 +998,9 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
                 //           l_common_prefix_len);
                 if(l_common_prefix_len < 0)
                 {
+                        //NDBG_PRINT("BAIL.\n");
                         return -1;
                 }
-
                 // no common, consider insert a new edge
                 if (((uint32_t)l_common_prefix_len) > l_longest_common_prefix_len)
                 {
@@ -978,11 +1008,32 @@ int32_t node::find_longest_common_prefix(const pattern_t &a_pattern,
                         l_edge = (*i_edge);
                 }
         }
-
         ao_prefix_len = l_common_prefix_len;
         *ao_common_edge = l_edge;
-
         return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void node::display_trie(uint32_t a_indent)
+{
+        //printf("data: %p\n", m_data);
+        for(edge_list_t::const_iterator i_edge = m_edge_list.begin();
+            i_edge != m_edge_list.end();
+            ++i_edge)
+        {
+                // Stupid???
+                printf(": ");
+                for(uint32_t i=0; i < a_indent; ++i) printf("-");
+                printf("%s \n", pattern_str((*i_edge)->m_pattern).c_str());
+                if((*i_edge)->m_child != NULL)
+                {
+                        (*i_edge)->m_child->display_trie(a_indent + 2);
+                }
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -1091,7 +1142,7 @@ node::~node()
 //: ----------------------------------------------------------------------------
 int32_t url_router::add_route(const std::string &a_route, const void *a_data)
 {
-
+        //NDBG_PRINT("ADD_ROUTE: a_route: %s a_data: %p\n", a_route.c_str(), a_data);
         // Sanitize path
         int32_t l_status;
         std::string l_route = a_route;
@@ -1102,12 +1153,10 @@ int32_t url_router::add_route(const std::string &a_route, const void *a_data)
                 //NDBG_PRINT("Error performing sanitize path: %s\n", l_route.c_str());
                 return -1;
         }
-
         if(!m_root_node)
         {
                 m_root_node = new node();
         }
-
         node * l_node;
         l_node = m_root_node->insert_route(l_pattern, a_data);
         if(!l_node)
@@ -1115,7 +1164,6 @@ int32_t url_router::add_route(const std::string &a_route, const void *a_data)
                 //printf("Error performing insert_route\n");
                 return -1;
         }
-
         return 0;
 }
 
@@ -1136,135 +1184,174 @@ const void *url_router::find_route(const std::string &a_route, url_pmap_t &ao_ur
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: Constructor
+//: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 void url_router::display(void)
 {
-
         for(const_iterator iter = begin(); iter != end(); ++iter)
                 printf(": %s%s -> %p\n", std::string(iter.depth<<1, '-').c_str(), iter->first.c_str(), iter->second);
-
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: Constructor
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void url_router::display_trie(void)
+{
+        m_root_node->display_trie(0);
+}
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 const url_router::const_iterator::value_type url_router::const_iterator::operator*() const
 {
         return m_cur_value;
 }
 
-
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 const url_router::const_iterator::value_type* url_router::const_iterator::operator->() const
 {
         return &m_cur_value;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 url_router::const_iterator& url_router::const_iterator::operator++()
 {
-
+        // -------------------------------------------------
         // overall 2 steps
+        // -------------------------------------------------
+        // 1.  Move the iterator to the right spot
+        // -------------------------------------------------
+        // if the current node has a child,
+        //   push the child mode onto the stack
+        //   go to the first entry in the child node
+        // else
+        //   go to the next entry in the current node
+        //   if we're at the end, return end iterator
+        if(
+           //!m_edge_iterators_stack.empty() &&
+           //(*m_edge_iterators_stack.top().first) &&
+           //(*m_edge_iterators_stack.top().first)->m_child &&
+           (false == (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.empty())){
+                // the current node being pointed _TO_ has children
 
-        {
-                // 1.  Move the iterator to the right spot
+                // step down a node to get the children
+                m_edge_iterators_stack.push(
+                        std::make_pair(
+                                (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.begin(),
+                                (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.end()
+                                )
+                        );
+                // fprintf(stderr, "Stepped down to edge: %p\n", *m_edge_iterators_stack.top().first);
+                ++depth;
 
-                // if the current node has a child,
-                //   push the child mode onto the stack
-                //   go to the first entry in the child node
-                // else
-                //   go to the next entry in the current node
-                //   if we're at the end, return end iterator
-                if(false == (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.empty()){
-                        // the current node being pointed _TO_ has children
+        } else {
+                // go to the next sibling entry
 
-                        // step down a node to get the children
-                        m_edge_iterators_stack.push(
-                                std::make_pair(
-                                        (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.begin(),
-                                        (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.end()
-                                        )
-                                );
-                        // fprintf(stderr, "Stepped down to edge: %p\n", *m_edge_iterators_stack.top().first);
-                        ++depth;
+                // fprintf(stderr, "Go to next sibling\n");
+                // move to the next point
+                if(!m_edge_iterators_stack.empty() &&
+                    (++(m_edge_iterators_stack.top().first) == m_edge_iterators_stack.top().second)){
+                        // we're at the end of the edge at the top of the stack
 
-                } else {
-                        // go to the next sibling entry
+                        // fprintf(stderr, "edge ierator pointing at the end of the current node's edge list\n");
+                        m_edge_iterators_stack.pop();             // go up the stack one
+                        ++(m_edge_iterators_stack.top().first);   // and step forwards
+                        --depth;
 
-                        // fprintf(stderr, "Go to next sibling\n");
-                        // move to the next point
-                        if(++(m_edge_iterators_stack.top().first) == m_edge_iterators_stack.top().second){
-                                // we're at the end of the edge at the top of the stack
-
-                                // fprintf(stderr, "edge ierator pointing at the end of the current node's edge list\n");
-                                m_edge_iterators_stack.pop();             // go up the stack one
-                                ++(m_edge_iterators_stack.top().first);   // and step forwards
-                                --depth;
-
-                                // if we're at the top of the stack we're done
-                                if(m_edge_iterators_stack.top().first == m_router.m_root_node->m_edge_list.end()){
-                                        // we're now at the end element of the
-                                        // root node's list
-                                        // this is the end
-                                        return *this;
-                                }
-                                // we can keep going
-
+                        // if we're at the top of the stack we're done
+                        if(m_edge_iterators_stack.top().first == m_router.m_root_node->m_edge_list.end()){
+                                // we're now at the end element of the
+                                // root node's list
+                                // this is the end
+                                return *this;
                         }
-
+                        // we can keep going
                 }
-
         }
 
+        // -------------------------------------------------
+        // 2.  Set m_cur_value from them
+        // -------------------------------------------------
+        //if(!m_edge_iterators_stack.empty())
         {
-                // 2.  Set m_cur_value from them
-
                 std::string l_pattern = pattern_str((*m_edge_iterators_stack.top().first)->m_pattern);
                 m_cur_value = url_router::const_iterator::value_type(l_pattern, (*m_edge_iterators_stack.top().first)->m_child->m_data);
-
         }
-
         return *this;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 url_router::const_iterator url_router::const_iterator::operator++(int)
 {
-
         url_router::const_iterator l_retval(*this);
         ++(*this);
         return l_retval;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 bool url_router::const_iterator::operator==(const const_iterator& a_iterator)
 {
         return (&m_router == &a_iterator.m_router &&
                 m_edge_iterators_stack == a_iterator.m_edge_iterators_stack);
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 bool url_router::const_iterator::operator!=(const const_iterator& a_iterator)
 {
         return !(*this == a_iterator);
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 std::string url_router::const_iterator::get_full_url(void) const
 {
-
         // create the full string representing the url to this point
         std::string retval;
-
         iterator_stack_t l_stack(m_edge_iterators_stack);
         while(false == l_stack.empty()){
                 // have stuff on the stack
-
                 // build the string backwards
                 retval.insert(0, pattern_str((*l_stack.top().first)->m_pattern));
                 l_stack.pop();
-
         }
-
         return retval;
-
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
         depth(a_iterator.depth),
         m_router(a_iterator.m_router),
@@ -1273,28 +1360,43 @@ url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
 {
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 url_router::const_iterator::const_iterator(const url_router& a_router):
         depth(0),
         m_router(a_router),
         m_edge_iterators_stack(),
         m_cur_value()
 {
-        m_edge_iterators_stack.push(
-                std::make_pair(a_router.m_root_node->m_edge_list.begin(),
-                               a_router.m_root_node->m_edge_list.end()
-                        )
-                );
+        if(a_router.m_root_node)
+        {
+                m_edge_iterators_stack.push(
+                        std::make_pair(a_router.m_root_node->m_edge_list.begin(),
+                                       a_router.m_root_node->m_edge_list.end()));
+        }
 }
 
-
-
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 url_router::const_iterator url_router::begin() const
 {
         url_router::const_iterator l_retval(*this);
-        ++l_retval;  // step to the first valid (m_data != nullptr) point in the trie
+        // step to the first valid (m_data != nullptr) point in the trie
+        ++l_retval;
         return l_retval;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 url_router::const_iterator url_router::end() const
 {
         url_router::const_iterator l_retval(*this);
@@ -1302,22 +1404,19 @@ url_router::const_iterator url_router::end() const
         // point to the end, this is the end of the root node's list
         // as we iterate depth first
         while(false == l_retval.m_edge_iterators_stack.empty())
+        {
                 l_retval.m_edge_iterators_stack.pop();
+        }
         l_retval.m_edge_iterators_stack.push(
                 std::make_pair(l_retval.m_router.m_root_node->m_edge_list.end(),
                                l_retval.m_router.m_root_node->m_edge_list.end()
                         )
                 );
-
         return l_retval;
 }
 
-
-
-
-
 //: ----------------------------------------------------------------------------
-//: \details: Constructor
+//: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
@@ -1339,6 +1438,5 @@ url_router::~url_router(void)
                 delete m_root_node;
         }
 }
-
 
 } //namespace ns_hlx {

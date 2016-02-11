@@ -94,8 +94,6 @@ public:
                 friend class url_router;
         };
 
-
-
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -108,6 +106,7 @@ public:
         int32_t add_route(const std::string &a_route, const void *a_data);
         const void *find_route(const std::string &a_route, url_pmap_t &ao_url_pmap);
         void display(void);
+        void display_trie(void);
 
         const_iterator begin() const;
         const_iterator end() const;

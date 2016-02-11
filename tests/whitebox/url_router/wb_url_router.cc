@@ -33,61 +33,86 @@
 # define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 //: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+typedef struct router_ptr_pair_struct {
+        const char *m_route;
+        void *m_data;
+} route_ptr_pair_t;
+
+//: ----------------------------------------------------------------------------
 //: Tests
 //: ----------------------------------------------------------------------------
 TEST_CASE( "url router test", "[url_router]" )
 {
-        ns_hlx::url_router l_url_router;
-        int32_t l_status;
-        typedef struct router_ptr_pair_struct {
-                const char *m_route;
-                void *m_data;
-        } route_ptr_pair_t;
-
-        route_ptr_pair_t l_route_ptr_pairs[] =
-        {
-                {"/monkeys/<monkey_name>/banana/<banana_number>", (void *)1},
-                {"/monkeez/<monkey_name>/banana/<banana_number>", (void *)33},
-                {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
-                {"/cats_are/cool/dog/are/smelly", (void *)2},
-                {"/sweet/donuts/*", (void *)1337},
-                {"/bots*", (void *)1338},
-                {"/sweet/cakes/*/cupcakes", (void *)5337}
-        };
-
-        for(uint32_t i_route = 0; i_route < ARRAY_SIZE(l_route_ptr_pairs); ++i_route)
-        {
-                INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
-                l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
-                REQUIRE((l_status == 0));
+        SECTION("Build simple") {
+                int32_t l_status;
+                ns_hlx::url_router l_url_router;
+                route_ptr_pair_t l_route_ptr_pairs[] =
+                {
+                        {"/monkeys/<monkey_name>/banana/<banana_number>", (void *)1},
+                        {"/monkeez/<monkey_name>/banana/<banana_number>", (void *)33},
+                        {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
+                        {"/cats_are/cool/dog/are/smelly", (void *)2},
+                        {"/sweet/donuts/*", (void *)1337},
+                        {"/bots*", (void *)1338},
+                        {"/sweet/cakes/*/cupcakes", (void *)5337}
+                };
+                for(uint32_t i_route = 0; i_route < ARRAY_SIZE(l_route_ptr_pairs); ++i_route)
+                {
+                        //printf("ADDING ROUTE: i_route: %d route: %s\n", i_route, l_route_ptr_pairs[i_route].m_route);
+                        //INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
+                        l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
+                        REQUIRE((l_status == 0));
+                }
         }
-
-        // Fail on add duplicate
-        l_status = l_url_router.add_route("/bonkers", (void *)8);
-        REQUIRE((l_status == 0));
-        l_status = l_url_router.add_route("/bonkers", (void *)10);
-        REQUIRE((l_status != 0));
-        l_status = l_url_router.add_route("/cats_are/cool/dog/are/smellfeet", (void *)100);
-        REQUIRE((l_status == 0));
-        l_status = l_url_router.add_route("/cats_are/cool/dog/are/smellfeet", (void *)101);
-        REQUIRE((l_status != 0));
-
-        // Display
-        //l_url_router.display();
-
+        SECTION("Fail on add duplicate") {
+                int32_t l_status;
+                ns_hlx::url_router l_url_router;
+                l_status = l_url_router.add_route("/bonkers", (void *)8);
+                REQUIRE((l_status == 0));
+                l_status = l_url_router.add_route("/bonkers", (void *)10);
+                REQUIRE((l_status != 0));
+                l_status = l_url_router.add_route("/cats_are/cool/dog/are/smellfeet", (void *)100);
+                REQUIRE((l_status == 0));
+                l_status = l_url_router.add_route("/cats_are/cool/dog/are/smellfeet", (void *)101);
+                REQUIRE((l_status != 0));
+        }
         SECTION("Find existing routes") {
+                int32_t l_status;
+                ns_hlx::url_router l_url_router;
+                route_ptr_pair_t l_route_ptr_pairs[] =
+                {
+                        {"/monkeys/<monkey_name>/banana/<banana_number>", (void *)1},
+                        {"/monkeez/<monkey_name>/banana/<banana_number>", (void *)33},
+                        {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
+                        {"/cats_are/cool/dog/are/smelly", (void *)2},
+                        {"/sweet/donuts/*", (void *)1337},
+                        {"/bots*", (void *)1338},
+                        {"/sweet/cakes/*/cupcakes", (void *)5337},
+                        {"/bloop_bleep", (void *)8337},
+                        {"/bloop", (void *)9337}
+                };
+                for(uint32_t i_route = 0; i_route < ARRAY_SIZE(l_route_ptr_pairs); ++i_route)
+                {
+                        //printf("ADDING ROUTE: i_route: %d route: %s\n", i_route, l_route_ptr_pairs[i_route].m_route);
+                        //INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
+                        l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
+                        REQUIRE((l_status == 0));
+                }
                 route_ptr_pair_t l_find_ptr_pairs[] =
                 {
                         {"/monkeys/bongo/banana/33", (void *)1},
                         {"/cats_are/cool/dog/are/smelly", (void *)2},
                         {"/sweet/donuts/pinky", (void *)1337},
                         {"/sweet/donuts/stinky", (void *)1337},
-                        {"/bonkers", (void *)8},
                         {"/bots", (void *)1338},
                         {"/botsy", (void *)1338},
                         {"/botsy/flopsy", (void *)1338},
                         {"/sweet/donuts/cavorting/anteaters", (void *)1337},
-                        {"/sweet/donuts/trash/pandas/are/super/cool", (void *)1337}
+                        {"/sweet/donuts/trash/pandas/are/super/cool", (void *)1337},
+                        {"/bloop_bleep", (void *)8337},
+                        {"/bloop", (void *)9337}
                 };
                 for(uint32_t i_find = 0; i_find < ARRAY_SIZE(l_find_ptr_pairs); ++i_find)
                 {
@@ -112,6 +137,25 @@ TEST_CASE( "url router test", "[url_router]" )
                 }
         }
         SECTION("Find non-existing routes") {
+                int32_t l_status;
+                ns_hlx::url_router l_url_router;
+                route_ptr_pair_t l_route_ptr_pairs[] =
+                {
+                        {"/monkeys/<monkey_name>/banana/<banana_number>", (void *)1},
+                        {"/monkeez/<monkey_name>/banana/<banana_number>", (void *)33},
+                        {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
+                        {"/cats_are/cool/dog/are/smelly", (void *)2},
+                        {"/sweet/donuts/*", (void *)1337},
+                        {"/bots*", (void *)1338},
+                        {"/sweet/cakes/*/cupcakes", (void *)5337}
+                };
+                for(uint32_t i_route = 0; i_route < ARRAY_SIZE(l_route_ptr_pairs); ++i_route)
+                {
+                        //printf("ADDING ROUTE: i_route: %d route: %s\n", i_route, l_route_ptr_pairs[i_route].m_route);
+                        //INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
+                        l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
+                        REQUIRE((l_status == 0));
+                }
                 route_ptr_pair_t l_find_ptr_pairs[] =
                 {
                         {"/apes/are/neat", (void *)1},
@@ -129,16 +173,35 @@ TEST_CASE( "url router test", "[url_router]" )
                 }
         }
         SECTION("Iterator") {
-
+                int32_t l_status;
+                ns_hlx::url_router l_url_router;
+                route_ptr_pair_t l_route_ptr_pairs[] =
+                {
+                        {"/monkeys/<monkey_name>/banana/<banana_number>", (void *)1},
+                        {"/monkeez/<monkey_name>/banana/<banana_number>", (void *)33},
+                        {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
+                        {"/cats_are/cool/dog/are/smelly", (void *)2},
+                        {"/sweet/donuts/*", (void *)1337},
+                        {"/bots*", (void *)1338},
+                        {"/sweet/cakes/*/cupcakes", (void *)5337}
+                };
+                for(uint32_t i_route = 0; i_route < ARRAY_SIZE(l_route_ptr_pairs); ++i_route)
+                {
+                        //printf("ADDING ROUTE: i_route: %d route: %s\n", i_route, l_route_ptr_pairs[i_route].m_route);
+                        //INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
+                        l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
+                        REQUIRE((l_status == 0));
+                }
                 int l_count = 0;
                 REQUIRE((l_url_router.begin() != l_url_router.end()));
                 for(ns_hlx::url_router::const_iterator iter = l_url_router.begin();
                     iter != l_url_router.end();
                     ++iter){
                         ++l_count;
-                        iter.get_full_url();
+                        //printf("url: %s\n", iter.get_full_url().c_str());
                 }
-                REQUIRE((l_count == 11));   // just a facet of how it's split up
+                //l_url_router.display();
+                // just a facet of how it's split up
+                REQUIRE((l_count == 9));
         }
-
 }
