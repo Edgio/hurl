@@ -247,7 +247,7 @@ typedef struct settings_struct
                 m_phr_list(),
                 m_host_list(NULL),
                 m_total_reqs(0),
-                m_timeout_ms(10000),
+                m_timeout_ms(0),
                 m_completion_ratio(100.0),
                 m_mutex(),
                 m_summary_info(),
