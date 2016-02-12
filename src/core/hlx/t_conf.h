@@ -49,7 +49,6 @@ typedef struct t_conf
         bool m_color;
         evr_loop_type_t m_evr_loop_type;
         int32_t m_num_parallel;
-        int32_t m_max_concurrent_conn_per_label;
         uint32_t m_timeout_ms;
         int32_t m_num_reqs_per_conn;
         bool m_collect_stats;
@@ -83,7 +82,6 @@ typedef struct t_conf
                 m_color(false),
                 m_evr_loop_type(EVR_LOOP_EPOLL),
                 m_num_parallel(1024),
-                m_max_concurrent_conn_per_label(2),
                 m_timeout_ms(10000),
                 m_num_reqs_per_conn(-1),
                 m_collect_stats(false),

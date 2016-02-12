@@ -35,14 +35,12 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn_pool::nconn_pool(uint32_t a_size, int32_t a_max_concurrent_conn_per_label):
+nconn_pool::nconn_pool(uint32_t a_size):
                        m_nconn_obj_pool(),
                        m_idle_conn_ncache(a_size),
                        m_initd(false),
                        m_pool_size(a_size),
-                       m_active_conn_map(),
-                       m_max_concurrent_conn_per_label(a_max_concurrent_conn_per_label)
-
+                       m_active_conn_map()
 {
         //NDBG_PRINT("a_size: %d\n", a_size);
 }
@@ -103,17 +101,6 @@ nconn *nconn_pool::get(const std::string &a_label, scheme_t a_scheme)
         {
                 init();
         }
-
-        //NDBG_PRINT("m_per_label_max_num: %d\n",m_max_concurrent_conn_per_label);
-        //if(m_active_conn_map.find(a_label) != m_active_conn_map.end())
-        //NDBG_PRINT("LABEL[%s]: size: %u\n",a_label.c_str(), m_active_conn_map[a_label]);
-        if((m_max_concurrent_conn_per_label > 0) &&
-           (m_active_conn_map.find(a_label) != m_active_conn_map.end()) &&
-            m_active_conn_map[a_label] >= (uint32_t)m_max_concurrent_conn_per_label)
-        {
-                return NULL;
-        }
-
         //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: l_nconn: %p m_nconn_obj_pool.used_size() = %lu\n",
         //                pthread_self(),
         //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,

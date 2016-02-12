@@ -1984,7 +1984,7 @@ void display_status_line(settings_struct_t &a_settings)
         uint32_t l_num_error = l_total.m_num_errors;
         if(a_settings.m_color)
         {
-                printf("Done/Req'd/Resolved/Total/Error %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s / %s%8u%s\n",
+                printf("Done: %s%8u%s Reqd: %s%8u%s Rslvd: %s%8u%s Rslv_Actv: %s%8u%s Rslv_Req %s%8u%s Total: %s%8u%s Error: %s%8u%s\n",
                                 ANSI_COLOR_FG_GREEN, l_num_done, ANSI_COLOR_OFF,
                                 ANSI_COLOR_FG_YELLOW, l_num_get, ANSI_COLOR_OFF,
                                 ANSI_COLOR_FG_MAGENTA, l_num_resolved, ANSI_COLOR_OFF,
@@ -1995,7 +1995,7 @@ void display_status_line(settings_struct_t &a_settings)
         }
         else
         {
-                printf("Done/Req'd/Resolved/Total/Error %8u / %8u / %8u / %8u / %8u / %8u / %8u\n",
+                printf("Done: %8u Reqd: %8u Rslvd: %8u Rslv_Actv: %8u Rslv_Req %8u Total: %8u Error: %8u\n",
                                 l_num_done, l_num_get, l_num_resolved, l_num_resolve_active, l_num_resolve_req, l_num_rx, l_num_error);
         }
 }

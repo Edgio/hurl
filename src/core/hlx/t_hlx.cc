@@ -128,8 +128,8 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_t_run_thread(),
         m_stat(),
         m_t_conf(a_t_conf),
-        m_nconn_pool(1000000, -1),
-        m_nconn_proxy_pool(a_t_conf->m_num_parallel, a_t_conf->m_max_concurrent_conn_per_label),
+        m_nconn_pool(1000000),
+        m_nconn_proxy_pool(a_t_conf->m_num_parallel),
         m_stopped(true),
         m_start_time_s(0),
         m_evr_loop(NULL),
@@ -1421,8 +1421,6 @@ int32_t t_hlx::subr_try_deq(void)
                         }
                 }
         }
-        // stats
-        m_stat.m_num_ups_subr_queued = m_subr_list.size();
         return STATUS_OK;
 }
 

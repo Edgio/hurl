@@ -54,7 +54,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint32_t a_size, int32_t a_max_concurrent_conn_per_label = -1);
+        nconn_pool(uint32_t a_size);
         ~nconn_pool();
         nconn * get(const std::string &a_label, scheme_t a_scheme);
         nconn * get_idle(const std::string &a_label);
@@ -87,7 +87,6 @@ private:
         bool m_initd;
         int32_t m_pool_size;
         active_conn_map_t m_active_conn_map;
-        int32_t m_max_concurrent_conn_per_label;
 };
 
 } //namespace ns_hlx {
