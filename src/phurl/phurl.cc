@@ -447,7 +447,6 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
         l_resp->m_resp = NULL;
         l_resp->m_subr = &a_subr;
         l_resp->m_error_str = ns_hlx::nconn_get_last_error_str(a_nconn);
-        l_phr->m_resp_list.push_back(l_resp);
         ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(a_nconn);
         settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
         if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
@@ -473,7 +472,6 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
                 case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS:
                 {
                         ++(l_s->m_summary_info.m_error_conn);
-
                         // Get last error
                         SSL *l_tls = ns_hlx::nconn_get_SSL(a_nconn);
                         long l_tls_vr = SSL_get_verify_result(l_tls);
@@ -517,6 +515,7 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
                 }
                 }
         }
+        l_phr->m_resp_list.push_back(l_resp);
         l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
         if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
         return s_done_check(a_subr, l_phr);
@@ -2277,6 +2276,10 @@ std::string dump_all_responses_json(settings_struct_t &a_settings,
 
                         if(!l_resp)
                         {
+                                l_obj.AddMember(rapidjson::Value("Error", l_js_allocator).Move(),
+                                                rapidjson::Value((*i_rx)->m_error_str.c_str(), l_js_allocator).Move(),
+                                                l_js_allocator);
+                                l_obj.AddMember("status-code", 500, l_js_allocator);
                                 l_js_array.PushBack(l_obj, l_js_allocator);
                                 continue;
                         }
