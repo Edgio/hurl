@@ -135,6 +135,10 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 delete l_nresolver;
         }
 #ifdef ASYNC_DNS_SUPPORT
+        // ---------------------------------------------------------------------
+        // TODO: Quarantining flaky test...
+        // ---------------------------------------------------------------------
+#if 0
         SECTION("Validate async")
         {
                 ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
@@ -244,6 +248,12 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->destroy_async(l_ctx, l_fd, l_lookup_job_q, l_lookup_job_pq);
                 delete l_nresolver;
         }
+#endif
+
+        // ---------------------------------------------------------------------
+        // TODO: Quarantining flaky test...
+        // ---------------------------------------------------------------------
+#if 0
         SECTION("Validate async -bad resolver")
         {
                 ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
@@ -363,6 +373,8 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->destroy_async(l_ctx, l_fd, l_lookup_job_q, l_lookup_job_pq);
                 delete l_nresolver;
         }
+#endif
+
 #endif
 }
 
