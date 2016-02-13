@@ -55,7 +55,7 @@ hconn::hconn(void):
         m_cur_off(0),
         m_cur_buf(NULL),
         m_save(false),
-        m_status_code(0),
+        //m_status_code(0),
         m_verbose(false),
         m_color(false),
         m_url_router(NULL),
@@ -67,6 +67,30 @@ hconn::hconn(void):
         // TODO TEST
         m_fs(NULL)
 {}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hconn::clear(void)
+{
+        m_type = HCONN_TYPE_NONE;
+        m_nconn = NULL;
+        m_t_hlx = NULL;
+        m_timer_obj = NULL;
+        m_hmsg = NULL;
+        m_cur_off = 0;
+        m_cur_buf = NULL;
+        m_save = false;
+        m_verbose = false;
+        m_color = false;
+        m_url_router = NULL;
+        m_in_q = NULL;
+        m_out_q = NULL;
+        m_subr = NULL;
+        m_fs = NULL;
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -265,8 +289,8 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                         resp *l_resp = static_cast<resp *>(m_hmsg);
                                         l_resp->set_status(200);
                                 }
-                                m_status_code = 200;
-                                m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
+                                m_subr->set_fallback_status_code(HTTP_STATUS_OK);
+                                m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), HTTP_STATUS_OK);
                         }
                         m_subr->bump_num_completed();
                         subr_complete();
@@ -313,7 +337,12 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 {
                                         m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));
                                 }
-                                m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), m_status_code);
+
+                                if(m_hmsg)
+                                {
+                                        resp *l_resp = static_cast<resp *>(m_hmsg);
+                                        m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), l_resp->get_status());
+                                }
                                 m_subr->bump_num_completed();
                                 bool l_hmsg_keep_alive = false;
                                 if(m_hmsg)
@@ -605,13 +634,13 @@ bool hconn::subr_complete(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hconn::subr_error(uint16_t a_status)
+int32_t hconn::subr_error(http_status_t a_status)
 {
-        m_status_code = a_status;
         if(!m_subr)
         {
                 return STATUS_ERROR;
         }
+        m_subr->set_fallback_status_code(a_status);
         m_subr->bump_num_completed();
         if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
         {
@@ -691,11 +720,12 @@ int32_t queue_subr(hconn &a_hconn, subr &a_subr)
 //: ----------------------------------------------------------------------------
 uint16_t get_status_code(subr &a_subr)
 {
-        if(!a_subr.get_hconn())
+        if(!a_subr.get_hconn() || !(a_subr.get_hconn()->m_hmsg))
         {
                 return a_subr.get_fallback_status_code();
         }
-        return a_subr.get_hconn()->m_status_code;
+        resp *l_resp = static_cast<resp *>(a_subr.get_hconn()->m_hmsg);
+        return l_resp->get_status();
 }
 
 //: ----------------------------------------------------------------------------

@@ -114,7 +114,7 @@ public:
         char * m_cur_buf;
 
         bool m_save;
-        uint16_t m_status_code;
+        //uint16_t m_status_code;
         bool m_verbose;
         bool m_color;
         url_router *m_url_router;
@@ -138,8 +138,9 @@ public:
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
-        int32_t subr_error(uint16_t a_status);
+        int32_t subr_error(http_status_t a_status);
         bool subr_complete(void);
+        void clear(void);
 private:
         // -------------------------------------------------
         // Private methods

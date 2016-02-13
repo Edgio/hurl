@@ -43,7 +43,7 @@ evr_epoll::evr_epoll(int a_max_connections):
 {
         //NDBG_PRINT("%sCREATE_EPOLL%s: a_max_events = %d\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_max_connections);
-        m_epoll_fd = epoll_create(8192);
+        m_epoll_fd = epoll_create(a_max_connections);
         if (m_epoll_fd == -1)
         {
                 fprintf(stderr,

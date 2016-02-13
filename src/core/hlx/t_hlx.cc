@@ -1547,6 +1547,7 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 m_nbq_pool.release(a_hconn.m_out_q);
                 a_hconn.m_out_q = NULL;
         }
+        a_hconn.clear();
         m_hconn_pool.release(&a_hconn);
         return STATUS_OK;
 }
@@ -1683,7 +1684,7 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
         l_hconn->m_verbose = m_t_conf->m_verbose;
         l_hconn->m_color = m_t_conf->m_color;
         l_hconn->m_type = a_type;
-        l_hconn->m_status_code = 0;
+        //l_hconn->m_status_code = 0;
         l_hconn->m_http_parser_settings.on_status = hp_on_status;
         l_hconn->m_http_parser_settings.on_message_complete = hp_on_message_complete;
         if(l_hconn->m_save)

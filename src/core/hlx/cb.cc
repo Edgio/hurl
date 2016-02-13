@@ -125,7 +125,7 @@ int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length)
 {
         hconn *l_hconn = static_cast <hconn *>(a_parser->data);
         CHECK_FOR_NULL_OK(l_hconn);
-        l_hconn->m_status_code = a_parser->status_code;
+        //l_hconn->m_status_code = a_parser->status_code;
         if((l_hconn->m_hmsg && (l_hconn->m_hmsg->get_type() == hmsg::TYPE_RESP)))
         {
                 resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
