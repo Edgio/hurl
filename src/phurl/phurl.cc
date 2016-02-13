@@ -449,6 +449,9 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
         l_resp->m_error_str = ns_hlx::nconn_get_last_error_str(a_nconn);
         ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(a_nconn);
         settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
+        //printf("%s.%s.%d: host:          %s\n",__FILE__,__FUNCTION__,__LINE__,a_subr.get_host().c_str());
+        //printf("%s.%s.%d: m_error_str:   %s\n",__FILE__,__FUNCTION__,__LINE__,l_resp->m_error_str.c_str());
+        //printf("%s.%s.%d: l_conn_status: %d\n",__FILE__,__FUNCTION__,__LINE__,l_conn_status);
         if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
         if(l_s)
         {
@@ -1718,13 +1721,13 @@ int main(int argc, char** argv)
                         // "id" : "DE4D",
                         // "where" : "my_house"
                         if(l_doc[i_record].HasMember("host")) l_host.m_host = l_doc[i_record]["host"].GetString();
-                        else l_host.m_host = "NO_HOST";
+                        //else l_host.m_host = "NO_HOST";
                         if(l_doc[i_record].HasMember("hostname")) l_host.m_hostname = l_doc[i_record]["hostname"].GetString();
-                        else l_host.m_hostname = "NO_HOSTNAME";
+                        //else l_host.m_hostname = "NO_HOSTNAME";
                         if(l_doc[i_record].HasMember("id")) l_host.m_id = l_doc[i_record]["id"].GetString();
-                        else l_host.m_id = "NO_ID";
+                        //else l_host.m_id = "NO_ID";
                         if(l_doc[i_record].HasMember("where")) l_host.m_where = l_doc[i_record]["where"].GetString();
-                        else l_host.m_where = "NO_WHERE";
+                        //else l_host.m_where = "NO_WHERE";
                         if(l_doc[i_record].HasMember("port")) l_host.m_port = l_doc[i_record]["port"].GetUint();
                         else l_host.m_port = 80;
                         l_host_list->push_back(l_host);
