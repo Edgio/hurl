@@ -39,11 +39,10 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 evr_select::evr_select(int a_max_connections) :
-	m_conns(),
+	m_conn_map(),
 	m_rfdset(),
 	m_wfdset()
 {
-	m_conns.resize(a_max_connections + 10);
 	FD_ZERO(&m_rfdset);
 	FD_ZERO(&m_wfdset);
 }
@@ -55,63 +54,74 @@ evr_select::evr_select(int a_max_connections) :
 //: ----------------------------------------------------------------------------
 int evr_select::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
 {
-        fd_set l_rfdset_tmp = m_rfdset;
-        fd_set l_wfdset_tmp = m_wfdset;
-
+        //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",
+        //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
+        //           a_timeout_msec, a_max_events);
+        fd_set l_rfdset = m_rfdset;
+        fd_set l_wfdset = m_wfdset;
         struct timeval l_timeout;
-
         if (a_timeout_msec >= 0)
         {
                 l_timeout.tv_sec = a_timeout_msec / 1000L;
                 l_timeout.tv_usec = (a_timeout_msec % 1000L) * 1000L;
         }
+        int l_sstat = 0;
 
-        int l_select_status = 0;
-
-        l_select_status = select(FD_SETSIZE, &l_rfdset_tmp, &l_wfdset_tmp, NULL, a_timeout_msec >= 0 ? &l_timeout : NULL);
-
-        if (l_select_status < 0)
+        uint32_t l_fdsize = 1;
+        if(m_conn_map.size())
         {
-                fprintf(stderr, "select() failed: %s\n", strerror(errno));
-                return -1;
+                l_fdsize = m_conn_map.rbegin()->first + 1;
         }
-
-        if (l_select_status > a_max_events)
+        l_sstat = select(l_fdsize,
+                         &l_rfdset,
+                         &l_wfdset,
+                         NULL,
+                         a_timeout_msec >= 0 ? &l_timeout : NULL);
+        //NDBG_PRINT("l_sstat: %d\n", l_sstat);
+        if (l_sstat < 0)
         {
-                fprintf(stderr, "select() returned too many events (got %d, expected <= %d)\n", l_select_status, a_max_events);
-                return -1;
+                //NDBG_PRINT("Error select() failed. Reason: %s\n", strerror(errno));
+                return STATUS_ERROR;
         }
-
-        int p = 0;
-
-        for (size_t i_conn = 0; i_conn < m_conns.size(); ++i_conn)
+        if (l_sstat > a_max_events)
         {
-                if (m_conns[i_conn] != NULL)
+                //NDBG_PRINT("Error select() returned too many events (got %d, expected <= %d)\n",
+                //                l_sstat, a_max_events);
+                return STATUS_ERROR;
+        }
+        int l_p = 0;
+        for(conn_map_t::iterator i_conn = m_conn_map.begin(); i_conn != m_conn_map.end(); ++i_conn)
+        {
+                int l_fd = i_conn->first;
+                bool l_inset = false;
+                if (FD_ISSET(l_fd, &l_wfdset))
                 {
-                        bool gotit = false;
-
-                        if (FD_ISSET(i_conn, &l_wfdset_tmp))
+                        //NDBG_PRINT("INSET: EPOLLOUT fd: %d\n", l_fd);
+                        a_ev[l_p].events |= EPOLLOUT;
+                        l_inset = true;
+                }
+                if (FD_ISSET(l_fd, &l_rfdset))
+                {
+                        //NDBG_PRINT("INSET: EPOLLIN fd: %d\n", l_fd);
+                        a_ev[l_p].events |= EPOLLIN;
+                        l_inset = true;
+                }
+                if (l_inset)
+                {
+                        //NDBG_PRINT("INSET: fd: %d\n", l_fd);
+                        a_ev[l_p].data.ptr = i_conn->second;
+                        ++l_p;
+                        if(l_p > l_sstat)
                         {
-                                a_ev[p].events |= EPOLLOUT;
-                                gotit = true;
-                        }
-
-                        if (FD_ISSET(i_conn, &l_rfdset_tmp))
-                        {
-                                a_ev[p].events |= EPOLLIN;
-                                gotit = true;
-                        }
-
-                        if (gotit)
-                        {
-                                a_ev[p].data.ptr = m_conns[i_conn];
-                                ++p;
-                                assert(p <= l_select_status);
+                                //NDBG_PRINT("Error num events exceeds select result.\n");
+                                return STATUS_ERROR;
                         }
                 }
         }
-
-        return p;
+        //NDBG_PRINT("%swait%s = %d\n",
+        //           ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
+        //           l_p);
+        return l_p;
 }
 
 //: ----------------------------------------------------------------------------
@@ -121,13 +131,8 @@ int evr_select::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
 //: ----------------------------------------------------------------------------
 int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
-        int l_fd = a_fd;
-        if (size_t(l_fd) >= m_conns.size())
-        {
-                m_conns.resize(size_t(l_fd) + 1);
-        }
-        m_conns[size_t(l_fd)] = a_data;
-        FD_SET(a_fd, &m_wfdset);
+        m_conn_map[a_fd] = a_data;
+        mod(a_fd, a_attr_mask, a_data);
         return STATUS_OK;
 }
 
@@ -138,9 +143,16 @@ int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: ----------------------------------------------------------------------------
 int evr_select::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
-        int l_fd = a_fd;
-        FD_CLR(l_fd, &m_wfdset);
-        FD_SET(l_fd, &m_rfdset);
+        //NDBG_PRINT("%smod%s: fd: %d --attr: 0x%08X\n",
+        //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
+        //           a_fd, a_attr_mask);
+        FD_CLR(a_fd, &m_wfdset);
+        FD_CLR(a_fd, &m_rfdset);
+        if(a_attr_mask & EVR_FILE_ATTR_MASK_READ)         { FD_SET(a_fd, &m_rfdset); }
+        if(a_attr_mask & EVR_FILE_ATTR_MASK_WRITE)        { FD_SET(a_fd, &m_wfdset); }
+        if(a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       { FD_SET(a_fd, &m_rfdset); }
+        if(a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          { FD_SET(a_fd, &m_rfdset); }
+        if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) { FD_SET(a_fd, &m_rfdset); }
         return STATUS_OK;
 }
 
@@ -151,10 +163,7 @@ int evr_select::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: ----------------------------------------------------------------------------
 int evr_select::del(int a_fd)
 {
-        int l_fd = a_fd;
-        if (size_t(l_fd) < m_conns.size())
-                m_conns[size_t(l_fd)] = NULL;
-
+        m_conn_map.erase(a_fd);
         FD_CLR(a_fd, &m_rfdset);
         FD_CLR(a_fd, &m_wfdset);
         return STATUS_OK;

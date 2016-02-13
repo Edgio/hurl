@@ -27,7 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr.h"
-#include <vector>
+#include <map>
 
 namespace ns_hlx {
 
@@ -49,11 +49,12 @@ public:
         int del(int a_fd);
 
 private:
+        typedef std::map<uint32_t, void *> conn_map_t;
         // Disallow copy/assign
         evr_select& operator=(const evr_select &);
         evr_select(const evr_select &);
 
-        std::vector<void*> m_conns;
+        conn_map_t m_conn_map;
         fd_set m_rfdset;
         fd_set m_wfdset;
 };
