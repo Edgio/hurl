@@ -977,7 +977,7 @@ int main(int argc, char** argv)
 
         // hlx settings
         l_hlx->set_collect_stats(true);
-        l_hlx->set_dns_use_ai_cache(false);
+        l_hlx->set_dns_use_ai_cache(true);
         l_hlx->set_dns_use_sync(true);
         l_hlx->set_num_threads(l_max_threads);
         l_hlx->set_num_parallel(l_start_parallel);
