@@ -129,7 +129,7 @@ int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length)
         if((l_hconn->m_hmsg && (l_hconn->m_hmsg->get_type() == hmsg::TYPE_RESP)))
         {
                 resp *l_resp = static_cast<resp *>(l_hconn->m_hmsg);
-                l_resp->set_status(a_parser->status_code);
+                l_resp->set_status((http_status_t)a_parser->status_code);
                 if(l_hconn->m_save)
                 {
                         l_resp->m_p_status.m_off = CALC_OFFSET(l_hconn, a_at);

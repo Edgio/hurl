@@ -77,6 +77,8 @@ typedef enum scheme_enum {
 // Status
 typedef enum http_status_enum {
 
+        HTTP_STATUS_NONE                                = 0,
+
         HTTP_STATUS_CONTINUE                            = 100,
         HTTP_STATUS_SWITCHING_PROTOCOLS                 = 101,
         HTTP_STATUS_PROCESSING                          = 102, /* WEBDAV */
@@ -542,7 +544,7 @@ public:
         uint16_t get_status(void);
 
         // Setters
-        void set_status(uint16_t a_code);
+        void set_status(http_status_t a_code);
 
         void clear(void);
 
@@ -573,7 +575,7 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        uint16_t m_status;
+        http_status_t m_status;
 };
 
 //: ----------------------------------------------------------------------------

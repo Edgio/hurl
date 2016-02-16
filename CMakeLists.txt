@@ -147,32 +147,25 @@ macro(find_ubuntu_package output_var_prefix include_test_file
 
 endmacro(find_ubuntu_package)
 
-find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a
-        libssl1.0.0 libssl-dev)
-find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a
-        libssl1.0.0 libssl-dev)
-find_ubuntu_package(LIBZ zlib.h libz.a
-    zlib1g zlib1g-dev)
+find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a libssl1.0.0 libssl-dev)
+find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
+find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
 
 # ------------------------------------------------------------------------------
 # Build PROFILER
 # ------------------------------------------------------------------------------
 if (BUILD_PROFILER)
   add_definitions(-DENABLE_PROFILER=1)
-  find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a
-          google-perftools libgoogle-perftools-dev)
+  find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a google-perftools libgoogle-perftools-dev)
 endif()
 
 # ------------------------------------------------------------------------------
 # Build TCMALLOC
 # ------------------------------------------------------------------------------
 if (BUILD_TCMALLOC)
-  find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a
-          google-perftools libgoogle-perftools-dev)
-  find_ubuntu_package(LIBZMA lzma.h liblzma.a
-          liblzma5 liblzma-dev)
-  find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a
-          "libunwind8|libunwind7" "libunwind8-dev|libunwind7-dev")
+  find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a google-perftools libgoogle-perftools-dev)
+  find_ubuntu_package(LIBZMA lzma.h liblzma.a liblzma5 liblzma-dev)
+  find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "libunwind8|libunwind7" "libunwind8-dev|libunwind7-dev")
   LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
 endif()
 
@@ -180,18 +173,16 @@ endif()
 # Build EFENCE
 # ------------------------------------------------------------------------------
 if (BUILD_EFENCE)
-  find_ubuntu_package(LIBEFENCE "" libefence.a
-          "" electric-fence)
+  find_ubuntu_package(LIBEFENCE "" libefence.a "" electric-fence)
 endif()
 
 # ------------------------------------------------------------------------------
 # ASAN
 # ------------------------------------------------------------------------------
 if (BUILD_ASAN)
-  find_ubuntu_package(LIBASAN "" libasan.so.0
-          "" libasan0)
-   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
-   set(DEBUG_MODE ON)
+  find_ubuntu_package(LIBASAN "" libasan.so.0 "" libasan0)
+  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+  set(DEBUG_MODE ON)
 endif()
 
 # ------------------------------------------------------------------------------

@@ -65,7 +65,7 @@ void resp::clear(void)
         m_p_status.clear();
         m_tls_info_protocol_str = NULL;
         m_tls_info_cipher_str =  NULL;
-        m_status = 0;
+        m_status = HTTP_STATUS_NONE;
 }
 
 //: ----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ uint16_t resp::get_status(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void resp::set_status(uint16_t a_code)
+void resp::set_status(http_status_t a_code)
 {
         m_status = a_code;
 }

@@ -287,7 +287,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 if(m_hmsg)
                                 {
                                         resp *l_resp = static_cast<resp *>(m_hmsg);
-                                        l_resp->set_status(200);
+                                        l_resp->set_status(HTTP_STATUS_OK);
                                 }
                                 m_subr->set_fallback_status_code(HTTP_STATUS_OK);
                                 m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), HTTP_STATUS_OK);

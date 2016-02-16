@@ -782,6 +782,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                         }
 
                         int32_t l_status;
+                        //NDBG_PRINT("Add idle\n");
                         l_status = l_t_hlx->m_nconn_proxy_pool.add_idle(l_nconn);
                         if(l_status != STATUS_OK)
                         {

@@ -1311,6 +1311,7 @@ int32_t subr::init_with_url(const std::string &a_url)
 //: ----------------------------------------------------------------------------
 int32_t subr::cancel(void)
 {
+        //NDBG_PRINT("CANCEL host: %s --m_state: %d\n", m_host.c_str(), m_state);
         // -------------------------------------------------
         // Cancel subr based on state
         // -------------------------------------------------
@@ -1369,6 +1370,11 @@ int32_t subr::cancel(void)
                    m_hconn->m_nconn)
                 {
                         //NDBG_PRINT("%sCANCEL%s: nconn: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_hconn->m_nconn);
+                        if(m_hconn->m_hmsg)
+                        {
+                                resp *l_resp = static_cast<resp *>(m_hconn->m_hmsg);
+                                l_resp->set_status(HTTP_STATUS_GATEWAY_TIMEOUT);
+                        }
                         m_hconn->m_nconn->set_status(CONN_STATUS_CANCELLED);
                         int32_t l_status;
                         l_status = m_hconn->subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
