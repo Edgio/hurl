@@ -24,7 +24,7 @@ project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
 # ------------------------------------------------
-# wb_ai_cache
+# wb_nconn_tcp
 # ------------------------------------------------
 SET(SRCS wb_nconn_tcp.cc
          ../../../src/core/nconn/nconn.cc
@@ -48,3 +48,36 @@ add_executable(wb_nconn_tcp ${HDRS} ${SRCS})
 target_link_libraries(wb_nconn_tcp compiled_catch ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_nconn_tcp PROPERTIES OUTPUT_NAME "wb_nconn_tcp")
 add_test(nconn_tcp wb_nconn_tcp)
+
+
+# ------------------------------------------------
+# wb_nconn_tls
+# ------------------------------------------------
+SET(SRCS wb_nconn_tls.cc
+         ../../../src/core/nconn/nconn.cc
+         ../../../src/core/nconn/nconn_tcp.cc
+         ../../../src/core/nconn/nconn_tls.cc
+         ../../../src/core/evr/evr.cc
+         ../../../src/core/evr/evr_select.cc
+         ../../../src/core/evr/evr_epoll.cc
+         ../../../src/core/support/nbq.cc
+         ../../../src/core/support/time_util.cc
+         ../../../src/core/support/tls_util.cc
+         ../../../src/core/dns/host_info.cc
+         ../../../src/core/dns/nlookup.cc
+         ../../../ext/hostcheck/hostcheck.cc
+         ../../../src/core/ndebug/ndebug.cc)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}
+                    ${CMAKE_CURRENT_SOURCE_DIR}/../
+                    ../../../ext
+                    ../../../include                    
+                    ../../../src/core/support/
+                    ../../../src/core/evr/
+                    ../../../src/core/dns/
+                    ../../../src/core/nconn/
+                    ../../../src/core/ndebug/)
+add_executable(wb_nconn_tls ${HDRS} ${SRCS})
+target_link_libraries(wb_nconn_tls compiled_catch ${LIBRARIES})
+SET_TARGET_PROPERTIES(wb_nconn_tls PROPERTIES OUTPUT_NAME "wb_nconn_tls")
+add_test(nconn_tls wb_nconn_tls)
+
