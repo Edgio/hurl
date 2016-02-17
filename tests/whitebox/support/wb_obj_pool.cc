@@ -36,8 +36,7 @@
 //: ----------------------------------------------------------------------------
 //:
 //: ----------------------------------------------------------------------------
-int32_t g_num_delete;
-std::string g_last_animal_deleted;
+int g_num_deleted = 0;
 
 //: ----------------------------------------------------------------------------
 //:
@@ -50,8 +49,7 @@ public:
         {};
         ~animal()
         {
-                ++g_num_delete;
-                g_last_animal_deleted = m_name;
+                ++g_num_deleted;
         }
         std::string m_name;
         uint32_t get_idx(void) {return m_idx;}
@@ -70,14 +68,17 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
 
         SECTION("Basic Insertion Test") {
                 animal_pool_t *l_animal_pool = new animal_pool_t();
-                g_num_delete = 0;
+
+                INFO("Init'd");
+                REQUIRE(( l_animal_pool->free_size() == 0 ));
+                REQUIRE(( l_animal_pool->used_size() == 0 ));
+
+                INFO("Insert 5");
                 animal *l_a0 = new animal("Bongo");
                 animal *l_a1 = new animal("Binky");
                 animal *l_a2 = new animal("Sleepy");
                 animal *l_a3 = new animal("Droopy");
                 animal *l_a4 = new animal("Slippy");
-                REQUIRE(( l_animal_pool->free_size() == 0 ));
-                REQUIRE(( l_animal_pool->used_size() == 0 ));
                 l_animal_pool->add(l_a0);
                 l_animal_pool->add(l_a1);
                 l_animal_pool->add(l_a2);
@@ -85,31 +86,46 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
                 l_animal_pool->add(l_a4);
                 REQUIRE(( l_animal_pool->free_size() == 0 ));
                 REQUIRE(( l_animal_pool->used_size() == 5 ));
-                REQUIRE(( g_num_delete == 0 ));
+
+                INFO("Release 1");
                 l_animal_pool->release(l_a0);
                 REQUIRE(( l_animal_pool->free_size() == 1 ));
                 REQUIRE(( l_animal_pool->used_size() == 4 ));
+
+                INFO("Get free");
                 animal *l_af = l_animal_pool->get_free();
                 REQUIRE((l_af != NULL));
                 REQUIRE((l_af->m_name == "Bongo"));
+                REQUIRE(( l_animal_pool->free_size() == 0 ));
+                REQUIRE(( l_animal_pool->used_size() == 5 ));
+
+                INFO("Release 3");
                 l_animal_pool->release(l_a1);
-                l_animal_pool->shrink();
-                REQUIRE(( g_num_delete == 1 ));
-                REQUIRE(( g_last_animal_deleted == "Binky" ));
                 l_animal_pool->release(l_a2);
                 l_animal_pool->release(l_a3);
-                REQUIRE(( l_animal_pool->free_size() == 2 ));
+                REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
-                l_animal_pool->shrink();
-                REQUIRE(( g_num_delete == 3 ));
+
+                INFO("Add null");
                 l_animal_pool->add(NULL);
+                REQUIRE(( l_animal_pool->free_size() == 3 ));
+                REQUIRE(( l_animal_pool->used_size() == 2 ));
+
+                INFO("Release null");
                 l_animal_pool->release(NULL);
+                REQUIRE(( l_animal_pool->free_size() == 3 ));
+                REQUIRE(( l_animal_pool->used_size() == 2 ));
+
+                INFO("Release 1");
                 l_animal_pool->release(l_a4);
-                REQUIRE(( l_animal_pool->free_size() == 1 ));
+                REQUIRE(( l_animal_pool->free_size() == 4 ));
                 REQUIRE(( l_animal_pool->used_size() == 1 ));
+
+                INFO("Cleanup");
+                g_num_deleted = 0;
                 delete l_animal_pool;
                 l_animal_pool = NULL;
-                //NDBG_PRINT("g_num_delete: %d\n", g_num_delete);
-                REQUIRE(( g_num_delete == 5 ));
+                REQUIRE(( g_num_deleted == 5 ));
+
         }
 }

@@ -90,19 +90,7 @@ public:
         {
                 return m_used_idx_set.size();
         }
-        void shrink(void)
-        {
-                // TODO --release all unused...
-                for(typename obj_idx_set_t::iterator i_idx = m_free_idx_set.begin();
-                    i_idx != m_free_idx_set.end();
-                    ++i_idx)
-                {
-                        delete m_obj_vec[*i_idx];
-                        m_obj_vec.erase(m_obj_vec.begin() + *i_idx);
-                }
-                m_free_idx_set.clear();
-        }
-
+        // TODO --release all unused -shrink routine...
         obj_pool(void):
                 m_obj_vec(),
                 m_used_idx_set(),
