@@ -26,15 +26,13 @@ cmake_minimum_required(VERSION 2.8.0)
 # ------------------------------------------------
 # wb_url_router
 # ------------------------------------------------
-SET(SRCS wb_url_router.cc
-    ../../../src/core/url_router/url_router.cc
-    ../../../src/core/ndebug/ndebug.cc)
+SET(SRCS wb_url_router.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../src/core/url_router/
                     ${CMAKE_SOURCE_DIR}/include
                     ../../../src/core/ndebug/)
 add_executable(wb_url_router ${HDRS} ${SRCS})
-target_link_libraries(wb_url_router compiled_catch ${LIBRARIES})
+target_link_libraries(wb_url_router compiled_catch  ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_url_router PROPERTIES OUTPUT_NAME "wb_url_router")
 add_test(url_router wb_url_router)

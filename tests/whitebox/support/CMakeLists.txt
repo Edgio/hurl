@@ -26,28 +26,25 @@ cmake_minimum_required(VERSION 2.8.0)
 # ------------------------------------------------
 # wb_nbq
 # ------------------------------------------------
-SET(SRCS wb_nbq.cc
-         ../../../src/core/support/nbq.cc
-         ../../../src/core/ndebug/ndebug.cc)
+SET(SRCS wb_nbq.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../src/core/support/
                     ../../../src/core/ndebug/)
 add_executable(wb_nbq ${HDRS} ${SRCS})
-target_link_libraries(wb_nbq compiled_catch ${LIBRARIES})
+target_link_libraries(wb_nbq compiled_catch  ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_nbq PROPERTIES OUTPUT_NAME "wb_nbq")
 add_test(nbq wb_nbq)
 
 # ------------------------------------------------
 # wb_nlru
 # ------------------------------------------------
-SET(SRCS wb_nlru.cc
-         ../../../src/core/ndebug/ndebug.cc)
+SET(SRCS wb_nlru.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../src/core/support/
                     ../../../src/core/ndebug/)
 add_executable(wb_nlru ${HDRS} ${SRCS})
-target_link_libraries(wb_nlru compiled_catch ${LIBRARIES})
+target_link_libraries(wb_nlru compiled_catch  ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_nlru PROPERTIES OUTPUT_NAME "wb_nlru")
 add_test(nlru wb_nlru)
