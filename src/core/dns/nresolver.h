@@ -44,8 +44,6 @@
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
-// TODO Remove -enable with build flag...
-#define ASYNC_DNS_WITH_UDNS 1
 #ifdef ASYNC_DNS_WITH_UDNS
   #define ASYNC_DNS_SUPPORT 1
 #endif

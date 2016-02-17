@@ -44,12 +44,6 @@
 #define STATUS_AGAIN -2
 #endif
 
-#ifdef ASYNC_DNS_SUPPORT
-#ifndef STATUS_QUEUED_ASYNC_DNS
-#define STATUS_QUEUED_ASYNC_DNS -3
-#endif
-#endif
-
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------

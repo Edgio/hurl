@@ -28,6 +28,7 @@
 #include "nresolver.h"
 #include "ndebug.h"
 #include "time_util.h"
+#include "nlookup.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
@@ -334,138 +335,19 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
 //: ----------------------------------------------------------------------------
 int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
-        //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_host.c_str(), a_port);
-        // Initialize...
-        host_info *l_host_info = NULL;
-        l_host_info = new host_info();
-        l_host_info->m_sa_len = sizeof(l_host_info->m_sa);
-        memset((void*) &(l_host_info->m_sa), 0, l_host_info->m_sa_len);
-
-        // ---------------------------------------
-        // get address...
-        // ---------------------------------------
-        struct addrinfo l_hints;
-        memset(&l_hints, 0, sizeof(l_hints));
-        l_hints.ai_family = PF_UNSPEC;
-        l_hints.ai_socktype = SOCK_STREAM;
-        char portstr[10];
-        snprintf(portstr, sizeof(portstr), "%d", (int) a_port);
-        struct addrinfo* l_addrinfo;
-
-        int gaierr;
-        gaierr = getaddrinfo(a_host.c_str(), portstr, &l_hints, &l_addrinfo);
-        if (gaierr != 0)
+        int32_t l_status;
+        host_info *l_host_info = new host_info();
+        l_status = nlookup(a_host, a_port, *l_host_info);
+        if(l_status != STATUS_OK)
         {
-                //NDBG_PRINT("Error getaddrinfo '%s': %s\n",
-                //           a_host.c_str(), gai_strerror(gaierr));
                 delete l_host_info;
                 return STATUS_ERROR;
         }
-
-        // Find the first IPv4 and IPv6 entries.
-        struct addrinfo* l_addrinfo_v4 = NULL;
-        struct addrinfo* l_addrinfo_v6 = NULL;
-        for (struct addrinfo* i_addrinfo = l_addrinfo;
-             i_addrinfo != (struct addrinfo*) 0;
-             i_addrinfo = i_addrinfo->ai_next)
-        {
-                switch (i_addrinfo->ai_family)
-                {
-                case AF_INET:
-                {
-                        if (l_addrinfo_v4 == (struct addrinfo*) 0)
-                                l_addrinfo_v4 = i_addrinfo;
-                        break;
-                }
-                case AF_INET6:
-                {
-                        if (l_addrinfo_v6 == (struct addrinfo*) 0)
-                                l_addrinfo_v6 = i_addrinfo;
-                        break;
-                }
-                }
-        }
-
-        //NDBG_PRINT("RESOLVE:\n");
-
-        // If there's an IPv4 address, use that, otherwise try IPv6.
-        if (l_addrinfo_v4 != NULL)
-        {
-                if (sizeof(l_host_info->m_sa) < l_addrinfo_v4->ai_addrlen)
-                {
-                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n",
-                                   a_host.c_str(),
-                              (unsigned long) sizeof(l_host_info->m_sa),
-                              (unsigned long) l_addrinfo_v4->ai_addrlen);
-                        delete l_host_info;
-                        return STATUS_ERROR;
-                }
-                l_host_info->m_sock_family = l_addrinfo_v4->ai_family;
-                l_host_info->m_sock_type = l_addrinfo_v4->ai_socktype;
-                l_host_info->m_sock_protocol = l_addrinfo_v4->ai_protocol;
-                l_host_info->m_sa_len = l_addrinfo_v4->ai_addrlen;
-
-                //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v4->ai_addrlen);
-                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr,
-                //                   l_addrinfo_v4->ai_addrlen);
-                //show_host_info();
-
-                memmove(&(l_host_info->m_sa),
-                        l_addrinfo_v4->ai_addr,
-                        l_addrinfo_v4->ai_addrlen);
-
-                // Set the port
-                ((sockaddr_in *)(&(l_host_info->m_sa)))->sin_port = htons(a_port);
-
-                freeaddrinfo(l_addrinfo);
-        }
-        else if (l_addrinfo_v6 != NULL)
-        {
-                if (sizeof(l_host_info->m_sa) < l_addrinfo_v6->ai_addrlen)
-                {
-                        NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n",
-                                   a_host.c_str(),
-                              (unsigned long) sizeof(l_host_info->m_sa),
-                              (unsigned long) l_addrinfo_v6->ai_addrlen);
-                        delete l_host_info;
-                        return STATUS_ERROR;
-                }
-                l_host_info->m_sock_family = l_addrinfo_v6->ai_family;
-                l_host_info->m_sock_type = l_addrinfo_v6->ai_socktype;
-                l_host_info->m_sock_protocol = l_addrinfo_v6->ai_protocol;
-                l_host_info->m_sa_len = l_addrinfo_v6->ai_addrlen;
-                //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v6->ai_addrlen);
-                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr,
-                //                    l_addrinfo_v6->ai_addrlen);
-                //show_host_info();
-                memmove(&l_host_info->m_sa,
-                        l_addrinfo_v6->ai_addr,
-                        l_addrinfo_v6->ai_addrlen);
-
-                // Set the port
-                ((sockaddr_in6 *)(&(l_host_info->m_sa)))->sin6_port = htons(a_port);
-
-                freeaddrinfo(l_addrinfo);
-        }
-        else
-        {
-                NDBG_PRINT("Error no valid address found for host %s\n",
-                           a_host.c_str());
-                delete l_host_info;
-                return STATUS_ERROR;
-        }
-
-        // Set to 60min -cuz getaddr-info stinks...
-        l_host_info->m_expires_s = get_time_s() + 3600;
-
         //show_host_info();
         if(m_use_cache && m_ai_cache)
         {
                 l_host_info = m_ai_cache->lookup(get_cache_key(a_host, a_port), l_host_info);
         }
-
         int32_t l_retval = STATUS_OK;
         if(l_host_info)
         {
@@ -476,13 +358,11 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         {
                 l_retval = STATUS_ERROR;
         }
-
         if(l_host_info && (!m_use_cache || !m_ai_cache))
         {
                 delete l_host_info;
                 l_host_info = NULL;
         }
-
         return l_retval;
 }
 

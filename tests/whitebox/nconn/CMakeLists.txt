@@ -24,30 +24,27 @@ project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
 # ------------------------------------------------
-# wb_nbq
+# wb_ai_cache
 # ------------------------------------------------
-SET(SRCS wb_nbq.cc
+SET(SRCS wb_nconn_tcp.cc
+         ../../../src/core/nconn/nconn.cc
+         ../../../src/core/nconn/nconn_tcp.cc
+         ../../../src/core/evr/evr.cc
+         ../../../src/core/evr/evr_select.cc
+         ../../../src/core/evr/evr_epoll.cc
          ../../../src/core/support/nbq.cc
+         ../../../src/core/support/time_util.cc
+         ../../../src/core/dns/host_info.cc
+         ../../../src/core/dns/nlookup.cc
          ../../../src/core/ndebug/ndebug.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
                     ../../../src/core/support/
+                    ../../../src/core/evr/
+                    ../../../src/core/dns/
+                    ../../../src/core/nconn/
                     ../../../src/core/ndebug/)
-add_executable(wb_nbq ${HDRS} ${SRCS})
-target_link_libraries(wb_nbq compiled_catch ${LIBRARIES})
-SET_TARGET_PROPERTIES(wb_nbq PROPERTIES OUTPUT_NAME "wb_nbq")
-add_test(nbq wb_nbq)
-
-# ------------------------------------------------
-# wb_nlru
-# ------------------------------------------------
-SET(SRCS wb_nlru.cc
-         ../../../src/core/ndebug/ndebug.cc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../
-                    ../../../src/core/support/
-                    ../../../src/core/ndebug/)
-add_executable(wb_nlru ${HDRS} ${SRCS})
-target_link_libraries(wb_nlru compiled_catch ${LIBRARIES})
-SET_TARGET_PROPERTIES(wb_nlru PROPERTIES OUTPUT_NAME "wb_nlru")
-add_test(nlru wb_nlru)
+add_executable(wb_nconn_tcp ${HDRS} ${SRCS})
+target_link_libraries(wb_nconn_tcp compiled_catch ${LIBRARIES})
+SET_TARGET_PROPERTIES(wb_nconn_tcp PROPERTIES OUTPUT_NAME "wb_nconn_tcp")
+add_test(nconn_tcp wb_nconn_tcp)

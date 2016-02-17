@@ -35,3 +35,4 @@ add_library(compiled_catch STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ext/catch/ca
 add_subdirectory(support)
 add_subdirectory(url_router)
 add_subdirectory(dns)
+add_subdirectory(nconn)

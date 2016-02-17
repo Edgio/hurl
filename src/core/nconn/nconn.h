@@ -26,12 +26,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/hlx.h"
 #include "ndebug.h"
 #include "req_stat.h"
-#include "nbq.h"
-#include "nresolver.h"
-#include "hlx/hlx.h"
-#include "http_parser/http_parser.h"
 
 #include <string>
 
@@ -181,7 +178,6 @@ public:
         int32_t nc_set_listening_nb(evr_loop *a_evr_loop, int32_t a_val);
         int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
         int32_t nc_cleanup(void);
-        int32_t nc_init(void);
 
         // -------------------------------------------------
         // Virtual Methods

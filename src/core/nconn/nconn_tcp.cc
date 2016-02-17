@@ -134,12 +134,15 @@ int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
         ioctl(m_fd, FIONBIO, &l_opt);
 
         // Add to event handler
-        if (0 != a_evr_loop->add_fd(a_val,
-                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
-                                    this))
+        if(a_evr_loop)
         {
-                //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                return NC_STATUS_ERROR;
+                if (0 != a_evr_loop->add_fd(a_val,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
+                                            this))
+                {
+                        //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        return NC_STATUS_ERROR;
+                }
         }
 
         return NC_STATUS_OK;
@@ -172,12 +175,15 @@ int32_t nconn_tcp::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
         }
 
         // Add to event handler
-        if (0 != a_evr_loop->add_fd(a_val,
-                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                    this))
+        if(a_evr_loop)
         {
-                //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                return NC_STATUS_ERROR;
+                if (0 != a_evr_loop->add_fd(a_val,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            this))
+                {
+                        //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        return NC_STATUS_ERROR;
+                }
         }
         return NC_STATUS_OK;
 }
@@ -232,12 +238,15 @@ int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 #endif
 
         // Add to event handler
-        if (0 != a_evr_loop->add_fd(m_fd,
-                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                    this))
+        if(a_evr_loop)
         {
-                //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
-                return NC_STATUS_ERROR;
+                if (0 != a_evr_loop->add_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            this))
+                {
+                        //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        return NC_STATUS_ERROR;
+                }
         }
 
         return NC_STATUS_OK;
@@ -311,12 +320,15 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                 if(errno == EAGAIN)
                 {
                         // Add to writeable
-                        if (0 != a_evr_loop->mod_fd(m_fd,
-                                                    EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                                    this))
+                        if(a_evr_loop)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                                return NC_STATUS_ERROR;
+                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                                            this))
+                                {
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                        return NC_STATUS_ERROR;
+                                }
                         }
                         return NC_STATUS_AGAIN;
                 }
@@ -342,8 +354,8 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
         //           m_host_info);
         // Make a socket.
         m_fd = ::socket(m_host_info.m_sock_family,
-                      m_host_info.m_sock_type,
-                      m_host_info.m_sock_protocol);
+                        m_host_info.m_sock_type,
+                        m_host_info.m_sock_protocol);
 
         //NDBG_OUTPUT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
         if (m_fd < 0)
@@ -389,12 +401,15 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
                 return NC_STATUS_ERROR;
         }
 
-        if (0 != a_evr_loop->add_fd(m_fd,
-                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                    this))
+        if(a_evr_loop)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                return NC_STATUS_ERROR;
+                if (0 != a_evr_loop->add_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            this))
+                {
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                        return NC_STATUS_ERROR;
+                }
         }
 
         return NC_STATUS_OK;
@@ -489,12 +504,15 @@ state_top:
                 {
                         //NDBG_PRINT("Error Connection in progress. Reason: %s\n", ::strerror(errno));
                         // Set to writeable and try again
-                        if (0 != a_evr_loop->mod_fd(m_fd,
-                                                    EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
-                                                    this))
+                        if(a_evr_loop)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                                return NC_STATUS_ERROR;
+                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
+                                                            this))
+                                {
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                        return NC_STATUS_ERROR;
+                                }
                         }
 
                         // Return here -still in connecting state
@@ -537,12 +555,15 @@ state_top:
         //}
 
         // Add to readable
-        if (0 != a_evr_loop->mod_fd(m_fd,
-                                    EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                    this))
+        if(a_evr_loop)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                return NC_STATUS_ERROR;
+                if (0 != a_evr_loop->mod_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            this))
+                {
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                        return NC_STATUS_ERROR;
+                }
         }
 
         return NC_STATUS_OK;

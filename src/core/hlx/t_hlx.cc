@@ -25,12 +25,13 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "t_hlx.h"
-#include "ndebug.h"
+#include "hconn.h"
 #include "nbq.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
 #include "time_util.h"
 #include "stat_util.h"
+#include "ndebug.h"
 
 #include <unistd.h>
 #include <errno.h>
@@ -66,6 +67,15 @@
                 }\
         } while(0);
 
+
+//: ----------------------------------------------------------------------------
+//: Constants
+//: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+#ifndef STATUS_QUEUED_ASYNC_DNS
+#define STATUS_QUEUED_ASYNC_DNS -3
+#endif
+#endif
 
 namespace ns_hlx {
 
