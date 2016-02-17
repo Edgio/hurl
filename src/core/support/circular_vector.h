@@ -50,7 +50,6 @@ public:
         {
 
         }
-
         const _Tp &get_obj(uint32_t a_index) const
         {
                 // Mind wrap around.
@@ -60,7 +59,6 @@ public:
                 }
                 return m_vector[a_index];
         }
-
         void add_obj(const _Tp&a_obj)
         {
                 ++m_cur_index;
@@ -93,10 +91,8 @@ public:
 
                 }
         }
-
         uint32_t get_cur_index(void) const { return m_cur_index;}
         uint32_t get_start_index(void) const { return m_start_index;}
-
         uint32_t get_distance_to_cur_index(uint32_t a_from_index) const
         {
                 //TRC_TRACE_PRINT("m_cur_index: %d -- a_from_index = %u\n", m_cur_index, a_from_index);
@@ -112,11 +108,8 @@ public:
                         return m_cur_index - a_from_index;
                 }
         }
-
 private:
-        // Cache list
         typedef std::vector<_Tp> c_vector_t;
-
         c_vector_t m_vector;
         int32_t m_max_size;
         int32_t m_cur_index;

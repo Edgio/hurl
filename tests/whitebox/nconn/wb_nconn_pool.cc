@@ -35,6 +35,9 @@ TEST_CASE( "nconn pool test", "[nconn_pool]" )
         SECTION("Basic Connection Pool Test")
         {
                 ns_hlx::nconn_pool l_p(16);
-                REQUIRE(l_p.num_free() == 16);
+                REQUIRE((l_p.num_free() == 16));
+                ns_hlx::nconn *l_nconn = NULL;
+                l_nconn = l_p.get("MONKEY_CONN", ns_hlx::scheme_t::SCHEME_TCP);
+                REQUIRE((l_nconn != NULL));
         }
 }

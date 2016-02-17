@@ -37,6 +37,7 @@
 //:
 //: ----------------------------------------------------------------------------
 int32_t g_num_delete;
+std::string g_last_animal_deleted;
 
 //: ----------------------------------------------------------------------------
 //:
@@ -50,6 +51,7 @@ public:
         ~animal()
         {
                 ++g_num_delete;
+                g_last_animal_deleted = m_name;
         }
         std::string m_name;
         uint32_t get_idx(void) {return m_idx;}
@@ -93,6 +95,7 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
                 l_animal_pool->release(l_a1);
                 l_animal_pool->shrink();
                 REQUIRE(( g_num_delete == 1 ));
+                REQUIRE(( g_last_animal_deleted == "Binky" ));
                 l_animal_pool->release(l_a2);
                 l_animal_pool->release(l_a3);
                 REQUIRE(( l_animal_pool->free_size() == 2 ));

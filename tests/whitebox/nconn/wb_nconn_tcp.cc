@@ -41,19 +41,19 @@ TEST_CASE( "nconn tcp test", "[nconn_tcp]" )
                 ns_hlx::host_info l_h;
                 int32_t l_s;
                 l_s = ns_hlx::nlookup("google.com", 80, l_h);
-                REQUIRE(l_s == 0);
+                REQUIRE((l_s == 0));
                 l_c.set_host_info(l_h);
                 ns_hlx::nbq l_iq(16384);
                 ns_hlx::nbq l_oq(16384);
                 l_oq.write("GET\r\n\r\n", strlen("GET\r\n\r\n"));
                 do {
                         l_s = l_c.nc_run_state_machine(NULL,ns_hlx::nconn::NC_MODE_WRITE, &l_iq, &l_oq);
-                        REQUIRE(l_s != ns_hlx::nconn::NC_STATUS_ERROR);
+                        REQUIRE((l_s != ns_hlx::nconn::NC_STATUS_ERROR));
                         usleep(100000);
                 } while(l_s == ns_hlx::nconn::NC_STATUS_AGAIN);
                 do {
                         l_s = l_c.nc_run_state_machine(NULL,ns_hlx::nconn::NC_MODE_READ, &l_iq, &l_oq);
-                        REQUIRE(l_s != ns_hlx::nconn::NC_STATUS_ERROR);
+                        REQUIRE((l_s != ns_hlx::nconn::NC_STATUS_ERROR));
                         usleep(100000);
                 } while(l_s == ns_hlx::nconn::NC_STATUS_AGAIN);
                 char l_buf[256];

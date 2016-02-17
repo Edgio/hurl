@@ -44,29 +44,29 @@ TEST_CASE( "nconn tls test", "[nconn_tls]" )
                 // TLS Init...
                 ns_hlx::tls_init();
                 SSL_CTX *l_ctx = ns_hlx::tls_init_ctx("",0,"","",false,"","");
-                REQUIRE(l_ctx != NULL);
+                REQUIRE((l_ctx != NULL));
 
                 // TLS Setup...
                 int32_t l_s;
                 ns_hlx::nconn_tls l_c;
                 l_s = l_c.set_opt(ns_hlx::nconn_tls::OPT_TLS_CTX, l_ctx, sizeof(l_ctx));
-                REQUIRE(l_s == ns_hlx::nconn::NC_STATUS_OK);
+                REQUIRE((l_s == ns_hlx::nconn::NC_STATUS_OK));
 
                 ns_hlx::host_info l_h;
                 l_s = ns_hlx::nlookup("google.com", 443, l_h);
-                REQUIRE(l_s == 0);
+                REQUIRE((l_s == 0));
                 l_c.set_host_info(l_h);
                 ns_hlx::nbq l_iq(16384);
                 ns_hlx::nbq l_oq(16384);
                 l_oq.write("GET\r\n\r\n", strlen("GET\r\n\r\n"));
                 do {
                         l_s = l_c.nc_run_state_machine(NULL,ns_hlx::nconn::NC_MODE_WRITE, &l_iq, &l_oq);
-                        REQUIRE(l_s != ns_hlx::nconn::NC_STATUS_ERROR);
+                        REQUIRE((l_s != ns_hlx::nconn::NC_STATUS_ERROR));
                         usleep(100000);
                 } while(l_s == ns_hlx::nconn::NC_STATUS_AGAIN);
                 do {
                         l_s = l_c.nc_run_state_machine(NULL,ns_hlx::nconn::NC_MODE_READ, &l_iq, &l_oq);
-                        REQUIRE(l_s != ns_hlx::nconn::NC_STATUS_ERROR);
+                        REQUIRE((l_s != ns_hlx::nconn::NC_STATUS_ERROR));
                         usleep(100000);
                 } while(l_s == ns_hlx::nconn::NC_STATUS_AGAIN);
                 char l_buf[256];
