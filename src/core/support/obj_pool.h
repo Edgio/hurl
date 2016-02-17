@@ -63,14 +63,21 @@ public:
         }
         void add(_Tp *a_obj)
         {
+                if(!a_obj)
+                {
+                        return;
+                }
                 m_obj_vec.push_back(a_obj);
                 idx_t l_idx = m_obj_vec.size() - 1;
                 a_obj->set_idx(l_idx);
                 m_used_idx_set.insert(l_idx);
-
         }
         void release(_Tp *a_obj)
         {
+                if(!a_obj)
+                {
+                        return;
+                }
                 idx_t l_idx = a_obj->get_idx();
                 m_used_idx_set.erase(l_idx);
                 m_free_idx_set.insert(a_obj->get_idx());
@@ -86,6 +93,14 @@ public:
         void shrink(void)
         {
                 // TODO --release all unused...
+                for(typename obj_idx_set_t::iterator i_idx = m_free_idx_set.begin();
+                    i_idx != m_free_idx_set.end();
+                    ++i_idx)
+                {
+                        delete m_obj_vec[*i_idx];
+                        m_obj_vec.erase(m_obj_vec.begin() + *i_idx);
+                }
+                m_free_idx_set.clear();
         }
 
         obj_pool(void):
@@ -107,25 +122,22 @@ public:
                 }
                 m_obj_vec.clear();
         }
-
         //void set_delete_cb(delete_cb_t a_delete_cb, void *a_o_1)
         //{
         //        m_delete_cb = a_delete_cb;
         //        m_o_1 = a_o_1;
         //}
-
 private:
         // ---------------------------------------
         // Private methods
         // ---------------------------------------
         DISALLOW_COPY_AND_ASSIGN(obj_pool)
 
-        //delete_cb_t m_delete_cb;
-        //void *m_o_1;
-
         // ---------------------------------------
         // Private members
         // ---------------------------------------
+        //delete_cb_t m_delete_cb;
+        //void *m_o_1;
         obj_vec_t m_obj_vec;
         obj_idx_set_t m_used_idx_set;
         obj_idx_set_t m_free_idx_set;
