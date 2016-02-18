@@ -73,13 +73,13 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         if (m_loop_type == EVR_LOOP_SELECT)
         {
                 //NDBG_PRINT("Using evr_select\n");
-                m_evr = new evr_select(m_max_connections);
+                m_evr = new evr_select();
         }
         // Default to epoll
         else
         {
                 //NDBG_PRINT("Using evr_epoll\n");
-                m_evr = new evr_epoll(m_max_connections);
+                m_evr = new evr_epoll();
         }
         m_control_fd = add_event(NULL);
         if(m_control_fd == STATUS_ERROR)

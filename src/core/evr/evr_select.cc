@@ -38,7 +38,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-evr_select::evr_select(int a_max_connections) :
+evr_select::evr_select(void) :
 	m_conn_map(),
 	m_rfdset(),
 	m_wfdset()

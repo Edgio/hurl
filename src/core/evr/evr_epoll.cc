@@ -38,17 +38,17 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-evr_epoll::evr_epoll(int a_max_connections):
+evr_epoll::evr_epoll(void):
         m_epoll_fd(-1)
 {
         //NDBG_PRINT("%sCREATE_EPOLL%s: a_max_events = %d\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_max_connections);
-        m_epoll_fd = epoll_create(a_max_connections);
+        m_epoll_fd = epoll_create1(0);
         if (m_epoll_fd == -1)
         {
                 fprintf(stderr,
-                        "Error: epoll_create() failed: %s --max_connections = %d\n",
-                        strerror(errno), a_max_connections);
+                        "Error: epoll_create() failed: %s\n",
+                        strerror(errno));
                 exit(-1);
         }
 }

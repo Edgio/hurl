@@ -58,10 +58,8 @@ public:
         ~nconn_pool();
         nconn * get(const std::string &a_label, scheme_t a_scheme);
         nconn * get_idle(const std::string &a_label);
-        nconn *create_conn(scheme_t a_scheme);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
-        int32_t cleanup(nconn *a_nconn);
         uint32_t num_in_use(void) const {return ((uint32_t)m_nconn_obj_pool.used_size());}
         uint32_t num_free(void) const {return (m_pool_size - num_in_use());}
         uint32_t num_idle(void) {return (uint32_t)m_idle_conn_ncache.size();}
@@ -71,13 +69,14 @@ public:
         // Public static methods
         // -------------------------------------------------
         static int delete_cb(void* o_1, void *a_2);
-
+        static nconn *create_conn(scheme_t a_scheme);
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(nconn_pool)
         void init(void);
+        int32_t cleanup(nconn *a_nconn);
 
         // -------------------------------------------------
         // Private members

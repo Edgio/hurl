@@ -34,10 +34,69 @@ TEST_CASE( "nconn pool test", "[nconn_pool]" )
 {
         SECTION("Basic Connection Pool Test")
         {
+                INFO("Init");
                 ns_hlx::nconn_pool l_p(16);
                 REQUIRE((l_p.num_free() == 16));
-                ns_hlx::nconn *l_nconn = NULL;
-                l_nconn = l_p.get("MONKEY_CONN", ns_hlx::scheme_t::SCHEME_TCP);
-                REQUIRE((l_nconn != NULL));
+
+                INFO("Get 3 connections");
+                ns_hlx::nconn *l_c1 = NULL;
+                l_c1 = l_p.get("MONKEY", ns_hlx::scheme_t::SCHEME_TCP);
+                ns_hlx::nconn *l_c2 = NULL;
+                l_c2 = l_p.get("BANANA", ns_hlx::scheme_t::SCHEME_TCP);
+                ns_hlx::nconn *l_c3 = NULL;
+                l_c3 = l_p.get("GORILLA", ns_hlx::scheme_t::SCHEME_TCP);
+                ns_hlx::nconn *l_c4 = NULL;
+                l_c4 = l_p.get("KOALA", ns_hlx::scheme_t::SCHEME_TCP);
+                REQUIRE((l_c1 != NULL));
+                REQUIRE((l_c2 != NULL));
+                REQUIRE((l_c3 != NULL));
+                REQUIRE((l_c4 != NULL));
+                REQUIRE((l_p.num_in_use() == 4));
+                REQUIRE((l_p.num_idle() == 0));
+                REQUIRE((l_p.num_free() == 12));
+
+                INFO("Release 2");
+                int32_t l_s;
+                l_s = l_p.release(l_c1);
+                REQUIRE((l_s == 0));
+                l_s = l_p.release(l_c2);
+                REQUIRE((l_s == 0));
+                REQUIRE((l_p.num_in_use() == 2));
+                REQUIRE((l_p.num_idle() == 0));
+                REQUIRE((l_p.num_free() == 14));
+
+                INFO("Add idle");
+                l_s = l_p.add_idle(l_c3);
+                REQUIRE((l_s == 0));
+                REQUIRE((l_p.num_in_use() == 2));
+                REQUIRE((l_p.num_idle() == 1));
+                REQUIRE((l_p.num_free() == 14));
+
+                INFO("Get idle");
+                ns_hlx::nconn *l_ci = NULL;
+                l_ci = l_p.get_idle("KOALA");
+                REQUIRE((l_ci == NULL));
+                l_ci = l_p.get_idle("GORILLA");
+                REQUIRE((l_ci != NULL));
+                REQUIRE((l_ci->get_label() == "GORILLA"));
+                REQUIRE((l_p.num_in_use() == 2));
+                REQUIRE((l_p.num_idle() == 0));
+                REQUIRE((l_p.num_free() == 14));
+
+                INFO("Get all free")
+                for(uint32_t i = 0; i < 14; ++i)
+                {
+                        ns_hlx::nconn *l_ct = NULL;
+                        l_ct = l_p.get("BLOOP", ns_hlx::scheme_t::SCHEME_TCP);
+                        REQUIRE((l_ct != NULL));
+                }
+                REQUIRE((l_p.num_in_use() == 16));
+                REQUIRE((l_p.num_idle() == 0));
+                REQUIRE((l_p.num_free() == 0));
+                ns_hlx::nconn *l_ct = NULL;
+                l_ct = l_p.get("BLOOP", ns_hlx::scheme_t::SCHEME_TCP);
+                REQUIRE((l_ct == NULL));
+                l_ct = l_p.get("BLOOP", ns_hlx::scheme_t::SCHEME_TCP);
+                REQUIRE((l_ct == NULL));
         }
 }
