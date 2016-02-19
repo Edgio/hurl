@@ -35,14 +35,17 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn_pool::nconn_pool(uint32_t a_size):
-                       m_nconn_obj_pool(),
-                       m_idle_conn_ncache(a_size),
+nconn_pool::nconn_pool(uint64_t a_max_active_size,
+                       uint64_t a_max_idle_size):
                        m_initd(false),
-                       m_pool_size(a_size),
-                       m_active_conn_map()
+                       m_active_conn_map(),
+                       m_active_conn_map_size(0),
+                       m_active_conn_map_max_size(a_max_active_size),
+                       m_idle_conn_ncache(a_max_idle_size),
+                       m_nconn_obj_pool()
 {
-        //NDBG_PRINT("a_size: %d\n", a_size);
+        //NDBG_PRINT("a_max_active_size: %d\n", a_max_active_size);
+        //NDBG_PRINT("a_max_idle_size:   %d\n", a_max_idle_size);
 }
 
 //: ----------------------------------------------------------------------------
@@ -56,6 +59,7 @@ nconn_pool::~nconn_pool(void)
         {
                 m_idle_conn_ncache.evict();
         }
+        // TODO kill active connections...
 }
 
 //: ----------------------------------------------------------------------------
@@ -63,97 +67,64 @@ nconn_pool::~nconn_pool(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void nconn_pool::init(void)
-{
-        m_idle_conn_ncache.set_delete_cb(delete_cb, this);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-nconn *nconn_pool::create_conn(scheme_t a_scheme)
-{
-        nconn *l_nconn = NULL;
-
-        //NDBG_PRINT("CREATING NEW CONNECTION: a_scheme: %d\n", a_scheme);
-        if(a_scheme == SCHEME_TCP)
-        {
-                l_nconn = new nconn_tcp();
-        }
-        else if(a_scheme == SCHEME_TLS)
-        {
-                l_nconn = new nconn_tls();
-        }
-
-        return l_nconn;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-nconn *nconn_pool::get(const std::string &a_label, scheme_t a_scheme)
+nconn *nconn_pool::get_new_active(const std::string &a_label, scheme_t a_scheme)
 {
         if(!m_initd)
         {
                 init();
         }
-        //NDBG_PRINT("TID[%lu]: %sGET_CONNECTION%s: l_nconn: %p m_nconn_obj_pool.used_size() = %lu\n",
-        //                pthread_self(),
-        //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
-        //                ao_nconn, m_nconn_obj_pool.used_size());
-        if((m_pool_size != -1) &&
-            m_idle_conn_ncache.size() &&
-           (m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size))
-        {
-                // Evict from idle_conn_ncache
-                m_idle_conn_ncache.evict();
-        }
-        if(m_nconn_obj_pool.used_size() >= (uint64_t)m_pool_size)
+        if(m_active_conn_map_size >= m_active_conn_map_max_size)
         {
                 return NULL;
         }
-
-        // -----------------------------------------
-        // Get connection for reqlet
-        // Either return existing connection or
-        // null for new connection
-        // -----------------------------------------
         nconn *l_nconn = m_nconn_obj_pool.get_free();
-        //NDBG_PRINT("%sGET_CONNECTION%s: GET[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
-        //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
+        // If scheme is different, destroy nconn and recreate
         if(l_nconn &&
            (l_nconn->get_scheme() != a_scheme))
         {
-                // Destroy nconn and recreate
-                //NDBG_PRINT("Destroy nconn and recreate: %u -- l_nconn->m_scheme: %d -- a_scheme: %d\n",
-                //                *i_conn,
-                //                l_nconn->m_scheme,
-                //                a_scheme);
                 delete l_nconn;
                 l_nconn = NULL;
         }
-
         if(!l_nconn)
         {
-                l_nconn = create_conn(a_scheme);
+                l_nconn = s_create_new_conn(a_scheme);
                 if(!l_nconn)
                 {
-                        //NDBG_PRINT("Error performing create_conn\n");
+                        NDBG_PRINT("Error performing create_conn\n");
                         return NULL;
                 }
                 m_nconn_obj_pool.add(l_nconn);
         }
-
         l_nconn->set_label(a_label);
-        ++m_active_conn_map[a_label];
 
-        //NDBG_PRINT("%sGET_CONNECTION%s: ERASED[%u] l_nconn: %p m_conn_free_list.size() = %lu\n",
-        //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_conn_idx, l_nconn, m_conn_idx_free_list.size());
+        int32_t l_s;
+        l_s = add_active(l_nconn);
+        if(l_s != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing add_active.\n");
+                //return NULL;
+        }
         return l_nconn;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t nconn_pool::get_active_size(void)
+{
+        return m_active_conn_map_size;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t nconn_pool::get_active_available(void)
+{
+        return m_active_conn_map_max_size - m_active_conn_map_size;
 }
 
 //: ----------------------------------------------------------------------------
@@ -168,13 +139,23 @@ nconn *nconn_pool::get_idle(const std::string &a_label)
                 init();
         }
         //NDBG_PRINT("m_idle_conn_ncache size: %lu\n", m_idle_conn_ncache.size());
-        nconn* l_nconn_lkp = m_idle_conn_ncache.get(a_label);
-        if(l_nconn_lkp)
+        nconn* l_c = m_idle_conn_ncache.get(a_label);
+        if(l_c)
         {
-                ++m_active_conn_map[a_label];
-                return l_nconn_lkp;
+                add_active(l_c);
+                return l_c;
         }
         return NULL;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t nconn_pool::get_idle_size(void)
+{
+        return m_idle_conn_ncache.size();
 }
 
 //: ----------------------------------------------------------------------------
@@ -193,62 +174,21 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
                 //NDBG_PRINT("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
-        if(m_active_conn_map.find(a_nconn->get_label()) != m_active_conn_map.end())
+        int32_t l_s;
+        l_s = remove_active(a_nconn);
+        if(l_s != STATUS_OK)
         {
-                --m_active_conn_map[a_nconn->get_label()];
+                NDBG_PRINT("Error performing remove_active.\n");
+                return STATUS_ERROR;
         }
-        id_t l_id = m_idle_conn_ncache.insert(a_nconn->get_label(), a_nconn);
+        id_t l_id;
+        l_id = m_idle_conn_ncache.insert(a_nconn->get_label(), a_nconn);
+        a_nconn->set_id(l_id);
         //NDBG_PRINT("%sADD_IDLE%s: size: %lu LABEL: %s ID: %u\n",
         //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
         //                m_idle_conn_ncache.size(),
         //                a_nconn->get_label().c_str(),
         //                l_id);
-        a_nconn->set_id(l_id);
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t nconn_pool::cleanup(nconn *a_nconn)
-{
-        if(!m_initd)
-        {
-                init();
-        }
-        if(!a_nconn)
-        {
-                //NDBG_PRINT("Error a_nconn == NULL\n");
-                return STATUS_ERROR;
-        }
-        if(STATUS_OK != a_nconn->nc_cleanup())
-        {
-                //NDBG_PRINT("Error a_nconn == NULL\n");
-                return STATUS_ERROR;
-        }
-        a_nconn->reset_stats();
-        m_nconn_obj_pool.release(a_nconn);
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int nconn_pool::delete_cb(void* o_1, void *a_2)
-{
-        nconn_pool *l_nconn_pool = reinterpret_cast<nconn_pool *>(o_1);
-        nconn *l_nconn = reinterpret_cast<nconn *>(a_2);
-        int32_t l_status = l_nconn_pool->cleanup(l_nconn);
-        if(l_status != STATUS_OK)
-        {
-                //NDBG_PRINT("Error performing cleanup\n");
-                return STATUS_ERROR;
-        }
-        l_nconn_pool->get_nconn_obj_pool().release(l_nconn);
         return STATUS_OK;
 }
 
@@ -259,25 +199,146 @@ int nconn_pool::delete_cb(void* o_1, void *a_2)
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::release(nconn *a_nconn)
 {
-        //NDBG_PRINT("%sRELEASE%s:\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
-        if(!m_initd)
-        {
-                init();
-        }
         if(!a_nconn)
         {
                 //NDBG_PRINT("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
-        if(m_active_conn_map.find(a_nconn->get_label()) != m_active_conn_map.end())
+        //NDBG_PRINT("%sRELEASE%s:\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
+        if(!m_initd)
         {
-                --m_active_conn_map[a_nconn->get_label()];
+                init();
         }
-        if(STATUS_OK != cleanup(a_nconn))
+        int32_t l_s;
+        l_s = remove_active(a_nconn);
+        if(l_s != STATUS_OK)
         {
-                //NDBG_PRINT("Error performing cleanup\n");
+                NDBG_PRINT("Error performing remove_active\n");
+                //return STATUS_ERROR;
+        }
+        l_s = remove_idle(a_nconn);
+        if(l_s != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing remove_idle\n");
+                //return STATUS_ERROR;
+        }
+        l_s = cleanup(a_nconn);
+        if(l_s != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing cleanup\n");
+                //return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nconn *nconn_pool::s_create_new_conn(scheme_t a_scheme)
+{
+        nconn *l_nconn = NULL;
+        //NDBG_PRINT("CREATING NEW CONNECTION: a_scheme: %d\n", a_scheme);
+        if(a_scheme == SCHEME_TCP)
+        {
+                l_nconn = new nconn_tcp();
+        }
+        else if(a_scheme == SCHEME_TLS)
+        {
+                l_nconn = new nconn_tls();
+        }
+        return l_nconn;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int nconn_pool::s_delete_cb(void* o_1, void *a_2)
+{
+        nconn_pool *l_nconn_pool = reinterpret_cast<nconn_pool *>(o_1);
+        nconn *l_nconn = reinterpret_cast<nconn *>(a_2);
+        int32_t l_s;
+        l_s = l_nconn_pool->cleanup(l_nconn);
+        if(l_s != STATUS_OK)
+        {
+                NDBG_PRINT("Error performing cleanup\n");
+                //return STATUS_ERROR;
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void nconn_pool::init(void)
+{
+        m_idle_conn_ncache.set_delete_cb(s_delete_cb, this);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_pool::add_active(nconn *a_nconn)
+{
+        active_conn_map_t::iterator i_cl = m_active_conn_map.find(a_nconn->get_label());
+        if(i_cl != m_active_conn_map.end())
+        {
+                i_cl->second.insert(a_nconn);
+        }
+        else
+        {
+                nconn_set_t l_cs;
+                l_cs.insert(a_nconn);
+                m_active_conn_map[a_nconn->get_label()] = l_cs;
+        }
+        ++m_active_conn_map_size;
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_pool::remove_active(nconn *a_nconn)
+{
+        //if(m_active_conn_map.find(a_nconn->get_label()) != m_active_conn_map.end())
+        //{
+        //        --m_active_conn_map[a_nconn->get_label()];
+        //}
+        active_conn_map_t::iterator i_cl = m_active_conn_map.find(a_nconn->get_label());
+        if(i_cl == m_active_conn_map.end())
+        {
                 return STATUS_ERROR;
         }
+        nconn_set_t::iterator i_n = i_cl->second.find(a_nconn);
+        if(i_n == i_cl->second.end())
+        {
+                return STATUS_ERROR;
+        }
+        i_cl->second.erase(i_n);
+        if(!i_cl->second.size())
+        {
+                m_active_conn_map.erase(i_cl);
+        }
+        --m_active_conn_map_size;
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_pool::remove_idle(nconn *a_nconn)
+{
         if(m_idle_conn_ncache.size() &&
            a_nconn->get_data())
         {
@@ -287,6 +348,34 @@ int32_t nconn_pool::release(nconn *a_nconn)
                 //           m_idle_conn_ncache.size(),
                 //           l_id);
         }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_pool::cleanup(nconn *a_nconn)
+{
+        if(!a_nconn)
+        {
+                NDBG_PRINT("Error a_nconn == NULL\n");
+                return STATUS_ERROR;
+        }
+        if(!m_initd)
+        {
+                init();
+        }
+        int32_t l_s;
+        l_s = a_nconn->nc_cleanup();
+        if(l_s != STATUS_OK)
+        {
+                NDBG_PRINT("Error perfrorming a_nconn->nc_cleanup()\n");
+                //return STATUS_ERROR;
+        }
+        a_nconn->reset_stats();
+        m_nconn_obj_pool.release(a_nconn);
         return STATUS_OK;
 }
 

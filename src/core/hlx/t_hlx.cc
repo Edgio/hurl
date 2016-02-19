@@ -138,8 +138,8 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_t_run_thread(),
         m_stat(),
         m_t_conf(a_t_conf),
-        m_nconn_pool(1000000),
-        m_nconn_proxy_pool(a_t_conf->m_num_parallel),
+        m_nconn_pool(512,1000000),
+        m_nconn_proxy_pool(a_t_conf->m_num_parallel,4096),
         m_stopped(true),
         m_start_time_s(0),
         m_evr_loop(NULL),
@@ -247,7 +247,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
                 return STATUS_ERROR;
         }
         nconn *l_nconn = NULL;
-        l_nconn = m_nconn_pool.create_conn(a_lsnr.get_scheme());
+        l_nconn = m_nconn_pool.s_create_new_conn(a_lsnr.get_scheme());
         l_status = config_conn(*l_nconn, a_lsnr.get_url_router(), HCONN_TYPE_CLIENT, false, false);
         if(l_status != STATUS_OK)
         {
@@ -479,7 +479,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
 nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router)
 {
         nconn *l_nconn;
-        l_nconn = m_nconn_pool.get("CLIENT", a_scheme);
+        l_nconn = m_nconn_pool.get_new_active("CLIENT", a_scheme);
         if(!l_nconn)
         {
                 //NDBG_PRINT("Error: performing m_nconn_pool.get\n");
@@ -1184,16 +1184,12 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
         //NDBG_PRINT("l_nconn: %p\n", l_nconn);
         if(!l_nconn)
         {
-                // Check for available proxy connections
+                // Check for available active connections
                 // If we maxed out -try again later...
-                if(!m_nconn_proxy_pool.num_free() &&
-                   !m_nconn_proxy_pool.num_idle())
+                if(!m_nconn_proxy_pool.get_active_available())
                 {
                         return STATUS_AGAIN;
                 }
-
-                // Check active connections per this label
-
                 nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
                 if(!l_nresolver)
                 {
@@ -1263,7 +1259,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
 #endif
                 }
                 // Get new connection
-                l_nconn = m_nconn_proxy_pool.get(a_subr.get_label(), a_subr.get_scheme());
+                l_nconn = m_nconn_proxy_pool.get_new_active(a_subr.get_label(), a_subr.get_scheme());
                 if(!l_nconn)
                 {
                         //NDBG_PRINT("Returning NULL\n");
@@ -1419,12 +1415,14 @@ int32_t t_hlx::subr_try_deq(void)
                                 // break since ran out of available connections
                                 break;
                         }
+#ifdef ASYNC_DNS_SUPPORT
                         else if(l_status == STATUS_QUEUED_ASYNC_DNS)
                         {
                                 l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
                                 subr_dequeue();
                                 l_subr->set_i_q(m_subr_list.end());
                         }
+#endif
                         else
                         {
                                 subr_dequeue();
@@ -1525,7 +1523,7 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 {
                         return STATUS_ERROR;
                 }
-                m_stat.m_cur_cln_conn_count = m_nconn_pool.num_idle();
+                m_stat.m_cur_cln_conn_count = m_nconn_pool.get_idle_size();
                 a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {
@@ -1540,7 +1538,7 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 {
                         return STATUS_ERROR;
                 }
-                m_stat.m_cur_ups_conn_count = m_nconn_proxy_pool.num_idle();
+                m_stat.m_cur_ups_conn_count = m_nconn_proxy_pool.get_idle_size();
                 a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {

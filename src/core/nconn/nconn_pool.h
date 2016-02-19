@@ -28,17 +28,19 @@
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
 #include "nconn.h"
+
 #include "nlru.h"
 #include "obj_pool.h"
 
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
+#include <set>
+
 
 namespace ns_hlx {
 
-typedef nlru <nconn> idle_conn_lru_t;
-typedef std::map <std::string, uint32_t> active_conn_map_t;
+//: ----------------------------------------------------------------------------
+//: Fwd decl's
+//: ----------------------------------------------------------------------------
+class nconn;
 
 //: ----------------------------------------------------------------------------
 //: \class: nconn_pool
@@ -49,43 +51,57 @@ public:
         // -------------------------------------------------
         // Types
         // -------------------------------------------------
+        typedef nlru <nconn> idle_conn_lru_t;
+        typedef std::set<nconn *> nconn_set_t;
+        typedef std::map <std::string, nconn_set_t> active_conn_map_t;
         typedef obj_pool<nconn> nconn_obj_pool_t;
 
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint32_t a_size);
+        nconn_pool(uint64_t a_max_active_size,
+                   uint64_t a_max_idle_size);
         ~nconn_pool();
-        nconn * get(const std::string &a_label, scheme_t a_scheme);
+        nconn * get_new_active(const std::string &a_label, scheme_t a_scheme);
+        uint64_t get_active_size(void);
+        uint64_t get_active_available(void);
         nconn * get_idle(const std::string &a_label);
+        uint64_t get_idle_size(void);
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
-        uint32_t num_in_use(void) const {return ((uint32_t)m_nconn_obj_pool.used_size());}
-        uint32_t num_free(void) const {return (m_pool_size - num_in_use());}
-        uint32_t num_idle(void) {return (uint32_t)m_idle_conn_ncache.size();}
-        nconn_obj_pool_t &get_nconn_obj_pool(void){return m_nconn_obj_pool;}
 
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
-        static int delete_cb(void* o_1, void *a_2);
-        static nconn *create_conn(scheme_t a_scheme);
+        static nconn *s_create_new_conn(scheme_t a_scheme);
+        static int s_delete_cb(void* o_1, void *a_2);
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(nconn_pool)
         void init(void);
+        int32_t add_active(nconn *a_nconn);
+        int32_t remove_active(nconn *a_nconn);
+        int32_t remove_idle(nconn *a_nconn);
         int32_t cleanup(nconn *a_nconn);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        nconn_obj_pool_t m_nconn_obj_pool;
-        idle_conn_lru_t m_idle_conn_ncache;
         bool m_initd;
-        int32_t m_pool_size;
+
+        // Active connections
         active_conn_map_t m_active_conn_map;
+        uint64_t m_active_conn_map_size;
+        uint64_t m_active_conn_map_max_size;
+
+        // Idle connections
+        idle_conn_lru_t m_idle_conn_ncache;
+
+        // Connection pool for reuse
+        nconn_obj_pool_t m_nconn_obj_pool;
+
 };
 
 } //namespace ns_hlx {
