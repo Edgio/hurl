@@ -6,9 +6,5 @@
   e. set separate timeouts resolve/connect/idle
   f. error callback indicate error type
 
-1. blackbox tests
-  a. fix exe paths depending on cwd
-  b. add tests target
-  
-2. hurl/phurl/hss
+1. hurl/phurl/hss
   a. if is interactive shell --> isatty(fileno(stdout)) -default to color

@@ -208,7 +208,6 @@ Linux for now (epoll only -kqueue support coming soon-ish)
 ###Install dependecies:
 Library requirements:
 * libssl/libcrypto (OpenSSL)
-* libgoogle-perftools
 
 ###Building the tools
 ```bash

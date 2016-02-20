@@ -27,7 +27,12 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <stdlib.h>
+
+#if defined(__APPLE__) || defined(BSD)
+#endif
+#if defined(__linux__)
 #include <sys/epoll.h>
+#endif
 
 #include <queue> // for std::priority_queue
 #include <vector>
@@ -161,7 +166,7 @@ public:
                  evr_file_cb_t a_write_cb = NULL,
                  evr_file_cb_t a_error_cb = NULL,
                  evr_loop_type_t a_type = EVR_LOOP_EPOLL,
-                 uint32_t a_max_conn = 1);
+                 uint32_t a_max_events = 512);
         ~evr_loop();
         int32_t run(void);
 
@@ -197,7 +202,7 @@ private:
 
         // Timer priority queue -used as min heap
         evr_timer_pq_t m_timer_pq;
-        uint32_t m_max_connections;
+        uint32_t m_max_events;
         evr_loop_type_t m_loop_type;
 
         // TODO EPOLL Specific

@@ -24,14 +24,13 @@
 # To build...
 # ------------------------------------------------------------------------------
 which cmake g++ make || {
-    echo "Failed to find required build packages. Please install with:   sudo apt-get install cmake make g++"
+    echo "Failed to find all required apps to build (g++, cmake, make)."
     exit 1
 }
 mkdir -p build
 pushd build && \
-    cmake ../ -DBUILD_TCMALLOC=ON -DBUILD_TESTS=ON -DBUILD_UBUNTU=ON && \
-    make package && \
-    make test && \
+    cmake ../
+    make
     popd && \
 exit $?
 

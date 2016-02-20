@@ -30,13 +30,14 @@ SET(CMAKE_INSTALL_PREFIX "/usr")
 option(GCC_OPTIONS      "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
 option(FORTIFY          "Fortify Source GCC options" OFF)
 option(DEBUG_MODE       "Compile in debug mode." OFF)
-option(BUILD_TESTS      "Build the unit tests." ON)
-option(BUILD_TCMALLOC   "Build with tcmalloc" ON)
+option(BUILD_TESTS      "Build the unit tests." OFF)
+option(BUILD_TCMALLOC   "Build with tcmalloc" OFF)
 option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
 option(BUILD_SYMBOLS    "Build with Symbols" ON)
 option(BUILD_EFENCE     "Build with tcmalloc" OFF)
 option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
 option(BUILD_UDNS       "Build with udns (async dns support)" ON)
+option(BUILD_UBUNTU     "Build for Ubuntu" OFF)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -67,40 +68,12 @@ message("    Build with tcmalloc:                       " "BUILD_TCMALLOC       
 message("    Build with efence:                         " "BUILD_EFENCE            " ${BUILD_EFENCE})
 message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
 message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
+message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU            " ${BUILD_UBUNTU})
 message("")
 
 if (FORTIFY)
   add_definitions(-D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now)
 endif()
-
-# ------------------------------------------------------------------------------
-# Resolve dependencies
-# ------------------------------------------------------------------------------
-# Find if a Python module is installed
-# Initial version from: http://www.cmake.org/pipermail/cmake/2011-January/041666.html
-# by Mark Mill (mmoll@rice.edu)
-# To use do: find_python_module(PyQt4 REQUIRED)
-# ------------------------------------------------------------------------------
-function(find_python_module module)
-        SET(PYTHON_EXECUTABLE python)
-        string(TOUPPER ${module} module_upper)
-        if(ARGC GREATER 1 AND ARGV1 STREQUAL "REQUIRED")
-                set(${module}_FIND_REQUIRED TRUE)
-        endif()
-        # A module's location is usually a directory, but for binary modules
-        # it's a .so file.
-        execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
-                "import re, ${module}; print(re.compile('/__init__.py.*').sub('',${module}.__file__))"
-                RESULT_VARIABLE _${module}_status
-                OUTPUT_VARIABLE _${module}_location
-                ERROR_QUIET
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-        if("${_${module}_location}" STREQUAL "")
-                message(FATAL_ERROR "Failed to find Python module ${module}")
-        else()
-                message(STATUS "Found Python module ${module} at ${_${module}_location}")
-        endif()
-endfunction(find_python_module)
 
 # ------------------------------------------------------------------------------
 # \brief   Find ubuntu packages based on their (optional) include and (required) library test files
@@ -114,7 +87,6 @@ endfunction(find_python_module)
 macro(find_ubuntu_package output_var_prefix include_test_file
                 library_test_file ubuntu_package
                 ubuntu_build_package)
-
   if (NOT "${include_test_file}" STREQUAL "")
           find_path(${output_var_prefix}_INCLUDE_DIR ${include_test_file})
           if (${output_var_prefix}_INCLUDE_DIR)
@@ -144,43 +116,65 @@ macro(find_ubuntu_package output_var_prefix include_test_file
   if (NOT "${ubuntu_build_package}" STREQUAL "")
           LIST(APPEND CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST "${ubuntu_build_package}")
   endif()
-
 endmacro(find_ubuntu_package)
 
-find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a libssl1.0.0 libssl-dev)
-find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
-find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
+# ------------------------------------------------------------------------------
+# Link OpenSSL
+# ------------------------------------------------------------------------------
+if (BUILD_UBUNTU)
+  find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a libssl1.0.0 libssl-dev)
+  find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
+  find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
+else()
+  set(LIBRARIES ${LIBRARIES} pthread rt ssl crypto)
+endif()
 
 # ------------------------------------------------------------------------------
 # Build PROFILER
 # ------------------------------------------------------------------------------
 if (BUILD_PROFILER)
   add_definitions(-DENABLE_PROFILER=1)
-  find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a google-perftools libgoogle-perftools-dev)
+  if (BUILD_UBUNTU)
+    find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a google-perftools libgoogle-perftools-dev)
+  else()
+    set(LIBRARIES ${LIBRARIES} tcmalloc profiler)
+  endif()
 endif()
 
 # ------------------------------------------------------------------------------
 # Build TCMALLOC
 # ------------------------------------------------------------------------------
 if (BUILD_TCMALLOC)
-  find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a google-perftools libgoogle-perftools-dev)
-  find_ubuntu_package(LIBZMA lzma.h liblzma.a liblzma5 liblzma-dev)
-  find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "libunwind8|libunwind7" "libunwind8-dev|libunwind7-dev")
-  LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
+  if (BUILD_UBUNTU)
+    find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a google-perftools libgoogle-perftools-dev)
+    find_ubuntu_package(LIBZMA lzma.h liblzma.a liblzma5 liblzma-dev)
+    find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "libunwind8|libunwind7" "libunwind8-dev|libunwind7-dev")
+    LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
+  else()
+    set(LIBRARIES ${LIBRARIES} tcmalloc)
+  endif()
 endif()
 
 # ------------------------------------------------------------------------------
 # Build EFENCE
 # ------------------------------------------------------------------------------
 if (BUILD_EFENCE)
-  find_ubuntu_package(LIBEFENCE "" libefence.a "" electric-fence)
+  if (BUILD_UBUNTU)
+    find_ubuntu_package(LIBEFENCE "" libefence.a "" electric-fence)
+  else()
+    set(LIBRARIES ${LIBRARIES} efence)
+  endif()
 endif()
 
 # ------------------------------------------------------------------------------
 # ASAN
 # ------------------------------------------------------------------------------
 if (BUILD_ASAN)
-  find_ubuntu_package(LIBASAN "" libasan.so.0 "" libasan0)
+  if (BUILD_UBUNTU)
+    find_ubuntu_package(LIBASAN "" libasan.so.0 "" libasan0)
+  else()
+    set(LIBRARIES ${LIBRARIES} asan)
+  endif()
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
   set(DEBUG_MODE ON)
 endif()
@@ -220,13 +214,6 @@ endif()
 set(LIBRARIES ${LIBRARIES} dl)
 message(STATUS "Libraries: ${LIBRARIES}")
 
-
-# ------------------------------------------------------------------------------
-# Look for required python files
-# ------------------------------------------------------------------------------
-find_python_module(nose REQUIRED)
-find_python_module(requests REQUIRED)
-
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
@@ -247,34 +234,38 @@ if (BUILD_SYMBOLS)
 endif()
 
 # ------------------------------------------------------------------------------
-# Debian Package Support
+# Version
 # ------------------------------------------------------------------------------
-EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
 EXECUTE_PROCESS(COMMAND git describe --tags OUTPUT_VARIABLE VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 if(NOT ${VERSION} MATCHES ^[0-9]+.[0-9]+)
         message(FATAL_ERROR "Most recent tag '${VERSION}' does not match required version regex: ^[0-9]+.[0-9]+
 Does it start with a number?")
 endif()
-
 add_definitions(-DHLX_VERSION="${VERSION}")
 
-SET(CPACK_GENERATOR "DEB")
-SET(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
-SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-SET(CPACK_PACKAGE_FILE_NAME "hlx_${CPACK_DEBIAN_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
-SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
-SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
-SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
-message(STATUS "Package Configuration:")
-message("")
-message("    Option                                     Value                     ")
-message("    ---------------------------------------------------------------------")
-message("    Package Version:                           ${CPACK_DEBIAN_PACKAGE_VERSION}")
-message("")
+# ------------------------------------------------------------------------------
+# Debian Package Support
+# ------------------------------------------------------------------------------
+if (BUILD_UBUNTU)
+  EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
+  SET(CPACK_GENERATOR "DEB")
+  SET(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
+  SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+  SET(CPACK_PACKAGE_FILE_NAME "hlx_${CPACK_DEBIAN_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+  SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
+  SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
+  SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Load Tester.")
+  SET(CPACK_PACKAGE_DESCRIPTION "HTTP Load Tester for Verizon EdgeCast.")
+  message(STATUS "Package Configuration:")
+  message("")
+  message("    Option                                     Value                     ")
+  message("    ---------------------------------------------------------------------")
+  message("    Package Version:                           ${CPACK_DEBIAN_PACKAGE_VERSION}")
+  message("")
 
-INCLUDE(CPack)
+  INCLUDE(CPack)
+
+endif()
 
 # ------------------------------------------------------------------------------
 # include source and test directories

@@ -32,9 +32,12 @@
 
 #include <pthread.h>
 #include <unistd.h>
-#include <sys/eventfd.h>
 #include <errno.h>
 #include <string.h>
+
+#if defined(__linux__)
+#include <sys/eventfd.h>
+#endif
 
 namespace ns_hlx {
 
@@ -47,9 +50,9 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
                    evr_file_cb_t a_write_cb,
                    evr_file_cb_t a_error_cb,
                    evr_loop_type_t a_type,
-                   uint32_t a_max_conn):
+                   uint32_t a_max_events):
         m_timer_pq(),
-        m_max_connections(a_max_conn),
+        m_max_events(a_max_events),
         m_loop_type(a_type),
         m_epoll_event_vector(NULL),
         m_stopped(false),
@@ -64,7 +67,7 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         // TODO:
         // EPOLL specific for now
         // -------------------------------------------
-        m_epoll_event_vector = (struct epoll_event *)malloc(sizeof(struct epoll_event)*a_max_conn);
+        m_epoll_event_vector = (struct epoll_event *)malloc(sizeof(struct epoll_event)*m_max_events);
         //std::vector<struct epoll_event> l_epoll_event_vector(m_max_parallel_connections);
 
         // -------------------------------------------
@@ -165,7 +168,7 @@ int32_t evr_loop::run(void)
         int l_num_events = 0;
 
         //NDBG_PRINT("%sWAIT4_CONNECTIONS%s: l_time_diff_ms = %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_time_diff_ms);
-        l_num_events = m_evr->wait(m_epoll_event_vector, m_max_connections, l_time_diff_ms);
+        l_num_events = m_evr->wait(m_epoll_event_vector, m_max_events, l_time_diff_ms);
         //NDBG_PRINT("%sSTART_CONNECTIONS%s: l_num_events = %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_num_events);
 
         // -------------------------------------------
