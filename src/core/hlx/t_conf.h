@@ -80,7 +80,11 @@ typedef struct t_conf
         t_conf():
                 m_verbose(false),
                 m_color(false),
+#if defined(__linux__)
                 m_evr_loop_type(EVR_LOOP_EPOLL),
+#else
+                m_evr_loop_type(EVR_LOOP_SELECT),
+#endif
                 m_num_parallel(1024),
                 m_timeout_ms(10000),
                 m_num_reqs_per_conn(-1),

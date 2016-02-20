@@ -27,13 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <stdlib.h>
-
-#if defined(__APPLE__) || defined(BSD)
-#endif
-#if defined(__linux__)
-#include <sys/epoll.h>
-#endif
-
+#include <stdint.h>
 #include <queue> // for std::priority_queue
 #include <vector>
 
@@ -49,16 +43,16 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 typedef enum evr_loop_type
 {
+#if defined(__linux__)
         EVR_LOOP_EPOLL,
+#endif
         EVR_LOOP_SELECT
-
 } evr_loop_type_t;
 
 typedef enum evr_timer_state
 {
         EVR_TIMER_ACTIVE,
         EVR_TIMER_CANCELLED
-
 } evr_timer_state_t;
 
 typedef enum evr_file_attr
@@ -69,8 +63,44 @@ typedef enum evr_file_attr
         EVR_FILE_ATTR_MASK_RD_HUP = 1 << 3,
         EVR_FILE_ATTR_MASK_HUP = 1 << 4,
         EVR_FILE_ATTR_MASK_ET = 1 << 5
-
 } evr_file_attr_t;
+
+//: ----------------------------------------------------------------------------
+//: \details: Types -copied from epoll
+//: ----------------------------------------------------------------------------
+// event data
+typedef union evr_data_union
+{
+        void *ptr;
+        int fd;
+        uint32_t u32;
+        uint64_t u64;
+} evr_data_t;
+
+// event
+struct evr_event_struct
+{
+        uint32_t events;
+        evr_data_t data;
+} __attribute__ ((__packed__));
+typedef evr_event_struct evr_event_t;
+
+//: ----------------------------------------------------------------------------
+//: \details: Event Types -copied from epoll
+//: ----------------------------------------------------------------------------
+typedef enum evr_event_types_enum
+{
+        EVR_EV_IN = 0x001,
+#define EVR_EV_IN EVR_EV_IN
+        EVR_EV_OUT = 0x004,
+#define EVR_EV_OUT EVR_EV_OUT
+        EVR_EV_ERR = 0x008,
+#define EVR_EV_ERR EVR_EV_ERR
+        EVR_EV_HUP = 0x010,
+#define EVR_EV_HUP EVR_EV_HUP
+        EVR_EV_RDHUP = 0x2000,
+#define EVR_EV_RDHUP EVR_EV_RDHUP
+} evr_event_types_t;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -83,7 +113,7 @@ public:
         {};
         virtual ~evr() {};
 
-        virtual int wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec) = 0;
+        virtual int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec) = 0;
         virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
         virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
         virtual int del(int a_fd) = 0;
@@ -105,13 +135,11 @@ typedef int32_t (*evr_file_cb_t)(void *);
 // Timer callback
 typedef int32_t (*evr_timer_cb_t)(void *, void *);
 
-
 // -----------------------------------------------
 // Event Types
 // -----------------------------------------------
 // File event
 typedef struct evr_file_event_struct {
-
         // -------------------------------------------
         // TODO Reevaluate Using class member instead
         // of fd specific cb's
@@ -119,24 +147,17 @@ typedef struct evr_file_event_struct {
         //evr_file_cb_t m_read_cb;
         //evr_file_cb_t m_write_cb;
         //evr_file_cb_t m_error_cb; // TODO for EPOLLHUP/EPOLLERR
-
         void *m_data;
-
 } evr_file_event_t;
-
 
 // Timer event
 typedef struct evr_timer_event_struct {
-
         uint64_t m_time_ms;
         evr_timer_cb_t m_timer_cb;
         evr_timer_state_t m_state;
-
         void *m_ctx;
         void *m_data;
-
 } evr_timer_event_t;
-
 
 //: ----------------------------------------------------------------------------
 //: Priority queue sorting
@@ -182,8 +203,10 @@ public:
         // -------------------------------------------
         // Timer events...
         // -------------------------------------------
-        int32_t add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb,
-                          void *a_ctx, void *a_data,
+        int32_t add_timer(uint32_t a_time_ms,
+                          evr_timer_cb_t a_timer_cb,
+                          void *a_ctx,
+                          void *a_data,
                           evr_timer_event_t **ao_timer);
         int32_t cancel_timer(evr_timer_event_t *a_timer);
         int32_t signal_control(void);
@@ -204,9 +227,7 @@ private:
         evr_timer_pq_t m_timer_pq;
         uint32_t m_max_events;
         evr_loop_type_t m_loop_type;
-
-        // TODO EPOLL Specific
-        struct epoll_event *m_epoll_event_vector;
+        evr_event_t *m_events;
         bool m_stopped;
         evr* m_evr;
 

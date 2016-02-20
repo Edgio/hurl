@@ -54,7 +54,7 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         m_timer_pq(),
         m_max_events(a_max_events),
         m_loop_type(a_type),
-        m_epoll_event_vector(NULL),
+        m_events(NULL),
         m_stopped(false),
         m_evr(NULL),
         m_control_fd(-1),
@@ -67,22 +67,23 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         // TODO:
         // EPOLL specific for now
         // -------------------------------------------
-        m_epoll_event_vector = (struct epoll_event *)malloc(sizeof(struct epoll_event)*m_max_events);
+        m_events = (evr_event_t *)malloc(sizeof(evr_event_t)*m_max_events);
         //std::vector<struct epoll_event> l_epoll_event_vector(m_max_parallel_connections);
 
         // -------------------------------------------
         // Get the event handler...
         // -------------------------------------------
-        if (m_loop_type == EVR_LOOP_SELECT)
+#if defined(__linux__)
+        if (m_loop_type == EVR_LOOP_EPOLL)
+        {
+                //NDBG_PRINT("Using evr_select\n");
+                m_evr = new evr_epoll();
+        }
+#endif
+        if(!m_evr)
         {
                 //NDBG_PRINT("Using evr_select\n");
                 m_evr = new evr_select();
-        }
-        // Default to epoll
-        else
-        {
-                //NDBG_PRINT("Using evr_epoll\n");
-                m_evr = new evr_epoll();
         }
         m_control_fd = add_event(NULL);
         if(m_control_fd == STATUS_ERROR)
@@ -110,10 +111,10 @@ evr_loop::~evr_loop(void)
                 }
                 m_timer_pq.pop();
         }
-        if(m_epoll_event_vector)
+        if(m_events)
         {
-                free(m_epoll_event_vector);
-                m_epoll_event_vector = NULL;
+                free(m_events);
+                m_events = NULL;
         }
         if(m_evr)
         {
@@ -168,7 +169,7 @@ int32_t evr_loop::run(void)
         int l_num_events = 0;
 
         //NDBG_PRINT("%sWAIT4_CONNECTIONS%s: l_time_diff_ms = %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_time_diff_ms);
-        l_num_events = m_evr->wait(m_epoll_event_vector, m_max_events, l_time_diff_ms);
+        l_num_events = m_evr->wait(m_events, m_max_events, l_time_diff_ms);
         //NDBG_PRINT("%sSTART_CONNECTIONS%s: l_num_events = %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_num_events);
 
         // -------------------------------------------
@@ -180,16 +181,16 @@ int32_t evr_loop::run(void)
                 // TODO:
                 // EPOLL specific for now
                 // -------------------------------------------
-                void* l_data = m_epoll_event_vector[i_event].data.ptr;
-                uint32_t l_events = m_epoll_event_vector[i_event].events;
+                void* l_data = m_events[i_event].data.ptr;
+                uint32_t l_events = m_events[i_event].events;
 
                 //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, i_event, l_num_events, l_events);
 
                 // Service callbacks per type
-                if((l_events & EPOLLIN) ||
-                   (l_events & EPOLLRDHUP) ||
-                   (l_events & EPOLLHUP) ||
-                   (l_events & EPOLLERR))
+                if((l_events & EVR_EV_IN) ||
+                   (l_events & EVR_EV_RDHUP) ||
+                   (l_events & EVR_EV_HUP) ||
+                   (l_events & EVR_EV_ERR))
                 {
                         if(m_read_cb)
                         {
@@ -203,7 +204,7 @@ int32_t evr_loop::run(void)
                                 }
                         }
                 }
-                if(l_events & EPOLLOUT)
+                if(l_events & EVR_EV_OUT)
                 {
                         if(m_write_cb)
                         {
@@ -223,8 +224,8 @@ int32_t evr_loop::run(void)
                 //if(l_events & EPOLLERR)
                 if(0)
                 {
-                        //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, i_event, l_num_events, l_events);
-
+                        //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n",
+                        //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, i_event, l_num_events, l_events);
                         if(m_error_cb)
                         {
                                 int32_t l_status = STATUS_OK;
@@ -366,15 +367,19 @@ int32_t evr_loop::clear_control(void)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::add_event(void *a_data)
 {
-        int32_t l_fd;
+        int32_t l_fd = 0;
         // Create eventfd for yanking an existing epoll_wait
+#if defined(__linux__)
         l_fd = eventfd(0, EFD_NONBLOCK);
+#endif
+#if defined(__APPLE__) && defined(BSD)
+        kevent_add(ctx->kqfd, &kev, 1, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, NULL);
+#endif
         if(l_fd == -1)
         {
-                NDBG_PRINT("Error performing eventfd.  Status: %d.  Reason: %s\n", l_fd , strerror(errno));
+                NDBG_PRINT("Error performing creating user fd.  Status: %d.  Reason: %s\n", l_fd , strerror(errno));
                 return STATUS_ERROR;
         }
-
         int32_t l_status = 0;
         l_status = m_evr->add(l_fd, EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET, a_data);
         if(l_status != 0)

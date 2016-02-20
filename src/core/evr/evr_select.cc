@@ -52,7 +52,7 @@ evr_select::evr_select(void) :
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_select::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
+int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
 {
         //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
@@ -97,13 +97,13 @@ int evr_select::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
                 if (FD_ISSET(l_fd, &l_wfdset))
                 {
                         //NDBG_PRINT("INSET: EPOLLOUT fd: %d\n", l_fd);
-                        a_ev[l_p].events |= EPOLLOUT;
+                        a_ev[l_p].events |= EVR_EV_OUT;
                         l_inset = true;
                 }
                 if (FD_ISSET(l_fd, &l_rfdset))
                 {
                         //NDBG_PRINT("INSET: EPOLLIN fd: %d\n", l_fd);
-                        a_ev[l_p].events |= EPOLLIN;
+                        a_ev[l_p].events |= EVR_EV_IN;
                         l_inset = true;
                 }
                 if (l_inset)

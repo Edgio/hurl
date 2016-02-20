@@ -46,7 +46,6 @@ SET(SRCS
     ./ndebug/ndebug.cc
     ./url_router/url_router.cc
     ./evr/evr.cc
-    ./evr/evr_epoll.cc
     ./evr/evr_select.cc
     ./support/string_util.cc
     ./support/time_util.cc
@@ -79,6 +78,13 @@ SET(SRCS
     ./hlx/handler/phurl_h.cc
     ./hlx/handler/stat_h.cc
 )
+
+# Linux Specific
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    # Linux specific code
+    SET(OperatingSystem "Linux")
+    set (SRCS ${SRCS} ./evr/evr_epoll.cc)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Headers
 SET(HDRS

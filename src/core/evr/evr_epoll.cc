@@ -26,10 +26,9 @@
 //: ----------------------------------------------------------------------------
 #include "evr_epoll.h"
 #include "ndebug.h"
-
+#include <sys/epoll.h>
 #include <string.h>
 #include <errno.h>
-
 
 namespace ns_hlx {
 
@@ -58,13 +57,13 @@ evr_epoll::evr_epoll(void):
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_epoll::wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec)
+int evr_epoll::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
 {
         //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
         //           a_timeout_msec, a_max_events);
         int l_epoll_status = 0;
-        l_epoll_status = epoll_wait(m_epoll_fd, a_ev, a_max_events, a_timeout_msec);
+        l_epoll_status = epoll_wait(m_epoll_fd, (epoll_event *)a_ev, a_max_events, a_timeout_msec);
         //NDBG_PRINT("%swait%s = %d\n",
         //           ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
         //           l_epoll_status);

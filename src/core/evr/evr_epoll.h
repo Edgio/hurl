@@ -43,7 +43,7 @@ class evr_epoll: public evr
 {
 public:
         evr_epoll(void);
-        int wait(epoll_event* a_ev, int a_max_events, int a_timeout_msec);
+        int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec);
         int add(int a_fd, uint32_t a_attr_mask, void* a_data);
         int mod(int a_fd, uint32_t a_attr_mask, void* a_data);
         int del(int a_fd);
