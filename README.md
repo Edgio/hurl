@@ -211,7 +211,7 @@ Library requirements:
 
 ###Building the tools
 ```bash
-./build.sh
+./build_simple.sh
 ```
 
 And optionally install
