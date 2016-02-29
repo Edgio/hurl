@@ -203,11 +203,17 @@ Hello World
 ## Building
 
 ##OS requirements:
-Linux for now (epoll only -kqueue support coming soon-ish)
+Linux/OS X (kqueue support coming soon-ish)
 
 ###Install dependecies:
 Library requirements:
 * libssl/libcrypto (OpenSSL)
+
+###OS X Build requirements (brew)
+```bash
+brew install cmake
+brew install openssl
+```
 
 ###Building the tools
 ```bash
