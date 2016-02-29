@@ -42,12 +42,11 @@ class evr_select: public evr
 {
 public:
         evr_select(void);
-
         int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec);
         int add(int a_fd, uint32_t a_attr_mask, void* a_data);
         int mod(int a_fd, uint32_t a_attr_mask, void* a_data);
         int del(int a_fd);
-
+        int signal(void);
 private:
         typedef std::map<uint32_t, void *> conn_map_t;
         // Disallow copy/assign

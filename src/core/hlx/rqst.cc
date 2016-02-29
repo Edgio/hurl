@@ -30,6 +30,7 @@
 #include "ndebug.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 namespace ns_hlx {
 

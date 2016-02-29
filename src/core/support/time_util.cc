@@ -34,6 +34,12 @@
 #include <unistd.h>
 #include <time.h>
 
+// Mach time support clock_get_time
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -65,14 +71,12 @@ __thread char g_last_date_str[128];
 //: ----------------------------------------------------------------------------
 static __inline__ uint64_t get_rdtsc64()
 {
-        uint32_t lo, hi;
-
+        uint32_t l_lo;
+        uint32_t l_hi;
         // We cannot use "=A", since this would use %rax on x86_64
-        __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
+        __asm__ __volatile__ ("rdtsc" : "=a" (l_lo), "=d" (l_hi));
         // output registers
-
-        return (uint64_t) hi << 32 | lo;
-
+        return (uint64_t) l_hi << 32 | l_lo;
 }
 
 //: ----------------------------------------------------------------------------
@@ -114,6 +118,27 @@ const char *get_date_str(void)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: Portable gettime function
+//: \return:  NA
+//: \param:   ao_timespec: struct timespec -with gettime result
+//: ----------------------------------------------------------------------------
+static void _rt_gettime(struct timespec &ao_timespec)
+{
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+        clock_serv_t l_cclock;
+        mach_timespec_t l_mts;
+        host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &l_cclock);
+        clock_get_time(l_cclock, &l_mts);
+        mach_port_deallocate(mach_task_self(), l_cclock);
+        ao_timespec.tv_sec = l_mts.tv_sec;
+        ao_timespec.tv_nsec = l_mts.tv_nsec;
+// TODO -if __linux__
+#else
+        clock_gettime(CLOCK_REALTIME, &ao_timespec);
+#endif
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -126,7 +151,7 @@ uint64_t get_time_s(void)
         }
         //NDBG_PRINT("HERE g_count: %lu\n", ++g_count);
 	struct timespec l_timespec;
-	clock_gettime(CLOCK_REALTIME, &l_timespec);
+	_rt_gettime(l_timespec);
 	g_last_s = (((uint64_t)l_timespec.tv_sec));
 	return g_last_s;
 }
@@ -144,7 +169,7 @@ uint64_t get_time_ms(void)
         }
         //NDBG_PRINT("HERE g_count: %lu\n", ++g_count);
 	struct timespec l_timespec;
-	clock_gettime(CLOCK_REALTIME, &l_timespec);
+        _rt_gettime(l_timespec);
 	g_last_ms = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
 	return g_last_ms;
 }
@@ -162,7 +187,7 @@ uint64_t get_time_us(void)
         }
         //NDBG_PRINT("HERE g_count: %lu\n", ++g_count);
 	struct timespec l_timespec;
-	clock_gettime(CLOCK_REALTIME, &l_timespec);
+        _rt_gettime(l_timespec);
         g_last_us = (((uint64_t)l_timespec.tv_sec) * 1000000) + (((uint64_t)l_timespec.tv_nsec) / 1000);
 	return g_last_us;
 }

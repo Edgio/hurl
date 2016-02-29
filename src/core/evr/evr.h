@@ -45,6 +45,8 @@ typedef enum evr_loop_type
 {
 #if defined(__linux__)
         EVR_LOOP_EPOLL,
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+        EVR_LOOP_KQUEUE,
 #endif
         EVR_LOOP_SELECT
 } evr_loop_type_t;
@@ -108,18 +110,13 @@ typedef enum evr_event_types_enum
 class evr
 {
 public:
-        evr():
-                m_epoll_fd(-1)
-        {};
+        evr() {};
         virtual ~evr() {};
-
         virtual int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec) = 0;
         virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
         virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
         virtual int del(int a_fd) = 0;
-
-private:
-        int m_epoll_fd;
+        virtual int signal(void) = 0;
 };
 
 //: ----------------------------------------------------------------------------
@@ -186,7 +183,7 @@ public:
         evr_loop(evr_file_cb_t a_read_cb = NULL,
                  evr_file_cb_t a_write_cb = NULL,
                  evr_file_cb_t a_error_cb = NULL,
-                 evr_loop_type_t a_type = EVR_LOOP_EPOLL,
+                 evr_loop_type_t a_type = EVR_LOOP_SELECT,
                  uint32_t a_max_events = 512);
         ~evr_loop();
         int32_t run(void);
@@ -209,16 +206,7 @@ public:
                           void *a_data,
                           evr_timer_event_t **ao_timer);
         int32_t cancel_timer(evr_timer_event_t *a_timer);
-        int32_t signal_control(void);
-        int32_t clear_control(void);
-
-        // -------------------------------------------
-        // Event events... :)
-        // -------------------------------------------
-        int32_t add_event(void *a_data);
-        int32_t clear_event(int a_fd);
-        int32_t signal_event(int a_fd);
-
+        int32_t signal(void);
 private:
         evr_loop(const evr_loop&);
         evr_loop& operator=(const evr_loop&);
@@ -230,9 +218,6 @@ private:
         evr_event_t *m_events;
         bool m_stopped;
         evr* m_evr;
-
-        // Control fd -used primarily for cancelling an existing epooll_wait
-        int m_control_fd;
 
         // -------------------------------------------
         // TODO Reevaluate Using class member instead

@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    evr_epoll.h
+//: \file:    evr_kqueue.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    02/29/2016
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _EVR_EPOLL_H
-#define _EVR_EPOLL_H
+#ifndef _EVR_KQUEUE_H
+#define _EVR_KQUEUE_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
@@ -39,10 +39,10 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-class evr_epoll: public evr
+class evr_kqueue: public evr
 {
 public:
-        evr_epoll(void);
+        evr_kqueue(void);
         int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec);
         int add(int a_fd, uint32_t a_attr_mask, void* a_data);
         int mod(int a_fd, uint32_t a_attr_mask, void* a_data);
@@ -50,11 +50,10 @@ public:
         int signal(void);
 private:
         // Disallow copy/assign
-        evr_epoll& operator=(const evr_epoll &);
-        evr_epoll(const evr_epoll &);
+        evr_kqueue& operator=(const evr_kqueue &);
+        evr_kqueue(const evr_kqueue &);
 
         int m_fd;
-        int m_ctrl_fd;
 };
 
 } //namespace ns_hlx {

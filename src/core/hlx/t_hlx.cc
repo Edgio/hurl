@@ -559,7 +559,7 @@ int t_hlx::run(void)
 void t_hlx::signal(void)
 {
         int32_t l_status;
-        l_status = m_evr_loop->signal_control();
+        l_status = m_evr_loop->signal();
         if(l_status != STATUS_OK)
         {
                 // TODO ???

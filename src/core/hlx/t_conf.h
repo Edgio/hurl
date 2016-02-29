@@ -82,6 +82,8 @@ typedef struct t_conf
                 m_color(false),
 #if defined(__linux__)
                 m_evr_loop_type(EVR_LOOP_EPOLL),
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+                m_evr_loop_type(EVR_LOOP_SELECT),
 #else
                 m_evr_loop_type(EVR_LOOP_SELECT),
 #endif

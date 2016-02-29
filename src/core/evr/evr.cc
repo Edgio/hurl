@@ -30,14 +30,8 @@
 #include "ndebug.h"
 #include "time_util.h"
 
-#include <pthread.h>
-#include <unistd.h>
 #include <errno.h>
 #include <string.h>
-
-#if defined(__linux__)
-#include <sys/eventfd.h>
-#endif
 
 namespace ns_hlx {
 
@@ -57,7 +51,6 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         m_events(NULL),
         m_stopped(false),
         m_evr(NULL),
-        m_control_fd(-1),
         m_read_cb(a_read_cb),
         m_write_cb(a_write_cb),
         m_error_cb(a_error_cb)
@@ -84,12 +77,6 @@ evr_loop::evr_loop(evr_file_cb_t a_read_cb,
         {
                 //NDBG_PRINT("Using evr_select\n");
                 m_evr = new evr_select();
-        }
-        m_control_fd = add_event(NULL);
-        if(m_control_fd == STATUS_ERROR)
-        {
-                NDBG_PRINT("Error performing add_event.\n");
-                // TODO Error???
         }
 }
 
@@ -329,106 +316,14 @@ int32_t evr_loop::cancel_timer(evr_timer_event_t *a_timer)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::signal_control(void)
+int32_t evr_loop::signal(void)
 {
-        int32_t l_status;
-        //NDBG_PRINT("%sSIGNAL%s: fd[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_control_fd);
-        l_status = signal_event(m_control_fd);
-        if(l_status != STATUS_OK)
+        //NDBG_PRINT("%sSIGNAL%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+        if(!m_evr)
         {
-                NDBG_PRINT("Error performing signal_event: fd: %d\n", m_control_fd);
                 return STATUS_ERROR;
         }
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t evr_loop::clear_control(void)
-{
-        int32_t l_status;
-        //NDBG_PRINT("%sSIGNAL%s: fd[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_control_fd);
-        l_status = clear_event(m_control_fd);
-        if(l_status != STATUS_OK)
-        {
-                NDBG_PRINT("Error performing signal_event: fd: %d\n", m_control_fd);
-                return STATUS_ERROR;
-        }
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t evr_loop::add_event(void *a_data)
-{
-        int32_t l_fd = 0;
-        // Create eventfd for yanking an existing epoll_wait
-#if defined(__linux__)
-        l_fd = eventfd(0, EFD_NONBLOCK);
-#endif
-#if defined(__APPLE__) && defined(BSD)
-        kevent_add(ctx->kqfd, &kev, 1, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, NULL);
-#endif
-        if(l_fd == -1)
-        {
-                NDBG_PRINT("Error performing creating user fd.  Status: %d.  Reason: %s\n", l_fd , strerror(errno));
-                return STATUS_ERROR;
-        }
-        int32_t l_status = 0;
-        l_status = m_evr->add(l_fd, EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET, a_data);
-        if(l_status != 0)
-        {
-                NDBG_PRINT("Error performing m_evr->add -fd: %d.\n", l_fd);
-                NDBG_PRINT("l_status: %d\n", l_status);
-        }
-        // Check for error???
-        return l_fd;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t evr_loop::signal_event(int a_fd)
-{
-        // Wake up epoll_wait by writing to control fd
-        uint64_t l_value = 1;
-        ssize_t l_write_status = 0;
-        //NDBG_PRINT("WRITING\n");
-        l_write_status = write(a_fd, &l_value, sizeof (l_value));
-        if(l_write_status == -1)
-        {
-                NDBG_PRINT("l_write_status: %ld\n", l_write_status);
-                return STATUS_ERROR;
-        }
-        return STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t evr_loop::clear_event(int a_fd)
-{
-        // Wake up epoll_wait by writing to control fd
-        uint64_t l_value = 1;
-        ssize_t l_read_status = 0;
-        //NDBG_PRINT("READING\n");
-        l_read_status = read(a_fd, &l_value, sizeof (l_value));
-        if(l_read_status == -1)
-        {
-                NDBG_PRINT("l_write_status: %ld\n", l_read_status);
-                return STATUS_ERROR;
-        }
-        return STATUS_OK;
+        return m_evr->signal();
 }
 
 } //namespace ns_hlx {

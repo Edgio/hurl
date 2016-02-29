@@ -27,6 +27,8 @@
 #include "evr_epoll.h"
 #include "ndebug.h"
 #include <sys/epoll.h>
+#include <sys/eventfd.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 
@@ -38,16 +40,23 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 evr_epoll::evr_epoll(void):
-        m_epoll_fd(-1)
+        m_fd(-1),
+        m_ctrl_fd(-1)
 {
         //NDBG_PRINT("%sCREATE_EPOLL%s: a_max_events = %d\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, a_max_connections);
-        m_epoll_fd = epoll_create1(0);
-        if (m_epoll_fd == -1)
+        m_fd = epoll_create1(0);
+        if (m_fd == -1)
         {
-                fprintf(stderr,
-                        "Error: epoll_create() failed: %s\n",
-                        strerror(errno));
+                printf("Error: epoll_create() failed: %s\n", strerror(errno));
+                exit(-1);
+        }
+
+        // Create ctrl fd
+        m_ctrl_fd = eventfd(0, EFD_NONBLOCK);
+        if (m_ctrl_fd == -1)
+        {
+                printf("Error: eventfd() failed: %s\n", strerror(errno));
                 exit(-1);
         }
 }
@@ -63,7 +72,7 @@ int evr_epoll::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
         //           a_timeout_msec, a_max_events);
         int l_epoll_status = 0;
-        l_epoll_status = epoll_wait(m_epoll_fd, (epoll_event *)a_ev, a_max_events, a_timeout_msec);
+        l_epoll_status = epoll_wait(m_fd, (epoll_event *)a_ev, a_max_events, a_timeout_msec);
         //NDBG_PRINT("%swait%s = %d\n",
         //           ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF,
         //           l_epoll_status);
@@ -101,10 +110,10 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
         ev.data.ptr = a_data;
-        if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_ADD, a_fd, &ev))
+        if (0 != epoll_ctl(m_fd, EPOLL_CTL_ADD, a_fd, &ev))
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_ADD fd[%d] failed (%s)\n",
-                           m_epoll_fd, a_fd, strerror(errno));
+                           m_fd, a_fd, strerror(errno));
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -124,10 +133,10 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
         ev.data.ptr = a_data;
-        if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_MOD, a_fd, &ev))
+        if (0 != epoll_ctl(m_fd, EPOLL_CTL_MOD, a_fd, &ev))
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_MOD fd[%d] failed (%s)\n",
-                           m_epoll_fd, a_fd, strerror(errno));
+                           m_fd, a_fd, strerror(errno));
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -142,14 +151,34 @@ int evr_epoll::del(int a_fd)
 {
         //NDBG_PRINT("%sdel%s: fd: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_fd);
         struct epoll_event ev;
-        if((m_epoll_fd > 0) && (a_fd > 0))
+        if((m_fd > 0) && (a_fd > 0))
         {
-                if (0 != epoll_ctl(m_epoll_fd, EPOLL_CTL_DEL, a_fd, &ev))
+                if (0 != epoll_ctl(m_fd, EPOLL_CTL_DEL, a_fd, &ev))
                 {
                         NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n",
-                                   m_epoll_fd, a_fd, strerror(errno));
+                                   m_fd, a_fd, strerror(errno));
                         return STATUS_OK;
                 }
+        }
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_epoll::signal(void)
+{
+        // Wake up epoll_wait by writing to control fd
+        uint64_t l_value = 1;
+        ssize_t l_write_status = 0;
+        //NDBG_PRINT("WRITING\n");
+        l_write_status = write(m_ctrl_fd, &l_value, sizeof (l_value));
+        if(l_write_status == -1)
+        {
+                NDBG_PRINT("l_write_status: %ld\n", l_write_status);
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }

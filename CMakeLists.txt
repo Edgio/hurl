@@ -119,6 +119,20 @@ macro(find_ubuntu_package output_var_prefix include_test_file
 endmacro(find_ubuntu_package)
 
 # ------------------------------------------------------------------------------
+# Mac OS X
+# ------------------------------------------------------------------------------
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+   # Mac OS X specific code
+   SET(OperatingSystem "Mac OS X")
+   # -I/usr/local/opt/openssl/include
+   # -L/usr/local/opt/openssl/lib
+   #link_directories(/usr/local/opt/openssl/lib)
+   # Add MacPorts
+   INCLUDE_DIRECTORIES(/usr/local/opt/openssl/include)
+   LINK_DIRECTORIES(/usr/local/opt/openssl/lib)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+# ------------------------------------------------------------------------------
 # Link OpenSSL
 # ------------------------------------------------------------------------------
 if (BUILD_UBUNTU)
@@ -183,28 +197,26 @@ endif()
 # Build UDNS
 # ------------------------------------------------------------------------------
 if(BUILD_UDNS)
-    include(ExternalProject)
-    ExternalProject_Add(udns
-
-      # Optional approach -including from external url
-      #URL http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz
-      DOWNLOAD_COMMAND ""
-
-      SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
-      BINARY_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
-      CONFIGURE_COMMAND "./configure"
-      BUILD_COMMAND make
-      INSTALL_COMMAND ""
-    )
-    # Link statically into libhlx archive
-    #set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
-    add_definitions(-DASYNC_DNS_WITH_UDNS=1)
+  include(ExternalProject)
+  ExternalProject_Add(udns
+    # Optional approach -including from external url
+    #URL http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz
+    DOWNLOAD_COMMAND ""
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
+    BINARY_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
+    CONFIGURE_COMMAND "./configure"
+    BUILD_COMMAND make
+    INSTALL_COMMAND ""
+  )
+  # Link statically into libhlx archive
+  #set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
+  add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
 if (FAILED_PACKAGES)
-    LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
-    string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
-    message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
+  LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
+  string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
+  message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
 endif()
 
 

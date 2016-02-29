@@ -38,6 +38,13 @@ include_directories(
     ${LIBUDNS_INCLUDE_DIR}
 )
 
+# ------------------------------------------------
+# OS X Specific
+# ------------------------------------------------
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    include_directories(/usr/local/opt/openssl/include)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
 # Source files
 SET(SRCS
     ../../ext/http_parser/http_parser.cc
@@ -79,7 +86,9 @@ SET(SRCS
     ./hlx/handler/stat_h.cc
 )
 
+# ------------------------------------------------
 # Linux Specific
+# ------------------------------------------------
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     # Linux specific code
     SET(OperatingSystem "Linux")
@@ -96,7 +105,10 @@ SET(HDRS
     ../../include/hlx/stat_h.h
 )
 
-add_library(hlxcore STATIC ${HDRS} ${SRCS})
+# Add udns object files
+file(GLOB UDNS_SRCS "../../ext/udns-0.4/*.o")
+
+add_library(hlxcore STATIC ${HDRS} ${SRCS} ${UDNS_SRCS})
 
 target_link_libraries(hlxcore libudns)
 
@@ -116,14 +128,4 @@ install(TARGETS hlxcore
 install(FILES ${HDRS}
   DESTINATION include/hlx
   COMPONENT Headers
-)
-
-# ----------------------------------------------------------
-# Custom command to link archives together
-# ----------------------------------------------------------
-add_custom_command(
-  TARGET hlxcore
-  POST_BUILD
-  COMMAND ar -M < ${CMAKE_SOURCE_DIR}/src/core/libhlx.mri && mv libhlx.a libhlxcore.a
-  DEPENDS hlxcore udns
 )

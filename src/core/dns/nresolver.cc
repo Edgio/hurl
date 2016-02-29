@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
+#include <stdlib.h>
 
 // for inet_pton
 #include <arpa/inet.h>

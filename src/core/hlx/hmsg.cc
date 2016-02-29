@@ -28,6 +28,8 @@
 #include "nbq.h"
 #include "ndebug.h"
 
+#include <stdlib.h>
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------

@@ -169,4 +169,16 @@ int evr_select::del(int a_fd)
         return STATUS_OK;
 }
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int evr_select::signal(void)
+{
+        // TODO use a pipe for signalling...
+        return STATUS_OK;
+}
+
 } //namespace ns_hlx {

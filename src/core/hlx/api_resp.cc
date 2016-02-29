@@ -31,6 +31,7 @@
 #include "http_resp.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 namespace ns_hlx {
 

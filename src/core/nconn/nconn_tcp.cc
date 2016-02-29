@@ -37,6 +37,14 @@
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 
+// From wine msg groups
+// https://www.winehq.org/pipermail/wine-cvs/2007-March/030712.html
+#ifdef __MACH__
+  #ifndef SOL_TCP
+  #define SOL_TCP IPPROTO_TCP
+  #endif
+#endif
+
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -313,7 +321,18 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
         //NDBG_PRINT("%swrite%s: buf: %p fd: %d len: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
         //                a_buf, m_fd, a_buf_len);
         //mem_display((const uint8_t*)(a_buf), (uint32_t)(a_buf_len));
+        // ---------------------------------------------------------------------
+        // TODO see post: http://noahdesu.github.io/2014/01/16/port-sendmsg.html
+        //      for info on porting MSG_NOSIGNAL to OSX
+        //      OSX has SO_NOSIGPIPE socket option -can be enabled with
+        //      int val = 1;
+        //      setsockopt(sd, SOL_SOCKET, SO_NOSIGPIPE, (void*)&val, sizeof(val));
+        // ---------------------------------------------------------------------
+#ifdef __MACH__
+        l_status = send(m_fd, a_buf, a_buf_len, 0);
+#else
         l_status = send(m_fd, a_buf, a_buf_len, MSG_NOSIGNAL);
+#endif
         //NDBG_PRINT("write: status: %d\n", l_status);
         if(l_status < 0)
         {
@@ -424,24 +443,37 @@ int32_t nconn_tcp::ncaccept(evr_loop *a_evr_loop)
 {
         if(m_tcp_state == TCP_STATE_LISTENING)
         {
-                int l_client_sock_fd;
-                sockaddr_in l_client_address;
-                uint32_t l_sockaddr_in_length;
-
+                int l_fd;
+                sockaddr_in l_addr;
+                uint32_t l_len;
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd);
-
-                //Set the size of the in-out parameter
-                l_sockaddr_in_length = sizeof(sockaddr_in);
-
-                //Wait for a client to connect
-                // TODO -portable???
-                l_client_sock_fd = accept4(m_fd, (struct sockaddr *)&l_client_address, &l_sockaddr_in_length, SOCK_NONBLOCK);
-                if (l_client_sock_fd < 0)
+                l_len = sizeof(sockaddr_in);
+#ifdef __linux__
+                l_fd = accept4(m_fd, (struct sockaddr *)&l_addr, &l_len, SOCK_NONBLOCK);
+#else
+                l_fd = accept(m_fd, (struct sockaddr *)&l_addr, &l_len);
+#endif
+                if (l_fd < 0)
                 {
                         //NDBG_PRINT("Error accept failed. Reason[%d]: %s\n", errno, ::strerror(errno));
                         return NC_STATUS_ERROR;
                 }
-                return l_client_sock_fd;
+
+#ifndef __linux__
+                int l_s;
+                int l_flags = fcntl(l_fd, F_GETFL, 0);
+                if(l_flags == -1)
+                {
+                        return NC_STATUS_ERROR;
+                }
+                l_s = fcntl(l_fd, F_SETFL, l_flags | O_NONBLOCK);
+                if(l_s == -1)
+                {
+                        return NC_STATUS_ERROR;
+                }
+
+#endif
+                return l_fd;
         }
         m_tcp_state = TCP_STATE_CONNECTED;
         return nconn::NC_STATUS_OK;
