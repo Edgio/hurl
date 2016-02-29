@@ -240,10 +240,10 @@ void hlx::get_stat(t_stat_t &ao_stat)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-#define DISPLAY_DNS_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_MAGENTA, #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
-#define DISPLAY_CLN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_GREEN,   #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
-#define DISPLAY_SRV_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_BLUE,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
-#define DISPLAY_GEN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12lu\n", ANSI_COLOR_FG_CYAN,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_DNS_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_MAGENTA, #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_CLN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_GREEN,   #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_SRV_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_BLUE,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
+#define DISPLAY_GEN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_CYAN,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
 void hlx::display_stat(void)
 {
         uint32_t i_t = 0;

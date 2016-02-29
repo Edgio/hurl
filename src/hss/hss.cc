@@ -15,6 +15,12 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+// Mach time support clock_get_time
+#ifdef __MACH__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
 // signal
 #include <signal.h>
 
@@ -681,6 +687,27 @@ int main(int argc, char** argv)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: Portable gettime function
+//: \return:  NA
+//: \param:   ao_timespec: struct timespec -with gettime result
+//: ----------------------------------------------------------------------------
+static void _rt_gettime(struct timespec &ao_timespec)
+{
+#ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
+        clock_serv_t l_cclock;
+        mach_timespec_t l_mts;
+        host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &l_cclock);
+        clock_get_time(l_cclock, &l_mts);
+        mach_port_deallocate(mach_task_self(), l_cclock);
+        ao_timespec.tv_sec = l_mts.tv_sec;
+        ao_timespec.tv_nsec = l_mts.tv_nsec;
+// TODO -if __linux__
+#else
+        clock_gettime(CLOCK_REALTIME, &ao_timespec);
+#endif
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -689,7 +716,7 @@ uint64_t hss_get_time_ms(void)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
-        clock_gettime(CLOCK_REALTIME, &l_timespec);
+        _rt_gettime(l_timespec);
         l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
         return l_retval;
 }
@@ -703,7 +730,7 @@ uint64_t hss_get_delta_time_ms(uint64_t a_start_time_ms)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
-        clock_gettime(CLOCK_REALTIME, &l_timespec);
+        _rt_gettime(l_timespec);
         l_retval = (((uint64_t)l_timespec.tv_sec) * 1000) + (((uint64_t)l_timespec.tv_nsec) / 1000000);
         return l_retval - a_start_time_ms;
 }

@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <pthread.h>
 #include <unistd.h>
 #include <getopt.h> // For getopt_long
 #include <termios.h>

@@ -23,8 +23,8 @@
 # ------------------------------------------------------------------------------
 # To build...
 # ------------------------------------------------------------------------------
-which cmake g++ make || {
-    echo "Failed to find all required apps to build (g++, cmake, make)."
+which cmake || {
+    echo "Failed to find all required apps to build (cmake)."
     exit 1
 }
 mkdir -p build

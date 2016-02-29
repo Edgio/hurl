@@ -49,7 +49,7 @@ add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 # ------------------------------------------------------------------------------
 # Libraries options
 # ------------------------------------------------------------------------------
-set(LIBRARIES ${LIBRARIES} pthread rt)
+set(LIBRARIES ${LIBRARIES} pthread)
 
 # ------------------------------------------------------------------------------
 # Display the current settings
@@ -140,7 +140,7 @@ if (BUILD_UBUNTU)
   find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
 else()
-  set(LIBRARIES ${LIBRARIES} pthread rt ssl crypto)
+  set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
 
 # ------------------------------------------------------------------------------

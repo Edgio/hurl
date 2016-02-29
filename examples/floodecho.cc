@@ -8,6 +8,11 @@
 #include <stdlib.h>
 //#include <google/profiler.h>
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
+#endif
+#include <inttypes.h>
+
 ns_hlx::hlx *g_hlx = NULL;
 
 class hello_from: public ns_hlx::phurl_h
@@ -33,7 +38,7 @@ public:
 
                 // Create length string
                 char l_len_str[64];
-                sprintf(l_len_str, "%lu", l_len);
+                sprintf(l_len_str, "%" PRIu64 "", l_len);
 
                 // Create resp
                 ns_hlx::api_resp &l_api_resp = ns_hlx::create_api_resp(*(a_subr.get_requester_hconn()));
