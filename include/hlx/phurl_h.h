@@ -40,9 +40,8 @@ class phurl_h;
 //: ----------------------------------------------------------------------------
 //: Host Struct
 //: ----------------------------------------------------------------------------
-class host_s
+struct host_s
 {
-public:
         std::string m_host;
         uint16_t m_port;
         host_s(std::string a_host, uint16_t a_port = 80):

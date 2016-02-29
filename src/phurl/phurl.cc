@@ -287,13 +287,14 @@ std::string dump_all_responses(settings_struct_t &a_settings,
 class broadcast_h: public ns_hlx::phurl_h
 {
 public:
-        int32_t do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
-                       const phurl_host_list_t &a_host_list, ns_hlx::phurl_h_resp *a_phr);
-
+        int32_t do_get_bc(ns_hlx::hlx *a_hlx,
+                          ns_hlx::t_hlx *a_t_hlx,
+                          const phurl_host_list_t &a_host_list,
+                          ns_hlx::phurl_h_resp *a_phr);
         int32_t create_resp(ns_hlx::subr &a_subr,
                             ns_hlx::phurl_h_resp *l_fanout_resp);
-
-        static int32_t s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn,
+        static int32_t s_completion_cb(ns_hlx::subr &a_subr,
+                                       ns_hlx::nconn &a_nconn,
                                        ns_hlx::resp &a_resp);
         static int32_t s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn);
         static int32_t s_create_resp(ns_hlx::phurl_h_resp *a_phr);
@@ -304,8 +305,10 @@ public:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t broadcast_h::do_get(ns_hlx::hlx *a_hlx, ns_hlx::t_hlx *a_t_hlx,
-                            const phurl_host_list_t &a_host_list, ns_hlx::phurl_h_resp *a_phr)
+int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
+                               ns_hlx::t_hlx *a_t_hlx,
+                               const phurl_host_list_t &a_host_list,
+                               ns_hlx::phurl_h_resp *a_phr)
 {
         if(!a_hlx)
         {
@@ -632,10 +635,10 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                 l_phr->m_delete = false;
                 l_phr->m_data = &a_settings;
                 a_settings.m_phr_list.push_back(l_phr);
-                l_status = a_settings.m_broadcast_h->do_get(a_settings.m_hlx,
-                                                            *i_t,
-                                                            l_host_list,
-                                                            l_phr);
+                l_status = a_settings.m_broadcast_h->do_get_bc(a_settings.m_hlx,
+                                                               *i_t,
+                                                               l_host_list,
+                                                               l_phr);
                 if(HLX_STATUS_OK != l_status)
                 {
                         return -1;

@@ -178,7 +178,7 @@ class url_router;
 class t_hlx;
 class nconn;
 class hconn;
-class t_conf;
+struct t_conf;
 class lsnr;
 class subr;
 class api_resp;
