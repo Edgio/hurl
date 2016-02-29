@@ -30,6 +30,9 @@
 #include "t_hlx.h"
 #include "ndebug.h"
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 namespace ns_hlx {
 
 
@@ -436,7 +439,7 @@ int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
 
         // Create length string
         char l_len_str[64];
-        sprintf(l_len_str, "%lu", l_len);
+        sprintf(l_len_str, "%" PRIu64 "", l_len);
 
         if(!a_phr->m_requester_hconn)
         {

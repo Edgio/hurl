@@ -2035,7 +2035,7 @@ static void show_total_agg_stat(std::string &a_tag,
         else
         printf("| RESULTS:             %s\n", a_tag.c_str());
 
-        printf("| fetches:             %lu\n", a_stat.m_total_reqs);
+        printf("| fetches:             %" PRIu64 "\n", a_stat.m_total_reqs);
         printf("| max parallel:        %u\n", a_max_parallel);
         printf("| bytes:               %e\n", (double)a_stat.m_total_bytes);
         printf("| seconds:             %f\n", a_time_elapsed_s);
@@ -2120,7 +2120,7 @@ static void show_total_agg_stat_legacy(std::string &a_tag,
                                        uint32_t a_max_parallel)
 {
         printf("%s: ", a_tag.c_str());
-        printf("%lu fetches, ", a_stat.m_total_reqs);
+        printf("%" PRIu64 " fetches, ", a_stat.m_total_reqs);
         printf("%u max parallel, ", a_max_parallel);
         printf("%e bytes, ", (double)a_stat.m_total_bytes);
         printf("in %f seconds, ", a_time_elapsed_s);

@@ -25,6 +25,9 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -56,7 +59,7 @@ void host_info::show(void)
         printf(": m_sock_type:     %d\n",  m_sock_type);
         printf(": m_sock_protocol: %d\n",  m_sock_protocol);
         printf(": m_sa_len:        %d\n",  m_sa_len);
-        printf(": m_expires:       %lu\n", m_expires_s);
+        printf(": m_expires:       %" PRIu64 "\n", m_expires_s);
         printf("+-------------------------------------\n");
 }
 

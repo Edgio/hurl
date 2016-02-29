@@ -33,6 +33,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -184,7 +187,7 @@ void api_resp::add_std_headers(http_status_t a_status, const char *a_content_typ
         set_header("Content-type", a_content_type);
         set_header("Connection", a_rqst.m_supports_keep_alives ? "keep-alive" : "close");
         char l_length_str[64];
-        sprintf(l_length_str, "%lu", a_len);
+        sprintf(l_length_str, "%" PRIu64 "", a_len);
         set_header("Content-Length", l_length_str);
 }
 

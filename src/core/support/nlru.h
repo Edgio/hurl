@@ -34,6 +34,9 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -239,7 +242,7 @@ public:
                                         _s != _i->second.end();
                                         ++_s)
                         {
-                                printf(":     ID: %lu\n", *_s);
+                                printf(":     ID: %" PRIu64 "\n", *_s);
 
                         }
                 }

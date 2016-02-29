@@ -29,7 +29,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "stat_util.h"
+
 #include <stdio.h>
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
 
 namespace ns_hlx {
 
@@ -86,7 +89,7 @@ void clear_stat(xstat_t &ao_stat)
 //: ----------------------------------------------------------------------------
 void show_stat(const xstat_t &ao_stat)
 {
-        ::printf("Stat: Mean: %4.2f, StdDev: %4.2f, Min: %4.2f, Max: %4.2f Num: %lu\n",
+        ::printf("Stat: Mean: %4.2f, StdDev: %4.2f, Min: %4.2f, Max: %4.2f Num: %" PRIu64 "\n",
                  ao_stat.mean(),
                  ao_stat.stdev(),
                  ao_stat.m_min,

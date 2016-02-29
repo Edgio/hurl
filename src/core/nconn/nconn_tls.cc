@@ -34,6 +34,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#define __STDC_FORMAT_MACROS 1
+#include <inttypes.h>
+
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/bio.h>
@@ -172,13 +175,13 @@ int32_t nconn_tls::tls_connect(void)
                         m_last_err = ::ERR_get_error();
                         if(l_status == 0)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol",
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %ld: %s. An EOF was observed that violates the protocol",
                                             m_label.c_str(),
                                             m_last_err, ERR_error_string(m_last_err, NULL));
                         }
                         else if(l_status == -1)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s",
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %ld: %s. %s",
                                                 m_label.c_str(),
                                                 m_last_err, ERR_error_string(m_last_err, NULL),
                                                 strerror(errno));
