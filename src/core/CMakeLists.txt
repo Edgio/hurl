@@ -38,6 +38,32 @@ include_directories(
     ${LIBUDNS_INCLUDE_DIR}
 )
 
+# Add udns object files
+SET(UDNS_SRCS
+    ../../../ext/udns-0.4/dnsget.o
+    ../../../ext/udns-0.4/rblcheck.o
+    ../../../ext/udns-0.4/udns_codes.o
+    ../../../ext/udns-0.4/udns_dntosp.o
+    ../../../ext/udns-0.4/udns_jran.o
+    ../../../ext/udns-0.4/udns_parse.o
+    ../../../ext/udns-0.4/udns_rr_a.o
+    ../../../ext/udns-0.4/udns_rr_naptr.o
+    ../../../ext/udns-0.4/udns_rr_srv.o
+    ../../../ext/udns-0.4/udns_XtoX.o
+    ../../../ext/udns-0.4/ex-rdns.o
+    ../../../ext/udns-0.4/udns_bl.o
+    ../../../ext/udns-0.4/udns_dn.o
+    ../../../ext/udns-0.4/udns_init.o
+    ../../../ext/udns-0.4/udns_misc.o
+    ../../../ext/udns-0.4/udns_resolver.o
+    ../../../ext/udns-0.4/udns_rr_mx.o
+    ../../../ext/udns-0.4/udns_rr_ptr.o
+    ../../../ext/udns-0.4/udns_rr_txt.o
+)
+string (REPLACE ";" " " UDNS_SRCS_FIXED "${UDNS_SRCS}")
+set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
+set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
+
 # ------------------------------------------------
 # OS X Specific
 # ------------------------------------------------
@@ -105,12 +131,13 @@ SET(HDRS
     ../../include/hlx/stat_h.h
 )
 
-# Add udns object files
-file(GLOB UDNS_SRCS "../../ext/udns-0.4/*.o")
+add_library(hlxcore STATIC ${HDRS} ${SRCS})
 
-add_library(hlxcore STATIC ${HDRS} ${SRCS} ${UDNS_SRCS})
-
-target_link_libraries(hlxcore libudns)
+if(BUILD_UDNS)
+  add_dependencies(hlxcore ext_udns)
+endif()
+  
+target_link_libraries(hlxcore UDNS_OBJS_OBJECT)
 
 # Create symlink for libhlxcore.so.<soversion>
 SET_TARGET_PROPERTIES(hlxcore

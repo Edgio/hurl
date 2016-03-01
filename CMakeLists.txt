@@ -198,7 +198,7 @@ endif()
 # ------------------------------------------------------------------------------
 if(BUILD_UDNS)
   include(ExternalProject)
-  ExternalProject_Add(udns
+  ExternalProject_Add(ext_udns
     # Optional approach -including from external url
     #URL http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz
     DOWNLOAD_COMMAND ""
@@ -207,9 +207,7 @@ if(BUILD_UDNS)
     CONFIGURE_COMMAND "./configure"
     BUILD_COMMAND make
     INSTALL_COMMAND ""
-  )
-  # Link statically into libhlx archive
-  #set(LIBRARIES ${LIBRARIES} ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a)
+  )  
   add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
@@ -218,7 +216,6 @@ if (FAILED_PACKAGES)
   string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
   message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
 endif()
-
 
 # ------------------------------------------------------------------------------
 #
