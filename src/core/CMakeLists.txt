@@ -38,31 +38,35 @@ include_directories(
     ${LIBUDNS_INCLUDE_DIR}
 )
 
-# Add udns object files
-SET(UDNS_SRCS
-    ../../../ext/udns-0.4/dnsget.o
-    ../../../ext/udns-0.4/rblcheck.o
-    ../../../ext/udns-0.4/udns_codes.o
-    ../../../ext/udns-0.4/udns_dntosp.o
-    ../../../ext/udns-0.4/udns_jran.o
-    ../../../ext/udns-0.4/udns_parse.o
-    ../../../ext/udns-0.4/udns_rr_a.o
-    ../../../ext/udns-0.4/udns_rr_naptr.o
-    ../../../ext/udns-0.4/udns_rr_srv.o
-    ../../../ext/udns-0.4/udns_XtoX.o
-    ../../../ext/udns-0.4/ex-rdns.o
-    ../../../ext/udns-0.4/udns_bl.o
-    ../../../ext/udns-0.4/udns_dn.o
-    ../../../ext/udns-0.4/udns_init.o
-    ../../../ext/udns-0.4/udns_misc.o
-    ../../../ext/udns-0.4/udns_resolver.o
-    ../../../ext/udns-0.4/udns_rr_mx.o
-    ../../../ext/udns-0.4/udns_rr_ptr.o
-    ../../../ext/udns-0.4/udns_rr_txt.o
-)
-string (REPLACE ";" " " UDNS_SRCS_FIXED "${UDNS_SRCS}")
-set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
-set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
+# ------------------------------------------------
+# Add udns object files manually for OS X
+# ------------------------------------------------
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    SET(UDNS_SRCS
+        ../../../ext/udns-0.4/dnsget.o
+        ../../../ext/udns-0.4/rblcheck.o
+        ../../../ext/udns-0.4/udns_codes.o
+        ../../../ext/udns-0.4/udns_dntosp.o
+        ../../../ext/udns-0.4/udns_jran.o
+        ../../../ext/udns-0.4/udns_parse.o
+        ../../../ext/udns-0.4/udns_rr_a.o
+        ../../../ext/udns-0.4/udns_rr_naptr.o
+        ../../../ext/udns-0.4/udns_rr_srv.o
+        ../../../ext/udns-0.4/udns_XtoX.o
+        ../../../ext/udns-0.4/ex-rdns.o
+        ../../../ext/udns-0.4/udns_bl.o
+        ../../../ext/udns-0.4/udns_dn.o
+        ../../../ext/udns-0.4/udns_init.o
+        ../../../ext/udns-0.4/udns_misc.o
+        ../../../ext/udns-0.4/udns_resolver.o
+        ../../../ext/udns-0.4/udns_rr_mx.o
+        ../../../ext/udns-0.4/udns_rr_ptr.o
+        ../../../ext/udns-0.4/udns_rr_txt.o
+    )
+    string (REPLACE ";" " " UDNS_SRCS_FIXED "${UDNS_SRCS}")
+    set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
+    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # ------------------------------------------------
 # OS X Specific
@@ -156,3 +160,16 @@ install(FILES ${HDRS}
   DESTINATION include/hlx
   COMPONENT Headers
 )
+
+# ----------------------------------------------------------
+# Custom command to link archives together
+# ----------------------------------------------------------
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+  add_custom_command(
+    TARGET hlxcore
+    POST_BUILD
+    COMMAND ar -M < ${CMAKE_SOURCE_DIR}/src/core/libhlx.mri && mv libhlx.a libhlxcore.a
+    DEPENDS hlxcore udns
+  )
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
