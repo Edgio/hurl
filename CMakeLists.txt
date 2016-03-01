@@ -51,6 +51,11 @@ add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} pthread)
 
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(LIBRARIES ${LIBRARIES} rt)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+
 # ------------------------------------------------------------------------------
 # Display the current settings
 # ------------------------------------------------------------------------------
