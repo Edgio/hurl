@@ -23,9 +23,6 @@
 project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
-# Set install prefix
-SET(CMAKE_INSTALL_PREFIX "/usr")
-
 # Build options
 option(GCC_OPTIONS      "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
 option(FORTIFY          "Fortify Source GCC options" OFF)

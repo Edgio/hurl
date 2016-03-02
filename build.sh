@@ -29,7 +29,10 @@ which cmake g++ make || {
 }
 mkdir -p build
 pushd build && \
-    cmake ../ -DBUILD_TCMALLOC=ON -DBUILD_TESTS=ON -DBUILD_UBUNTU=ON && \
+    cmake ../ -DBUILD_TCMALLOC=ON \
+    -DBUILD_TESTS=ON \
+    -DBUILD_UBUNTU=ON \
+    -DCMAKE_INSTALL_PREFIX=/usr
     make package && \
     make test && \
     popd && \
