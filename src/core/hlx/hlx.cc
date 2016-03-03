@@ -168,7 +168,6 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         ao_total.m_dns_resolve_ev += a_stat.m_dns_resolve_ev;
 
         ao_total.m_ups_conn_started += a_stat.m_ups_conn_started;
-        ao_total.m_ups_conn_active += a_stat.m_ups_conn_active;
         ao_total.m_ups_conn_completed += a_stat.m_ups_conn_completed;
         ao_total.m_ups_reqs += a_stat.m_ups_reqs;
         ao_total.m_ups_idle_killed += a_stat.m_ups_idle_killed;
@@ -192,11 +191,21 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         }
 
         ao_total.m_cln_conn_started += a_stat.m_cln_conn_started;
-        ao_total.m_cln_conn_active += a_stat.m_cln_conn_active;
         ao_total.m_cln_conn_completed += a_stat.m_cln_conn_completed;
         ao_total.m_cln_reqs += a_stat.m_cln_reqs;
         ao_total.m_cln_idle_killed += a_stat.m_cln_idle_killed;
-
+        ao_total.m_pool_conn_active += a_stat.m_pool_conn_active;
+        ao_total.m_pool_conn_idle += a_stat.m_pool_conn_idle;
+        ao_total.m_pool_proxy_conn_active += a_stat.m_pool_proxy_conn_active;
+        ao_total.m_pool_proxy_conn_idle += a_stat.m_pool_proxy_conn_idle;
+        ao_total.m_pool_hconn_free += a_stat.m_pool_hconn_free;
+        ao_total.m_pool_hconn_used += a_stat.m_pool_hconn_used;
+        ao_total.m_pool_resp_free += a_stat.m_pool_resp_free;
+        ao_total.m_pool_resp_used += a_stat.m_pool_resp_used;
+        ao_total.m_pool_rqst_free += a_stat.m_pool_rqst_free;
+        ao_total.m_pool_rqst_used += a_stat.m_pool_rqst_used;
+        ao_total.m_pool_nbq_free += a_stat.m_pool_nbq_free;
+        ao_total.m_pool_nbq_used += a_stat.m_pool_nbq_used;
         ao_total.m_total_run += a_stat.m_total_run;
         ao_total.m_total_errors += a_stat.m_total_errors;
         ao_total.m_total_bytes_read += a_stat.m_total_bytes_read;
@@ -265,16 +274,26 @@ void hlx::display_stat(void)
                 DISPLAY_DNS_STAT(m_dns_resolved);
                 DISPLAY_DNS_STAT(m_dns_resolve_ev);
                 DISPLAY_CLN_STAT(m_ups_conn_started);
-                DISPLAY_CLN_STAT(m_ups_conn_active);
                 DISPLAY_CLN_STAT(m_ups_conn_completed);
                 DISPLAY_CLN_STAT(m_ups_reqs);
                 DISPLAY_CLN_STAT(m_ups_idle_killed);
                 DISPLAY_CLN_STAT(m_ups_subr_queued);
                 DISPLAY_SRV_STAT(m_cln_conn_started);
-                DISPLAY_SRV_STAT(m_cln_conn_active);
                 DISPLAY_SRV_STAT(m_cln_conn_completed);
                 DISPLAY_SRV_STAT(m_cln_reqs);
                 DISPLAY_SRV_STAT(m_cln_idle_killed);
+                DISPLAY_SRV_STAT(m_pool_conn_active);
+                DISPLAY_SRV_STAT(m_pool_conn_idle);
+                DISPLAY_SRV_STAT(m_pool_proxy_conn_active);
+                DISPLAY_SRV_STAT(m_pool_proxy_conn_idle);
+                DISPLAY_SRV_STAT(m_pool_hconn_free);
+                DISPLAY_SRV_STAT(m_pool_hconn_used);
+                DISPLAY_SRV_STAT(m_pool_resp_free);
+                DISPLAY_SRV_STAT(m_pool_resp_used);
+                DISPLAY_SRV_STAT(m_pool_rqst_free);
+                DISPLAY_SRV_STAT(m_pool_rqst_used);
+                DISPLAY_SRV_STAT(m_pool_nbq_free);
+                DISPLAY_SRV_STAT(m_pool_nbq_used);
                 DISPLAY_GEN_STAT(m_total_run);
                 DISPLAY_GEN_STAT(m_total_errors);
                 DISPLAY_GEN_STAT(m_total_bytes_read);

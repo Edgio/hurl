@@ -89,7 +89,8 @@ typedef obj_pool <nbq> nbq_pool_t;
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-template <typename T> bool get_from_pool_if_null(T* &ao_obj, obj_pool<T> &a_pool)
+template <typename T> bool get_from_pool_if_null(T* &ao_obj, obj_pool<T> &a_pool,
+                                                uint64_t &ao_free, uint64_t &ao_used)
 {
         bool l_new = false;
         if(!ao_obj)
@@ -103,6 +104,8 @@ template <typename T> bool get_from_pool_if_null(T* &ao_obj, obj_pool<T> &a_pool
                         l_new = true;
                 }
         }
+        ao_free = a_pool.free_size();
+        ao_used = a_pool.used_size();
         return l_new;
 }
 
@@ -112,7 +115,8 @@ template <typename T> bool get_from_pool_if_null(T* &ao_obj, obj_pool<T> &a_pool
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 template <>
-bool get_from_pool_if_null<nbq>(nbq* &ao_obj, obj_pool<nbq> &a_pool)
+bool get_from_pool_if_null<nbq>(nbq* &ao_obj, obj_pool<nbq> &a_pool,
+                                uint64_t &ao_free, uint64_t &ao_used)
 {
         bool l_new = false;
         if(!ao_obj)
@@ -126,6 +130,8 @@ bool get_from_pool_if_null<nbq>(nbq* &ao_obj, obj_pool<nbq> &a_pool)
                         l_new = true;
                 }
         }
+        ao_free = a_pool.free_size();
+        ao_used = a_pool.used_size();
         return l_new;
 }
 
@@ -138,8 +144,6 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_t_run_thread(),
         m_stat(),
         m_t_conf(a_t_conf),
-        m_nconn_pool(512,1000000),
-        m_nconn_proxy_pool(a_t_conf->m_num_parallel,4096),
         m_stopped(true),
         m_start_time_s(0),
         m_evr_loop(NULL),
@@ -147,6 +151,8 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
         m_listening_nconn_list(),
         m_subr_list(),
         m_subr_list_size(0),
+        m_nconn_pool(512,1000000),
+        m_nconn_proxy_pool(a_t_conf->m_num_parallel,4096),
         m_hconn_pool(),
         m_resp_pool(),
         m_rqst_pool(),
@@ -331,7 +337,7 @@ int32_t t_hlx::subr_add(subr &a_subr)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::queue_api_resp(api_resp &a_api_resp, hconn &a_hconn)
 {
-        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool))
+        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
         {
                 a_hconn.m_out_q->reset_write();
         }
@@ -365,7 +371,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         //                a_subr.get_label().c_str(),
         //                &a_nconn);
         resp *l_resp = static_cast<resp *>(a_hconn.m_hmsg);
-        if(!get_from_pool_if_null(l_resp, m_resp_pool))
+        if(!get_from_pool_if_null(l_resp, m_resp_pool, m_stat.m_pool_resp_free, m_stat.m_pool_resp_used))
         {
                 l_resp->clear();
         }
@@ -374,7 +380,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         // Create request
         if(!a_subr.get_connect_only())
         {
-                if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool))
+                if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
                 {
                         a_hconn.m_in_q->reset_write();
                 }
@@ -383,7 +389,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
 
                 if(!a_hconn.m_out_q)
                 {
-                        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool))
+                        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
                         {
                                 a_hconn.m_out_q->reset_write();
                         }
@@ -507,21 +513,20 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
         l_nconn->set_read_cb(http_parse);
         l_hconn->m_nconn = l_nconn;
         rqst *l_rqst = static_cast<rqst *>(l_hconn->m_hmsg);
-        if(!get_from_pool_if_null(l_rqst, m_rqst_pool))
+        if(!get_from_pool_if_null(l_rqst, m_rqst_pool, m_stat.m_pool_rqst_free, m_stat.m_pool_rqst_used))
         {
                 l_rqst->clear();
         }
         l_hconn->m_hmsg = l_rqst;
-        if(!get_from_pool_if_null(l_hconn->m_in_q, m_nbq_pool))
+        if(!get_from_pool_if_null(l_hconn->m_in_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
         {
                 l_hconn->m_in_q->reset_write();
         }
-        if(!get_from_pool_if_null(l_hconn->m_out_q, m_nbq_pool))
+        if(!get_from_pool_if_null(l_hconn->m_out_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
         {
                 l_hconn->m_out_q->reset_write();
         }
         l_hconn->m_hmsg->set_q(l_hconn->m_in_q);
-        ++m_stat.m_cln_conn_active;
         ++m_stat.m_cln_conn_started;
         return l_nconn;
 }
@@ -783,7 +788,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                         // -------------------------------------------
                         // Reset or add back to subr for reuse
                         // -------------------------------------------
-                        if(!get_from_pool_if_null(l_hconn->m_in_q, l_t_hlx->m_nbq_pool))
+                        if(!get_from_pool_if_null(l_hconn->m_in_q, l_t_hlx->m_nbq_pool, l_t_hlx->m_stat.m_pool_nbq_free, l_t_hlx->m_stat.m_pool_nbq_used))
                         {
                                 l_hconn->m_in_q->reset_write();
                         }
@@ -947,7 +952,7 @@ int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
                 return STATUS_ERROR;
         }
 
-        if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool))
+        if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
         {
                 a_hconn.m_in_q->reset();
         }
@@ -1263,7 +1268,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                         return STATUS_AGAIN;
                 }
                 ++m_stat.m_ups_conn_started;
-                ++m_stat.m_ups_conn_active;
+                m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
                 // Configure connection
                 l_status = config_conn(*l_nconn,
                                        NULL,
@@ -1511,16 +1516,13 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         // Add back to free list
         if(a_hconn.m_type == HCONN_TYPE_CLIENT)
         {
-                if(m_stat.m_cln_conn_active > 0)
-                {
-                        --m_stat.m_cln_conn_active;
-                }
                 ++m_stat.m_cln_conn_completed;
                 if(STATUS_OK != m_nconn_pool.release(a_hconn.m_nconn))
                 {
                         return STATUS_ERROR;
                 }
-                m_stat.m_cln_conn_active = m_nconn_pool.get_idle_size();
+                m_stat.m_pool_conn_active = m_nconn_pool.get_active_size();
+                m_stat.m_pool_conn_idle = m_nconn_pool.get_idle_size();
                 a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {
@@ -1535,7 +1537,8 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
                 {
                         return STATUS_ERROR;
                 }
-                m_stat.m_ups_conn_active = m_nconn_proxy_pool.get_idle_size();
+                m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
+                m_stat.m_pool_proxy_conn_idle = m_nconn_proxy_pool.get_idle_size();
                 a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {
@@ -1675,7 +1678,7 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
                          bool a_save)
 {
         hconn *l_hconn = NULL;
-        if(!get_from_pool_if_null(l_hconn, m_hconn_pool))
+        if(!get_from_pool_if_null(l_hconn, m_hconn_pool, m_stat.m_pool_hconn_free, m_stat.m_pool_hconn_used))
         {
                 //NDBG_PRINT("REUSED!!!\n");
                 //l_hconn->m_resp.clear();

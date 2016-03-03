@@ -801,8 +801,8 @@ void display_results_line(settings_struct &a_settings)
 
         if(a_settings.m_color)
         {
-                printf("| %s%9" PRIu32 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s |  %10.2f | %10.2fs |\n",
-                        ANSI_COLOR_FG_WHITE, l_total.m_ups_conn_active, ANSI_COLOR_OFF,
+                printf("| %s%9" PRIu64 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s |  %10.2f | %10.2fs |\n",
+                        ANSI_COLOR_FG_WHITE, l_total.m_pool_proxy_conn_active, ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_GREEN, l_total.m_ups_conn_started, ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_BLUE, l_total.m_ups_conn_completed, ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_BLACK, l_total.m_ups_reqs, ANSI_COLOR_OFF,
@@ -815,8 +815,8 @@ void display_results_line(settings_struct &a_settings)
         }
         else
         {
-                printf("| %9" PRIu32 " / %9" PRIu64 " / %9" PRIi64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f |  %10.2f | %10.2fs |\n",
-                        l_total.m_ups_conn_active,
+                printf("| %9" PRIu64 " / %9" PRIu64 " / %9" PRIi64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f |  %10.2f | %10.2fs |\n",
+                        l_total.m_pool_proxy_conn_active,
                         l_total.m_ups_conn_started,
                         l_total.m_ups_conn_completed,
                         l_total.m_ups_reqs,

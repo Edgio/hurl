@@ -95,7 +95,6 @@ typedef struct t_stat_struct
 
         // Upstream stats
         uint64_t m_ups_conn_started;
-        uint32_t m_ups_conn_active;
         uint64_t m_ups_conn_completed;
         uint64_t m_ups_reqs;
         uint64_t m_ups_idle_killed;
@@ -109,10 +108,23 @@ typedef struct t_stat_struct
 
         // Server stats
         uint64_t m_cln_conn_started;
-        uint32_t m_cln_conn_active;
         uint64_t m_cln_conn_completed;
         uint64_t m_cln_reqs;
         uint64_t m_cln_idle_killed;
+
+        // Pool stats
+        uint64_t m_pool_conn_active;
+        uint64_t m_pool_conn_idle;
+        uint64_t m_pool_proxy_conn_active;
+        uint64_t m_pool_proxy_conn_idle;
+        uint64_t m_pool_hconn_free;
+        uint64_t m_pool_hconn_used;
+        uint64_t m_pool_resp_free;
+        uint64_t m_pool_resp_used;
+        uint64_t m_pool_rqst_free;
+        uint64_t m_pool_rqst_used;
+        uint64_t m_pool_nbq_free;
+        uint64_t m_pool_nbq_used;
 
         // Totals
         uint64_t m_total_run;
@@ -129,7 +141,6 @@ typedef struct t_stat_struct
                 m_dns_resolved(0),
                 m_dns_resolve_ev(0),
                 m_ups_conn_started(0),
-                m_ups_conn_active(0),
                 m_ups_conn_completed(0),
                 m_ups_reqs(0),
                 m_ups_idle_killed(0),
@@ -138,10 +149,21 @@ typedef struct t_stat_struct
                 // TODO DEBUG???
                 //m_subr_pending_resolv_map(),
                 m_cln_conn_started(0),
-                m_cln_conn_active(0),
                 m_cln_conn_completed(0),
                 m_cln_reqs(0),
                 m_cln_idle_killed(0),
+                m_pool_conn_active(0),
+                m_pool_conn_idle(0),
+                m_pool_proxy_conn_active(0),
+                m_pool_proxy_conn_idle(0),
+                m_pool_hconn_free(0),
+                m_pool_hconn_used(0),
+                m_pool_resp_free(0),
+                m_pool_resp_used(0),
+                m_pool_rqst_free(0),
+                m_pool_rqst_used(0),
+                m_pool_nbq_free(0),
+                m_pool_nbq_used(0),
                 m_total_run(0),
                 m_total_errors(0),
                 m_total_bytes_read(0),
@@ -158,7 +180,6 @@ typedef struct t_stat_struct
                 m_dns_resolved = 0;
                 m_dns_resolve_ev = 0;
                 m_ups_conn_started = 0;
-                m_ups_conn_active = 0;
                 m_ups_conn_completed = 0;
                 m_ups_reqs = 0;
                 m_ups_idle_killed = 0;
@@ -167,10 +188,21 @@ typedef struct t_stat_struct
                 // TODO DEBUG???
                 //m_subr_pending_resolv_map.clear();
                 m_cln_conn_started = 0;
-                m_cln_conn_active = 0;
                 m_cln_conn_completed = 0;
                 m_cln_reqs = 0;
                 m_cln_idle_killed = 0;
+                m_pool_conn_active = 0;
+                m_pool_conn_idle = 0;
+                m_pool_proxy_conn_active = 0;
+                m_pool_proxy_conn_idle = 0;
+                m_pool_hconn_free = 0;
+                m_pool_hconn_used = 0;
+                m_pool_resp_free = 0;
+                m_pool_resp_used = 0;
+                m_pool_rqst_free = 0;
+                m_pool_rqst_used = 0;
+                m_pool_nbq_free = 0;
+                m_pool_nbq_used = 0;
                 m_total_run = 0;
                 m_total_errors = 0;
                 m_total_bytes_read = 0;

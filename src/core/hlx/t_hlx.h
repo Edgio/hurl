@@ -167,8 +167,6 @@ private:
         // Private members
         // -------------------------------------------------
         const t_conf *m_t_conf;
-        nconn_pool m_nconn_pool;
-        nconn_pool m_nconn_proxy_pool;
         sig_atomic_t m_stopped;
         int32_t m_start_time_s;
         evr_loop *m_evr_loop;
@@ -177,6 +175,9 @@ private:
         subr_list_t m_subr_list;
         uint64_t m_subr_list_size;
 
+        // Pools
+        nconn_pool m_nconn_pool;
+        nconn_pool m_nconn_proxy_pool;
         hconn_pool_t m_hconn_pool;
         resp_pool_t m_resp_pool;
         rqst_pool_t m_rqst_pool;
