@@ -1849,7 +1849,7 @@ void display_responses_line(settings_struct &a_settings)
         // Get stats
         a_settings.m_hlx->get_stat(l_total);
 
-        double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
+        double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
                               ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         a_settings.m_last_display_time_ms = hurl_get_time_ms();
         *(a_settings.m_last_stat) = l_total;
@@ -1858,8 +1858,8 @@ void display_responses_line(settings_struct &a_settings)
         ns_hlx::status_code_count_map_t m_status_code_count_map;
 
         uint32_t l_responses[10] = {0};
-        for(ns_hlx::status_code_count_map_t::iterator i_code = l_total.m_status_code_count_map.begin();
-            i_code != l_total.m_status_code_count_map.end();
+        for(ns_hlx::status_code_count_map_t::iterator i_code = l_total.m_ups_status_code_count_map.begin();
+            i_code != l_total.m_ups_status_code_count_map.end();
             ++i_code)
         {
                 if(i_code->first >= 200 && i_code->first <= 299)
@@ -1909,8 +1909,8 @@ void display_responses_line(settings_struct &a_settings)
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
                                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                                 l_reqs_per_s,
-                                                l_total.m_total_reqs,
-                                                l_total.m_num_errors,
+                                                l_total.m_ups_reqs,
+                                                l_total.m_total_errors,
                                                 ANSI_COLOR_FG_GREEN, l_rate[2], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_rate[3], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_MAGENTA, l_rate[4], ANSI_COLOR_OFF,
@@ -1921,8 +1921,8 @@ void display_responses_line(settings_struct &a_settings)
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
-                                        l_total.m_total_reqs,
-                                        l_total.m_num_errors,
+                                        l_total.m_ups_reqs,
+                                        l_total.m_total_errors,
                                         l_rate[2],
                                         l_rate[3],
                                         l_rate[4],
@@ -1942,8 +1942,8 @@ void display_responses_line(settings_struct &a_settings)
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
                                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                                 l_reqs_per_s,
-                                                l_total.m_total_reqs,
-                                                l_total.m_num_errors,
+                                                l_total.m_ups_reqs,
+                                                l_total.m_total_errors,
                                                 ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_MAGENTA, l_responses[4], ANSI_COLOR_OFF,
@@ -1954,8 +1954,8 @@ void display_responses_line(settings_struct &a_settings)
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
-                                        l_total.m_total_reqs,
-                                        l_total.m_num_errors,
+                                        l_total.m_ups_reqs,
+                                        l_total.m_total_errors,
                                         l_responses[2],
                                         l_responses[3],
                                         l_responses[4],
@@ -2011,20 +2011,20 @@ void display_results_line(settings_struct &a_settings)
 
         // Get stats
         a_settings.m_hlx->get_stat(l_total);
-        double l_reqs_per_s = ((double)(l_total.m_total_reqs - a_settings.m_last_stat->m_total_reqs)*1000.0) /
+        double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        double l_kb_per_s = ((double)(l_total.m_num_bytes_read - a_settings.m_last_stat->m_num_bytes_read)*1000.0/1024) /
+        double l_kb_per_s = ((double)(l_total.m_total_bytes_read - a_settings.m_last_stat->m_total_bytes_read)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         a_settings.m_last_display_time_ms = hurl_get_time_ms();
         *a_settings.m_last_stat = l_total;
         if(a_settings.m_color)
         {
                         printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
-                                        ANSI_COLOR_FG_GREEN, l_total.m_total_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLUE, l_total.m_total_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_MAGENTA, l_total.m_num_ups_idle_killed, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_RED, l_total.m_num_errors, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_num_bytes_read))/(1024.0), ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_GREEN, l_total.m_ups_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_ups_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_MAGENTA, l_total.m_ups_idle_killed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_RED, l_total.m_total_errors, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_total_bytes_read))/(1024.0), ANSI_COLOR_OFF,
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_reqs_per_s,
                                         l_kb_per_s/1024.0
@@ -2033,11 +2033,11 @@ void display_results_line(settings_struct &a_settings)
         else
         {
                 printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
-                                l_total.m_total_reqs,
-                                l_total.m_total_reqs,
-                                l_total.m_num_ups_idle_killed,
-                                l_total.m_num_errors,
-                                ((double)(l_total.m_num_bytes_read))/(1024.0),
+                                l_total.m_ups_reqs,
+                                l_total.m_ups_reqs,
+                                l_total.m_ups_idle_killed,
+                                l_total.m_total_errors,
+                                ((double)(l_total.m_total_bytes_read))/(1024.0),
                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
                                 l_reqs_per_s,
                                 l_kb_per_s/1024.0
@@ -2057,18 +2057,20 @@ static void show_total_agg_stat(std::string &a_tag,
         uint32_t a_max_parallel,
         bool a_color)
 {
+        uint64_t l_total_bytes = a_stat.m_total_bytes_read + a_stat.m_total_bytes_written;
+
         if(a_color)
         printf("| %sRESULTS%s:             %s%s%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_YELLOW, a_tag.c_str(), ANSI_COLOR_OFF);
         else
         printf("| RESULTS:             %s\n", a_tag.c_str());
 
-        printf("| fetches:             %" PRIu64 "\n", a_stat.m_total_reqs);
+        printf("| fetches:             %" PRIu64 "\n", a_stat.m_ups_reqs);
         printf("| max parallel:        %u\n", a_max_parallel);
-        printf("| bytes:               %e\n", (double)a_stat.m_total_bytes);
+        printf("| bytes:               %e\n", (double)(l_total_bytes));
         printf("| seconds:             %f\n", a_time_elapsed_s);
-        printf("| mean bytes/conn:     %f\n", ((double)a_stat.m_total_bytes)/((double)a_stat.m_total_reqs));
-        printf("| fetches/sec:         %f\n", ((double)a_stat.m_total_reqs)/(a_time_elapsed_s));
-        printf("| bytes/sec:           %e\n", ((double)a_stat.m_total_bytes)/a_time_elapsed_s);
+        printf("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)a_stat.m_ups_reqs));
+        printf("| fetches/sec:         %f\n", ((double)a_stat.m_ups_reqs)/(a_time_elapsed_s));
+        printf("| bytes/sec:           %e\n", ((double)l_total_bytes)/a_time_elapsed_s);
 
         // TODO Fix stdev/var calcs
 #if 0
@@ -2093,17 +2095,17 @@ static void show_total_agg_stat(std::string &a_tag,
         } while(0)
 #endif
 
-        SHOW_XSTAT_LINE("ms/connect:", a_stat.m_stat_us_connect);
-        SHOW_XSTAT_LINE("ms/1st-response:", a_stat.m_stat_us_first_response);
-        SHOW_XSTAT_LINE("ms/end2end:", a_stat.m_stat_us_end_to_end);
+        SHOW_XSTAT_LINE("ms/connect:", a_stat.m_ups_stat_us_connect);
+        SHOW_XSTAT_LINE("ms/1st-response:", a_stat.m_ups_stat_us_first_response);
+        SHOW_XSTAT_LINE("ms/end2end:", a_stat.m_ups_stat_us_end_to_end);
 
         if(a_color)
                 printf("| %sHTTP response codes%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
         else
                 printf("| HTTP response codes: \n");
 
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
-                        i_status_code != a_stat.m_status_code_count_map.end();
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_ups_status_code_count_map.begin();
+                        i_status_code != a_stat.m_ups_status_code_count_map.end();
                 ++i_status_code)
         {
                 if(a_color)
@@ -2146,17 +2148,17 @@ static void show_total_agg_stat_legacy(std::string &a_tag,
                                        double a_time_elapsed_s,
                                        uint32_t a_max_parallel)
 {
+        uint64_t l_total_bytes = a_stat.m_total_bytes_read + a_stat.m_total_bytes_written;
         printf("%s: ", a_tag.c_str());
-        printf("%" PRIu64 " fetches, ", a_stat.m_total_reqs);
+        printf("%" PRIu64 " fetches, ", a_stat.m_ups_reqs);
         printf("%u max parallel, ", a_max_parallel);
-        printf("%e bytes, ", (double)a_stat.m_total_bytes);
+        printf("%e bytes, ", (double)(l_total_bytes));
         printf("in %f seconds, ", a_time_elapsed_s);
         printf("%s", a_sep.c_str());
-
-        printf("%f mean bytes/connection, ", ((double)a_stat.m_total_bytes)/((double)a_stat.m_total_reqs));
+        printf("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)a_stat.m_ups_reqs));
         printf("%s", a_sep.c_str());
 
-        printf("%f fetches/sec, %e bytes/sec", ((double)a_stat.m_total_reqs)/(a_time_elapsed_s), ((double)a_stat.m_total_bytes)/a_time_elapsed_s);
+        printf("%f fetches/sec, %e bytes/sec", ((double)a_stat.m_ups_reqs)/(a_time_elapsed_s), ((double)l_total_bytes)/a_time_elapsed_s);
         printf("%s", a_sep.c_str());
 
 #define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
@@ -2168,16 +2170,16 @@ static void show_total_agg_stat_legacy(std::string &a_tag,
                stat.stdev()/1000.0);                          \
         printf("%s", a_sep.c_str())
 
-        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", a_stat.m_stat_us_connect);
-        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", a_stat.m_stat_us_first_response);
-        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", a_stat.m_stat_us_end_to_end);
+        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", a_stat.m_ups_stat_us_connect);
+        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", a_stat.m_ups_stat_us_first_response);
+        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", a_stat.m_ups_stat_us_end_to_end);
 
         printf("HTTP response codes: ");
         if(a_sep == "\n")
                 printf("%s", a_sep.c_str());
 
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_status_code_count_map.begin();
-                        i_status_code != a_stat.m_status_code_count_map.end();
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_ups_status_code_count_map.begin();
+                        i_status_code != a_stat.m_ups_status_code_count_map.end();
                 ++i_status_code)
         {
                 printf("code %d -- %u, ", i_status_code->first, i_status_code->second);

@@ -158,49 +158,49 @@ void hlx::get_thread_stat(t_stat_list_t &ao_stat_list)
 //: ----------------------------------------------------------------------------
 static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
 {
-        add_stat(ao_total.m_stat_us_connect , a_stat.m_stat_us_connect);
-        add_stat(ao_total.m_stat_us_first_response , a_stat.m_stat_us_first_response);
-        add_stat(ao_total.m_stat_us_end_to_end , a_stat.m_stat_us_end_to_end);
+        add_stat(ao_total.m_ups_stat_us_connect , a_stat.m_ups_stat_us_connect);
+        add_stat(ao_total.m_ups_stat_us_first_response , a_stat.m_ups_stat_us_first_response);
+        add_stat(ao_total.m_ups_stat_us_end_to_end , a_stat.m_ups_stat_us_end_to_end);
 
-        ao_total.m_num_ups_resolve_req += a_stat.m_num_ups_resolve_req;
-        ao_total.m_num_ups_resolve_active += a_stat.m_num_ups_resolve_active;
-        ao_total.m_num_ups_resolved += a_stat.m_num_ups_resolved;
-        ao_total.m_num_ups_conn_started += a_stat.m_num_ups_conn_started;
-        ao_total.m_cur_ups_conn_count += a_stat.m_cur_ups_conn_count;
-        ao_total.m_num_ups_conn_completed += a_stat.m_num_ups_conn_completed;
-        ao_total.m_num_ups_reqs += a_stat.m_num_ups_reqs;
-        ao_total.m_num_ups_idle_killed += a_stat.m_num_ups_idle_killed;
-        ao_total.m_num_ups_subr_queued += a_stat.m_num_ups_subr_queued;
+        ao_total.m_dns_resolve_req += a_stat.m_dns_resolve_req;
+        ao_total.m_dns_resolve_active += a_stat.m_dns_resolve_active;
+        ao_total.m_dns_resolved += a_stat.m_dns_resolved;
+        ao_total.m_dns_resolve_ev += a_stat.m_dns_resolve_ev;
 
-        ao_total.m_num_cln_conn_started += a_stat.m_num_cln_conn_started;
-        ao_total.m_cur_cln_conn_count += a_stat.m_cur_cln_conn_count;
-        ao_total.m_num_cln_conn_completed += a_stat.m_num_cln_conn_completed;
-        ao_total.m_num_cln_reqs += a_stat.m_num_cln_reqs;
-        ao_total.m_num_cln_idle_killed += a_stat.m_num_cln_idle_killed;
-
-        ao_total.m_num_run += a_stat.m_num_run;
-        ao_total.m_total_bytes += a_stat.m_total_bytes;
-        ao_total.m_total_reqs += a_stat.m_total_reqs;
-        ao_total.m_num_errors += a_stat.m_num_errors;
-        ao_total.m_num_bytes_read += a_stat.m_num_bytes_read;
-        ao_total.m_num_bytes_written += a_stat.m_num_bytes_written;
+        ao_total.m_ups_conn_started += a_stat.m_ups_conn_started;
+        ao_total.m_ups_conn_active += a_stat.m_ups_conn_active;
+        ao_total.m_ups_conn_completed += a_stat.m_ups_conn_completed;
+        ao_total.m_ups_reqs += a_stat.m_ups_reqs;
+        ao_total.m_ups_idle_killed += a_stat.m_ups_idle_killed;
+        ao_total.m_ups_subr_queued += a_stat.m_ups_subr_queued;
 
         for(status_code_count_map_t::const_iterator i_code =
-                        a_stat.m_status_code_count_map.begin();
-                        i_code != a_stat.m_status_code_count_map.end();
+                        a_stat.m_ups_status_code_count_map.begin();
+                        i_code != a_stat.m_ups_status_code_count_map.end();
                         ++i_code)
         {
                 status_code_count_map_t::iterator i_code2;
-                i_code2 = ao_total.m_status_code_count_map.find(i_code->first);
-                if(i_code2 == ao_total.m_status_code_count_map.end())
+                i_code2 = ao_total.m_ups_status_code_count_map.find(i_code->first);
+                if(i_code2 == ao_total.m_ups_status_code_count_map.end())
                 {
-                        ao_total.m_status_code_count_map[i_code->first] = i_code->second;
+                        ao_total.m_ups_status_code_count_map[i_code->first] = i_code->second;
                 }
                 else
                 {
                         i_code2->second += i_code->second;
                 }
         }
+
+        ao_total.m_cln_conn_started += a_stat.m_cln_conn_started;
+        ao_total.m_cln_conn_active += a_stat.m_cln_conn_active;
+        ao_total.m_cln_conn_completed += a_stat.m_cln_conn_completed;
+        ao_total.m_cln_reqs += a_stat.m_cln_reqs;
+        ao_total.m_cln_idle_killed += a_stat.m_cln_idle_killed;
+
+        ao_total.m_total_run += a_stat.m_total_run;
+        ao_total.m_total_errors += a_stat.m_total_errors;
+        ao_total.m_total_bytes_read += a_stat.m_total_bytes_read;
+        ao_total.m_total_bytes_written += a_stat.m_total_bytes_written;
 }
 
 //: ----------------------------------------------------------------------------
@@ -260,27 +260,25 @@ void hlx::display_stat(void)
                 //xstat_t m_stat_us_connect;
                 //xstat_t m_stat_us_first_response;
                 //xstat_t m_stat_us_end_to_end;
-                DISPLAY_DNS_STAT(m_num_ups_resolve_req);
-                DISPLAY_DNS_STAT(m_num_ups_resolve_active);
-                DISPLAY_DNS_STAT(m_num_ups_resolved);
-                DISPLAY_DNS_STAT(m_num_ups_resolve_ev);
-                DISPLAY_CLN_STAT(m_num_ups_conn_started);
-                DISPLAY_CLN_STAT(m_cur_ups_conn_count);
-                DISPLAY_CLN_STAT(m_num_ups_conn_completed);
-                DISPLAY_CLN_STAT(m_num_ups_reqs);
-                DISPLAY_CLN_STAT(m_num_ups_idle_killed);
-                DISPLAY_CLN_STAT(m_num_ups_subr_queued);
-                DISPLAY_SRV_STAT(m_num_cln_conn_started);
-                DISPLAY_SRV_STAT(m_cur_cln_conn_count);
-                DISPLAY_SRV_STAT(m_num_cln_conn_completed);
-                DISPLAY_SRV_STAT(m_num_cln_reqs);
-                DISPLAY_SRV_STAT(m_num_cln_idle_killed);
-                DISPLAY_GEN_STAT(m_num_run);
-                DISPLAY_GEN_STAT(m_total_bytes);
-                DISPLAY_GEN_STAT(m_total_reqs);
-                DISPLAY_GEN_STAT(m_num_errors);
-                DISPLAY_GEN_STAT(m_num_bytes_read);
-                DISPLAY_GEN_STAT(m_num_bytes_written);
+                DISPLAY_DNS_STAT(m_dns_resolve_req);
+                DISPLAY_DNS_STAT(m_dns_resolve_active);
+                DISPLAY_DNS_STAT(m_dns_resolved);
+                DISPLAY_DNS_STAT(m_dns_resolve_ev);
+                DISPLAY_CLN_STAT(m_ups_conn_started);
+                DISPLAY_CLN_STAT(m_ups_conn_active);
+                DISPLAY_CLN_STAT(m_ups_conn_completed);
+                DISPLAY_CLN_STAT(m_ups_reqs);
+                DISPLAY_CLN_STAT(m_ups_idle_killed);
+                DISPLAY_CLN_STAT(m_ups_subr_queued);
+                DISPLAY_SRV_STAT(m_cln_conn_started);
+                DISPLAY_SRV_STAT(m_cln_conn_active);
+                DISPLAY_SRV_STAT(m_cln_conn_completed);
+                DISPLAY_SRV_STAT(m_cln_reqs);
+                DISPLAY_SRV_STAT(m_cln_idle_killed);
+                DISPLAY_GEN_STAT(m_total_run);
+                DISPLAY_GEN_STAT(m_total_errors);
+                DISPLAY_GEN_STAT(m_total_bytes_read);
+                DISPLAY_GEN_STAT(m_total_bytes_written);
                 //NDBG_OUTPUT("| %sPending resolve%s: \n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
                 //for(subr_pending_resolv_map_t::const_iterator i_r = l_stat.m_subr_pending_resolv_map.begin();
                 //    i_r != l_stat.m_subr_pending_resolv_map.end();

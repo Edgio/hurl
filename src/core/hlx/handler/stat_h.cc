@@ -95,29 +95,25 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
 #define ADD_MEMBER(_m) \
         l_body.AddMember(#_m, l_stat.m_##_m, l_alloc)
 
-        ADD_MEMBER(num_ups_resolve_req);
-        ADD_MEMBER(num_ups_resolve_active);
-        ADD_MEMBER(num_ups_resolved);
-        ADD_MEMBER(num_ups_resolve_ev);
-        ADD_MEMBER(num_ups_conn_started);
-        ADD_MEMBER(cur_ups_conn_count);
-        ADD_MEMBER(num_ups_conn_completed);
-        ADD_MEMBER(num_ups_reqs);
-        ADD_MEMBER(num_ups_idle_killed);
-        ADD_MEMBER(num_ups_subr_queued);
-
-        ADD_MEMBER(num_cln_conn_started);
-        ADD_MEMBER(cur_cln_conn_count);
-        ADD_MEMBER(num_cln_conn_completed);
-        ADD_MEMBER(num_cln_reqs);
-        ADD_MEMBER(num_cln_idle_killed);
-
-        ADD_MEMBER(num_run);
-        ADD_MEMBER(total_bytes);
-        ADD_MEMBER(total_reqs);
-        ADD_MEMBER(num_errors);
-        ADD_MEMBER(num_bytes_read);
-        ADD_MEMBER(num_bytes_written);
+        ADD_MEMBER(dns_resolve_req);
+        ADD_MEMBER(dns_resolve_active);
+        ADD_MEMBER(dns_resolved);
+        ADD_MEMBER(dns_resolve_ev);
+        ADD_MEMBER(ups_conn_started);
+        ADD_MEMBER(ups_conn_active);
+        ADD_MEMBER(ups_conn_completed);
+        ADD_MEMBER(ups_reqs);
+        ADD_MEMBER(ups_idle_killed);
+        ADD_MEMBER(ups_subr_queued);
+        ADD_MEMBER(cln_conn_started);
+        ADD_MEMBER(cln_conn_active);
+        ADD_MEMBER(cln_conn_completed);
+        ADD_MEMBER(cln_reqs);
+        ADD_MEMBER(cln_idle_killed);
+        ADD_MEMBER(total_run);
+        ADD_MEMBER(total_errors);
+        ADD_MEMBER(total_bytes_read);
+        ADD_MEMBER(total_bytes_written);
 
         //xstat_t m_stat_us_connect;
         //xstat_t m_stat_us_first_response;

@@ -427,10 +427,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
                         if(m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
                 }
         }
-
-        // Set subreq
-        //l_hconn->m_rqst.m_subr = &a_subr;
-
+        ++m_stat.m_ups_reqs;
         // Set start time
         if(a_subr.get_kind() != subr::SUBR_KIND_DUPE)
         {
@@ -524,8 +521,8 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
                 l_hconn->m_out_q->reset_write();
         }
         l_hconn->m_hmsg->set_q(l_hconn->m_in_q);
-        ++m_stat.m_cur_cln_conn_count;
-        ++m_stat.m_num_cln_conn_started;
+        ++m_stat.m_cln_conn_active;
+        ++m_stat.m_cln_conn_started;
         return l_nconn;
 }
 
@@ -635,7 +632,7 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                 //NDBG_PRINT("%sWRITEABLE%s l_status =  %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_status);
                 if(l_status > 0)
                 {
-                        l_t_hlx->m_stat.m_num_bytes_written += l_status;
+                        l_t_hlx->m_stat.m_total_bytes_written += l_status;
                 }
 
                 int32_t l_hstatus;
@@ -665,7 +662,7 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                 case nconn::NC_STATUS_ERROR:
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        ++(l_t_hlx->m_stat.m_num_errors);
+                        ++(l_t_hlx->m_stat.m_total_errors);
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_ERROR;
                 }
@@ -707,7 +704,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
         // Async Resolver
         if(l_nconn->get_id() == nresolver::S_RESOLVER_ID)
         {
-                ++l_t_hlx->m_stat.m_num_ups_resolve_ev;
+                ++l_t_hlx->m_stat.m_dns_resolve_ev;
                 return l_t_hlx->async_dns_handle_ev();
         }
 #endif
@@ -756,11 +753,11 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                 {
                         if(l_mode == nconn::NC_MODE_READ)
                         {
-                                l_t_hlx->m_stat.m_num_bytes_read += l_status;
+                                l_t_hlx->m_stat.m_total_bytes_read += l_status;
                         }
                         else if(l_mode == nconn::NC_MODE_WRITE)
                         {
-                                l_t_hlx->m_stat.m_num_bytes_written += l_status;
+                                l_t_hlx->m_stat.m_total_bytes_written += l_status;
                         }
                 }
                 int32_t l_hstatus;
@@ -810,7 +807,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                 case nconn::NC_STATUS_ERROR:
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        ++(l_t_hlx->m_stat.m_num_errors);
+                        ++(l_t_hlx->m_stat.m_total_errors);
                         l_t_hlx->cleanup_hconn(*l_hconn);
                         return STATUS_ERROR;
                 }
@@ -861,7 +858,7 @@ int32_t t_hlx::evr_file_timeout_cb(void *a_ctx, void *a_data)
                 return STATUS_OK;
         }
         //NDBG_PRINT("Error: evr_loop_file_timeout_cb\n");
-        ++(l_t_hlx->m_stat.m_num_errors);
+        ++(l_t_hlx->m_stat.m_total_errors);
         int32_t l_hstatus;
         l_hstatus = l_hconn->run_state_machine(nconn::NC_MODE_TIMEOUT, 0);
         if(l_hstatus != STATUS_OK)
@@ -906,7 +903,7 @@ int32_t t_hlx::evr_file_error_cb(void *a_data)
         //{
         //        return STATUS_OK;
         //}
-        ++l_t_hlx->m_stat.m_num_errors;
+        ++l_t_hlx->m_stat.m_total_errors;
         int32_t l_hstatus;
         l_hstatus = l_hconn->run_state_machine(nconn::NC_MODE_ERROR, 0);
         if(l_hstatus != STATUS_OK)
@@ -1079,7 +1076,7 @@ int32_t t_hlx::async_dns_lookup(const std::string &a_host, uint16_t a_port, subr
                                              a_port,
                                              async_dns_resolved_cb,
                                              a_subr,
-                                             m_stat.m_num_ups_resolve_active,
+                                             m_stat.m_dns_resolve_active,
                                              m_lookup_job_q,
                                              m_lookup_job_pq,
                                              &l_job_handle);
@@ -1093,7 +1090,7 @@ int32_t t_hlx::async_dns_lookup(const std::string &a_host, uint16_t a_port, subr
         }
 
         // Add timer to handle timeouts
-        if(m_stat.m_num_ups_resolve_active && !m_async_dns_timer_obj)
+        if(m_stat.m_dns_resolve_active && !m_async_dns_timer_obj)
         {
                 m_evr_loop->add_timer(1000,                     // Timeout ms
                                       evr_file_timeout_cb,      // timeout cb
@@ -1134,7 +1131,7 @@ int32_t t_hlx::async_dns_resolved_cb(const host_info *a_host_info, void *a_data)
         {
                 //NDBG_PRINT("Error a_host_info == NULL --HOST: %s\n", l_subr->get_host().c_str());
                 //NDBG_PRINT("Error l_host_info null\n");
-                ++(l_t_hlx->m_stat.m_num_errors);
+                ++(l_t_hlx->m_stat.m_total_errors);
                 l_subr->bump_num_requested();
                 l_subr->bump_num_completed();
                 subr::error_cb_t l_error_cb = l_subr->get_error_cb();
@@ -1152,7 +1149,7 @@ int32_t t_hlx::async_dns_resolved_cb(const host_info *a_host_info, void *a_data)
         }
         //NDBG_PRINT("l_subr: %p -HOST: %s\n", l_subr, l_subr->get_host().c_str());
         l_subr->set_host_info(*a_host_info);
-        ++(l_t_hlx->m_stat.m_num_ups_resolved);
+        ++(l_t_hlx->m_stat.m_dns_resolved);
 
         // Special handling for DUPE'd subr's
         if(l_subr->get_kind() == subr::SUBR_KIND_DUPE)
@@ -1220,7 +1217,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                                 // TODO DEBUG???
                                 //m_stat.m_subr_pending_resolv_map[a_subr.get_label()] = &a_subr;
 
-                                ++(m_stat.m_num_ups_resolve_req);
+                                ++(m_stat.m_dns_resolve_req);
                                 //NDBG_PRINT("%sl_subr label%s: %s --HOST: %s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_subr.get_label().c_str(), a_subr.get_host().c_str());
                                 l_status = async_dns_lookup(a_subr.get_host(), a_subr.get_port(), &a_subr);
                                 if(l_status != STATUS_OK)
@@ -1238,7 +1235,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                         if(l_status != STATUS_OK)
                         {
                                 //NDBG_PRINT("Error: performing lookup_sync\n");
-                                ++m_stat.m_num_errors;
+                                ++m_stat.m_total_errors;
                                 a_subr.bump_num_requested();
                                 a_subr.bump_num_completed();
                                 subr::error_cb_t l_error_cb = a_subr.get_error_cb();
@@ -1252,7 +1249,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                         }
                         else
                         {
-                                ++(m_stat.m_num_ups_resolved);
+                                ++(m_stat.m_dns_resolved);
                         }
 #ifdef ASYNC_DNS_SUPPORT
                         }
@@ -1265,8 +1262,8 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                         //NDBG_PRINT("Returning NULL\n");
                         return STATUS_AGAIN;
                 }
-                ++m_stat.m_num_ups_conn_started;
-                ++m_stat.m_cur_ups_conn_count;
+                ++m_stat.m_ups_conn_started;
+                ++m_stat.m_ups_conn_active;
                 // Configure connection
                 l_status = config_conn(*l_nconn,
                                        NULL,
@@ -1468,7 +1465,7 @@ void *t_hlx::t_run(void *a_nothing)
         while(!m_stopped)
         {
                 //NDBG_PRINT("Running.\n");
-                ++m_stat.m_num_run;
+                ++m_stat.m_total_run;
                 l_status = m_evr_loop->run();
                 if(l_status != STATUS_OK)
                 {
@@ -1514,16 +1511,16 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         // Add back to free list
         if(a_hconn.m_type == HCONN_TYPE_CLIENT)
         {
-                if(m_stat.m_cur_cln_conn_count > 0)
+                if(m_stat.m_cln_conn_active > 0)
                 {
-                        --m_stat.m_cur_cln_conn_count;
+                        --m_stat.m_cln_conn_active;
                 }
-                ++m_stat.m_num_cln_conn_completed;
+                ++m_stat.m_cln_conn_completed;
                 if(STATUS_OK != m_nconn_pool.release(a_hconn.m_nconn))
                 {
                         return STATUS_ERROR;
                 }
-                m_stat.m_cur_cln_conn_count = m_nconn_pool.get_idle_size();
+                m_stat.m_cln_conn_active = m_nconn_pool.get_idle_size();
                 a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {
@@ -1533,12 +1530,12 @@ int32_t t_hlx::cleanup_hconn(hconn &a_hconn)
         }
         else if(a_hconn.m_type == HCONN_TYPE_UPSTREAM)
         {
-                ++m_stat.m_num_ups_conn_completed;
+                ++m_stat.m_cln_conn_completed;
                 if(STATUS_OK != m_nconn_proxy_pool.release(a_hconn.m_nconn))
                 {
                         return STATUS_ERROR;
                 }
-                m_stat.m_cur_ups_conn_count = m_nconn_proxy_pool.get_idle_size();
+                m_stat.m_ups_conn_active = m_nconn_proxy_pool.get_idle_size();
                 a_hconn.m_nconn = NULL;
                 if(a_hconn.m_hmsg)
                 {
@@ -1724,18 +1721,13 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
 //: ----------------------------------------------------------------------------
 void t_hlx::add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code)
 {
-        update_stat(m_stat.m_stat_us_connect, a_req_stat.m_tt_connect_us);
-        update_stat(m_stat.m_stat_us_first_response, a_req_stat.m_tt_first_read_us);
-        update_stat(m_stat.m_stat_us_end_to_end, a_req_stat.m_tt_completion_us);
-
-        // Totals
-        ++m_stat.m_total_reqs;
-        m_stat.m_total_bytes += a_req_stat.m_total_bytes;
-
+        update_stat(m_stat.m_ups_stat_us_connect, a_req_stat.m_tt_connect_us);
+        update_stat(m_stat.m_ups_stat_us_first_response, a_req_stat.m_tt_first_read_us);
+        update_stat(m_stat.m_ups_stat_us_end_to_end, a_req_stat.m_tt_completion_us);
         // Status code
         //NDBG_PRINT("%sSTATUS_CODE%s: %d\n",
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);
-        ++m_stat.m_status_code_count_map[a_status_code];
+        ++m_stat.m_ups_status_code_count_map[a_status_code];
 }
 
 //: ----------------------------------------------------------------------------

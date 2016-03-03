@@ -143,13 +143,13 @@ private:
         {
                 m_subr_list.pop_front();
                 --m_subr_list_size;
-                m_stat.m_num_ups_subr_queued = m_subr_list_size;
+                m_stat.m_ups_subr_queued = m_subr_list_size;
         }
         inline void subr_enqueue(subr &a_subr)
         {
                 m_subr_list.push_back(&a_subr);
                 ++m_subr_list_size;
-                m_stat.m_num_ups_subr_queued = m_subr_list_size;
+                m_stat.m_ups_subr_queued = m_subr_list_size;
         }
         inline uint64_t subr_queue_size(void)
         {

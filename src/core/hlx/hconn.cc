@@ -144,7 +144,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 }
 
                                 //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
-                                ++m_t_hlx->m_stat.m_num_cln_reqs;
+                                ++m_t_hlx->m_stat.m_cln_reqs;
 
                                 // request handling...
                                 if(handle_req() != STATUS_OK)
@@ -231,7 +231,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         case nconn::NC_MODE_TIMEOUT:
         {
-                ++m_t_hlx->m_stat.m_num_cln_idle_killed;
+                ++m_t_hlx->m_stat.m_cln_idle_killed;
                 return STATUS_OK;
         }
         // -----------------------------------------------------------
@@ -419,7 +419,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         case nconn::NC_MODE_TIMEOUT:
         {
-                ++m_t_hlx->m_stat.m_num_ups_idle_killed;
+                ++m_t_hlx->m_stat.m_ups_idle_killed;
                 if(m_subr)
                 {
                         int32_t l_status;

@@ -1981,13 +1981,13 @@ void display_status_line(settings_struct_t &a_settings)
         // Get stats
         ns_hlx::t_stat_t l_total;
         a_settings.m_hlx->get_stat(l_total);
-        uint32_t l_num_done = l_total.m_total_reqs;
-        uint32_t l_num_resolve_active = l_total.m_num_ups_resolve_active;
-        uint32_t l_num_resolve_req = l_total.m_num_ups_resolve_req;
-        uint32_t l_num_resolved = l_total.m_num_ups_resolved;
-        uint32_t l_num_get = l_total.m_num_ups_conn_started;
+        uint32_t l_num_done = l_total.m_ups_reqs;
+        uint32_t l_num_resolve_active = l_total.m_dns_resolve_active;
+        uint32_t l_num_resolve_req = l_total.m_dns_resolve_req;
+        uint32_t l_num_resolved = l_total.m_dns_resolved;
+        uint32_t l_num_get = l_total.m_ups_conn_started;
         uint32_t l_num_rx = a_settings.m_total_reqs;
-        uint32_t l_num_error = l_total.m_num_errors;
+        uint32_t l_num_error = l_total.m_total_errors;
         if(a_settings.m_color)
         {
                 printf("Done: %s%8u%s Reqd: %s%8u%s Rslvd: %s%8u%s Rslv_Actv: %s%8u%s Rslv_Req %s%8u%s Total: %s%8u%s Error: %s%8u%s\n",
