@@ -59,6 +59,15 @@ evr_epoll::evr_epoll(void):
                 printf("Error: eventfd() failed: %s\n", strerror(errno));
                 exit(-1);
         }
+        
+        int32_t l_status = 0;
+        l_status = add(m_ctrl_fd, EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET, NULL);
+        if(l_status != 0)
+        {
+                printf("Error: failed to add ctrl fd.\n");
+                exit(-1);
+        }
+
 }
 
 //: ----------------------------------------------------------------------------
@@ -155,9 +164,9 @@ int evr_epoll::del(int a_fd)
         {
                 if (0 != epoll_ctl(m_fd, EPOLL_CTL_DEL, a_fd, &ev))
                 {
-                        NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n",
-                                   m_fd, a_fd, strerror(errno));
-                        return STATUS_OK;
+                        //NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n",
+                        //           m_fd, a_fd, strerror(errno));
+                        return STATUS_ERROR;
                 }
         }
         return STATUS_OK;
@@ -173,11 +182,11 @@ int32_t evr_epoll::signal(void)
         // Wake up epoll_wait by writing to control fd
         uint64_t l_value = 1;
         ssize_t l_write_status = 0;
-        //NDBG_PRINT("WRITING\n");
+        //NDBG_PRINT("WRITING m_ctrl_fd: %d\n", m_ctrl_fd);
         l_write_status = write(m_ctrl_fd, &l_value, sizeof (l_value));
         if(l_write_status == -1)
         {
-                NDBG_PRINT("l_write_status: %ld\n", l_write_status);
+                //NDBG_PRINT("l_write_status: %ld\n", l_write_status);
                 return STATUS_ERROR;
         }
         return STATUS_OK;
