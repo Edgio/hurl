@@ -337,9 +337,14 @@ int32_t t_hlx::subr_add(subr &a_subr)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::queue_api_resp(api_resp &a_api_resp, hconn &a_hconn)
 {
-        if(!get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
+        if(!a_hconn.m_out_q)
         {
-                a_hconn.m_out_q->reset_write();
+                bool l_new;
+                l_new = get_from_pool_if_null(a_hconn.m_out_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used);
+                if(!l_new)
+                {
+
+                }
         }
         a_api_resp.serialize(*a_hconn.m_out_q);
         evr_file_writeable_cb(a_hconn.m_nconn);
@@ -950,11 +955,6 @@ int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
         {
                 //NDBG_PRINT("Error performing get_new_client_conn");
                 return STATUS_ERROR;
-        }
-
-        if(!get_from_pool_if_null(a_hconn.m_in_q, m_nbq_pool, m_stat.m_pool_nbq_free, m_stat.m_pool_nbq_used))
-        {
-                a_hconn.m_in_q->reset();
         }
 
         // Set connected

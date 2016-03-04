@@ -5,6 +5,7 @@
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <hlx/phurl_h.h>
+#include <hlx/stat_h.h>
 #include <stdlib.h>
 //#include <google/profiler.h>
 
@@ -73,6 +74,7 @@ int main(void)
 {
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         hello_from *l_hello_from = new hello_from();
+        ns_hlx::stat_h *l_stat_h = new ns_hlx::stat_h();
 
         // ---------------------------------------
         // Setup parallel hurl endpoint
@@ -89,6 +91,7 @@ int main(void)
 
         // Add endpoints
         l_lsnr->register_endpoint("/phurl", l_hello_from);
+        l_lsnr->register_endpoint("/stat", l_stat_h);
         l_lsnr->register_endpoint("/quit", new quitter());
 
         g_hlx = new ns_hlx::hlx();
