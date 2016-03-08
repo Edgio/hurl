@@ -790,16 +790,13 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_IDLE:
                 {
-                        // -------------------------------------------
-                        // Reset or add back to subr for reuse
-                        // -------------------------------------------
-                        if(!get_from_pool_if_null(l_hconn->m_in_q, l_t_hlx->m_nbq_pool, l_t_hlx->m_stat.m_pool_nbq_free, l_t_hlx->m_stat.m_pool_nbq_used))
-                        {
-                                l_hconn->m_in_q->reset_write();
-                        }
-
                         int32_t l_status;
                         //NDBG_PRINT("Add idle\n");
+                        if(l_hconn)
+                        {
+                                l_t_hlx->m_hconn_pool.release(l_hconn);
+                                l_nconn->set_data(NULL);
+                        }
                         l_status = l_t_hlx->m_nconn_proxy_pool.add_idle(l_nconn);
                         if(l_status != STATUS_OK)
                         {
