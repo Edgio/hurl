@@ -1234,6 +1234,13 @@ int main(int argc, char** argv)
                                 return -1;
                         }
                         l_hlx->set_num_reqs_per_conn(l_max_reqs_per_conn);
+                        if(l_max_reqs_per_conn > 1)
+                        {
+                                if(!l_subr->get_keepalive())
+                                {
+                                        l_subr->set_keepalive(true);
+                                }
+                        }
                         break;
                 }
                 // ---------------------------------------
@@ -1241,11 +1248,18 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'k':
                 {
-                        l_subr->set_keepalive(true);
+                        if(!l_subr->get_keepalive())
+                        {
+                                l_subr->set_keepalive(true);
+                        }
                         if(l_max_reqs_per_conn == 1)
                         {
                                 l_hlx->set_num_reqs_per_conn(-1);
                                 l_max_reqs_per_conn = -1;
+                        }
+                        else
+                        {
+                                l_hlx->set_num_reqs_per_conn(l_max_reqs_per_conn);
                         }
                         break;
                 }
