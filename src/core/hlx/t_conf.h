@@ -52,6 +52,7 @@ typedef struct t_conf
         uint32_t m_timeout_ms;
         int32_t m_num_reqs_per_conn;
         bool m_collect_stats;
+        uint32_t m_update_stats_ms;
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
@@ -91,6 +92,7 @@ typedef struct t_conf
                 m_timeout_ms(10000),
                 m_num_reqs_per_conn(-1),
                 m_collect_stats(false),
+                m_update_stats_ms(0),
                 m_sock_opt_recv_buf_size(0),
                 m_sock_opt_send_buf_size(0),
                 m_sock_opt_no_delay(false),

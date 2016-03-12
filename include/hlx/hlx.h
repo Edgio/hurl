@@ -310,6 +310,7 @@ public:
         void set_num_reqs_per_conn(int32_t a_num_reqs_per_conn);
         void set_start_time_ms(uint64_t a_start_time_ms);
         void set_collect_stats(bool a_val);
+        void set_update_stats_ms(uint32_t a_update_ms);
         void set_timeout_ms(uint32_t a_val);
 
         // Server name

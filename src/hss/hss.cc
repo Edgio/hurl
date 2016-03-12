@@ -354,6 +354,7 @@ int main(int argc, char** argv)
 
         settings_struct_t l_settings;
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
+        l_hlx->set_update_stats_ms(500);
         l_settings.m_hlx = l_hlx;
         // For sighandler
         g_settings = &l_settings;

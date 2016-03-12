@@ -143,11 +143,15 @@ void hlx::get_thread_stat(t_stat_list_t &ao_stat_list)
            ++i_client)
         {
                 // Get stuff from client...
-                ao_stat_list.emplace(ao_stat_list.begin(), (*i_client)->get_stat());
-                // TODO
-                //t_stat_t l_stat;
-                //(*i_client)->get_stats_copy(l_stat);
-                //add_to_total_stat_agg(ao_stats, l_stat);
+                t_stat_t l_stat;
+                int32_t l_s;
+                l_s = (*i_client)->get_stat(l_stat);
+                if(l_s != STATUS_OK)
+                {
+                        // TODO -do nothing...
+                        continue;
+                }
+                ao_stat_list.emplace(ao_stat_list.begin(), l_stat);
         }
 }
 
@@ -241,7 +245,6 @@ void hlx::get_stat(t_stat_t &ao_stat)
         t_stat_list_t l_stat_list;
         get_thread_stat(l_stat_list);
         get_stat(l_stat_list, ao_stat);
-        // TODO Cache stats -up to second???
 }
 
 //: ----------------------------------------------------------------------------
@@ -262,7 +265,14 @@ void hlx::display_stat(void)
         {
                 // Get stuff from client...
                 // TODO
-                const t_stat_t &l_stat = (*i_client)->get_stat();
+                t_stat_t l_stat;
+                int32_t l_s;
+                l_s = (*i_client)->get_stat(l_stat);
+                if(l_s != STATUS_OK)
+                {
+                        // TODO -do nothing...
+                        continue;
+                }
                 NDBG_OUTPUT("+-----------------------------------------------------------\n");
                 NDBG_OUTPUT("| THREAD [%6d]\n", i_t);
                 NDBG_OUTPUT("+-----------------------------------------------------------\n");
@@ -429,6 +439,16 @@ void hlx::set_start_time_ms(uint64_t a_start_time_ms)
 void hlx::set_collect_stats(bool a_val)
 {
         m_t_conf->m_collect_stats = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hlx::set_update_stats_ms(uint32_t a_update_ms)
+{
+        m_t_conf->m_update_stats_ms = a_update_ms;
 }
 
 //: ----------------------------------------------------------------------------

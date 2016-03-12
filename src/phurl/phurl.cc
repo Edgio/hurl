@@ -996,6 +996,7 @@ int main(int argc, char** argv)
 
         l_hlx->set_collect_stats(false);
         l_hlx->set_dns_use_ai_cache(true);
+        l_hlx->set_update_stats_ms(500);
 
         // -------------------------------------------------
         // Subrequest settings

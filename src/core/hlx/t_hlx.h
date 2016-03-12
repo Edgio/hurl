@@ -77,7 +77,6 @@ public:
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
         hlx *get_hlx(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_hlx;}
-        const t_stat_t &get_stat(void) { return m_stat;}
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
         int32_t queue_output(hconn &a_hconn);
@@ -90,13 +89,19 @@ public:
         void release_resp(resp *a_resp);
         void release_nbq(nbq *a_nbq);
 
+        int32_t get_stat(t_stat_t &ao_stat);
+
+        // TODO Consider removal...
+        // Stats helpers
+        void bump_num_cln_reqs(void) { ++m_stat.m_cln_reqs;}
+        void bump_num_cln_idle_killed(void) { ++m_stat.m_cln_idle_killed;}
+        void bump_num_ups_idle_killed(void) { ++m_stat.m_ups_idle_killed;}
+
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
         // Needs to be public for now -to join externally
         pthread_t m_t_run_thread;
-        // TODO make private
-        t_stat_t m_stat;
 
         // -------------------------------------------------
         // Public Static (class) methods
@@ -111,6 +116,10 @@ public:
 #ifdef ASYNC_DNS_SUPPORT
         static int32_t async_dns_resolved_cb(const host_info *a_host_info, void *a_data);
 #endif
+
+        // Async stat update
+        static int32_t s_stat_update(void *a_ctx, void *a_data);
+        void stat_update(void);
 
 private:
         // -------------------------------------------------
@@ -143,17 +152,11 @@ private:
         {
                 m_subr_list.pop_front();
                 --m_subr_list_size;
-                m_stat.m_ups_subr_queued = m_subr_list_size;
         }
         inline void subr_enqueue(subr &a_subr)
         {
                 m_subr_list.push_back(&a_subr);
                 ++m_subr_list_size;
-                m_stat.m_ups_subr_queued = m_subr_list_size;
-        }
-        inline uint64_t subr_queue_size(void)
-        {
-                return m_subr_list_size;
         }
 
         int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
@@ -195,6 +198,10 @@ private:
 
         // is initialized flag
         bool m_is_initd;
+
+        // Stat (internal)
+        t_stat_t m_stat;
+        pthread_mutex_t m_stat_mutex;
 
 };
 

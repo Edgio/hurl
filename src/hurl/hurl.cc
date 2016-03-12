@@ -924,7 +924,6 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -p, --parallel      Num parallel. Default: 100.\n");
         fprintf(a_stream, "  -f, --fetches       Num fetches.\n");
         fprintf(a_stream, "  -N, --num_calls     Number of requests per connection\n");
-        fprintf(a_stream, "  -k, --keep_alive    Re-use connections for all requests\n");
         fprintf(a_stream, "  -t, --threads       Number of parallel threads. Default: 1\n");
         fprintf(a_stream, "  -H, --header        Request headers -can add multiple ie -H<> -H<>...\n");
         fprintf(a_stream, "  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc. Default GET\n");
@@ -988,6 +987,7 @@ int main(int argc, char** argv)
         l_hlx->set_num_threads(l_max_threads);
         l_hlx->set_num_parallel(l_start_parallel);
         l_hlx->set_num_reqs_per_conn(-1);
+        l_hlx->set_update_stats_ms(500);
 
         // -------------------------------------------------
         // Subrequest settings
@@ -1000,6 +1000,7 @@ int main(int argc, char** argv)
         // Default headers
         l_subr->set_header("User-Agent","hurl Server Load Tester");
         l_subr->set_header("Accept","*/*");
+        l_subr->set_keepalive(true);
         //l_subr->set_header("User-Agent","ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
         //l_subr->set_header("User-Agent","Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
         //l_subr->set_header("Accept","text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
@@ -1037,7 +1038,6 @@ int main(int argc, char** argv)
                 { "parallel",     1, 0, 'p' },
                 { "fetches",      1, 0, 'f' },
                 { "num_calls",    1, 0, 'N' },
-                { "keep_alive",   0, 0, 'k' },
                 { "threads",      1, 0, 't' },
                 { "header",       1, 0, 'H' },
                 { "verb",         1, 0, 'X' },
@@ -1097,9 +1097,9 @@ int main(int argc, char** argv)
         }
 
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:";
 #else
-        char l_short_arg_list[] = "hVkwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:";
 #endif
 
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
@@ -1228,25 +1228,16 @@ int main(int argc, char** argv)
                 case 'N':
                 {
                         l_max_reqs_per_conn = atoi(optarg);
-                        if (l_max_reqs_per_conn < 1)
+                        if(l_max_reqs_per_conn < 1)
                         {
                                 printf("Error num-calls must be at least 1");
                                 return -1;
                         }
-                        l_hlx->set_num_reqs_per_conn(l_max_reqs_per_conn);
-                        break;
-                }
-                // ---------------------------------------
-                // enable keep alive connections
-                // ---------------------------------------
-                case 'k':
-                {
-                        l_subr->set_keepalive(true);
-                        if(l_max_reqs_per_conn == 1)
+                        if (l_max_reqs_per_conn == 1)
                         {
-                                l_hlx->set_num_reqs_per_conn(-1);
-                                l_max_reqs_per_conn = -1;
+                                l_subr->set_keepalive(false);
                         }
+                        l_hlx->set_num_reqs_per_conn(l_max_reqs_per_conn);
                         break;
                 }
                 // ---------------------------------------
