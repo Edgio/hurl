@@ -351,6 +351,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 }
                                 bool l_nconn_can_reuse = m_nconn->can_reuse();
                                 bool l_keepalive = m_subr->get_keepalive();
+                                bool l_detach_resp = m_subr->get_detach_resp();
                                 bool l_complete = subr_complete();
                                 //NDBG_PRINT("l_hmsg_keep_alive:     %d\n", l_hmsg_keep_alive);
                                 //NDBG_PRINT("l_keepalive:           %d\n", l_keepalive);
@@ -368,6 +369,21 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                         return nconn::NC_STATUS_EOF;
                                 }
                                 //NDBG_PRINT("IDLE\n");
+
+                                // Give back rqst + in q
+                                if(m_out_q)
+                                {
+                                        m_t_hlx->release_nbq(m_out_q);
+                                        m_out_q = NULL;
+                                }
+                                if(!l_detach_resp)
+                                {
+                                        resp *l_resp = static_cast<resp *>(m_hmsg);
+                                        m_t_hlx->release_resp(l_resp);
+                                        m_hmsg = NULL;
+                                        m_t_hlx->release_nbq(m_in_q);
+                                        m_in_q = NULL;
+                                }
                                 return nconn::NC_STATUS_IDLE;
                         }
                         //NDBG_PRINT("Error: nc_run_state_machine.\n");
@@ -661,8 +677,6 @@ int32_t hconn::subr_error(http_status_t a_status)
         if(l_detach_resp)
         {
                 m_subr = NULL;
-                m_hmsg = NULL;
-                m_in_q = NULL;
         }
         else
         {

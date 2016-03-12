@@ -666,6 +666,10 @@ void subr::set_keepalive(bool a_val)
                 //        set_num_reqs_per_conn(-1);
                 //}
         }
+        else
+        {
+                del_header("Connection");
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -1106,6 +1110,22 @@ int subr::set_header(const std::string &a_key, const std::string &a_val)
                 str_list_t l_list;
                 l_list.push_back(a_val);
                 m_headers[a_key] = l_list;
+        }
+        return STATUS_OK;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int subr::del_header(const std::string &a_key)
+{
+        kv_map_list_t::iterator i_obj = m_headers.find(a_key);
+        if(i_obj != m_headers.end())
+        {
+                m_headers.erase(i_obj);
         }
         return STATUS_OK;
 }

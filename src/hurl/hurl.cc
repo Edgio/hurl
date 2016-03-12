@@ -1237,7 +1237,6 @@ int main(int argc, char** argv)
                         {
                                 l_subr->set_keepalive(false);
                         }
-                        l_hlx->set_num_reqs_per_conn(l_max_reqs_per_conn);
                         break;
                 }
                 // ---------------------------------------

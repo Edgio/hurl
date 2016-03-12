@@ -803,6 +803,7 @@ public:
         void set_headers(const kv_map_list_t &a_headers_list);
         int set_header(const std::string &a_header);
         int set_header(const std::string &a_key, const std::string &a_val);
+        int del_header(const std::string &a_key);
         void set_body_data(const char *a_ptr, uint32_t a_len);
 
         // Clear
