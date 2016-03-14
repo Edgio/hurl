@@ -201,7 +201,8 @@ private:
 
         // Stat (internal)
         t_stat_t m_stat;
-        pthread_mutex_t m_stat_mutex;
+        t_stat_t m_stat_copy;
+        pthread_mutex_t m_stat_copy_mutex;
 
 };
 

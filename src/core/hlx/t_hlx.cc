@@ -159,9 +159,10 @@ t_hlx::t_hlx(const t_conf *a_t_conf):
 #endif
         m_is_initd(false),
         m_stat(),
-        m_stat_mutex()
+        m_stat_copy(),
+        m_stat_copy_mutex()
 {
-        pthread_mutex_init(&m_stat_mutex, NULL);
+        pthread_mutex_init(&m_stat_copy_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -1623,21 +1624,22 @@ int32_t t_hlx::s_stat_update(void *a_ctx, void *a_data)
 //: ----------------------------------------------------------------------------
 void t_hlx::stat_update(void)
 {
-        pthread_mutex_lock(&m_stat_mutex);
-        m_stat.m_ups_subr_queued = m_subr_list_size;
-        m_stat.m_pool_conn_active = m_nconn_pool.get_active_size();
-        m_stat.m_pool_conn_idle = m_nconn_pool.get_active_size();
-        m_stat.m_pool_proxy_conn_active = m_nconn_pool.get_active_size();
-        m_stat.m_pool_proxy_conn_idle = m_nconn_pool.get_active_size();
-        m_stat.m_pool_hconn_free = m_hconn_pool.free_size();
-        m_stat.m_pool_hconn_used = m_hconn_pool.used_size();
-        m_stat.m_pool_resp_free = m_resp_pool.free_size();
-        m_stat.m_pool_resp_used = m_resp_pool.used_size();
-        m_stat.m_pool_rqst_free = m_rqst_pool.free_size();
-        m_stat.m_pool_rqst_used = m_rqst_pool.used_size();
-        m_stat.m_pool_nbq_free = m_nbq_pool.free_size();
-        m_stat.m_pool_nbq_used = m_nbq_pool.used_size();
-        pthread_mutex_unlock(&m_stat_mutex);
+        pthread_mutex_lock(&m_stat_copy_mutex);
+        m_stat_copy = m_stat;
+        m_stat_copy.m_ups_subr_queued = m_subr_list_size;
+        m_stat_copy.m_pool_conn_active = m_nconn_pool.get_active_size();
+        m_stat_copy.m_pool_conn_idle = m_nconn_pool.get_active_size();
+        m_stat_copy.m_pool_proxy_conn_active = m_nconn_pool.get_active_size();
+        m_stat_copy.m_pool_proxy_conn_idle = m_nconn_pool.get_active_size();
+        m_stat_copy.m_pool_hconn_free = m_hconn_pool.free_size();
+        m_stat_copy.m_pool_hconn_used = m_hconn_pool.used_size();
+        m_stat_copy.m_pool_resp_free = m_resp_pool.free_size();
+        m_stat_copy.m_pool_resp_used = m_resp_pool.used_size();
+        m_stat_copy.m_pool_rqst_free = m_rqst_pool.free_size();
+        m_stat_copy.m_pool_rqst_used = m_rqst_pool.used_size();
+        m_stat_copy.m_pool_nbq_free = m_nbq_pool.free_size();
+        m_stat_copy.m_pool_nbq_used = m_nbq_pool.used_size();
+        pthread_mutex_unlock(&m_stat_copy_mutex);
 }
 
 //: ----------------------------------------------------------------------------
@@ -1647,9 +1649,9 @@ void t_hlx::stat_update(void)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::get_stat(t_stat_t &ao_stat)
 {
-        pthread_mutex_lock(&m_stat_mutex);
-        ao_stat = m_stat;
-        pthread_mutex_unlock(&m_stat_mutex);
+        pthread_mutex_lock(&m_stat_copy_mutex);
+        ao_stat = m_stat_copy;
+        pthread_mutex_unlock(&m_stat_copy_mutex);
         return STATUS_OK;
 }
 
