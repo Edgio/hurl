@@ -210,7 +210,7 @@ t_hlx::~t_hlx()
         }
 #endif
 
-        pthread_mutex_destroy(&m_stat_mutex);
+        pthread_mutex_destroy(&m_stat_copy_mutex);
 }
 
 //: ----------------------------------------------------------------------------
