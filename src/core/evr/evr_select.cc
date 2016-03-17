@@ -131,6 +131,9 @@ int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
 //: ----------------------------------------------------------------------------
 int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 {
+        //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X --data: %p\n",
+        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+        //           a_fd, a_attr_mask, a_data);
         m_conn_map[a_fd] = a_data;
         mod(a_fd, a_attr_mask, a_data);
         return STATUS_OK;
@@ -163,6 +166,9 @@ int evr_select::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: ----------------------------------------------------------------------------
 int evr_select::del(int a_fd)
 {
+        //NDBG_PRINT("%sdel%s: fd: %d\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           a_fd);
         m_conn_map.erase(a_fd);
         FD_CLR(a_fd, &m_rfdset);
         FD_CLR(a_fd, &m_wfdset);

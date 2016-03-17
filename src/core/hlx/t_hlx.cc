@@ -269,8 +269,9 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
                 return STATUS_ERROR;
         }
         l_nconn->set_data(l_hconn);
+        l_nconn->set_evr_loop(m_evr_loop);
         l_hconn->m_nconn = l_nconn;
-        l_status = l_nconn->nc_set_listening(m_evr_loop, a_lsnr.get_fd());
+        l_status = l_nconn->nc_set_listening(a_lsnr.get_fd());
         if(l_status != STATUS_OK)
         {
                 if(l_nconn)
@@ -455,8 +456,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
         //           a_subr.m_host.c_str(), a_nconn.get_data());
-        l_status = a_nconn.nc_run_state_machine(m_evr_loop,
-                                                nconn::NC_MODE_WRITE,
+        l_status = a_nconn.nc_run_state_machine(nconn::NC_MODE_WRITE,
                                                 a_hconn.m_in_q,
                                                 a_hconn.m_out_q);
         a_nconn.bump_num_requested();
@@ -516,6 +516,7 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
                 }
         }
         l_nconn->set_data(l_hconn);
+        l_nconn->set_evr_loop(m_evr_loop);
         l_nconn->set_read_cb(http_parse);
         l_hconn->m_nconn = l_nconn;
         rqst *l_rqst = static_cast<rqst *>(l_hconn->m_hmsg);
@@ -636,8 +637,7 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
         do {
                 //NDBG_PRINT("%sWRITEABLE%s <--RUN_STATE_MACHINE--> out_q_sz  = %lu\n",
                 //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_hconn->m_out_q->read_avail());
-                l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop,
-                                                         nconn::NC_MODE_WRITE,
+                l_status = l_nconn->nc_run_state_machine(nconn::NC_MODE_WRITE,
                                                          l_hconn->m_in_q,
                                                          l_hconn->m_out_q);
                 //NDBG_PRINT("%sWRITEABLE%s l_status =  %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_status);
@@ -755,8 +755,7 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                 {
                         l_mode = nconn::NC_MODE_WRITE;
                 }
-                l_status = l_nconn->nc_run_state_machine(l_t_hlx->m_evr_loop,
-                                                         l_mode,
+                l_status = l_nconn->nc_run_state_machine(l_mode,
                                                          l_hconn->m_in_q,
                                                          l_hconn->m_out_q);
                 //NDBG_PRINT("%sREADABLE%s l_status:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_status);
@@ -936,10 +935,9 @@ int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
         int32_t l_status;
 
         // Returns new client fd on success
-        l_status = a_nconn.nc_run_state_machine(m_evr_loop,
-                                                 nconn::NC_MODE_NONE,
-                                                 NULL,
-                                                 NULL);
+        l_status = a_nconn.nc_run_state_machine(nconn::NC_MODE_NONE,
+                                                NULL,
+                                                NULL);
         if(l_status == nconn::NC_STATUS_ERROR)
         {
                 return STATUS_ERROR;
@@ -956,7 +954,7 @@ int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
         }
 
         // Set connected
-        l_status = l_new_nconn->nc_set_accepting(m_evr_loop, l_fd);
+        l_status = l_new_nconn->nc_set_accepting(l_fd);
         if(l_status != STATUS_OK)
         {
                 //NDBG_PRINT("Error: performing run_state_machine\n");
@@ -1010,7 +1008,8 @@ int32_t t_hlx::async_dns_init(void)
         // Create fake connection object to work with hlx event handlers
         m_async_dns_nconn = new nconn_tcp();
         m_async_dns_nconn->set_id(nresolver::S_RESOLVER_ID);
-        m_async_dns_nconn->nc_set_listening_nb(m_evr_loop, m_async_dns_fd);
+        m_async_dns_nconn->nc_set_listening_nb(m_async_dns_fd);
+        m_async_dns_nconn->set_evr_loop(m_evr_loop);
         hconn *l_hconn = get_hconn(NULL, HCONN_TYPE_CLIENT, false);
         if(!l_hconn)
         {
@@ -1358,6 +1357,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
         // Setup nconn
         l_nconn->set_data(l_hconn);
         l_nconn->set_read_cb(http_parse);
+        l_nconn->set_evr_loop(m_evr_loop);
 
         // Setup hconn
         l_hconn->m_nconn = l_nconn;

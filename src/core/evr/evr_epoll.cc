@@ -158,6 +158,7 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: ----------------------------------------------------------------------------
 int evr_epoll::del(int a_fd)
 {
+        // TODO Can skip del for close(fd) -since is removed automagically
         //NDBG_PRINT("%sdel%s: fd: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_fd);
         struct epoll_event ev;
         if((m_fd > 0) && (a_fd > 0))

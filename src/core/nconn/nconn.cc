@@ -39,7 +39,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode, nbq *a_in_q, nbq *a_out_q)
+int32_t nconn::nc_run_state_machine(mode_t a_mode, nbq *a_in_q, nbq *a_out_q)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d --START\n",
         //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
@@ -55,7 +55,7 @@ state_top:
         case NC_STATE_FREE:
         {
                 int32_t l_status;
-                l_status = ncsetup(a_evr_loop);
+                l_status = ncsetup();
                 if(l_status != NC_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing ncsetup\n");
@@ -80,7 +80,7 @@ state_top:
         case NC_STATE_LISTENING:
         {
                 int32_t l_status;
-                l_status = ncaccept(a_evr_loop);
+                l_status = ncaccept();
                 if(l_status < 0)
                 {
                         //NDBG_PRINT("Error performing ncaccept\n");
@@ -98,7 +98,7 @@ state_top:
         {
                 int32_t l_status;
                 //NDBG_PRINT("%sConnecting%s: host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
-                l_status = ncconnect(a_evr_loop);
+                l_status = ncconnect();
                 if(l_status == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing ncconnect for host: %s.\n", m_label.c_str());
@@ -131,7 +131,7 @@ state_top:
         case NC_STATE_ACCEPTING:
         {
                 int32_t l_status;
-                l_status = ncaccept(a_evr_loop);
+                l_status = ncaccept();
                 if(l_status == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing ncaccept\n");
@@ -156,7 +156,7 @@ state_top:
                 case NC_MODE_READ:
                 {
                         int32_t l_status = NC_STATUS_OK;
-                        l_status = nc_read(a_evr_loop, a_in_q);
+                        l_status = nc_read(a_in_q);
                         //NDBG_PRINT("l_status: %d\n", l_status);
                         switch(l_status){
                         case NC_STATUS_EOF:
@@ -191,7 +191,7 @@ state_top:
                 case NC_MODE_WRITE:
                 {
                         int32_t l_status = NC_STATUS_OK;
-                        l_status = nc_write(a_evr_loop, a_out_q);
+                        l_status = nc_write(a_out_q);
                         switch(l_status){
                         case NC_STATUS_EOF:
                         {
@@ -237,7 +237,7 @@ state_top:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_read(evr_loop *a_evr_loop, nbq *a_in_q)
+int32_t nconn::nc_read(nbq *a_in_q)
 {
         //NDBG_PRINT("%sTRY_READ%s: \n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         if(!a_in_q)
@@ -270,7 +270,7 @@ int32_t nconn::nc_read(evr_loop *a_evr_loop, nbq *a_in_q)
                 //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
                 //                l_buf,
                 //                l_read_size);
-                l_bytes_read = ncread(a_evr_loop, l_buf, l_read_size);
+                l_bytes_read = ncread(l_buf, l_read_size);
                 //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read);
                 switch(l_bytes_read){
                 case NC_STATUS_ERROR:
@@ -332,7 +332,7 @@ int32_t nconn::nc_read(evr_loop *a_evr_loop, nbq *a_in_q)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_write(evr_loop *a_evr_loop, nbq *a_out_q)
+int32_t nconn::nc_write(nbq *a_out_q)
 {
         //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
         if(!a_out_q)
@@ -359,7 +359,7 @@ int32_t nconn::nc_write(evr_loop *a_evr_loop, nbq *a_out_q)
                 //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                 //                a_out_q->b_read_ptr(),
                 //                a_out_q->b_read_avail());
-                l_bytes_written = ncwrite(a_evr_loop, a_out_q->b_read_ptr(), a_out_q->b_read_avail());
+                l_bytes_written = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
                 //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
                 if(l_bytes_written < 0)
                 {
@@ -419,11 +419,11 @@ bool nconn::can_reuse(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_set_listening(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn::nc_set_listening(int32_t a_val)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
         int32_t l_status;
-        l_status = ncset_listening(a_evr_loop, a_val);
+        l_status = ncset_listening(a_val);
         if(l_status != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
@@ -438,11 +438,11 @@ int32_t nconn::nc_set_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_set_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn::nc_set_listening_nb(int32_t a_val)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
         int32_t l_status;
-        l_status = ncset_listening_nb(a_evr_loop, a_val);
+        l_status = ncset_listening_nb(a_val);
         if(l_status != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
@@ -457,10 +457,10 @@ int32_t nconn::nc_set_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_set_accepting(evr_loop *a_evr_loop, int a_fd)
+int32_t nconn::nc_set_accepting(int a_fd)
 {
         int32_t l_status;
-        l_status = ncset_accepting(a_evr_loop, a_fd);
+        l_status = ncset_accepting(a_fd);
         if(l_status != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
@@ -499,6 +499,7 @@ int32_t nconn::nc_cleanup()
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 nconn::nconn(void):
+      m_evr_loop(NULL),
       m_scheme(SCHEME_NONE),
       m_label(),
       m_stat(),

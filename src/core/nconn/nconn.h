@@ -128,6 +128,10 @@ public:
         void set_data(void * a_data) {m_data = a_data;}
         void *get_data(void) {return m_data;}
 
+        // evr
+        void set_evr_loop(evr_loop * a_evr_loop) {m_evr_loop = a_evr_loop;}
+        evr_loop *get_evr_loop(void) {return m_evr_loop;}
+
         // Stats
         void reset_stats(void) { stat_init(m_stat); }
         const req_stat_t &get_stats(void) const { return m_stat;}
@@ -171,13 +175,13 @@ public:
         bool can_reuse(void);
 
         // Running
-        int32_t nc_run_state_machine(evr_loop *a_evr_loop, mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
-        int32_t nc_read(evr_loop *a_evr_loop, nbq *a_in_q);
-        int32_t nc_write(evr_loop *a_evr_loop, nbq *a_out_q);
-        int32_t nc_set_listening(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t nc_set_listening_nb(evr_loop *a_evr_loop, int32_t a_val);
-        int32_t nc_set_accepting(evr_loop *a_evr_loop, int a_fd);
-        int32_t nc_cleanup(void);
+        int32_t nc_run_state_machine(mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
+        int32_t nc_read(nbq *a_in_q);
+        int32_t nc_write(nbq *a_out_q);
+        int32_t nc_set_listening(int32_t a_val);
+        int32_t nc_set_listening_nb(int32_t a_val);
+        int32_t nc_set_accepting(int a_fd);
+        int32_t nc_cleanup();
 
         // -------------------------------------------------
         // Virtual Methods
@@ -193,19 +197,20 @@ protected:
         // -------------------------------------------------
         // Protected Virtual methods
         // -------------------------------------------------
-        virtual int32_t ncsetup(evr_loop *a_evr_loop) = 0;
-        virtual int32_t ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len) = 0;
-        virtual int32_t ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len) = 0;
-        virtual int32_t ncaccept(evr_loop *a_evr_loop) = 0;
-        virtual int32_t ncconnect(evr_loop *a_evr_loop) = 0;
-        virtual int32_t nccleanup(void) = 0;
-        virtual int32_t ncset_listening(evr_loop *a_evr_loop, int32_t a_val) = 0;
-        virtual int32_t ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val) = 0;
-        virtual int32_t ncset_accepting(evr_loop *a_evr_loop, int a_fd) = 0;
+        virtual int32_t ncsetup() = 0;
+        virtual int32_t ncread(char *a_buf, uint32_t a_buf_len) = 0;
+        virtual int32_t ncwrite(char *a_buf, uint32_t a_buf_len) = 0;
+        virtual int32_t ncaccept() = 0;
+        virtual int32_t ncconnect() = 0;
+        virtual int32_t nccleanup() = 0;
+        virtual int32_t ncset_listening(int32_t a_val) = 0;
+        virtual int32_t ncset_listening_nb(int32_t a_val) = 0;
+        virtual int32_t ncset_accepting(int a_fd) = 0;
 
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
+        evr_loop *m_evr_loop;
         scheme_t m_scheme;
         std::string m_label;
         req_stat_t m_stat;

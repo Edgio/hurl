@@ -482,10 +482,10 @@ int32_t nconn_tls::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn_tls::ncset_listening(int32_t a_val)
 {
         int32_t l_status;
-        l_status = nconn_tcp::ncset_listening(a_evr_loop, a_val);
+        l_status = nconn_tcp::ncset_listening(a_val);
         if(l_status != NC_STATUS_OK)
         {
                 //NDBG_PRINT("Error performing nconn_tcp::ncset_listening.\n");
@@ -500,10 +500,10 @@ int32_t nconn_tls::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn_tls::ncset_listening_nb(int32_t a_val)
 {
         int32_t l_status;
-        l_status = nconn_tcp::ncset_listening_nb(a_evr_loop, a_val);
+        l_status = nconn_tcp::ncset_listening_nb(a_val);
         if(l_status != NC_STATUS_OK)
         {
                 //NDBG_PRINT("Error performing nconn_tcp::ncset_listening.\n");
@@ -518,10 +518,10 @@ int32_t nconn_tls::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
+int32_t nconn_tls::ncset_accepting(int a_fd)
 {
         int32_t l_status;
-        l_status = nconn_tcp::ncset_accepting(a_evr_loop, a_fd);
+        l_status = nconn_tcp::ncset_accepting(a_fd);
         if(l_status != NC_STATUS_OK)
         {
                 return NC_STATUS_ERROR;
@@ -537,9 +537,9 @@ int32_t nconn_tls::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
         m_tls_state = TLS_STATE_ACCEPTING;
 
         // Add to event handler
-        if(a_evr_loop)
+        if(m_evr_loop)
         {
-                if (0 != a_evr_loop->mod_fd(m_fd,
+                if (0 != m_evr_loop->mod_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|
                                             EVR_FILE_ATTR_MASK_RD_HUP|
                                             EVR_FILE_ATTR_MASK_WRITE|
@@ -559,7 +559,7 @@ int32_t nconn_tls::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
@@ -623,7 +623,7 @@ int32_t nconn_tls::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
         l_status = ::SSL_write(m_tls, a_buf, a_buf_len);
@@ -643,9 +643,9 @@ int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                 //                l_tls_error);
                 if(l_tls_error == SSL_ERROR_WANT_READ)
                 {
-                        if(a_evr_loop)
+                        if(m_evr_loop)
                         {
-                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_RD_HUP|
                                                             EVR_FILE_ATTR_MASK_READ|
                                                             EVR_FILE_ATTR_MASK_WRITE|
@@ -660,9 +660,9 @@ int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                 }
                 else if(l_tls_error == SSL_ERROR_WANT_WRITE)
                 {
-                        if(a_evr_loop)
+                        if(m_evr_loop)
                         {
-                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_RD_HUP|
                                                             EVR_FILE_ATTR_MASK_READ|
                                                             EVR_FILE_ATTR_MASK_WRITE|
@@ -689,11 +689,11 @@ int32_t nconn_tls::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncsetup(evr_loop *a_evr_loop)
+int32_t nconn_tls::ncsetup()
 {
         int32_t l_status;
         //NDBG_PRINT("m_tls_ctx: %p\n", m_tls_ctx);
-        l_status = nconn_tcp::ncsetup(a_evr_loop);
+        l_status = nconn_tcp::ncsetup();
         if(l_status != NC_STATUS_OK)
         {
                 return NC_STATUS_ERROR;
@@ -723,7 +723,7 @@ int32_t nconn_tls::ncsetup(evr_loop *a_evr_loop)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncaccept(evr_loop *a_evr_loop)
+int32_t nconn_tls::ncaccept()
 {
         //NDBG_PRINT("%sSSL_ACCEPT%s: STATE[%d] --START\n",
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_tls_state);
@@ -738,7 +738,7 @@ ncaccept_state_top:
         case TLS_STATE_LISTENING:
         {
                 int32_t l_status;
-                l_status = nconn_tcp::ncaccept(a_evr_loop);
+                l_status = nconn_tcp::ncaccept();
                 return l_status;
         }
         // -------------------------------------------------
@@ -755,9 +755,9 @@ ncaccept_state_top:
                 {
                         if(TLS_STATE_TLS_ACCEPTING_WANT_READ == m_tls_state)
                         {
-                                if(a_evr_loop)
+                                if(m_evr_loop)
                                 {
-                                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                        if (0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_READ|
                                                                     EVR_FILE_ATTR_MASK_RD_HUP|
                                                                     EVR_FILE_ATTR_MASK_ET,
@@ -770,9 +770,9 @@ ncaccept_state_top:
                         }
                         else if(TLS_STATE_TLS_ACCEPTING_WANT_WRITE == m_tls_state)
                         {
-                                if(a_evr_loop)
+                                if(m_evr_loop)
                                 {
-                                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                        if (0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_RD_HUP|
                                                                     EVR_FILE_ATTR_MASK_WRITE|
                                                                     EVR_FILE_ATTR_MASK_ET,
@@ -791,9 +791,9 @@ ncaccept_state_top:
                 }
 
                 // Add to event handler
-                if(a_evr_loop)
+                if(m_evr_loop)
                 {
-                        if (0 != a_evr_loop->mod_fd(m_fd,
+                        if (0 != m_evr_loop->mod_fd(m_fd,
                                                     EVR_FILE_ATTR_MASK_READ|
                                                     EVR_FILE_ATTR_MASK_RD_HUP|
                                                     EVR_FILE_ATTR_MASK_ET,
@@ -831,7 +831,7 @@ ncaccept_state_top:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::ncconnect(evr_loop *a_evr_loop)
+int32_t nconn_tls::ncconnect()
 {
         //NDBG_PRINT("%stls_connect%s: STATE[%d] --START\n",
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_tls_state);
@@ -846,7 +846,7 @@ ncconnect_state_top:
         case TLS_STATE_CONNECTING:
         {
                 int32_t l_status;
-                l_status = nconn_tcp::ncconnect(a_evr_loop);
+                l_status = nconn_tcp::ncconnect();
                 if(l_status == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing nconn_tcp::ncconnect\n");
@@ -876,9 +876,9 @@ ncconnect_state_top:
                 {
                         if(TLS_STATE_TLS_CONNECTING_WANT_READ == m_tls_state)
                         {
-                                if(a_evr_loop)
+                                if(m_evr_loop)
                                 {
-                                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                        if (0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_READ|
                                                                     EVR_FILE_ATTR_MASK_RD_HUP|
                                                                     EVR_FILE_ATTR_MASK_ET,
@@ -892,9 +892,9 @@ ncconnect_state_top:
                         }
                         else if(TLS_STATE_TLS_CONNECTING_WANT_WRITE == m_tls_state)
                         {
-                                if(a_evr_loop)
+                                if(m_evr_loop)
                                 {
-                                        if (0 != a_evr_loop->mod_fd(m_fd,
+                                        if (0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_WRITE|
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     this))
@@ -915,9 +915,9 @@ ncconnect_state_top:
                 // -------------------------------------------
                 // Add to event handler
                 // -------------------------------------------
-                if(a_evr_loop)
+                if(m_evr_loop)
                 {
-                        if (0 != a_evr_loop->mod_fd(m_fd,
+                        if (0 != m_evr_loop->mod_fd(m_fd,
                                                     EVR_FILE_ATTR_MASK_READ|
                                                     EVR_FILE_ATTR_MASK_RD_HUP|
                                                     EVR_FILE_ATTR_MASK_ET,
@@ -967,7 +967,7 @@ ncconnect_state_top:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tls::nccleanup(void)
+int32_t nconn_tls::nccleanup()
 {
         // Shut down connection
         if(m_tls)

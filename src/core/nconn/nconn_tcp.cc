@@ -133,7 +133,7 @@ int32_t nconn_tcp::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn_tcp::ncset_listening(int32_t a_val)
 {
         m_fd = a_val;
         m_tcp_state = TCP_STATE_LISTENING;
@@ -142,9 +142,9 @@ int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
         ioctl(m_fd, FIONBIO, &l_opt);
 
         // Add to event handler
-        if(a_evr_loop)
+        if(m_evr_loop)
         {
-                if (0 != a_evr_loop->add_fd(a_val,
+                if (0 != m_evr_loop->add_fd(a_val,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
                                             this))
                 {
@@ -161,7 +161,7 @@ int32_t nconn_tcp::ncset_listening(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
+int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
 {
         m_fd = a_val;
         m_tcp_state = TCP_STATE_LISTENING;
@@ -183,9 +183,9 @@ int32_t nconn_tcp::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
         }
 
         // Add to event handler
-        if(a_evr_loop)
+        if(m_evr_loop)
         {
-                if (0 != a_evr_loop->add_fd(a_val,
+                if (0 != m_evr_loop->add_fd(a_val,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
@@ -201,7 +201,7 @@ int32_t nconn_tcp::ncset_listening_nb(evr_loop *a_evr_loop, int32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
+int32_t nconn_tcp::ncset_accepting(int a_fd)
 {
         m_fd = a_fd;
         m_tcp_state = TCP_STATE_ACCEPTING;
@@ -246,9 +246,9 @@ int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 #endif
 
         // Add to event handler
-        if(a_evr_loop)
+        if(m_evr_loop)
         {
-                if (0 != a_evr_loop->add_fd(m_fd,
+                if (0 != m_evr_loop->add_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
@@ -265,7 +265,7 @@ int32_t nconn_tcp::ncset_accepting(evr_loop *a_evr_loop, int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
@@ -315,7 +315,7 @@ int32_t nconn_tcp::ncread(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len)
+int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
         //NDBG_PRINT("%swrite%s: buf: %p fd: %d len: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
@@ -339,9 +339,9 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
                 if(errno == EAGAIN)
                 {
                         // Add to writeable
-                        if(a_evr_loop)
+                        if(m_evr_loop)
                         {
-                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
@@ -366,7 +366,7 @@ int32_t nconn_tcp::ncwrite(evr_loop *a_evr_loop, char *a_buf, uint32_t a_buf_len
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
+int32_t nconn_tcp::ncsetup()
 {
         //NDBG_PRINT("LABEL: %s --m_host_info: %p\n",
         //           get_label().c_str(),
@@ -420,9 +420,9 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
                 return NC_STATUS_ERROR;
         }
 
-        if(a_evr_loop)
+        if(m_evr_loop)
         {
-                if (0 != a_evr_loop->add_fd(m_fd,
+                if (0 != m_evr_loop->add_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
@@ -439,7 +439,7 @@ int32_t nconn_tcp::ncsetup(evr_loop *a_evr_loop)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncaccept(evr_loop *a_evr_loop)
+int32_t nconn_tcp::ncaccept()
 {
         if(m_tcp_state == TCP_STATE_LISTENING)
         {
@@ -484,7 +484,7 @@ int32_t nconn_tcp::ncaccept(evr_loop *a_evr_loop)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::ncconnect(evr_loop *a_evr_loop)
+int32_t nconn_tcp::ncconnect()
 {
         uint32_t l_retry_connect_count = 0;
         int l_connect_status = 0;
@@ -536,9 +536,9 @@ state_top:
                 {
                         //NDBG_PRINT("Error Connection in progress. Reason: %s\n", ::strerror(errno));
                         // Set to writeable and try again
-                        if(a_evr_loop)
+                        if(m_evr_loop)
                         {
-                                if (0 != a_evr_loop->mod_fd(m_fd,
+                                if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
@@ -587,9 +587,9 @@ state_top:
         //}
 
         // Add to readable
-        if(a_evr_loop)
+        if(m_evr_loop)
         {
-                if (0 != a_evr_loop->mod_fd(m_fd,
+                if (0 != m_evr_loop->mod_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
@@ -606,7 +606,7 @@ state_top:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn_tcp::nccleanup(void)
+int32_t nconn_tcp::nccleanup()
 {
         // Shut down connection
         //NDBG_PRINT("CLOSE[%d] %s--CONN--%s last_state: %d\n", m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_tcp_state);
@@ -615,7 +615,12 @@ int32_t nconn_tcp::nccleanup(void)
         {
                 close(m_fd);
         }
+        if(m_evr_loop)
+        {
+                m_evr_loop->del_fd(m_fd);
+        }
         m_fd = -1;
+        m_evr_loop = NULL;
 
         // Reset all the values
         // TODO Make init function...

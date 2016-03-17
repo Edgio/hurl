@@ -262,6 +262,10 @@ int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::del_fd(int a_fd)
 {
+        if(!m_evr)
+        {
+                return STATUS_OK;
+        }
         int l_status;
         l_status = m_evr->del(a_fd);
         return l_status;
