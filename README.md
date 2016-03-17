@@ -44,14 +44,13 @@ Options are:
 Input Options:
   -w, --no_wildcards  Don't wildcard the url.
   -M, --mode          Request mode -if multipath [random(default) | sequential].
-  -d, --data          HTTP body data -supports bodies up to 8k.
+  -d, --data          HTTP body data -supports curl style @ file specifier
   
 Settings:
   -y, --cipher        Cipher --see "openssl ciphers" for list.
   -p, --parallel      Num parallel. Default: 100.
   -f, --fetches       Num fetches.
   -N, --num_calls     Number of requests per connection
-  -k, --keep_alive    Re-use connections for all requests
   -t, --threads       Number of parallel threads. Default: 1
   -H, --header        Request headers -can add multiple ie -H<> -H<>...
   -X, --verb          Request command -HTTP verb to use -GET/PUT/etc. Default GET
@@ -95,8 +94,8 @@ Options are:
   
 URL Options -or without parameter
   -u, --url            URL -REQUIRED (unless running cli: see --cli option).
-  -d, --data           HTTP body data -supports bodies up to 8k.
-  
+  -d, --data           HTTP body data -supports curl style @ file specifier
+
 Hostname Input Options -also STDIN:
   -f, --host_file      Host name file.
   -J, --host_json      Host listing json format.

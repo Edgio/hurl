@@ -920,7 +920,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "URL Options -or without parameter\n");
         fprintf(a_stream, "  -u, --url            URL -REQUIRED (unless running cli: see --cli option).\n");
-        fprintf(a_stream, "  -d, --data           HTTP body data -supports bodies up to 8k.\n");
+        fprintf(a_stream, "  -d, --data           HTTP body data -supports curl style @ file specifier\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Hostname Input Options -also STDIN:\n");
         fprintf(a_stream, "  -f, --host_file      Host name file.\n");

@@ -917,7 +917,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Input Options:\n");
         fprintf(a_stream, "  -w, --no_wildcards  Don't wildcard the url.\n");
         fprintf(a_stream, "  -M, --mode          Request mode -if multipath [random(default) | sequential].\n");
-        fprintf(a_stream, "  -d, --data          HTTP body data -supports bodies up to 8k.\n");
+        fprintf(a_stream, "  -d, --data          HTTP body data -supports curl style @ file specifier\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
         fprintf(a_stream, "  -y, --cipher        Cipher --see \"openssl ciphers\" for list.\n");
