@@ -138,8 +138,8 @@ private:
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-uint64_t hss_get_time_ms(void);
-uint64_t hss_get_delta_time_ms(uint64_t a_start_time_ms);
+uint64_t fsurv_get_time_ms(void);
+uint64_t fsurv_get_delta_time_ms(uint64_t a_start_time_ms);
 void display_results_line_desc(settings_struct &a_settings);
 void display_results_line(settings_struct &a_settings);
 
@@ -293,7 +293,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 {
 
         // print out the version information
-        fprintf(a_stream, "hlx Simple File Server (hss).\n");
+        fprintf(a_stream, "hlx Simple File Server (fsurv).\n");
         fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HLX_VERSION);
         exit(a_exit_code);
@@ -308,7 +308,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 void print_usage(FILE* a_stream, int a_exit_code)
 {
-        fprintf(a_stream, "Usage: hss [options]\n");
+        fprintf(a_stream, "Usage: fsurv [options]\n");
         fprintf(a_stream, "Options are:\n");
         fprintf(a_stream, "  -h, --help           Display this help and exit.\n");
         fprintf(a_stream, "  -V, --version        Display the version number and exit.\n");
@@ -629,7 +629,7 @@ int main(int argc, char** argv)
         }
 #endif
 
-        uint64_t l_start_time_ms = hss_get_time_ms();
+        uint64_t l_start_time_ms = fsurv_get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
 
         // -------------------------------------------
@@ -713,7 +713,7 @@ static void _rt_gettime(struct timespec &ao_timespec)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hss_get_time_ms(void)
+uint64_t fsurv_get_time_ms(void)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -727,7 +727,7 @@ uint64_t hss_get_time_ms(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hss_get_delta_time_ms(uint64_t a_start_time_ms)
+uint64_t fsurv_get_delta_time_ms(uint64_t a_start_time_ms)
 {
         uint64_t l_retval;
         struct timespec l_timespec;
@@ -786,7 +786,7 @@ void display_results_line_desc(settings_struct &a_settings)
 void display_results_line(settings_struct &a_settings)
 {
         ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = hss_get_time_ms();
+        uint64_t l_cur_time_ms = fsurv_get_time_ms();
 
         // Get stats
         a_settings.m_hlx->get_stat(l_total);
@@ -797,7 +797,7 @@ void display_results_line(settings_struct &a_settings)
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_written_per_s = ((double)(l_total.m_total_bytes_written - a_settings.m_last_stat->m_total_bytes_written)*1000.0/1024) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = hss_get_time_ms();
+        a_settings.m_last_display_time_ms = fsurv_get_time_ms();
         *a_settings.m_last_stat = l_total;
 
         if(a_settings.m_color)
@@ -812,7 +812,7 @@ void display_results_line(settings_struct &a_settings)
                         ANSI_COLOR_FG_YELLOW, l_kb_read_per_s, ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_CYAN, l_kb_written_per_s, ANSI_COLOR_OFF,
                         l_reqs_per_s,
-                        ((double)(hss_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0);
+                        ((double)(fsurv_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0);
         }
         else
         {
@@ -826,7 +826,7 @@ void display_results_line(settings_struct &a_settings)
                         l_kb_read_per_s,
                         l_kb_written_per_s,
                         l_reqs_per_s,
-                        ((double)(hss_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0));
+                        ((double)(fsurv_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0));
 
         }
 }

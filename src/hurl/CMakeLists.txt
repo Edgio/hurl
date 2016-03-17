@@ -44,33 +44,6 @@ SET(SRCS
 SET(HDRS
 )
 
-# ============================================================
-# TODO
-# ============================================================
-## Platform-specific executable targets
-#IF(UNIX)
-#    IF(APPLE)
-#        # MacOS Application Bundle
-#        add_executable(hurl MACOSX_BUNDLE ${HDRS} ${SRCS})
-#    ELSE()
-#        IF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD|Solaris|SunOS")
-#            # *BSD or Solaris
-#            add_executable(hurl ${HDRS} ${SRCS})
-#        ELSE()
-#            # Linux
-#            add_executable(hurl ${HDRS} ${SRCS})
-#        ENDIF()
-#    ENDIF()
-#ELSE()
-#    IF(WIN32)
-#        # Windows Executable
-#        add_executable(hurl ${HDRS} ${SRCS})
-#    ENDIF()
-#ENDIF()
-# ============================================================
-# ============================================================
-
-
 # build and install hl
 add_executable(hurl_cmd ${HDRS} ${SRCS})
 add_dependencies(hurl_cmd hlxcore)

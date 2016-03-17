@@ -36,47 +36,20 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
 
 # Source files
 SET(SRCS
-  hss.cc
+  fsurv.cc
 )
 
 # Headers
 SET(HDRS
 )
 
-# ============================================================
-# TODO
-# ============================================================
-## Platform-specific executable targets
-#IF(UNIX)
-#    IF(APPLE)
-#        # MacOS Application Bundle
-#        add_executable(hurl MACOSX_BUNDLE ${HDRS} ${SRCS})
-#    ELSE()
-#        IF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD|OpenBSD|NetBSD|Solaris|SunOS")
-#            # *BSD or Solaris
-#            add_executable(hurl ${HDRS} ${SRCS})
-#        ELSE()
-#            # Linux
-#            add_executable(hurl ${HDRS} ${SRCS})
-#        ENDIF()
-#    ENDIF()
-#ELSE()
-#    IF(WIN32)
-#        # Windows Executable
-#        add_executable(hurl ${HDRS} ${SRCS})
-#    ENDIF()
-#ENDIF()
-# ============================================================
-# ============================================================
-
-
 # build and install hl
-add_executable(hss_cmd ${HDRS} ${SRCS})
-add_dependencies(hss_cmd hlxcore)
-SET_TARGET_PROPERTIES(hss_cmd PROPERTIES OUTPUT_NAME "hss")
-target_link_libraries(hss_cmd ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+add_executable(fsurv_cmd ${HDRS} ${SRCS})
+add_dependencies(fsurv_cmd hlxcore)
+SET_TARGET_PROPERTIES(fsurv_cmd PROPERTIES OUTPUT_NAME "fsurv")
+target_link_libraries(fsurv_cmd ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
-install(TARGETS hss_cmd
+install(TARGETS fsurv_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
         COMPONENT Executables
         )

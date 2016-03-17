@@ -6,5 +6,5 @@
   e. set separate timeouts resolve/connect/idle
   f. error callback indicate error type
 
-1. hurl/phurl/hss
+1. hurl/phurl/fsurv
   a. if is interactive shell --> isatty(fileno(stdout)) -default to color
