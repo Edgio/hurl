@@ -42,7 +42,8 @@ public:
         file_h(void);
         ~file_h();
         h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-
+        int32_t set_root(const std::string &a_root);
+        int32_t set_index(const std::string &a_index);
 protected:
         // -------------------------------------------------
         // Protected methods
@@ -56,6 +57,12 @@ private:
         // Disallow copy/assign
         file_h& operator=(const file_h &);
         file_h(const file_h &);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        std::string m_root;
+        std::string m_index;
 };
 
 } //namespace ns_hlx {

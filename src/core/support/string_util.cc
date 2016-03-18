@@ -62,7 +62,7 @@ int32_t break_header_string(const std::string &a_header_str,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string get_file_wo_path(std::string &a_filename)
+std::string get_file_wo_path(const std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind("/");
@@ -83,7 +83,7 @@ std::string get_file_wo_path(std::string &a_filename)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string get_file_path(std::string &a_filename)
+std::string get_file_path(const std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind("/");
@@ -103,7 +103,7 @@ std::string get_file_path(std::string &a_filename)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string get_base_filename(std::string &a_filename)
+std::string get_base_filename(const std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind(".");
@@ -123,7 +123,7 @@ std::string get_base_filename(std::string &a_filename)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string get_file_ext(std::string &a_filename)
+std::string get_file_ext(const std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind(".");
@@ -143,7 +143,7 @@ std::string get_file_ext(std::string &a_filename)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-std::string get_file_wo_ext(std::string &a_filename)
+std::string get_file_wo_ext(const std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind(".");

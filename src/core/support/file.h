@@ -27,6 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <unistd.h>
+#include <string>
 
 namespace ns_hlx {
 
@@ -74,6 +75,15 @@ private:
         size_t m_read;
         state_t m_state;
 };
+
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+int32_t get_path(const std::string &a_root,
+                 const std::string &a_index,
+                 const std::string &a_url_path,
+                 std::string &ao_path);
+
 
 } //namespace ns_hlx {
 

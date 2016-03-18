@@ -34,11 +34,11 @@ namespace ns_hlx {
 //: Prototypes
 //: ----------------------------------------------------------------------------
 int32_t break_header_string(const std::string &a_header_str, std::string &ao_header_key, std::string &ao_header_val);
-std::string get_file_wo_path(std::string &a_filename);
-std::string get_file_path(std::string &a_filename);
-std::string get_base_filename(std::string &a_filename);
-std::string get_file_ext(std::string &a_filename);
-std::string get_file_wo_ext(std::string &a_filename);
+std::string get_file_wo_path(const std::string &a_filename);
+std::string get_file_path(const std::string &a_filename);
+std::string get_base_filename(const std::string &a_filename);
+std::string get_file_ext(const std::string &a_filename);
+std::string get_file_wo_ext(const std::string &a_filename);
 
 } //namespace ns_hlx {
 

@@ -41,7 +41,9 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 file_h::file_h(void):
-        default_rqst_h()
+        default_rqst_h(),
+        m_root(),
+        m_index("index.html")
 {
 }
 
@@ -62,7 +64,38 @@ file_h::~file_h(void)
 h_resp_t file_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         // GET
-        return get_file(a_hconn, a_rqst, a_rqst.get_url_path());
+        // Set path
+        std::string l_path;
+        int32_t l_s;
+        l_s = get_path(m_root, m_index, a_rqst.get_url_path(), l_path);
+        if(l_s != STATUS_OK)
+        {
+                return H_RESP_CLIENT_ERROR;
+        }
+        //NDBG_PRINT("l_path: %s\n",l_path.c_str());
+        return get_file(a_hconn, a_rqst, l_path);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t file_h::set_root(const std::string &a_root)
+{
+        m_root = a_root;
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t file_h::set_index(const std::string &a_index)
+{
+        m_index = a_index;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -81,10 +114,8 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         }
 
         // Make relative...
-        std::string l_path = "." + a_path;
-
         filesender *l_fs = new filesender();
-        int l_status = l_fs->fsinit(l_path.c_str());
+        int l_status = l_fs->fsinit(a_path.c_str());
         if(l_status != STATUS_OK)
         {
                 delete l_fs;
@@ -107,7 +138,7 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         nbq_write_header(l_q, "Date", get_date_str());
 
         // Get extension
-        std::string l_ext = get_file_ext(l_path);
+        std::string l_ext = get_file_ext(a_path);
         mime_types::ext_type_map_t::const_iterator i_m = mime_types::S_EXT_TYPE_MAP.find(l_ext);
         if(i_m != mime_types::S_EXT_TYPE_MAP.end())
         {

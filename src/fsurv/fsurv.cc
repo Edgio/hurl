@@ -317,6 +317,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Server Options:\n");
         fprintf(a_stream, "  -p, --port           Server port -defaults to 12345.\n");
         fprintf(a_stream, "  -t, --threads        Number of server threads.\n");
+        fprintf(a_stream, "  -r, --root           Root directory to serve from.\n");
+        fprintf(a_stream, "  -i, --index          Default index file.\n");
         fprintf(a_stream, "  \n");
 
         fprintf(a_stream, "TLS Options:\n");
@@ -371,6 +373,8 @@ int main(int argc, char** argv)
                 { "version",        0, 0, 'V' },
                 { "port",           1, 0, 'p' },
                 { "threads",        1, 0, 't' },
+                { "root",           1, 0, 'r' },
+                { "index",          1, 0, 'i' },
                 { "TLS",            0, 0, 'T' },
                 { "tls_key",        1, 0, 'K' },
                 { "tls_crt",        1, 0, 'P' },
@@ -394,14 +398,16 @@ int main(int argc, char** argv)
         ns_hlx::scheme_t l_scheme = ns_hlx::SCHEME_TCP;
         std::string l_tls_key;
         std::string l_tls_crt;
+        std::string l_root;
+        std::string l_index;
 
         // -------------------------------------------------
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVp:t:TK:P:y:O:vcsG:H:";
+        char l_short_arg_list[] = "hVp:t:r:i:TK:P:y:O:vcsG:H:";
 #else
-        char l_short_arg_list[] = "hVp:t:TK:P:y:O:vcs";
+        char l_short_arg_list[] = "hVp:t:r:i:TK:P:y:O:vcs";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
         {
@@ -453,6 +459,22 @@ int main(int argc, char** argv)
                                 print_usage(stdout, -1);
                         }
                         l_hlx->set_num_threads(l_num_threads);
+                        break;
+                }
+                // ---------------------------------------
+                // root
+                // ---------------------------------------
+                case 'r':
+                {
+                        l_root = optarg;
+                        break;
+                }
+                // ---------------------------------------
+                // index
+                // ---------------------------------------
+                case 'i':
+                {
+                        l_index = optarg;
                         break;
                 }
                 // ---------------------------------------
@@ -593,6 +615,24 @@ int main(int argc, char** argv)
         // -------------------------------------------
         int32_t l_status = 0;
         ns_hlx::file_h *l_file_getter = new ns_hlx::file_h();
+        if(!l_root.empty())
+        {
+                l_status = l_file_getter->set_root(l_root);
+                if(l_status != HLX_STATUS_OK)
+                {
+                        printf("Error: performing set_root: %s\n", l_root.c_str());
+                        return -1;
+                }
+        }
+        if(!l_index.empty())
+        {
+                l_status = l_file_getter->set_index(l_index);
+                if(l_status != HLX_STATUS_OK)
+                {
+                        printf("Error: performing set_index: %s\n", l_index.c_str());
+                        return -1;
+                }
+        }
         l_status = l_lsnr->register_endpoint("/*", l_file_getter);
         if(l_status != 0)
         {
