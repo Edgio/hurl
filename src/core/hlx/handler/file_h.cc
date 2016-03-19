@@ -184,7 +184,6 @@ h_resp_t file_h::get_file(hconn &a_hconn,
                 l_read = l_fs->fssize();
         }
         l_fs->fsread(l_q, l_read);
-
         queue_resp(a_hconn);
         return H_RESP_DONE;
 }

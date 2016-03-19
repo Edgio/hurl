@@ -65,9 +65,7 @@ filesender::~filesender()
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: Start sending a file on the given socket.
-//:           Set the socket to be nonblocking. 'filename' is the name of the
-//:           file to send. 'socket' is an open network connection.
+//: \details: Setup file for reading
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
@@ -111,8 +109,7 @@ int32_t filesender::fsinit(const char *a_filename)
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: Continue sending the file started by sendFile().
-//:           Call this periodically. Returns nonzero when done.
+//: \details: Read part from file
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
