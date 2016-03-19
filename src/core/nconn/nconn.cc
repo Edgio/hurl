@@ -109,7 +109,7 @@ state_top:
                         //NDBG_PRINT("Still connecting...\n");
                         return NC_STATUS_AGAIN;
                 }
-                //NDBG_PRINT("%sConnected%s: label: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
+                NDBG_PRINT("%sConnected%s: label: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
                 // Returning client fd
                 // If OK -change state to connected???
                 m_nc_state = NC_STATE_CONNECTED;

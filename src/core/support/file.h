@@ -81,6 +81,7 @@ private:
 //: ----------------------------------------------------------------------------
 int32_t get_path(const std::string &a_root,
                  const std::string &a_index,
+                 const std::string &a_route,
                  const std::string &a_url_path,
                  std::string &ao_path);
 

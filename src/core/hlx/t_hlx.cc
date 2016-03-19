@@ -1007,9 +1007,9 @@ int32_t t_hlx::async_dns_init(void)
         }
         // Create fake connection object to work with hlx event handlers
         m_async_dns_nconn = new nconn_tcp();
+        m_async_dns_nconn->set_evr_loop(m_evr_loop);
         m_async_dns_nconn->set_id(nresolver::S_RESOLVER_ID);
         m_async_dns_nconn->nc_set_listening_nb(m_async_dns_fd);
-        m_async_dns_nconn->set_evr_loop(m_evr_loop);
         hconn *l_hconn = get_hconn(NULL, HCONN_TYPE_CLIENT, false);
         if(!l_hconn)
         {

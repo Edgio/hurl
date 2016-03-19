@@ -44,6 +44,7 @@ public:
         h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         int32_t set_root(const std::string &a_root);
         int32_t set_index(const std::string &a_index);
+        int32_t set_route(const std::string &a_route);
 protected:
         // -------------------------------------------------
         // Protected methods
@@ -63,6 +64,7 @@ private:
         // -------------------------------------------------
         std::string m_root;
         std::string m_index;
+        std::string m_route;
 };
 
 } //namespace ns_hlx {

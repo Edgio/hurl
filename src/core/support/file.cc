@@ -184,14 +184,14 @@ ssize_t filesender::fsread(nbq &ao_q, size_t a_len)
 //: ----------------------------------------------------------------------------
 int32_t get_path(const std::string &a_root,
                  const std::string &a_index,
+                 const std::string &a_route,
                  const std::string &a_url_path,
                  std::string &ao_path)
 {
         // TODO Path normalization and for recursing... "../"
-
         if(a_root.empty())
         {
-                ao_path = ".";
+                ao_path = "./";
         }
         else
         {
@@ -201,9 +201,19 @@ int32_t get_path(const std::string &a_root,
         {
                 ao_path += '/';
         }
-        const std::string &l_url_path = a_url_path;
-        if(!l_url_path.length() ||
-           (l_url_path.length() == 1 && l_url_path[0] == '/'))
+        std::string l_url_path;
+        if(!a_route.empty() &&
+           (a_url_path.find(a_route, 0) != std::string::npos))
+        {
+                l_url_path = a_url_path.substr(a_route.length(), a_url_path.length() - a_route.length());
+        }
+        else
+        {
+                l_url_path = a_url_path;
+        }
+        if(!a_index.empty() &&
+           (!l_url_path.length() ||
+           (l_url_path.length() == 1 && l_url_path[0] == '/')))
         {
                 ao_path += a_index;
         }
