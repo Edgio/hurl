@@ -198,11 +198,16 @@ int32_t get_path(const std::string &a_root,
         {
                 ao_path += '/';
         }
-        std::string l_url_path;
-        if(!a_route.empty() &&
-           (a_url_path.find(a_route, 0) != std::string::npos))
+        std::string l_route = a_route;
+        if(a_route[a_route.length() - 1] == '*')
         {
-                l_url_path = a_url_path.substr(a_route.length(), a_url_path.length() - a_route.length());
+                l_route = a_route.substr(0, a_route.length() - 2);
+        }
+        std::string l_url_path;
+        if(!l_route.empty() &&
+           (a_url_path.find(l_route, 0) != std::string::npos))
+        {
+                l_url_path = a_url_path.substr(l_route.length(), a_url_path.length() - l_route.length());
         }
         else
         {
