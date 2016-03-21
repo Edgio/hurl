@@ -1628,9 +1628,9 @@ void t_hlx::stat_update(void)
         m_stat_copy = m_stat;
         m_stat_copy.m_ups_subr_queued = m_subr_list_size;
         m_stat_copy.m_pool_conn_active = m_nconn_pool.get_active_size();
-        m_stat_copy.m_pool_conn_idle = m_nconn_pool.get_active_size();
-        m_stat_copy.m_pool_proxy_conn_active = m_nconn_pool.get_active_size();
-        m_stat_copy.m_pool_proxy_conn_idle = m_nconn_pool.get_active_size();
+        m_stat_copy.m_pool_conn_idle = m_nconn_pool.get_idle_size();
+        m_stat_copy.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
+        m_stat_copy.m_pool_proxy_conn_idle = m_nconn_proxy_pool.get_idle_size();
         m_stat_copy.m_pool_hconn_free = m_hconn_pool.free_size();
         m_stat_copy.m_pool_hconn_used = m_hconn_pool.used_size();
         m_stat_copy.m_pool_resp_free = m_resp_pool.free_size();
@@ -1640,6 +1640,7 @@ void t_hlx::stat_update(void)
         m_stat_copy.m_pool_nbq_free = m_nbq_pool.free_size();
         m_stat_copy.m_pool_nbq_used = m_nbq_pool.used_size();
         pthread_mutex_unlock(&m_stat_copy_mutex);
+
 }
 
 //: ----------------------------------------------------------------------------
