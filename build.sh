@@ -33,7 +33,7 @@ pushd build && \
     -DBUILD_TESTS=ON \
     -DBUILD_UBUNTU=ON \
     -DCMAKE_INSTALL_PREFIX=/usr && \
-    make -j4 && \
+    make && \
     umask 0022 && chmod -R a+rX . && \
     make package && \
     make test && \
