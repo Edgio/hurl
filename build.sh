@@ -32,7 +32,9 @@ pushd build && \
     cmake ../ -DBUILD_TCMALLOC=ON \
     -DBUILD_TESTS=ON \
     -DBUILD_UBUNTU=ON \
-    -DCMAKE_INSTALL_PREFIX=/usr
+    -DCMAKE_INSTALL_PREFIX=/usr && \
+    make -j4 && \
+    umask 0022 && chmod -R a+rX . && \
     make package && \
     make test && \
     popd && \
