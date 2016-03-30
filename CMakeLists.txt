@@ -162,9 +162,9 @@ endif()
 # ------------------------------------------------------------------------------
 if (BUILD_TCMALLOC)
   if (BUILD_UBUNTU)
-    find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a google-perftools libgoogle-perftools-dev)
+    find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a "" "")
     find_ubuntu_package(LIBZMA lzma.h liblzma.a liblzma5 liblzma-dev)
-    find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "libunwind8|libunwind7" "libunwind8-dev|libunwind7-dev")
+    find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "" "")
     LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
   else()
     set(LIBRARIES ${LIBRARIES} tcmalloc)
