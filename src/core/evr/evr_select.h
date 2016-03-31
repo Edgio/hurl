@@ -27,6 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr.h"
+#include <sys/select.h>
 #include <map>
 
 namespace ns_hlx {
