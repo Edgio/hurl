@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/rqst.h"
 #include "http_parser/http_parser.h"
 #include "nbq.h"
 #include "ndebug.h"

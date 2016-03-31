@@ -1,10 +1,14 @@
 //: ----------------------------------------------------------------------------
 //: basic example:
 //: compile with:
-//:   g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o basic
+//:   g++ basic.cc -lhlxcore -lssl -lcrypto -lpthread -o basic
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
+#include <hlx/lsnr.h>
+#include <hlx/api_resp.h>
+#include <hlx/default_rqst_h.h>
 #include <string.h>
+#include <stdio.h>
 //#include <google/profiler.h>
 
 ns_hlx::hlx *g_hlx = NULL;

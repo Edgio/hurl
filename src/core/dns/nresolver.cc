@@ -24,7 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/host_info.h"
+#include "ai_cache.h"
 #include "nresolver.h"
 #include "ndebug.h"
 #include "time_util.h"

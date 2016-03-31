@@ -4,6 +4,14 @@
 //:   g++ subrequest.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o subrequest
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
+#include <hlx/lsnr.h>
+#include <hlx/default_rqst_h.h>
+#include <hlx/url_router.h>
+#include <hlx/api_resp.h>
+#include <hlx/resp.h>
+#include <hlx/rqst.h>
+#include <hlx/subr.h>
+
 #include <string.h>
 #include <unistd.h>
 //#include <google/profiler.h>

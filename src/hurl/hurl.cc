@@ -27,6 +27,9 @@
 #include "hlx/hlx.h"
 #include "hlx/stat.h"
 #include "hlx/stat_h.h"
+#include "hlx/api_resp.h"
+#include "hlx/subr.h"
+#include "hlx/lsnr.h"
 #include "tinymt64.h"
 
 #include <string.h>

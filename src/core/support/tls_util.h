@@ -28,12 +28,14 @@
 //: ----------------------------------------------------------------------------
 #include <string>
 #include <vector>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/bio.h>
-#include <openssl/rand.h>
-#include <openssl/crypto.h>
-#include <openssl/x509v3.h>
+
+//: ----------------------------------------------------------------------------
+//: Ext Fwd Decl's
+//: ----------------------------------------------------------------------------
+typedef struct ssl_ctx_st SSL_CTX;
+typedef struct ssl_st SSL;
+typedef struct x509_store_ctx_st X509_STORE_CTX;
+typedef struct x509_st X509;
 
 namespace ns_hlx {
 
@@ -43,7 +45,7 @@ namespace ns_hlx {
 extern __thread char gts_last_tls_error[256];
 
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
+//: Prototypes
 //: ----------------------------------------------------------------------------
 void tls_init(void);
 SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,

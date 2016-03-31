@@ -28,13 +28,23 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "stat_util.h"
-
+#include "hlx/stat.h"
 #include <stdio.h>
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
+#include <math.h>
 
 namespace ns_hlx {
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   n/a
+//: ----------------------------------------------------------------------------
+double xstat_struct::stdev() const
+{
+        return sqrt(var());
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: Update stat with new value

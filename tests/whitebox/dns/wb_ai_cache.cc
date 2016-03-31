@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/host_info.h"
 #include "ai_cache.h"
 #include "time_util.h"
 #include "catch/catch.hpp"

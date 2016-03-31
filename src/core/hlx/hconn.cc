@@ -25,10 +25,12 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
+#include "hlx/url_router.h"
+#include "hlx/api_resp.h"
+
 #include "t_hlx.h"
 #include "hconn.h"
 #include "time_util.h"
-#include "hlx/url_router.h"
 #include "nbq.h"
 #include "ndebug.h"
 

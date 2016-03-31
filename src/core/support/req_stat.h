@@ -48,13 +48,7 @@ typedef struct req_stat_struct
 
 } req_stat_t;
 
-//: ----------------------------------------------------------------------------
-//: Functions
-//: ----------------------------------------------------------------------------
-inline void stat_init(req_stat_t&a_stat)
-{
-        bzero(&a_stat, sizeof(req_stat_t));
-}
+
 
 } //namespace ns_hlx {
 

@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    file_h.h
+//: \file:    default_rqst_h.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,53 +20,41 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _FILE_H_H
-#define _FILE_H_H
+#ifndef _DEFAULT_RQST_H
+#define _DEFAULT_RQST_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
+#include "hlx/rqst_h.h"
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: file_h
+//: default_rqst_h
 //: ----------------------------------------------------------------------------
-class file_h: public default_rqst_h
+class default_rqst_h: public rqst_h
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        file_h(void);
-        ~file_h();
+        default_rqst_h(void);
+        ~default_rqst_h();
+
         h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        int32_t set_root(const std::string &a_root);
-        int32_t set_index(const std::string &a_index);
-        int32_t set_route(const std::string &a_route);
-protected:
-        // -------------------------------------------------
-        // Protected methods
-        // -------------------------------------------------
-        h_resp_t get_file(hconn &a_hconn, rqst &a_rqst, const std::string &a_path);
-
+        h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
 private:
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
         // Disallow copy/assign
-        file_h& operator=(const file_h &);
-        file_h(const file_h &);
-
-        // -------------------------------------------------
-        // Private members
-        // -------------------------------------------------
-        std::string m_root;
-        std::string m_index;
-        std::string m_route;
+        default_rqst_h& operator=(const default_rqst_h &);
+        default_rqst_h(const default_rqst_h &);
 };
 
-} //namespace ns_hlx {
+}
 
 #endif
+
+

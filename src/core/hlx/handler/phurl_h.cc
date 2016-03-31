@@ -24,14 +24,20 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
 #include "hlx/phurl_h.h"
+#include "hlx/api_resp.h"
+
+#include "hlx/hlx.h"
+
+
 #include "hconn.h"
 #include "t_hlx.h"
 #include "ndebug.h"
 
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
+
+#include <string.h>
 
 namespace ns_hlx {
 

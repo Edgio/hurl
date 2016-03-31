@@ -31,6 +31,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
 namespace ns_hlx {
 

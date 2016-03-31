@@ -6,6 +6,11 @@
 #include <hlx/hlx.h>
 #include <hlx/phurl_h.h>
 #include <hlx/stat_h.h>
+#include <hlx/lsnr.h>
+#include <hlx/api_resp.h>
+#include <hlx/resp.h>
+
+#include <string.h>
 #include <stdlib.h>
 //#include <google/profiler.h>
 

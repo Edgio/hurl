@@ -172,36 +172,4 @@ TEST_CASE( "url router test", "[url_router]" )
                         REQUIRE((l_found == NULL));
                 }
         }
-        SECTION("Iterator") {
-                int32_t l_status;
-                ns_hlx::url_router l_url_router;
-                route_ptr_pair_t l_route_ptr_pairs[] =
-                {
-                        {"/monkeys/<monkey_name>/banana/<banana_number>", (void *)1},
-                        {"/monkeez/<monkey_name>/banana/<banana_number>", (void *)33},
-                        {"/circus/<circus_number>/hot_dog/<hot_dog_name>", (void *)45},
-                        {"/cats_are/cool/dog/are/smelly", (void *)2},
-                        {"/sweet/donuts/*", (void *)1337},
-                        {"/bots*", (void *)1338},
-                        {"/sweet/cakes/*/cupcakes", (void *)5337}
-                };
-                for(uint32_t i_route = 0; i_route < ARRAY_SIZE(l_route_ptr_pairs); ++i_route)
-                {
-                        //printf("ADDING ROUTE: i_route: %d route: %s\n", i_route, l_route_ptr_pairs[i_route].m_route);
-                        //INFO("Adding route: " << l_route_ptr_pairs[i_route].m_route);
-                        l_status = l_url_router.add_route(l_route_ptr_pairs[i_route].m_route, l_route_ptr_pairs[i_route].m_data);
-                        REQUIRE((l_status == 0));
-                }
-                int l_count = 0;
-                REQUIRE((l_url_router.begin() != l_url_router.end()));
-                for(ns_hlx::url_router::const_iterator iter = l_url_router.begin();
-                    iter != l_url_router.end();
-                    ++iter){
-                        ++l_count;
-                        //printf("url: %s\n", iter.get_full_url().c_str());
-                }
-                //l_url_router.display();
-                // just a facet of how it's split up
-                REQUIRE((l_count == 9));
-        }
 }

@@ -26,7 +26,6 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
 #include <vector>
 #include <unordered_set>
 
@@ -119,7 +118,9 @@ private:
         // ---------------------------------------
         // Private methods
         // ---------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(obj_pool)
+        // Disallow copy/assign
+        obj_pool& operator=(const obj_pool &);
+        obj_pool(const obj_pool &);
 
         // ---------------------------------------
         // Private members

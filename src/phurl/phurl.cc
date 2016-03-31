@@ -26,6 +26,8 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
 #include "hlx/phurl_h.h"
+#include "hlx/resp.h"
+
 #include "support/tls_util.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -66,6 +68,10 @@
 #ifdef ENABLE_PROFILER
 #include <google/profiler.h>
 #endif
+
+// TLS
+#include <openssl/ssl.h>
+#include <openssl/x509v3.h>
 
 //: ----------------------------------------------------------------------------
 //: Constants

@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    stat_h.h
+//: \file:    host_info.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,38 +20,33 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STAT_H_H
-#define _STAT_H_H
+#ifndef _HOST_INFO_H
+#define _HOST_INFO_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
+#include <sys/socket.h>
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: file_h
+//: \details: Host info
 //: ----------------------------------------------------------------------------
-class stat_h: public default_rqst_h
-{
-public:
-        // -------------------------------------------------
-        // Public methods
-        // -------------------------------------------------
-        stat_h(void);
-        ~stat_h();
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+struct host_info {
+        struct sockaddr_storage m_sa;
+        int m_sa_len;
+        int m_sock_family;
+        int m_sock_type;
+        int m_sock_protocol;
+        unsigned int m_expires_s;
 
-private:
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
-        // Disallow copy/assign
-        stat_h& operator=(const stat_h &);
-        stat_h(const stat_h &);
+        host_info();
+        void show(void);
 };
 
-} //namespace ns_hlx {
+}
 
 #endif
+
+

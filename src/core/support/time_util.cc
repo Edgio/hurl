@@ -25,12 +25,6 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "time_util.h"
-#include "ndebug.h"
-
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
-#include <inttypes.h>
 #include <unistd.h>
 #include <time.h>
 

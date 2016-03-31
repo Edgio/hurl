@@ -26,12 +26,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <math.h>
-
 // For fixed size types
 #include <stdint.h>
-#include <string>
 #include <map>
+#include <list>
 
 namespace ns_hlx {
 
@@ -41,12 +39,11 @@ namespace ns_hlx {
 typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
 
 // TODO DEBUG???
-typedef std::map<std::string, void *> subr_pending_resolv_map_t;
+//typedef std::map<std::string, void *> subr_pending_resolv_map_t;
 
 //: ----------------------------------------------------------------------------
-//: Stats
+//: xstat
 //: ----------------------------------------------------------------------------
-// xstat
 typedef struct xstat_struct
 {
         double m_sum_x;
@@ -59,7 +56,7 @@ typedef struct xstat_struct
         double max() const { return m_max; }
         double mean() const { return (m_num > 0) ? m_sum_x / m_num : 0.0; }
         double var() const { return (m_num > 0) ? (m_sum_x2 - m_sum_x) / m_num : 0.0; }
-        double stdev() const { return sqrt(var()); }
+        double stdev() const;
 
         xstat_struct():
                 m_sum_x(0.0),
@@ -79,7 +76,9 @@ typedef struct xstat_struct
         };
 } xstat_t;
 
-// All Stat Aggregation..
+//: ----------------------------------------------------------------------------
+//: All Stat Aggregation..
+//: ----------------------------------------------------------------------------
 typedef struct t_stat_struct
 {
         // Stats
@@ -209,6 +208,16 @@ typedef struct t_stat_struct
                 m_total_bytes_written = 0;
         }
 } t_stat_t;
+
+typedef std::list <t_stat_t> t_stat_list_t;
+
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+void update_stat(xstat_t &ao_stat, double a_val);
+void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat);
+void clear_stat(xstat_t &ao_stat);
+void show_stat(const xstat_t &ao_stat);
 
 } //namespace ns_hlx {
 

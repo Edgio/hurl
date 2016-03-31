@@ -28,12 +28,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
 #include "tls_util.h"
-#include "hostcheck/hostcheck.h"
 
-#include <map>
-#include <algorithm>
+#include "ndebug.h"
+#include "hostcheck/hostcheck.h"
 
 #include <pthread.h>
 #include <openssl/ssl.h>
@@ -41,6 +39,10 @@
 #include <openssl/bio.h>
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
+#include <openssl/x509v3.h>
+
+#include <map>
+#include <algorithm>
 
 //: ----------------------------------------------------------------------------
 //:

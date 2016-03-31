@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    stat_h.h
+//: \file:    scheme.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,38 +20,23 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STAT_H_H
-#define _STAT_H_H
-
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
+#ifndef _SCHEME_H
+#define _SCHEME_H
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: file_h
+//: Enums
 //: ----------------------------------------------------------------------------
-class stat_h: public default_rqst_h
-{
-public:
-        // -------------------------------------------------
-        // Public methods
-        // -------------------------------------------------
-        stat_h(void);
-        ~stat_h();
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+// Schemes
+typedef enum scheme_enum {
+        SCHEME_TCP = 0,
+        SCHEME_TLS,
+        SCHEME_NONE
+} scheme_t;
 
-private:
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
-        // Disallow copy/assign
-        stat_h& operator=(const stat_h &);
-        stat_h(const stat_h &);
-};
-
-} //namespace ns_hlx {
+}
 
 #endif
+
+

@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    nconn.h
+//: \file:    hlx.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,88 +20,72 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _NCONN_POOL_H
-#define _NCONN_POOL_H
+#ifndef _RQST_H
+#define _RQST_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nlru.h"
-#include "obj_pool.h"
-#include <set>
-#include "hlx/scheme.h"
+#include "hlx/hmsg.h"
+#include <string>
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd decl's
+//: Types
 //: ----------------------------------------------------------------------------
-class nconn;
+typedef std::map <std::string, std::string> query_map_t;
 
 //: ----------------------------------------------------------------------------
-//: \class: nconn_pool
+//: \details: TODO
 //: ----------------------------------------------------------------------------
-class nconn_pool
+class rqst : public hmsg
 {
 public:
         // -------------------------------------------------
-        // Types
-        // -------------------------------------------------
-        typedef nlru <nconn> idle_conn_lru_t;
-        typedef std::set<nconn *> nconn_set_t;
-        typedef std::map <std::string, nconn_set_t> active_conn_map_t;
-        typedef obj_pool<nconn> nconn_obj_pool_t;
-
-        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint64_t a_max_active_size,
-                   uint64_t a_max_idle_size);
-        ~nconn_pool();
-        nconn * get_new_active(const std::string &a_label, scheme_t a_scheme);
-        uint64_t get_active_size(void);
-        uint64_t get_active_available(void);
-        nconn * get_idle(const std::string &a_label);
-        uint64_t get_idle_size(void);
-        int32_t add_idle(nconn *a_nconn);
-        int32_t release(nconn *a_nconn);
+        rqst();
+        ~rqst();
+
+        void clear(void);
+
+        const std::string &get_url_path();
+        const std::string &get_url_query();
+        const query_map_t &get_url_query_map();
+        const std::string &get_url_fragment();
+
+        // Debug
+        void show();
 
         // -------------------------------------------------
-        // Public static methods
+        // Public members
         // -------------------------------------------------
-        static nconn *s_create_new_conn(scheme_t a_scheme);
-        static int s_delete_cb(void* o_1, void *a_2);
+
+        // ---------------------------------------
+        // raw http request offsets
+        // ---------------------------------------
+        cr_t m_p_url;
+        int m_method;
+
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        nconn_pool& operator=(const nconn_pool &);
-        nconn_pool(const nconn_pool &);
-
-        void init(void);
-        int32_t add_active(nconn *a_nconn);
-        int32_t remove_active(nconn *a_nconn);
-        int32_t remove_idle(nconn *a_nconn);
-        int32_t cleanup(nconn *a_nconn);
+        int32_t parse_uri(void);
+        int32_t parse_query(const std::string &a_query, query_map_t &ao_query_map);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        bool m_initd;
-
-        // Active connections
-        active_conn_map_t m_active_conn_map;
-        uint64_t m_active_conn_map_size;
-        uint64_t m_active_conn_map_max_size;
-
-        // Idle connections
-        idle_conn_lru_t m_idle_conn_ncache;
-
-        // Connection pool for reuse
-        nconn_obj_pool_t m_nconn_obj_pool;
-
+        bool m_url_parsed;
+        std::string m_url;
+        std::string m_url_path;
+        std::string m_url_query;
+        query_map_t m_url_query_map;
+        std::string m_url_fragment;
 };
 
-} //namespace ns_hlx {
+}
 
 #endif

@@ -26,6 +26,10 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/stat_h.h"
 #include "hlx/stat.h"
+#include "hlx/rqst.h"
+#include "hlx/api_resp.h"
+#include "hlx/hlx.h"
+
 #include "ndebug.h"
 
 #include "rapidjson/document.h"

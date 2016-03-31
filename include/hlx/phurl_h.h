@@ -26,9 +26,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/default_rqst_h.h"
+#include "hlx/subr.h"
 
+// For fixed size types
+#include <stdint.h>
 #include <map>
+#include <string>
 
 namespace ns_hlx {
 
@@ -36,6 +40,9 @@ namespace ns_hlx {
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
 class phurl_h;
+class hconn;
+class nconn;
+class resp;
 
 //: ----------------------------------------------------------------------------
 //: Host Struct

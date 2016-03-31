@@ -13,7 +13,6 @@
 // For fixed width types...
 #include <stdint.h>
 #include <string.h>
-#include <list>
 #include <stdio.h>
 
 //: ----------------------------------------------------------------------------
@@ -102,6 +101,7 @@ typedef struct part_struct {
 
 } part_t;
 
+typedef std::list <edge *> edge_list_t;
 typedef std::list <part_t> pattern_t;
 
 //: ----------------------------------------------------------------------------
@@ -1184,17 +1184,6 @@ const void *url_router::find_route(const std::string &a_route, url_pmap_t &ao_ur
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void url_router::display(void)
-{
-        for(const_iterator iter = begin(); iter != end(); ++iter)
-                printf(": %s%s -> %p\n", std::string(iter.depth<<1, '-').c_str(), iter->first.c_str(), iter->second);
-}
-
-//: ----------------------------------------------------------------------------
 //: \details: Constructor
 //: \return:  TODO
 //: \param:   TODO
@@ -1202,217 +1191,6 @@ void url_router::display(void)
 void url_router::display_trie(void)
 {
         m_root_node->display_trie(0);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-const url_router::const_iterator::value_type url_router::const_iterator::operator*() const
-{
-        return m_cur_value;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-const url_router::const_iterator::value_type* url_router::const_iterator::operator->() const
-{
-        return &m_cur_value;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-url_router::const_iterator& url_router::const_iterator::operator++()
-{
-        // -------------------------------------------------
-        // overall 2 steps
-        // -------------------------------------------------
-        // 1.  Move the iterator to the right spot
-        // -------------------------------------------------
-        // if the current node has a child,
-        //   push the child mode onto the stack
-        //   go to the first entry in the child node
-        // else
-        //   go to the next entry in the current node
-        //   if we're at the end, return end iterator
-        if(
-           //!m_edge_iterators_stack.empty() &&
-           //(*m_edge_iterators_stack.top().first) &&
-           //(*m_edge_iterators_stack.top().first)->m_child &&
-           (false == (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.empty())){
-                // the current node being pointed _TO_ has children
-
-                // step down a node to get the children
-                m_edge_iterators_stack.push(
-                        std::make_pair(
-                                (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.begin(),
-                                (*m_edge_iterators_stack.top().first)->m_child->m_edge_list.end()
-                                )
-                        );
-                // fprintf(stderr, "Stepped down to edge: %p\n", *m_edge_iterators_stack.top().first);
-                ++depth;
-
-        } else {
-                // go to the next sibling entry
-
-                // fprintf(stderr, "Go to next sibling\n");
-                // move to the next point
-                if(!m_edge_iterators_stack.empty() &&
-                    (++(m_edge_iterators_stack.top().first) == m_edge_iterators_stack.top().second)){
-                        // we're at the end of the edge at the top of the stack
-
-                        // fprintf(stderr, "edge ierator pointing at the end of the current node's edge list\n");
-                        m_edge_iterators_stack.pop();             // go up the stack one
-                        ++(m_edge_iterators_stack.top().first);   // and step forwards
-                        --depth;
-
-                        // if we're at the top of the stack we're done
-                        if(m_edge_iterators_stack.top().first == m_router.m_root_node->m_edge_list.end()){
-                                // we're now at the end element of the
-                                // root node's list
-                                // this is the end
-                                return *this;
-                        }
-                        // we can keep going
-                }
-        }
-
-        // -------------------------------------------------
-        // 2.  Set m_cur_value from them
-        // -------------------------------------------------
-        //if(!m_edge_iterators_stack.empty())
-        {
-                std::string l_pattern = pattern_str((*m_edge_iterators_stack.top().first)->m_pattern);
-                m_cur_value = url_router::const_iterator::value_type(l_pattern, (*m_edge_iterators_stack.top().first)->m_child->m_data);
-        }
-        return *this;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-url_router::const_iterator url_router::const_iterator::operator++(int)
-{
-        url_router::const_iterator l_retval(*this);
-        ++(*this);
-        return l_retval;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool url_router::const_iterator::operator==(const const_iterator& a_iterator)
-{
-        return (&m_router == &a_iterator.m_router &&
-                m_edge_iterators_stack == a_iterator.m_edge_iterators_stack);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool url_router::const_iterator::operator!=(const const_iterator& a_iterator)
-{
-        return !(*this == a_iterator);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-std::string url_router::const_iterator::get_full_url(void) const
-{
-        // create the full string representing the url to this point
-        std::string retval;
-        iterator_stack_t l_stack(m_edge_iterators_stack);
-        while(false == l_stack.empty()){
-                // have stuff on the stack
-                // build the string backwards
-                retval.insert(0, pattern_str((*l_stack.top().first)->m_pattern));
-                l_stack.pop();
-        }
-        return retval;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-url_router::const_iterator::const_iterator(const const_iterator& a_iterator):
-        depth(a_iterator.depth),
-        m_router(a_iterator.m_router),
-        m_edge_iterators_stack(a_iterator.m_edge_iterators_stack),
-        m_cur_value(a_iterator.m_cur_value)
-{
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-url_router::const_iterator::const_iterator(const url_router& a_router):
-        depth(0),
-        m_router(a_router),
-        m_edge_iterators_stack(),
-        m_cur_value()
-{
-        if(a_router.m_root_node)
-        {
-                m_edge_iterators_stack.push(
-                        std::make_pair(a_router.m_root_node->m_edge_list.begin(),
-                                       a_router.m_root_node->m_edge_list.end()));
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-url_router::const_iterator url_router::begin() const
-{
-        url_router::const_iterator l_retval(*this);
-        // step to the first valid (m_data != nullptr) point in the trie
-        ++l_retval;
-        return l_retval;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-url_router::const_iterator url_router::end() const
-{
-        url_router::const_iterator l_retval(*this);
-
-        // point to the end, this is the end of the root node's list
-        // as we iterate depth first
-        while(false == l_retval.m_edge_iterators_stack.empty())
-        {
-                l_retval.m_edge_iterators_stack.pop();
-        }
-        l_retval.m_edge_iterators_stack.push(
-                std::make_pair(l_retval.m_router.m_root_node->m_edge_list.end(),
-                               l_retval.m_router.m_root_node->m_edge_list.end()
-                        )
-                );
-        return l_retval;
 }
 
 //: ----------------------------------------------------------------------------

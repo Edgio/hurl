@@ -24,8 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/host_info.h"
 #include "ndebug.h"
 #include "time_util.h"
+
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>

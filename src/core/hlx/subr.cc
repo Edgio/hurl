@@ -24,7 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/subr.h"
+#include "hlx/api_resp.h"
+#include "hlx/resp.h"
+
 #include "t_hlx.h"
 #include "nconn_tcp.h"
 #include "ndebug.h"

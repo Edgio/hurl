@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    ssl_util.h
+//: \file:    h_resp.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    10/26/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,21 +20,26 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//:                          Stats Support
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
-#include "../../../include/hlx/stat.h"
+#ifndef _H_RESP_H
+#define _H_RESP_H
 
 namespace ns_hlx {
 
-void update_stat(xstat_t &ao_stat, double a_val);
-void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat);
-void clear_stat(xstat_t &ao_stat);
-void show_stat(const xstat_t &ao_stat);
+// ---------------------------------------
+// Handler status
+// ---------------------------------------
+typedef enum {
 
-} //namespace ns_hlx {
+        H_RESP_NONE = 0,
+        H_RESP_DONE,
+        H_RESP_DEFERRED,
+        H_RESP_SERVER_ERROR,
+        H_RESP_CLIENT_ERROR
+
+} h_resp_t;
+
+}
+
+#endif
+
+

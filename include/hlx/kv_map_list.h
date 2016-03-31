@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    stat_h.h
+//: \file:    kv_map_list.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,38 +20,35 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STAT_H_H
-#define _STAT_H_H
+#ifndef _KV_MAP_LIST_H
+#define _KV_MAP_LIST_H
+
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
+#include <list>
+#include <map>
+
+// for strcasecmp
+#include <strings.h>
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: file_h
+//: Types
 //: ----------------------------------------------------------------------------
-class stat_h: public default_rqst_h
+struct case_i_comp
 {
-public:
-        // -------------------------------------------------
-        // Public methods
-        // -------------------------------------------------
-        stat_h(void);
-        ~stat_h();
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-
-private:
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
-        // Disallow copy/assign
-        stat_h& operator=(const stat_h &);
-        stat_h(const stat_h &);
+        bool operator() (const std::string& lhs, const std::string& rhs) const
+        {
+                return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+        }
 };
+typedef std::list <std::string> str_list_t;
+typedef std::map <std::string, str_list_t, case_i_comp> kv_map_list_t;
 
-} //namespace ns_hlx {
+}
 
 #endif
+

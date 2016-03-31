@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
 

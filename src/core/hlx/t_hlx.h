@@ -26,6 +26,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/resp.h"
+#include "hlx/rqst.h"
+#include "hlx/subr.h"
+
 #include "nconn_pool.h"
 #include "ndebug.h"
 #include "evr.h"
@@ -81,7 +85,7 @@ public:
         int32_t subr_add(subr &a_subr);
         int32_t queue_output(hconn &a_hconn);
         int32_t queue_api_resp(api_resp &a_api_resp, hconn &a_hconn);
-        void add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code);
+        void add_stat_to_agg(const conn_stat_t &a_conn_stat, uint16_t a_status_code);
         int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
         int32_t cancel_timer(void *a_timer);
         void signal(void);

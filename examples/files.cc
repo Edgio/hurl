@@ -5,6 +5,7 @@
 //: ----------------------------------------------------------------------------
 #include <hlx/hlx.h>
 #include <hlx/file_h.h>
+#include <hlx/lsnr.h>
 #include <string.h>
 //#include <google/profiler.h>
 

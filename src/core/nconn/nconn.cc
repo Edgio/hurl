@@ -28,9 +28,11 @@
 #include "nbq.h"
 #include "evr.h"
 #include "time_util.h"
+#include "ndebug.h"
 
 #include <errno.h>
 #include <string.h>
+#include <strings.h>
 
 namespace ns_hlx {
 
@@ -523,7 +525,7 @@ nconn::nconn(void):
         // Set stats
         if(m_collect_stats_flag)
         {
-                stat_init(m_stat);
+                conn_stat_init(m_stat);
         }
         //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, m_nc_state, this);
 }
@@ -559,6 +561,16 @@ conn_status_t nconn_get_status(nconn &a_nconn)
 const std::string &nconn_get_last_error_str(nconn &a_nconn)
 {
         return a_nconn.get_last_error();
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void conn_stat_init(conn_stat_t &a_stat)
+{
+        bzero(&a_stat, sizeof(conn_stat_t));
 }
 
 } // ns_hlx

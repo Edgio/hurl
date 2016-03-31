@@ -33,7 +33,9 @@
 // TODO TEST
 #include "file.h"
 
-#include "hlx/hlx.h"
+#include "hlx/default_rqst_h.h"
+#include "hlx/hmsg.h"
+#include "hlx/stat.h"
 #include "ndebug.h"
 
 //: ----------------------------------------------------------------------------
@@ -50,6 +52,8 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nconn;
+class t_hlx;
+class subr;
 
 //: ----------------------------------------------------------------------------
 //:

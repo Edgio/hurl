@@ -27,6 +27,7 @@
 #include "nconn_pool.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
+#include "ndebug.h"
 
 namespace ns_hlx {
 

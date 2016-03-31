@@ -26,7 +26,6 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
 #include <stdint.h>
 #include <list>
 
@@ -43,7 +42,9 @@ typedef struct nb_struct {
         void init(uint32_t a_len);
         ~nb_struct(void);
 private:
-        DISALLOW_COPY_AND_ASSIGN(nb_struct)
+        // Disallow copy/assign
+        nb_struct& operator=(const nb_struct &);
+        nb_struct(const nb_struct &);
 
 } nb_t;
 
@@ -108,7 +109,9 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(nbq)
+        // Disallow copy/assign
+        nbq& operator=(const nbq &);
+        nbq(const nbq &);
 
         // -------------------------------------------------
         // Private members

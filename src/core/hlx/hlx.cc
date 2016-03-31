@@ -25,10 +25,11 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/hlx.h"
+#include "hlx/stat.h"
+#include "hlx/lsnr.h"
+
 #include "ndebug.h"
-#include "tls_util.h"
 #include "time_util.h"
-#include "stat_util.h"
 #include "t_hlx.h"
 #include "nresolver.h"
 #include "nconn_tcp.h"
@@ -37,6 +38,10 @@
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
+
+// TLS Support
+#include "tls_util.h"
+#include <openssl/ssl.h>
 
 //: ----------------------------------------------------------------------------
 //: Macros

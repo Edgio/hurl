@@ -26,10 +26,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
-#include "ndebug.h"
-#include "req_stat.h"
-
+#include "hlx/scheme.h"
+#include "hlx/conn_status.h"
+#include "hlx/host_info.h"
 #include <string>
 
 //: ----------------------------------------------------------------------------
@@ -86,6 +85,23 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 class evr_loop;
 class nbq;
+class host_info;
+
+//: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+// conn stat
+typedef struct conn_stat_struct
+{
+        uint32_t m_body_bytes;
+        uint32_t m_total_bytes;
+        uint64_t m_tt_connect_us;
+        uint64_t m_tt_first_read_us;
+        uint64_t m_tt_completion_us;
+        int32_t m_last_state;
+        int32_t m_error;
+} conn_stat_t;
+void conn_stat_init(conn_stat_t &a_stat);
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -133,8 +149,8 @@ public:
         evr_loop *get_evr_loop(void) {return m_evr_loop;}
 
         // Stats
-        void reset_stats(void) { stat_init(m_stat); }
-        const req_stat_t &get_stats(void) const { return m_stat;}
+        void reset_stats(void) { conn_stat_init(m_stat); }
+        const conn_stat_t &get_stats(void) const { return m_stat;}
 
         // Getters
         uint64_t get_id(void) {return m_id;}
@@ -213,7 +229,7 @@ protected:
         evr_loop *m_evr_loop;
         scheme_t m_scheme;
         std::string m_label;
-        req_stat_t m_stat;
+        conn_stat_t m_stat;
         bool m_collect_stats_flag;
         void *m_data;
         uint64_t m_connect_start_time_us;
@@ -243,7 +259,8 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(nconn)
+        nconn& operator=(const nconn &);
+        nconn(const nconn &);
 
         // -------------------------------------------------
         // Private members

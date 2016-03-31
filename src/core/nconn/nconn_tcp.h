@@ -27,7 +27,6 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn.h"
-#include "ndebug.h"
 
 namespace ns_hlx {
 
@@ -111,7 +110,8 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(nconn_tcp)
+        nconn_tcp& operator=(const nconn_tcp &);
+        nconn_tcp(const nconn_tcp &);
 
         // -------------------------------------------------
         // Private members

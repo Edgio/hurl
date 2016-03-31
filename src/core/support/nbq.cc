@@ -26,12 +26,9 @@
 //: ----------------------------------------------------------------------------
 #include "nbq.h"
 #include "ndebug.h"
-
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <iterator>
-
 
 namespace ns_hlx {
 

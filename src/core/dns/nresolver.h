@@ -26,19 +26,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ai_cache.h"
-
 #include <pthread.h>
 #include <stdint.h>
-
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#include <string>
-#include <set>
-#include <map>
 #include <list>
+#include <string>
+#include <map>
 #include <queue> // for std::priority_queue
 
 //: ----------------------------------------------------------------------------
@@ -65,6 +57,8 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nconn;
+class host_info;
+class ai_cache;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

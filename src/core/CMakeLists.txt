@@ -80,35 +80,43 @@ SET(SRCS
     ../../ext/http_parser/http_parser.cc
     ../../ext/hostcheck/hostcheck.cc
     ../../ext/base64/base64.cc
+    
     ./ndebug/ndebug.cc
+    
     ./url_router/url_router.cc
+    
     ./evr/evr.cc
     ./evr/evr_select.cc
+    
     ./support/string_util.cc
     ./support/time_util.cc
     ./support/tls_util.cc
-    ./support/stat_util.cc
+    ./support/stat.cc
     ./support/uri.cc
     ./support/nbq.cc
     ./support/file.cc
+    
     ./nconn/nconn.cc
     ./nconn/nconn_tcp.cc
     ./nconn/nconn_tls.cc
     ./nconn/nconn_pool.cc
-    ./dns/nresolver.cc
-    ./dns/ai_cache.cc
+    
     ./dns/host_info.cc
+    ./dns/ai_cache.cc
+    ./dns/nresolver.cc
     ./dns/nlookup.cc
+    
     ./hlx/hmsg.cc
     ./hlx/rqst.cc
     ./hlx/resp.cc
+    ./hlx/lsnr.cc
+    ./hlx/subr.cc
     ./hlx/cb.cc
     ./hlx/hlx.cc
     ./hlx/t_hlx.cc
     ./hlx/hconn.cc
-    ./hlx/lsnr.cc
-    ./hlx/subr.cc
     ./hlx/api_resp.cc
+    
     ./hlx/handler/rqst_h.cc
     ./hlx/handler/default_rqst_h.cc
     ./hlx/handler/file_h.cc
@@ -127,12 +135,28 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Headers
 SET(HDRS
-    ../../include/hlx/hlx.h
-    ../../include/hlx/stat.h
-    ../../include/hlx/url_router.h
+    ../../include/hlx/api_resp.h
+    ../../include/hlx/atomic.h
+    ../../include/hlx/conn_status.h
+    ../../include/hlx/cr.h
+    ../../include/hlx/default_rqst_h.h
     ../../include/hlx/file_h.h
+    ../../include/hlx/hlx.h
+    ../../include/hlx/hmsg.h
+    ../../include/hlx/host_info.h
+    ../../include/hlx/h_resp.h
+    ../../include/hlx/http_status.h
+    ../../include/hlx/kv_map_list.h
+    ../../include/hlx/lsnr.h
     ../../include/hlx/phurl_h.h
+    ../../include/hlx/resp.h
+    ../../include/hlx/rqst.h
+    ../../include/hlx/rqst_h.h
+    ../../include/hlx/scheme.h
+    ../../include/hlx/stat.h
     ../../include/hlx/stat_h.h
+    ../../include/hlx/subr.h
+    ../../include/hlx/url_router.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

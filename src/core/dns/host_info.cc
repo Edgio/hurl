@@ -23,10 +23,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
-
-#define __STDC_FORMAT_MACROS 1
-#include <inttypes.h>
+#include "hlx/host_info.h"
+#include <netinet/in.h>
+#include <stdio.h>
 
 namespace ns_hlx {
 //: ----------------------------------------------------------------------------
@@ -55,11 +54,11 @@ void host_info::show(void)
         printf("+-----------+\n");
         printf("| Host Info |\n");
         printf("+-----------+-------------------------\n");
-        printf(": m_sock_family:   %d\n",  m_sock_family);
-        printf(": m_sock_type:     %d\n",  m_sock_type);
-        printf(": m_sock_protocol: %d\n",  m_sock_protocol);
-        printf(": m_sa_len:        %d\n",  m_sa_len);
-        printf(": m_expires:       %" PRIu64 "\n", m_expires_s);
+        printf(": m_sock_family:   %d\n", m_sock_family);
+        printf(": m_sock_type:     %d\n", m_sock_type);
+        printf(": m_sock_protocol: %d\n", m_sock_protocol);
+        printf(": m_sa_len:        %d\n", m_sa_len);
+        printf(": m_expires:       %u\n", m_expires_s);
         printf("+-------------------------------------\n");
 }
 

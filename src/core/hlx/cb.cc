@@ -24,9 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/rqst.h"
+#include "hlx/resp.h"
+
 #include "cb.h"
 #include "hconn.h"
-#include "hlx/hlx.h"
 #include "ndebug.h"
 #include "nconn.h"
 

@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2015 Verizon.  All Rights Reserved.
+//: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    file.h
+//: \file:    api_resp.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    11/20/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,71 +20,87 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _FILE_H
-#define _FILE_H
+#ifndef _API_RESP_H
+#define _API_RESP_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/http_status.h"
+#include "hlx/kv_map_list.h"
+
+// For fixed size types
+#include <stdint.h>
 #include <string>
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd decl's
+//: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nbq;
+class rqst;
+class hlx;
 
 //: ----------------------------------------------------------------------------
-//: filesender
-//: Example based on Dan Kegel's "Introduction to non-blocking I/O"
-//: ref: http://www.kegel.com/dkftpbench/nonblocking.html
+//: api_resp
 //: ----------------------------------------------------------------------------
-class filesender
+class api_resp
 {
-
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        filesender();
-        ~filesender();
-        int fsinit(const char *a_filename);
-        ssize_t fsread(char *ao_dst, size_t a_len);
-        ssize_t fsread(nbq &ao_q, size_t a_len);
-        bool fsdone(void) {return (m_state == DONE);}
-        size_t fssize(void) { return m_size;}
-private:
+        api_resp(void);
+        ~api_resp();
 
+        // Request Parts
+        // Getters
+
+        // Setters
+        void set_status(http_status_t a_status);
+        int set_header(const std::string &a_header);
+        int set_header(const std::string &a_key, const std::string &a_val);
+        int set_headerf(const std::string &a_key, const char* fmt, ...) __attribute__((format(__printf__,3,4)));;
+        void set_body_data(const char *a_ptr, uint32_t a_len);
+        void add_std_headers(http_status_t a_status, const char *a_content_type,
+                             uint64_t a_len, const rqst &a_rqst,
+                             const hlx &a_hlx);
+        // Clear
+        void clear_headers(void);
+
+        // Serialize to q for sending.
+        int32_t serialize(nbq &ao_q);
+
+private:
         // -------------------------------------------------
-        // Private types
+        // Private methods
         // -------------------------------------------------
-        typedef enum
-        {
-                IDLE,
-                SENDING,
-                DONE
-        } state_t;
+        // Disallow copy/assign
+        api_resp& operator=(const api_resp &);
+        api_resp(const api_resp &);
 
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        int m_fd;
-        size_t m_size;
-        size_t m_read;
-        state_t m_state;
+        http_status_t m_status;
+        kv_map_list_t m_headers;
+        const char *m_body_data;
+        uint32_t m_body_data_len;
 };
 
 //: ----------------------------------------------------------------------------
-//: Prototypes
+//: nbq_utils
 //: ----------------------------------------------------------------------------
-int32_t get_path(const std::string &a_root,
-                 const std::string &a_index,
-                 const std::string &a_route,
-                 const std::string &a_url_path,
-                 std::string &ao_path);
+int32_t nbq_write_request_line(nbq &ao_q, const char *a_buf, uint32_t a_len);
+int32_t nbq_write_status(nbq &ao_q, http_status_t a_status);
+int32_t nbq_write_header(nbq &ao_q,
+                         const char *a_key_buf, uint32_t a_key_len,
+                         const char *a_val_buf, uint32_t a_val_len);
+int32_t nbq_write_header(nbq &ao_q, const char *a_key_buf, const char *a_val_buf);
+int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len);
 
-
-} //namespace ns_hlx {
+}
 
 #endif
+

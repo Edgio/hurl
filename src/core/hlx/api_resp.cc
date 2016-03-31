@@ -24,7 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/api_resp.h"
 #include "hlx/hlx.h"
+#include "hlx/rqst.h"
+
 #include "nbq.h"
 #include "string_util.h"
 #include "time_util.h"
@@ -35,6 +38,9 @@
 
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
+
+#include <stdarg.h>
+
 
 namespace ns_hlx {
 

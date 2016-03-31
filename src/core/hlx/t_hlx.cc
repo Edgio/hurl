@@ -24,13 +24,16 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/stat.h"
+#include "hlx/api_resp.h"
+#include "hlx/lsnr.h"
+
 #include "t_hlx.h"
 #include "hconn.h"
 #include "nbq.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
 #include "time_util.h"
-#include "stat_util.h"
 #include "ndebug.h"
 
 #include <unistd.h>
@@ -1789,11 +1792,11 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_hlx::add_stat_to_agg(const req_stat_t &a_req_stat, uint16_t a_status_code)
+void t_hlx::add_stat_to_agg(const conn_stat_t &a_conn_stat, uint16_t a_status_code)
 {
-        update_stat(m_stat.m_ups_stat_us_connect, a_req_stat.m_tt_connect_us);
-        update_stat(m_stat.m_ups_stat_us_first_response, a_req_stat.m_tt_first_read_us);
-        update_stat(m_stat.m_ups_stat_us_end_to_end, a_req_stat.m_tt_completion_us);
+        update_stat(m_stat.m_ups_stat_us_connect, a_conn_stat.m_tt_connect_us);
+        update_stat(m_stat.m_ups_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
+        update_stat(m_stat.m_ups_stat_us_end_to_end, a_conn_stat.m_tt_completion_us);
         // Status code
         //NDBG_PRINT("%sSTATUS_CODE%s: %d\n",
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);

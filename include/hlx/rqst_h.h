@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2015 Verizon.  All Rights Reserved.
+//: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    file.h
+//: \file:    rqst_h.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    11/20/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,71 +20,63 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _FILE_H
-#define _FILE_H
+#ifndef _RQST_H_H
+#define _RQST_H_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <string>
+#include "hlx/url_router.h"
+#include "hlx/h_resp.h"
+#include "hlx/http_status.h"
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd decl's
+//: Fwd Decl's
 //: ----------------------------------------------------------------------------
-class nbq;
+class hconn;
+class rqst;
 
 //: ----------------------------------------------------------------------------
-//: filesender
-//: Example based on Dan Kegel's "Introduction to non-blocking I/O"
-//: ref: http://www.kegel.com/dkftpbench/nonblocking.html
+//: rqst_h
 //: ----------------------------------------------------------------------------
-class filesender
+class rqst_h
 {
-
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        filesender();
-        ~filesender();
-        int fsinit(const char *a_filename);
-        ssize_t fsread(char *ao_dst, size_t a_len);
-        ssize_t fsread(nbq &ao_q, size_t a_len);
-        bool fsdone(void) {return (m_state == DONE);}
-        size_t fssize(void) { return m_size;}
+        rqst_h(void) {};
+        virtual ~rqst_h(){};
+
+        virtual h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+
+        // -------------------------------------------------
+        // Public members
+        // -------------------------------------------------
+        h_resp_t send_not_found(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_not_implemented(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_internal_server_error(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_bad_request(hconn &a_hconn, const rqst &a_rqst);
+        h_resp_t send_json_resp(hconn &a_hconn, const rqst &a_rqst,
+                                http_status_t a_status, const char *a_json_resp);
+        h_resp_t send_json_resp_err(hconn &a_hconn, const rqst &a_rqst,
+                                    http_status_t a_status);
+
 private:
-
-        // -------------------------------------------------
-        // Private types
-        // -------------------------------------------------
-        typedef enum
-        {
-                IDLE,
-                SENDING,
-                DONE
-        } state_t;
-
-        // -------------------------------------------------
-        // Private members
-        // -------------------------------------------------
-        int m_fd;
-        size_t m_size;
-        size_t m_read;
-        state_t m_state;
+        // Disallow copy/assign
+        rqst_h& operator=(const rqst_h &);
+        rqst_h(const rqst_h &);
 };
 
-//: ----------------------------------------------------------------------------
-//: Prototypes
-//: ----------------------------------------------------------------------------
-int32_t get_path(const std::string &a_root,
-                 const std::string &a_index,
-                 const std::string &a_route,
-                 const std::string &a_url_path,
-                 std::string &ao_path);
-
-
-} //namespace ns_hlx {
+}
 
 #endif
+
+
+

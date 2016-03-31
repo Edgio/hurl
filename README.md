@@ -153,8 +153,12 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ####An example
 ```cpp
 #include <hlx/hlx.h>
+#include <hlx/lsnr.h>
+#include <hlx/api_resp.h>
+#include <hlx/default_rqst_h.h>
 #include <string.h>
-
+#include <stdio.h>
+ns_hlx::hlx *g_hlx = NULL;
 class bananas_getter: public ns_hlx::default_rqst_h
 {
 public:
@@ -174,17 +178,18 @@ public:
                 return ns_hlx::H_RESP_DONE;
         }
 };
-
 int main(void)
 {
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::rqst_h *l_rqst_h = new bananas_getter();
         l_lsnr->register_endpoint("/bananas", l_rqst_h);
-        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->register_lsnr(l_lsnr);
+        g_hlx = new ns_hlx::hlx();
+        g_hlx->register_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
-        l_hlx->set_num_threads(0);
-        l_hlx->run();
+        g_hlx->set_num_threads(0);
+        g_hlx->run();
+        if(g_hlx) {delete g_hlx; g_hlx = NULL;}
+        if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
         return 0;
 }
 ```

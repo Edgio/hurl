@@ -24,11 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ai_cache.h"
 #include "base64/base64.h"
+#include "hlx/host_info.h"
+
+#include "ai_cache.h"
 #include "time_util.h"
 #include "ndebug.h"
-#include "hlx/hlx.h"
 
 // json support
 //#pragma GCC diagnostic push

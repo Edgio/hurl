@@ -24,8 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/lsnr.h"
 #include "hlx/url_router.h"
+#include "hlx/rqst_h.h"
 #include "ndebug.h"
 
 #include <string.h>
@@ -39,6 +40,8 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 #define MAX_PENDING_CONNECT_REQUESTS 16384
+#define HLX_STATUS_OK 0
+#define HLX_STATUS_ERROR -1
 
 //: ----------------------------------------------------------------------------
 //: Macros
