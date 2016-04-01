@@ -133,6 +133,7 @@ public:
         // Successful read/write callbacks
         // -------------------------------------------------
         typedef int32_t (*nconn_cb_t)(void *, char *, uint32_t, uint64_t);
+        typedef int32_t (*pre_connect_cb_t)(int);
 
         // -------------------------------------------------
         // Public methods
@@ -166,6 +167,7 @@ public:
         conn_status_t get_status(void) { return m_conn_status;}
         host_info get_host_info(void) {return m_host_info;}
         bool get_host_info_is_set(void) {return m_host_info_is_set;}
+        pre_connect_cb_t get_pre_connect_cb(void) const { return m_pre_connect_cb;};
 
         // Setters
         void set_label(const std::string &a_label) {m_label = a_label;}
@@ -183,6 +185,7 @@ public:
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
         void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
         void set_status(conn_status_t a_status) { m_conn_status = a_status;}
+        void set_pre_connect_cb(pre_connect_cb_t a_cb) {m_pre_connect_cb = a_cb;}
 
         // State
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
@@ -241,6 +244,7 @@ protected:
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;
+        pre_connect_cb_t m_pre_connect_cb;
 
 private:
         // ---------------------------------------

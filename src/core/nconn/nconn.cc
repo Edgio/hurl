@@ -516,6 +516,7 @@ nconn::nconn(void):
       m_num_reqs_per_conn(-1),
       m_num_reqs(0),
       m_connect_only(false),
+      m_pre_connect_cb(NULL),
       m_nc_state(NC_STATE_FREE),
       m_id(0),
       m_idx(0),

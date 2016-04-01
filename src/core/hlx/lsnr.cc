@@ -84,7 +84,7 @@ int32_t lsnr::register_endpoint(const std::string &a_endpoint, const rqst_h *a_r
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t create_tcp_server_socket(uint16_t a_port)
+static int32_t create_tcp_server_socket(uint16_t a_port, uint32_t a_ipv4_addr)
 {
         int l_sock_fd;
         sockaddr_in l_server_address;
@@ -112,7 +112,7 @@ static int32_t create_tcp_server_socket(uint16_t a_port)
         memset(&l_server_address, 0, sizeof(l_server_address)); // Zero out structure
 
         l_server_address.sin_family      = AF_INET;             // Internet address family
-        l_server_address.sin_addr.s_addr = htonl(INADDR_ANY);   // Any incoming interface
+        l_server_address.sin_addr.s_addr = htonl(a_ipv4_addr);  // Any incoming interface
         l_server_address.sin_port        = htons(a_port);       // Local port
 
         // -------------------------------------------
@@ -152,7 +152,7 @@ int32_t lsnr::init(void)
         }
 
         // Create listen socket
-        m_fd = create_tcp_server_socket(m_port);
+        m_fd = create_tcp_server_socket(m_port, m_local_addr_v4);
         if(m_fd == STATUS_ERROR)
         {
             NDBG_PRINT("Error performing create_tcp_server_socket with port number = %d\n", m_port);
@@ -167,8 +167,28 @@ int32_t lsnr::init(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t lsnr::set_local_addr_v4(const char *a_addr_str)
+{
+        int32_t l_s;
+        struct sockaddr_in l_c_addr;
+        bzero((char *) &l_c_addr, sizeof(l_c_addr));
+        l_s = inet_pton(AF_INET, a_addr_str, &(l_c_addr.sin_addr));
+        if(l_s != 1)
+        {
+                return STATUS_ERROR;
+        }
+        m_local_addr_v4 = ntohl(l_c_addr.sin_addr.s_addr);
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 lsnr::lsnr(uint16_t a_port, scheme_t a_scheme):
         m_scheme(a_scheme),
+        m_local_addr_v4(INADDR_ANY),
         m_port(a_port),
         m_url_router(NULL),
         m_fd(-1),

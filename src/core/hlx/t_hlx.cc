@@ -1361,6 +1361,7 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
         l_nconn->set_data(l_hconn);
         l_nconn->set_read_cb(http_parse);
         l_nconn->set_evr_loop(m_evr_loop);
+        l_nconn->set_pre_connect_cb(a_subr.get_pre_connect_cb());
 
         // Setup hconn
         l_hconn->m_nconn = l_nconn;

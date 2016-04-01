@@ -56,6 +56,7 @@ public:
         scheme_t get_scheme(void) const { return m_scheme;}
         url_router *get_url_router(void) const { return m_url_router;}
         int32_t init(void);
+        int32_t set_local_addr_v4(const char *a_addr_str);
 
 private:
         // -------------------------------------------------
@@ -69,6 +70,7 @@ private:
         // Private members
         // -------------------------------------------------
         scheme_t m_scheme;
+        uint32_t m_local_addr_v4;
         uint16_t m_port;
 
         url_router *m_url_router;

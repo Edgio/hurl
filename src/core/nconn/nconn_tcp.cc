@@ -421,6 +421,23 @@ int32_t nconn_tcp::ncsetup()
                 return NC_STATUS_ERROR;
         }
 
+        // -------------------------------------------
+        // Optional prebind
+        // -------------------------------------------
+        if(m_pre_connect_cb)
+        {
+                int32_t l_s;
+                l_s = m_pre_connect_cb(m_fd);
+                if(l_s != 0)
+                {
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error performing prebind callback\n", m_label.c_str());
+                        return NC_STATUS_ERROR;
+                }
+        }
+
+        // -------------------------------------------
+        // Add to reactor
+        // -------------------------------------------
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->add_fd(m_fd,

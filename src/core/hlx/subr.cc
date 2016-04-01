@@ -87,7 +87,8 @@ subr::subr(void):
         m_tls_sni(false),
         m_tls_self_ok(false),
         m_tls_no_host_check(false),
-        m_fallback_status_code(HTTP_STATUS_INTERNAL_SERVER_ERROR)
+        m_fallback_status_code(HTTP_STATUS_INTERNAL_SERVER_ERROR),
+        m_pre_connect_cb(NULL)
 {
 }
 
@@ -140,7 +141,8 @@ subr::subr(const subr &a_subr):
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
         m_tls_no_host_check(a_subr.m_tls_no_host_check),
-        m_fallback_status_code(a_subr.m_fallback_status_code)
+        m_fallback_status_code(a_subr.m_fallback_status_code),
+        m_pre_connect_cb(a_subr.m_pre_connect_cb)
 {
 }
 
@@ -581,6 +583,16 @@ http_status_t subr::get_fallback_status_code(void)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+subr::pre_connect_cb_t subr::get_pre_connect_cb(void) const
+{
+        return m_pre_connect_cb;
+}
+
+//: ----------------------------------------------------------------------------
 //:                                  Setters
 //: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
@@ -923,6 +935,16 @@ void subr::set_tls_no_host_check(bool a_val)
 void subr::set_fallback_status_code(http_status_t a_status)
 {
         m_fallback_status_code = a_status;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_pre_connect_cb(pre_connect_cb_t a_cb)
+{
+        m_pre_connect_cb = a_cb;
 }
 
 //: ----------------------------------------------------------------------------

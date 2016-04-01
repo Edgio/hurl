@@ -61,7 +61,8 @@ Settings:
   -D, --no_delay      Socket TCP no-delay.
   -T, --timeout       Timeout (seconds).
   -x, --no_stats      Don't collect stats -faster.
-  
+  -r, --addr_seq      Rotate through local addresses (number).
+
 Print Options:
   -v, --verbose       Verbose logging
   -c, --color         Color

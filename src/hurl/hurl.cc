@@ -71,6 +71,13 @@
 #include <google/profiler.h>
 #endif
 
+// For inet_pton
+#include <arpa/inet.h>
+
+// Bind
+#include <sys/types.h>
+#include <sys/socket.h>
+
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -223,7 +230,9 @@ static int32_t g_num_to_request = -1;
 static uint32_t g_num_requested = 0;
 static uint32_t g_num_completed = 0;
 
+// -----------------------------------------------
 // Path vector support
+// -----------------------------------------------
 static tinymt64_t *g_rand_ptr = NULL;
 static path_vector_t g_path_vector;
 static std::string g_path;
@@ -231,6 +240,15 @@ static uint32_t g_path_vector_last_idx = 0;
 static path_order_t g_path_order = EXPLODED_PATH_ORDER_RANDOM;
 static pthread_mutex_t g_path_vector_mutex;
 static pthread_mutex_t g_completion_mutex;
+
+// -----------------------------------------------
+// Address rotation
+// -----------------------------------------------
+#define LOCAL_ADDR_V4_MIN 0x7f000001
+#define LOCAL_ADDR_V4_MAX 0x7ffffffe
+static uint32_t g_addrx_addr_ipv4 = LOCAL_ADDR_V4_MIN;
+static uint32_t g_addrx_addr_ipv4_max = LOCAL_ADDR_V4_MAX;
+static pthread_mutex_t g_addrx_mutex;
 
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
@@ -429,6 +447,38 @@ static int32_t s_completion_cb(ns_hlx::subr &a_subr,
                 usleep(g_rate_delta_us*g_num_threads);
         }
         return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static int32_t s_pre_connect_cb(int a_fd)
+{
+        pthread_mutex_lock(&g_addrx_mutex);
+        struct sockaddr_in l_c_addr;
+        bzero((char *) &l_c_addr, sizeof(l_c_addr));
+        l_c_addr.sin_family = AF_INET;
+        l_c_addr.sin_addr.s_addr = htonl(g_addrx_addr_ipv4);
+        l_c_addr.sin_port = htons(0);
+        int32_t l_s;
+        errno = 0;
+        l_s = bind(a_fd, (struct sockaddr *) &l_c_addr, sizeof(l_c_addr));
+        if(l_s != 0)
+        {
+                printf("%s.%s.%d: Error performing bind. Reason: %s.\n",
+                       __FILE__,__FUNCTION__,__LINE__,strerror(errno));
+                pthread_mutex_unlock(&g_addrx_mutex);
+                return STATUS_ERROR;
+        }
+        ++g_addrx_addr_ipv4;
+        if(g_addrx_addr_ipv4 >= g_addrx_addr_ipv4_max)
+        {
+                g_addrx_addr_ipv4 = LOCAL_ADDR_V4_MIN;
+        }
+        pthread_mutex_unlock(&g_addrx_mutex);
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -937,6 +987,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -D, --no_delay      Socket TCP no-delay.\n");
         fprintf(a_stream, "  -T, --timeout       Timeout (seconds).\n");
         fprintf(a_stream, "  -x, --no_stats      Don't collect stats -faster.\n");
+        fprintf(a_stream, "  -r, --addr_seq      Rotate through local addresses (number).\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose       Verbose logging\n");
@@ -1052,6 +1103,7 @@ int main(int argc, char** argv)
                 { "no_delay",     0, 0, 'D' },
                 { "timeout",      1, 0, 'T' },
                 { "no_stats",     0, 0, 'x' },
+                { "addr_seq",     1, 0, 'r' },
                 { "verbose",      0, 0, 'v' },
                 { "color",        0, 0, 'c' },
                 { "quiet",        0, 0, 'q' },
@@ -1100,9 +1152,9 @@ int main(int argc, char** argv)
         }
 
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:G:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLY:P:G:";
 #else
-        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xvcqCLY:P:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLY:P:";
 #endif
 
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
@@ -1390,6 +1442,25 @@ int main(int argc, char** argv)
                 case 'x':
                 {
                         l_hlx->set_collect_stats(false);
+                        break;
+                }
+                // ---------------------------------------
+                // Rotate local address
+                // ---------------------------------------
+                case 'r':
+                {
+                        pthread_mutex_init(&g_addrx_mutex, NULL);
+
+                        // Get value
+                        int l_num = atoi(optarg);
+                        if ((l_num < 1) || (l_num > (LOCAL_ADDR_V4_MAX - LOCAL_ADDR_V4_MIN)))
+                        {
+                                printf("timeout must be > 0 and less than local addr range: 127.0.0.0/8\n");
+                                //print_usage(stdout, -1);
+                                return -1;
+                        }
+                        g_addrx_addr_ipv4_max = LOCAL_ADDR_V4_MIN + l_num;
+                        l_subr->set_pre_connect_cb(s_pre_connect_cb);
                         break;
                 }
                 // ---------------------------------------
