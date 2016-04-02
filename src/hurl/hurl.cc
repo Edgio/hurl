@@ -2407,18 +2407,16 @@ void get_results_json(settings_struct &a_settings,
 
         if(l_total.m_ups_status_code_count_map.size())
         {
-        rapidjson::Value l_js_array(rapidjson::kArrayType);
+        rapidjson::Value l_obj;
+        l_obj.SetObject();
         for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
             i_status_code != l_total.m_ups_status_code_count_map.end();
             ++i_status_code)
         {
-                rapidjson::Value i_obj;
-                i_obj.SetObject();
                 char l_buf[16]; snprintf(l_buf,16,"%3d",i_status_code->first);
-                i_obj.AddMember(rapidjson::Value(l_buf, l_alloc).Move(), i_status_code->second, l_alloc);
-                l_js_array.PushBack(i_obj, l_alloc);
+                l_obj.AddMember(rapidjson::Value(l_buf, l_alloc).Move(), i_status_code->second, l_alloc);
         }
-        l_body.AddMember("response-codes", l_js_array, l_alloc);
+        l_body.AddMember("response-codes", l_obj, l_alloc);
         }
         rapidjson::StringBuffer l_strbuf;
         rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
