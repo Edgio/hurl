@@ -2377,18 +2377,15 @@ void get_results_json(settings_struct &a_settings,
         ns_hlx::t_stat_t l_total;
         a_settings.m_hlx->get_stat(l_total);
         uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
-
         rapidjson::Document l_body;
-        l_body.SetObject(); // Define doc as object -rather than array
+        l_body.SetObject();
         rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
-
 #define ADD_MEMBER(_l, _v) \
         l_body.AddMember(_l, _v, l_alloc)
 
         ADD_MEMBER("fetches", l_total.m_ups_reqs);
         ADD_MEMBER("max-parallel", a_settings.m_num_parallel);
-
-        ADD_MEMBER("bytes", a_settings.m_num_parallel);
+        ADD_MEMBER("bytes", (double)(l_total_bytes));
         ADD_MEMBER("seconds", a_elapsed_time);
         ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
         ADD_MEMBER("fetches-per-sec", ((double)l_total.m_ups_reqs)/(a_elapsed_time));
