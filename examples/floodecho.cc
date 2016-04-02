@@ -95,9 +95,9 @@ int main(void)
         l_subr.set_scheme(ns_hlx::SCHEME_TLS);
 
         // Add endpoints
-        l_lsnr->register_endpoint("/phurl", l_hello_from);
-        l_lsnr->register_endpoint("/stat", l_stat_h);
-        l_lsnr->register_endpoint("/quit", new quitter());
+        l_lsnr->add_route("/phurl", l_hello_from);
+        l_lsnr->add_route("/stat", l_stat_h);
+        l_lsnr->add_route("/quit", new quitter());
 
         g_hlx = new ns_hlx::hlx();
         g_hlx->register_lsnr(l_lsnr);

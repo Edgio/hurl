@@ -138,16 +138,15 @@ private:
         }
 
         // Get new client connection
-        nconn *get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router);
+        nconn *get_new_client_conn(int a_fd, scheme_t a_scheme, lsnr *a_lsnr);
         int32_t config_conn(nconn &a_nconn,
-                            url_router *a_url_router,
                             hconn_type_t a_type,
                             bool a_save,
                             bool a_connect_only);
 
-        hconn * get_hconn(url_router *a_url_router,
-                            hconn_type_t a_type,
-                            bool a_save);
+        hconn * get_hconn(lsnr *a_lsnr,
+                          hconn_type_t a_type,
+                          bool a_save);
         int32_t subr_try_start(subr &a_subr);
         int32_t subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
         int32_t subr_try_deq(void);

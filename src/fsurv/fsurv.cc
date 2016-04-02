@@ -633,7 +633,7 @@ int main(int argc, char** argv)
                         return -1;
                 }
         }
-        l_status = l_lsnr->register_endpoint("/*", l_file_getter);
+        l_status = l_lsnr->add_route("/*", l_file_getter);
         if(l_status != 0)
         {
                 printf("Error: adding endpoint: %s\n", "/*");

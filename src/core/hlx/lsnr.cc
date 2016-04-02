@@ -70,7 +70,18 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t lsnr::register_endpoint(const std::string &a_endpoint, const rqst_h *a_rqst_h)
+int32_t lsnr::set_default_route(rqst_h *a_handler)
+{
+        m_default_handler = a_handler;
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t lsnr::add_route(const std::string &a_endpoint, const rqst_h *a_rqst_h)
 {
         if(!m_url_router)
         {
@@ -190,6 +201,7 @@ lsnr::lsnr(uint16_t a_port, scheme_t a_scheme):
         m_scheme(a_scheme),
         m_local_addr_v4(INADDR_ANY),
         m_port(a_port),
+        m_default_handler(NULL),
         m_url_router(NULL),
         m_fd(-1),
         m_is_initd(false)

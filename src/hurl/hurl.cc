@@ -1685,7 +1685,7 @@ int main(int argc, char** argv)
                 ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(l_http_data_port, ns_hlx::SCHEME_TCP);
                 ns_hlx::stat_h *l_stat_h = new ns_hlx::stat_h();
                 int32_t l_status;
-                l_status = l_lsnr->register_endpoint("/", l_stat_h);
+                l_status = l_lsnr->add_route("/", l_stat_h);
                 if(l_status != 0)
                 {
                         printf("Error: adding endpoint: %s\n", "/");

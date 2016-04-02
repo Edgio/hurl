@@ -27,6 +27,7 @@
 #include "hlx/hlx.h"
 #include "hlx/url_router.h"
 #include "hlx/api_resp.h"
+#include "hlx/lsnr.h"
 
 #include "t_hlx.h"
 #include "hconn.h"
@@ -60,7 +61,7 @@ hconn::hconn(void):
         //m_status_code(0),
         m_verbose(false),
         m_color(false),
-        m_url_router(NULL),
+        m_lsnr(NULL),
         m_in_q(NULL),
         m_out_q(NULL),
         m_subr(NULL),
@@ -87,7 +88,7 @@ void hconn::clear(void)
         m_save = false;
         m_verbose = false;
         m_color = false;
-        m_url_router = NULL;
+        m_lsnr = NULL;
         m_in_q = NULL;
         m_out_q = NULL;
         m_subr = NULL;
@@ -510,17 +511,16 @@ int32_t hconn::handle_req(void)
         {
                 return STATUS_ERROR;
         }
-        // TODO Null check...
-        if(!m_url_router)
+        if(!m_lsnr || !m_lsnr->get_url_router())
         {
                 return STATUS_ERROR;
         }
-        url_pmap_t l_pmap;
         //NDBG_PRINT("a_url_router:   %p\n", m_url_router);
         //NDBG_PRINT("a_req.m_method: %d\n", l_rqst->m_method);
-        rqst_h *l_rqst_h = (rqst_h *)m_url_router->find_route(l_rqst->get_url_path(),l_pmap);
-        //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
+        url_pmap_t l_pmap;
         h_resp_t l_hdlr_status = H_RESP_NONE;
+        rqst_h *l_rqst_h = (rqst_h *)m_lsnr->get_url_router()->find_route(l_rqst->get_url_path(),l_pmap);
+        //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
         if(l_rqst_h)
         {
                 // Method switch
@@ -555,8 +555,17 @@ int32_t hconn::handle_req(void)
         }
         else
         {
-                // Default response
-                l_hdlr_status = s_default_rqst_h.do_get(*this, *l_rqst, l_pmap);
+                rqst_h *l_default_rqst_h = m_lsnr->get_default_route();
+                if(l_default_rqst_h)
+                {
+                        // Default response
+                        l_hdlr_status = l_default_rqst_h->do_get(*this, *l_rqst, l_pmap);
+                }
+                else
+                {
+                        // Default response
+                        l_hdlr_status = s_default_rqst_h.do_get(*this, *l_rqst, l_pmap);
+                }
         }
 
         switch(l_hdlr_status)

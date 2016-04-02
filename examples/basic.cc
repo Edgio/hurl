@@ -54,8 +54,8 @@ int main(void)
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::rqst_h *l_rqst_h = new bananas_getter();
         ns_hlx::rqst_h *l_rqst_h_quit = new quitter();
-        l_lsnr->register_endpoint("/bananas", l_rqst_h);
-        l_lsnr->register_endpoint("/quit", l_rqst_h_quit);
+        l_lsnr->add_route("/bananas", l_rqst_h);
+        l_lsnr->add_route("/quit", l_rqst_h_quit);
         g_hlx = new ns_hlx::hlx();
         g_hlx->register_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0

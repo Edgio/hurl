@@ -51,12 +51,19 @@ public:
         // -------------------------------------------------
         lsnr(uint16_t a_port=12345, scheme_t a_scheme = SCHEME_TCP);
         ~lsnr();
-        int32_t register_endpoint(const std::string &a_endpoint, const rqst_h *a_handler);
+
+        // Getters
         int32_t get_fd(void) const { return m_fd;}
         scheme_t get_scheme(void) const { return m_scheme;}
         url_router *get_url_router(void) const { return m_url_router;}
-        int32_t init(void);
+        rqst_h * get_default_route(void) { return m_default_handler;}
+
+        // Setters
         int32_t set_local_addr_v4(const char *a_addr_str);
+        int32_t set_default_route(rqst_h *a_handler);
+        int32_t add_route(const std::string &a_endpoint, const rqst_h *a_handler);
+
+        int32_t init(void);
 
 private:
         // -------------------------------------------------
@@ -73,6 +80,7 @@ private:
         uint32_t m_local_addr_v4;
         uint16_t m_port;
 
+        rqst_h *m_default_handler;
         url_router *m_url_router;
         int32_t m_fd;
         bool m_is_initd;

@@ -54,6 +54,7 @@ namespace ns_hlx {
 class nconn;
 class t_hlx;
 class subr;
+class lsnr;
 
 //: ----------------------------------------------------------------------------
 //:
@@ -115,7 +116,7 @@ public:
         //uint16_t m_status_code;
         bool m_verbose;
         bool m_color;
-        url_router *m_url_router;
+        lsnr *m_lsnr;
         nbq *m_in_q;
         nbq *m_out_q;
         subr *m_subr;

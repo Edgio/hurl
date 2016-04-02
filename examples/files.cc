@@ -13,7 +13,7 @@ int main(void)
 {
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::file_h *l_file_getter = new ns_hlx::file_h();
-        l_lsnr->register_endpoint("/*", l_file_getter);
+        l_lsnr->add_route("/*", l_file_getter);
         ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
         l_hlx->register_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0

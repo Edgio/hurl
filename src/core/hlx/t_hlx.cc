@@ -254,7 +254,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
         }
         nconn *l_nconn = NULL;
         l_nconn = m_nconn_pool.s_create_new_conn(a_lsnr.get_scheme());
-        l_status = config_conn(*l_nconn, a_lsnr.get_url_router(), HCONN_TYPE_CLIENT, false, false);
+        l_status = config_conn(*l_nconn, HCONN_TYPE_CLIENT, false, false);
         if(l_status != STATUS_OK)
         {
                 if(l_nconn)
@@ -265,7 +265,7 @@ int32_t t_hlx::add_lsnr(lsnr &a_lsnr)
                 //NDBG_PRINT("Error: performing config_conn\n");
                 return STATUS_ERROR;
         }
-        hconn *l_hconn = get_hconn(a_lsnr.get_url_router(), HCONN_TYPE_CLIENT, false);
+        hconn *l_hconn = get_hconn(&a_lsnr, HCONN_TYPE_CLIENT, false);
         if(!l_hconn)
         {
                 //NDBG_PRINT("Error: performing get_hconn\n");
@@ -488,7 +488,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url_router)
+nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, lsnr *a_lsnr)
 {
         nconn *l_nconn;
         l_nconn = m_nconn_pool.get_new_active("CLIENT", a_scheme);
@@ -502,7 +502,7 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
         //           (uint32_t)l_nconn->get_idx(), l_nconn);
         // Config
         int32_t l_status;
-        l_status = config_conn(*l_nconn, a_url_router, HCONN_TYPE_CLIENT, true, false);
+        l_status = config_conn(*l_nconn, HCONN_TYPE_CLIENT, true, false);
         if(l_status != STATUS_OK)
         {
                 //NDBG_PRINT("Error: performing config_conn\n");
@@ -511,7 +511,7 @@ nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, url_router *a_url
         hconn *l_hconn = static_cast<hconn *>(l_nconn->get_data());
         if(!l_hconn)
         {
-                l_hconn = get_hconn(a_url_router, HCONN_TYPE_CLIENT, true);
+                l_hconn = get_hconn(a_lsnr, HCONN_TYPE_CLIENT, true);
                 if(!l_hconn)
                 {
                         //NDBG_PRINT("Error: performing config_conn\n");
@@ -949,7 +949,7 @@ int32_t t_hlx::handle_listen_ev(hconn &a_hconn, nconn &a_nconn)
         int l_fd = l_status;
         // Get new connected client conn
         nconn *l_new_nconn = NULL;
-        l_new_nconn = get_new_client_conn(l_fd, a_nconn.get_scheme(), a_hconn.m_url_router);
+        l_new_nconn = get_new_client_conn(l_fd, a_nconn.get_scheme(), a_hconn.m_lsnr);
         if(!l_new_nconn)
         {
                 //NDBG_PRINT("Error performing get_new_client_conn");
@@ -1271,7 +1271,6 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
                 // Configure connection
                 l_status = config_conn(*l_nconn,
-                                       NULL,
                                        HCONN_TYPE_UPSTREAM,
                                        a_subr.get_save(),
                                        a_subr.get_connect_only());
@@ -1666,7 +1665,6 @@ int32_t t_hlx::get_stat(t_stat_t &ao_stat)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::config_conn(nconn &a_nconn,
-                           url_router *a_url_router,
                            hconn_type_t a_type,
                            bool a_save,
                            bool a_connect_only)
@@ -1744,7 +1742,7 @@ int32_t t_hlx::config_conn(nconn &a_nconn,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hconn * t_hlx::get_hconn(url_router *a_url_router,
+hconn * t_hlx::get_hconn(lsnr *a_lsnr,
                          hconn_type_t a_type,
                          bool a_save)
 {
@@ -1758,7 +1756,7 @@ hconn * t_hlx::get_hconn(url_router *a_url_router,
 
         //NDBG_PRINT("Adding http_data: %p.\n", l_hconn);
         l_hconn->m_t_hlx = this;
-        l_hconn->m_url_router = a_url_router;
+        l_hconn->m_lsnr = a_lsnr;
         l_hconn->m_timer_obj = NULL;
         l_hconn->m_save = a_save;
         l_hconn->m_verbose = m_t_conf->m_verbose;

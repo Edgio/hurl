@@ -44,8 +44,5 @@ def bb_test_subrequest_001():
     # Unimplemented request
     l_e = G_TEST_HOST + 'bleep/bloop/blop'
     l_r = requests.get(l_e)
-    assert l_r.status_code == 501
-    l_r_json = json.loads(l_r.content)
-    assert l_r_json != None
-    assert len(l_r_json['errors']) > 0
-    assert l_r_json['errors'][0]['code'] == 501
+    assert l_r.status_code == 200
+    assert 'Hello World' in l_r.content
