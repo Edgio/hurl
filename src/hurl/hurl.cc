@@ -78,6 +78,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+// Json output
+#include "rapidjson/document.h"
+#include "rapidjson/stringbuffer.h"
+#include "rapidjson/prettywriter.h"
+
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -132,6 +137,18 @@ typedef enum path_order_enum {
         EXPLODED_PATH_ORDER_RANDOM
 
 } path_order_t;
+
+// ---------------------------------------
+// Results scheme
+// ---------------------------------------
+typedef enum results_scheme_enum {
+
+        RESULTS_SCHEME_STD = 0,
+        RESULTS_SCHEME_HTTP_LOAD,
+        RESULTS_SCHEME_HTTP_LOAD_LINE,
+        RESULTS_SCHEME_JSON
+
+} results_scheme_t;
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -210,11 +227,16 @@ void display_results_line_desc(settings_struct &a_settings);
 void display_results_line(settings_struct &a_settings);
 void display_responses_line_desc(settings_struct &a_settings);
 void display_responses_line(settings_struct &a_settings);
-void display_results(settings_struct &a_settings, double a_elapsed_time);
-void display_results_http_load_style(settings_struct &a_settings,
-                                     double a_elapsed_time,
-                                     bool a_one_line_flag = false);
-// Specifying urls instead of hosts
+
+void get_results(settings_struct &a_settings, double a_elapsed_time,
+                 std::string &ao_results);
+
+void get_results_http_load(settings_struct &a_settings, double a_elapsed_time,
+                           std::string &ao_results, bool a_one_line_flag = false);
+
+void get_results_json(settings_struct &a_settings, double a_elapsed_time,
+                      std::string &ao_results);
+
 int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 
 //: ----------------------------------------------------------------------------
@@ -964,45 +986,52 @@ void print_usage(FILE* a_stream, int a_exit_code)
 {
         fprintf(a_stream, "Usage: hurl [http[s]://]hostname[:port]/path [options]\n");
         fprintf(a_stream, "Options are:\n");
-        fprintf(a_stream, "  -h, --help          Display this help and exit.\n");
-        fprintf(a_stream, "  -V, --version       Display the version number and exit.\n");
+        fprintf(a_stream, "  -h, --help           Display this help and exit.\n");
+        fprintf(a_stream, "  -V, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Input Options:\n");
-        fprintf(a_stream, "  -w, --no_wildcards  Don't wildcard the url.\n");
-        fprintf(a_stream, "  -M, --mode          Request mode -if multipath [random(default) | sequential].\n");
-        fprintf(a_stream, "  -d, --data          HTTP body data -supports curl style @ file specifier\n");
+        fprintf(a_stream, "  -w, --no_wildcards   Don't wildcard the url.\n");
+        fprintf(a_stream, "  -M, --mode           Request mode -if multipath [random(default) | sequential].\n");
+        fprintf(a_stream, "  -d, --data           HTTP body data -supports curl style @ file specifier\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Settings:\n");
-        fprintf(a_stream, "  -y, --cipher        Cipher --see \"openssl ciphers\" for list.\n");
-        fprintf(a_stream, "  -p, --parallel      Num parallel. Default: 100.\n");
-        fprintf(a_stream, "  -f, --fetches       Num fetches.\n");
-        fprintf(a_stream, "  -N, --num_calls     Number of requests per connection\n");
-        fprintf(a_stream, "  -t, --threads       Number of parallel threads. Default: 1\n");
-        fprintf(a_stream, "  -H, --header        Request headers -can add multiple ie -H<> -H<>...\n");
-        fprintf(a_stream, "  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc. Default GET\n");
-        fprintf(a_stream, "  -l, --seconds       Run for <N> seconds .\n");
-        fprintf(a_stream, "  -A, --rate          Max Request Rate.\n");
-        fprintf(a_stream, "  -R, --recv_buffer   Socket receive buffer size.\n");
-        fprintf(a_stream, "  -S, --send_buffer   Socket send buffer size.\n");
-        fprintf(a_stream, "  -D, --no_delay      Socket TCP no-delay.\n");
-        fprintf(a_stream, "  -T, --timeout       Timeout (seconds).\n");
-        fprintf(a_stream, "  -x, --no_stats      Don't collect stats -faster.\n");
-        fprintf(a_stream, "  -r, --addr_seq      Rotate through local addresses (number).\n");
+        fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
+        fprintf(a_stream, "  -p, --parallel       Num parallel. Default: 100.\n");
+        fprintf(a_stream, "  -f, --fetches        Num fetches.\n");
+        fprintf(a_stream, "  -N, --num_calls      Number of requests per connection\n");
+        fprintf(a_stream, "  -t, --threads        Number of parallel threads. Default: 1\n");
+        fprintf(a_stream, "  -H, --header         Request headers -can add multiple ie -H<> -H<>...\n");
+        fprintf(a_stream, "  -X, --verb           Request command -HTTP verb to use -GET/PUT/etc. Default GET\n");
+        fprintf(a_stream, "  -l, --seconds        Run for <N> seconds .\n");
+        fprintf(a_stream, "  -A, --rate           Max Request Rate.\n");
+        fprintf(a_stream, "  -R, --recv_buffer    Socket receive buffer size.\n");
+        fprintf(a_stream, "  -S, --send_buffer    Socket send buffer size.\n");
+        fprintf(a_stream, "  -D, --no_delay       Socket TCP no-delay.\n");
+        fprintf(a_stream, "  -T, --timeout        Timeout (seconds).\n");
+        fprintf(a_stream, "  -x, --no_stats       Don't collect stats -faster.\n");
+        fprintf(a_stream, "  -r, --addr_seq       Rotate through local addresses (number).\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
-        fprintf(a_stream, "  -v, --verbose       Verbose logging\n");
-        fprintf(a_stream, "  -c, --color         Color\n");
-        fprintf(a_stream, "  -q, --quiet         Suppress progress output\n");
-        fprintf(a_stream, "  -C, --responses     Display http(s) response codes instead of request statistics\n");
-        fprintf(a_stream, "  -L, --responses_per Display http(s) response codes per interval instead of request statistics\n");
+        fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
+        fprintf(a_stream, "  -c, --color          Color\n");
+        fprintf(a_stream, "  -q, --quiet          Suppress progress output\n");
+        fprintf(a_stream, "  -C, --responses      Display http(s) response codes instead of request statistics\n");
+        fprintf(a_stream, "  -L, --responses_per  Display http(s) response codes per interval instead of request statistics\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Stat Options:\n");
-        fprintf(a_stream, "  -P, --data_port     Start HTTP Stats Daemon on port.\n");
-        fprintf(a_stream, "  -Y, --http_load     Display in http load mode [MODE] -Legacy support\n");
-#ifdef ENABLE_PROFILER
-        fprintf(a_stream, "  -G, --gprofile      Google profiler output file\n");
-#endif
+        fprintf(a_stream, "  -P, --data_port      Start HTTP Stats Daemon on port.\n");
         fprintf(a_stream, "  \n");
+        fprintf(a_stream, "Results Options:\n");
+        fprintf(a_stream, "  -j, --json           Display results in json\n");
+        fprintf(a_stream, "  -Y, --http_load      Display results in http load mode -Legacy support\n");
+        fprintf(a_stream, "  -Z, --http_load_line Display results in http load mode on a single line -Legacy support\n");
+        fprintf(a_stream, "  -o, --output         Output results to file <FILE> -default to stdout\n");
+        fprintf(a_stream, "  \n");
+#ifdef ENABLE_PROFILER
+        fprintf(a_stream, "Profile Options:\n");
+        fprintf(a_stream, "  -G, --gprofile       Google profiler output file\n");
+        fprintf(a_stream, "  \n");
+#endif
         fprintf(a_stream, "Note: If running long jobs consider enabling tcp_tw_reuse -eg:\n");
         fprintf(a_stream, "echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse\n");
         fprintf(a_stream, "\n");
@@ -1016,7 +1045,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-        int32_t l_http_load_display = -1;
+        results_scheme_t l_results_scheme = RESULTS_SCHEME_STD;
         int32_t l_http_data_port = -1;
 
         int l_max_threads = 1;
@@ -1025,6 +1054,7 @@ int main(int argc, char** argv)
         int l_max_reqs_per_conn = 1;
         bool l_input_flag = false;
         bool l_wildcarding = true;
+        std::string l_output_file = "";
 
         // Get hurl instance
         settings_struct_t l_settings;
@@ -1084,35 +1114,38 @@ int main(int argc, char** argv)
         int l_option_index = 0;
         struct option l_long_options[] =
                 {
-                { "help",         0, 0, 'h' },
-                { "version",      0, 0, 'V' },
-                { "no_wildcards", 0, 0, 'w' },
-                { "data",         1, 0, 'd' },
-                { "cipher",       1, 0, 'y' },
-                { "parallel",     1, 0, 'p' },
-                { "fetches",      1, 0, 'f' },
-                { "num_calls",    1, 0, 'N' },
-                { "threads",      1, 0, 't' },
-                { "header",       1, 0, 'H' },
-                { "verb",         1, 0, 'X' },
-                { "rate",         1, 0, 'A' },
-                { "mode",         1, 0, 'M' },
-                { "seconds",      1, 0, 'l' },
-                { "recv_buffer",  1, 0, 'R' },
-                { "send_buffer",  1, 0, 'S' },
-                { "no_delay",     0, 0, 'D' },
-                { "timeout",      1, 0, 'T' },
-                { "no_stats",     0, 0, 'x' },
-                { "addr_seq",     1, 0, 'r' },
-                { "verbose",      0, 0, 'v' },
-                { "color",        0, 0, 'c' },
-                { "quiet",        0, 0, 'q' },
-                { "responses",    0, 0, 'C' },
-                { "responses_per",0, 0, 'L' },
-                { "http_load",    1, 0, 'Y' },
-                { "data_port",    1, 0, 'P' },
+                { "help",           0, 0, 'h' },
+                { "version",        0, 0, 'V' },
+                { "no_wildcards",   0, 0, 'w' },
+                { "data",           1, 0, 'd' },
+                { "cipher",         1, 0, 'y' },
+                { "parallel",       1, 0, 'p' },
+                { "fetches",        1, 0, 'f' },
+                { "num_calls",      1, 0, 'N' },
+                { "threads",        1, 0, 't' },
+                { "header",         1, 0, 'H' },
+                { "verb",           1, 0, 'X' },
+                { "rate",           1, 0, 'A' },
+                { "mode",           1, 0, 'M' },
+                { "seconds",        1, 0, 'l' },
+                { "recv_buffer",    1, 0, 'R' },
+                { "send_buffer",    1, 0, 'S' },
+                { "no_delay",       0, 0, 'D' },
+                { "timeout",        1, 0, 'T' },
+                { "no_stats",       0, 0, 'x' },
+                { "addr_seq",       1, 0, 'r' },
+                { "verbose",        0, 0, 'v' },
+                { "color",          0, 0, 'c' },
+                { "quiet",          0, 0, 'q' },
+                { "responses",      0, 0, 'C' },
+                { "responses_per",  0, 0, 'L' },
+                { "json",           0, 0, 'j' },
+                { "http_load",      0, 0, 'Y' },
+                { "http_load_line", 0, 0, 'Z' },
+                { "output",         1, 0, 'o' },
+                { "data_port",      1, 0, 'P' },
 #ifdef ENABLE_PROFILER
-                { "gprofile",     1, 0, 'G' },
+                { "gprofile",       1, 0, 'G' },
 #endif
                 // list sentinel
                 { 0, 0, 0, 0 }
@@ -1152,9 +1185,9 @@ int main(int argc, char** argv)
         }
 
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLY:P:G:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:G:";
 #else
-        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLY:P:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:";
 #endif
 
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
@@ -1512,13 +1545,31 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'Y':
                 {
-                        l_http_load_display = atoi(optarg);
-                        if ((l_http_load_display < 0) || (l_http_load_display > 3))
-                        {
-                                printf("Error: http load display mode must be between 0--3\n");
-                                //print_usage(stdout, -1);
-                                return -1;
-                        }
+                        l_results_scheme = RESULTS_SCHEME_HTTP_LOAD;
+                        break;
+                }
+                // ---------------------------------------
+                // http_load_line
+                // ---------------------------------------
+                case 'Z':
+                {
+                        l_results_scheme = RESULTS_SCHEME_HTTP_LOAD_LINE;
+                        break;
+                }
+                // ---------------------------------------
+                // json
+                // ---------------------------------------
+                case 'j':
+                {
+                        l_results_scheme = RESULTS_SCHEME_JSON;
+                        break;
+                }
+                // ---------------------------------------
+                // output
+                // ---------------------------------------
+                case 'o':
+                {
+                        l_output_file = optarg;
                         break;
                 }
                 // ---------------------------------------
@@ -1650,17 +1701,19 @@ int main(int argc, char** argv)
 #endif
 
         // Message
-        if(l_max_reqs_per_conn < 0)
+        if(!l_settings.m_quiet)
         {
-                fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite reqests per connection\n",
-                        l_max_threads, l_start_parallel);
+                if(l_max_reqs_per_conn < 0)
+                {
+                        fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite reqests per connection\n",
+                                l_max_threads, l_start_parallel);
+                }
+                else
+                {
+                        fprintf(stdout, "Running %d threads %d parallel connections per thread with %d reqests per connection\n",
+                                l_max_threads, l_start_parallel, l_max_reqs_per_conn);
+                }
         }
-        else
-        {
-                fprintf(stdout, "Running %d threads %d parallel connections per thread with %d reqests per connection\n",
-                        l_max_threads, l_start_parallel, l_max_reqs_per_conn);
-        }
-
         // -------------------------------------------
         // Setup to run -but don't start
         // -------------------------------------------
@@ -1745,16 +1798,71 @@ int main(int argc, char** argv)
 #endif
         uint64_t l_end_time_ms = hurl_get_time_ms() - l_start_time_ms;
 
-        // Stats summary
-        if(l_http_load_display != -1)
+        std::string l_out_str;
+        switch(l_results_scheme)
         {
-                display_results_http_load_style(l_settings,
-                                                ((double)l_end_time_ms)/1000.0,
-                                                (bool)((l_http_load_display&(0x2)) >> 1));
+        case RESULTS_SCHEME_STD:
+        {
+                get_results(l_settings, ((double)l_end_time_ms)/1000.0, l_out_str);
+                break;
+        }
+        case RESULTS_SCHEME_JSON:
+        {
+                get_results_json(l_settings, ((double)l_end_time_ms)/1000.0, l_out_str);
+                break;
+        }
+        case RESULTS_SCHEME_HTTP_LOAD:
+        {
+                get_results_http_load(l_settings, ((double)l_end_time_ms)/1000.0, l_out_str, false);
+                break;
+        }
+        case RESULTS_SCHEME_HTTP_LOAD_LINE:
+        {
+                get_results_http_load(l_settings, ((double)l_end_time_ms)/1000.0, l_out_str, true);
+                break;
+        }
+        default:
+        {
+                get_results(l_settings, ((double)l_end_time_ms)/1000.0, l_out_str);
+                break;
+        }
+        }
+
+        // -------------------------------------------
+        // Write results...
+        // -------------------------------------------
+        if(l_output_file.empty())
+        {
+                printf("%s\n", l_out_str.c_str());
         }
         else
         {
-                display_results(l_settings, ((double)l_end_time_ms)/1000.0);
+                int32_t l_num_bytes_written = 0;
+                int32_t l_status = 0;
+                // Open
+                FILE *l_file_ptr = fopen(l_output_file.c_str(), "w+");
+                if(l_file_ptr == NULL)
+                {
+                        printf("Error performing fopen. Reason: %s\n", strerror(errno));
+                        return STATUS_ERROR;
+                }
+
+                // Write
+                l_num_bytes_written = fwrite(l_out_str.c_str(), 1, l_out_str.length(), l_file_ptr);
+                if(l_num_bytes_written != (int32_t)l_out_str.length())
+                {
+                        printf("Error performing fwrite. Reason: %s\n", strerror(errno));
+                        fclose(l_file_ptr);
+                        return STATUS_ERROR;
+                }
+
+                // Close
+                l_status = fclose(l_file_ptr);
+                if(l_status != 0)
+                {
+                        printf("Error performing fclose. Reason: %s\n", strerror(errno));
+                        return STATUS_ERROR;
+                }
         }
 
         // -------------------------------------------
@@ -2072,7 +2180,6 @@ void display_results_line(settings_struct &a_settings)
 {
         ns_hlx::t_stat_t l_total;
         uint64_t l_cur_time_ms = hurl_get_time_ms();
-
         // Get stats
         a_settings.m_hlx->get_stat(l_total);
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
@@ -2106,7 +2213,6 @@ void display_results_line(settings_struct &a_settings)
                                 l_reqs_per_s,
                                 l_kb_per_s/1024.0
                                 );
-
         }
 }
 
@@ -2115,80 +2221,20 @@ void display_results_line(settings_struct &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void show_total_agg_stat(std::string &a_tag,
-        const ns_hlx::t_stat_t &a_stat,
-        double a_time_elapsed_s,
-        uint32_t a_max_parallel,
-        bool a_color)
-{
-        uint64_t l_total_bytes = a_stat.m_total_bytes_read + a_stat.m_total_bytes_written;
-
-        if(a_color)
-        printf("| %sRESULTS%s:             %s%s%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_YELLOW, a_tag.c_str(), ANSI_COLOR_OFF);
-        else
-        printf("| RESULTS:             %s\n", a_tag.c_str());
-
-        printf("| fetches:             %" PRIu64 "\n", a_stat.m_ups_reqs);
-        printf("| max parallel:        %u\n", a_max_parallel);
-        printf("| bytes:               %e\n", (double)(l_total_bytes));
-        printf("| seconds:             %f\n", a_time_elapsed_s);
-        printf("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)a_stat.m_ups_reqs));
-        printf("| fetches/sec:         %f\n", ((double)a_stat.m_ups_reqs)/(a_time_elapsed_s));
-        printf("| bytes/sec:           %e\n", ((double)l_total_bytes)/a_time_elapsed_s);
-
-        // TODO Fix stdev/var calcs
-#if 0
-#define SHOW_XSTAT_LINE(_tag, stat)\
-        do {\
-        printf("| %-16s %12.6f mean, %12.6f max, %12.6f min, %12.6f stdev, %12.6f var\n",\
-               _tag,                                                    \
-               stat.mean()/1000.0,                                      \
-               stat.max()/1000.0,                                       \
-               stat.min()/1000.0,                                       \
-               stat.stdev()/1000.0,                                     \
-               stat.var()/1000.0);                                      \
+#define STR_PRINT(...) \
+        do { \
+                snprintf(l_buf,1024,__VA_ARGS__);\
+                ao_results+=l_buf;\
         } while(0)
-#else
-#define SHOW_XSTAT_LINE(_tag, stat)\
-        do {\
-        printf("| %-16s %12.6f mean, %12.6f max, %12.6f min\n",\
-               _tag,\
-               stat.mean()/1000.0,\
-               stat.max()/1000.0,\
-               stat.min()/1000.0);\
-        } while(0)
-#endif
-
-        SHOW_XSTAT_LINE("ms/connect:", a_stat.m_ups_stat_us_connect);
-        SHOW_XSTAT_LINE("ms/1st-response:", a_stat.m_ups_stat_us_first_response);
-        SHOW_XSTAT_LINE("ms/end2end:", a_stat.m_ups_stat_us_end_to_end);
-
-        if(a_color)
-                printf("| %sHTTP response codes%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-        else
-                printf("| HTTP response codes: \n");
-
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_ups_status_code_count_map.begin();
-                        i_status_code != a_stat.m_ups_status_code_count_map.end();
-                ++i_status_code)
-        {
-                if(a_color)
-                printf("| %s%3d%s -- %u\n", ANSI_COLOR_FG_MAGENTA, i_status_code->first, ANSI_COLOR_OFF, i_status_code->second);
-                else
-                printf("| %3d -- %u\n", i_status_code->first, i_status_code->second);
-        }
-
-        // Done flush...
-        printf("\n");
-}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void display_results(settings_struct &a_settings,
-                     double a_elapsed_time)
+void get_results(settings_struct &a_settings,
+                 double a_elapsed_time,
+                 std::string &ao_results)
 {
         ns_hlx::t_stat_t l_total;
 
@@ -2196,61 +2242,72 @@ void display_results(settings_struct &a_settings,
         a_settings.m_hlx->get_stat(l_total);
 
         std::string l_tag;
+        char l_buf[1024];
         // TODO Fix elapse and max parallel
         l_tag = "ALL";
-        show_total_agg_stat(l_tag, l_total, a_elapsed_time, a_settings.m_num_parallel, a_settings.m_color);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static void show_total_agg_stat_legacy(std::string &a_tag,
-                                       const ns_hlx::t_stat_t &a_stat,
-                                       std::string &a_sep,
-                                       double a_time_elapsed_s,
-                                       uint32_t a_max_parallel)
-{
-        uint64_t l_total_bytes = a_stat.m_total_bytes_read + a_stat.m_total_bytes_written;
-        printf("%s: ", a_tag.c_str());
-        printf("%" PRIu64 " fetches, ", a_stat.m_ups_reqs);
-        printf("%u max parallel, ", a_max_parallel);
-        printf("%e bytes, ", (double)(l_total_bytes));
-        printf("in %f seconds, ", a_time_elapsed_s);
-        printf("%s", a_sep.c_str());
-        printf("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)a_stat.m_ups_reqs));
-        printf("%s", a_sep.c_str());
-
-        printf("%f fetches/sec, %e bytes/sec", ((double)a_stat.m_ups_reqs)/(a_time_elapsed_s), ((double)l_total_bytes)/a_time_elapsed_s);
-        printf("%s", a_sep.c_str());
-
-#define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
-        printf("%s %.6f mean, %.6f max, %.6f min, %.6f stdev",\
-               _tag,                                          \
-               stat.mean()/1000.0,                            \
-               stat.max()/1000.0,                             \
-               stat.min()/1000.0,                             \
-               stat.stdev()/1000.0);                          \
-        printf("%s", a_sep.c_str())
-
-        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", a_stat.m_ups_stat_us_connect);
-        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", a_stat.m_ups_stat_us_first_response);
-        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", a_stat.m_ups_stat_us_end_to_end);
-
-        printf("HTTP response codes: ");
-        if(a_sep == "\n")
-                printf("%s", a_sep.c_str());
-
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = a_stat.m_ups_status_code_count_map.begin();
-                        i_status_code != a_stat.m_ups_status_code_count_map.end();
-                ++i_status_code)
+        uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
+        if(a_settings.m_color)
         {
-                printf("code %d -- %u, ", i_status_code->first, i_status_code->second);
+        STR_PRINT("| %sRESULTS%s:             %s%s%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_YELLOW, l_tag.c_str(), ANSI_COLOR_OFF);
         }
+        else
+        {
+        STR_PRINT("| RESULTS:             %s\n", l_tag.c_str());
+        }
+        STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_ups_reqs);
+        STR_PRINT("| max parallel:        %u\n", a_settings.m_num_parallel);
+        STR_PRINT("| bytes:               %e\n", (double)(l_total_bytes));
+        STR_PRINT("| seconds:             %f\n", a_elapsed_time);
+        STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
+        STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_ups_reqs)/(a_elapsed_time));
+        STR_PRINT("| bytes/sec:           %e\n", ((double)l_total_bytes)/a_elapsed_time);
+        // TODO Fix stdev/var calcs
+#if 0
+#define SHOW_XSTAT_LINE(_tag, stat)\
+        do {\
+        STR_PRINT("| %-16s %12.6f mean, %12.6f max, %12.6f min, %12.6f stdev, %12.6f var\n",\
+               _tag,\
+               stat.mean()/1000.0,\
+               stat.max()/1000.0,\
+               stat.min()/1000.0,\
+               stat.stdev()/1000.0,\
+               stat.var()/1000.0);\
+        } while(0)
+#else
+#define SHOW_XSTAT_LINE(_tag, stat)\
+        do {\
+        STR_PRINT("| %-16s %12.6f mean, %12.6f max, %12.6f min\n",\
+               _tag,\
+               stat.mean()/1000.0,\
+               stat.max()/1000.0,\
+               stat.min()/1000.0);\
+        } while(0)
+#endif
+        SHOW_XSTAT_LINE("ms/connect:", l_total.m_ups_stat_us_connect);
+        SHOW_XSTAT_LINE("ms/1st-response:", l_total.m_ups_stat_us_first_response);
+        SHOW_XSTAT_LINE("ms/end2end:", l_total.m_ups_stat_us_end_to_end);
 
-        // Done flush...
-        printf("\n");
+        if(a_settings.m_color)
+        {
+        STR_PRINT("| %sHTTP response codes%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        }
+        else
+        {
+        STR_PRINT("| HTTP response codes: \n");
+        }
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
+            i_status_code != l_total.m_ups_status_code_count_map.end();
+            ++i_status_code)
+        {
+                if(a_settings.m_color)
+                {
+                STR_PRINT("| %s%3d%s -- %u\n", ANSI_COLOR_FG_MAGENTA, i_status_code->first, ANSI_COLOR_OFF, i_status_code->second);
+                }
+                else
+                {
+                STR_PRINT("| %3d -- %u\n", i_status_code->first, i_status_code->second);
+                }
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -2258,15 +2315,13 @@ static void show_total_agg_stat_legacy(std::string &a_tag,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void display_results_http_load_style(settings_struct &a_settings,
-                                     double a_elapsed_time,
-                                     bool a_one_line_flag)
+void get_results_http_load(settings_struct &a_settings,
+                           double a_elapsed_time,
+                           std::string &ao_results,
+                           bool a_one_line_flag)
 {
         ns_hlx::t_stat_t l_total;
-
-        // Get stats
         a_settings.m_hlx->get_stat(l_total);
-
         std::string l_tag;
         // Separator
         std::string l_sep = "\n";
@@ -2274,7 +2329,104 @@ void display_results_http_load_style(settings_struct &a_settings,
 
         // TODO Fix elapse and max parallel
         l_tag = "State";
-        show_total_agg_stat_legacy(l_tag, l_total, l_sep, a_elapsed_time, a_settings.m_num_parallel);
+        char l_buf[1024];
+        uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
+        STR_PRINT("%s: ", l_tag.c_str());
+        STR_PRINT("%" PRIu64 " fetches, ", l_total.m_ups_reqs);
+        STR_PRINT("%u max parallel, ", a_settings.m_num_parallel);
+        STR_PRINT("%e bytes, ", (double)(l_total_bytes));
+        STR_PRINT("in %f seconds, ", a_elapsed_time);
+        STR_PRINT("%s", l_sep.c_str());
+        STR_PRINT("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
+        STR_PRINT("%s", l_sep.c_str());
+        STR_PRINT("%f fetches/sec, %e bytes/sec", ((double)l_total.m_ups_reqs)/(a_elapsed_time), ((double)l_total_bytes)/a_elapsed_time);
+        STR_PRINT("%s", l_sep.c_str());
+#define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
+        STR_PRINT("%s %.6f mean, %.6f max, %.6f min, %.6f stdev",\
+               _tag,                                          \
+               stat.mean()/1000.0,                            \
+               stat.max()/1000.0,                             \
+               stat.min()/1000.0,                             \
+               stat.stdev()/1000.0);                          \
+        printf("%s", l_sep.c_str())
+        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", l_total.m_ups_stat_us_connect);
+        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", l_total.m_ups_stat_us_first_response);
+        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", l_total.m_ups_stat_us_end_to_end);
+        STR_PRINT("HTTP response codes: ");
+        if(l_sep == "\n")
+        {
+        STR_PRINT("%s", l_sep.c_str());
+        }
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
+                        i_status_code != l_total.m_ups_status_code_count_map.end();
+                ++i_status_code)
+        {
+        STR_PRINT("code %d -- %u, ", i_status_code->first, i_status_code->second);
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void get_results_json(settings_struct &a_settings,
+                      double a_elapsed_time,
+                      std::string &ao_results)
+{
+        ns_hlx::t_stat_t l_total;
+        a_settings.m_hlx->get_stat(l_total);
+        uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
+
+        rapidjson::Document l_body;
+        l_body.SetObject(); // Define doc as object -rather than array
+        rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
+
+#define ADD_MEMBER(_l, _v) \
+        l_body.AddMember(_l, _v, l_alloc)
+
+        ADD_MEMBER("fetches", l_total.m_ups_reqs);
+        ADD_MEMBER("max-parallel", a_settings.m_num_parallel);
+
+        ADD_MEMBER("bytes", a_settings.m_num_parallel);
+        ADD_MEMBER("seconds", a_elapsed_time);
+        ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
+        ADD_MEMBER("fetches-per-sec", ((double)l_total.m_ups_reqs)/(a_elapsed_time));
+        ADD_MEMBER("bytes-per-sec", ((double)l_total_bytes)/a_elapsed_time);
+
+        // TODO Fix stdev/var calcs
+        // Stats
+        ADD_MEMBER("connect-ms-mean", l_total.m_ups_stat_us_connect.mean()/1000.0);
+        ADD_MEMBER("connect-ms-max", l_total.m_ups_stat_us_connect.max()/1000.0);
+        ADD_MEMBER("connect-ms-min", l_total.m_ups_stat_us_connect.min()/1000.0);
+
+        ADD_MEMBER("1st-resp-ms-mean", l_total.m_ups_stat_us_first_response.mean()/1000.0);
+        ADD_MEMBER("1st-resp-ms-max", l_total.m_ups_stat_us_first_response.max()/1000.0);
+        ADD_MEMBER("1st-resp-ms-min", l_total.m_ups_stat_us_first_response.min()/1000.0);
+
+        ADD_MEMBER("end2end-ms-mean", l_total.m_ups_stat_us_end_to_end.mean()/1000.0);
+        ADD_MEMBER("end2end-ms-max", l_total.m_ups_stat_us_end_to_end.max()/1000.0);
+        ADD_MEMBER("end2end-ms-min", l_total.m_ups_stat_us_end_to_end.min()/1000.0);
+
+        if(l_total.m_ups_status_code_count_map.size())
+        {
+        rapidjson::Value l_js_array(rapidjson::kArrayType);
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
+            i_status_code != l_total.m_ups_status_code_count_map.end();
+            ++i_status_code)
+        {
+                rapidjson::Value i_obj;
+                i_obj.SetObject();
+                char l_buf[16]; snprintf(l_buf,16,"%3d",i_status_code->first);
+                i_obj.AddMember(rapidjson::Value(l_buf, l_alloc).Move(), i_status_code->second, l_alloc);
+                l_js_array.PushBack(i_obj, l_alloc);
+        }
+        l_body.AddMember("response-codes", l_js_array, l_alloc);
+        }
+        rapidjson::StringBuffer l_strbuf;
+        rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
+        l_body.Accept(l_writer);
+        ao_results.assign(l_strbuf.GetString(), l_strbuf.GetSize());
 }
 
 //: ----------------------------------------------------------------------------
