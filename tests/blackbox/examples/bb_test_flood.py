@@ -24,7 +24,7 @@ g_server_pid = -1
 # ------------------------------------------------------------------------------
 def setup_func():
     global g_server_pid
-    l_subproc = subprocess.Popen(["../../build/examples/floodecho"])
+    l_subproc = subprocess.Popen(["../../build/examples/flood"])
     g_server_pid = l_subproc.pid
     time.sleep(0.2)
 
