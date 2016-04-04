@@ -167,6 +167,47 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int64_t nbq::write_q(nbq &a_q)
+{
+        uint64_t l_left = a_q.read_avail();
+        uint64_t l_written = 0;
+        while(l_left)
+        {
+                if(b_write_avail() <= 0)
+                {
+                        int32_t l_status = b_write_add_avail();
+                        if(l_status <= 0)
+                        {
+                                // TODO error...
+                                return -1;
+                        }
+                }
+                //NDBG_PRINT("l_left: %u\n", l_left);
+                uint32_t l_write_avail = b_write_avail();
+                uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
+
+                // Read from q
+                ssize_t l_status = a_q.read(b_write_ptr(), l_write);
+                if(l_status < 0)
+                {
+                        return STATUS_ERROR;
+                }
+                if(l_status == 0)
+                {
+                        break;
+                }
+                b_write_incr(l_status);
+                l_left -= l_status;
+                l_written += l_status;
+        }
+        return l_written;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int64_t nbq::read(char *a_buf, uint64_t a_len)
 {
         if(!a_len)

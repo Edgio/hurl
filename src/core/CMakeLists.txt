@@ -122,6 +122,7 @@ SET(SRCS
     ./hlx/handler/file_h.cc
     ./hlx/handler/phurl_h.cc
     ./hlx/handler/stat_h.cc
+    ./hlx/handler/proxy_h.cc
 )
 
 # ------------------------------------------------
@@ -135,28 +136,34 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Headers
 SET(HDRS
-    ../../include/hlx/api_resp.h
     ../../include/hlx/atomic.h
-    ../../include/hlx/conn_status.h
+    ../../include/hlx/kv_map_list.h
     ../../include/hlx/cr.h
+    ../../include/hlx/conn_status.h
+    ../../include/hlx/h_resp.h
+    ../../include/hlx/scheme.h
+    ../../include/hlx/http_status.h
+
+    ../../include/hlx/url_router.h
+
+    ../../include/hlx/stat.h
+
+    ../../include/hlx/hmsg.h
+    ../../include/hlx/rqst.h
+    ../../include/hlx/resp.h
+
+    ../../include/hlx/host_info.h
+    ../../include/hlx/api_resp.h
+    ../../include/hlx/lsnr.h
+    ../../include/hlx/subr.h
+    ../../include/hlx/hlx.h
+
+    ../../include/hlx/rqst_h.h
     ../../include/hlx/default_rqst_h.h
     ../../include/hlx/file_h.h
-    ../../include/hlx/hlx.h
-    ../../include/hlx/hmsg.h
-    ../../include/hlx/host_info.h
-    ../../include/hlx/h_resp.h
-    ../../include/hlx/http_status.h
-    ../../include/hlx/kv_map_list.h
-    ../../include/hlx/lsnr.h
-    ../../include/hlx/phurl_h.h
-    ../../include/hlx/resp.h
-    ../../include/hlx/rqst.h
-    ../../include/hlx/rqst_h.h
-    ../../include/hlx/scheme.h
-    ../../include/hlx/stat.h
     ../../include/hlx/stat_h.h
-    ../../include/hlx/subr.h
-    ../../include/hlx/url_router.h
+    ../../include/hlx/phurl_h.h
+    ../../include/hlx/proxy_h.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

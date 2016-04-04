@@ -523,34 +523,41 @@ int32_t hconn::handle_req(void)
         //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
         if(l_rqst_h)
         {
-                // Method switch
-                switch(l_rqst->m_method)
-                {
-                case HTTP_GET:
-                {
-                        l_hdlr_status = l_rqst_h->do_get(*this, *l_rqst, l_pmap);
-                        break;
-                }
-                case HTTP_POST:
-                {
-                        l_hdlr_status = l_rqst_h->do_post(*this, *l_rqst, l_pmap);
-                        break;
-                }
-                case HTTP_PUT:
-                {
-                        l_hdlr_status = l_rqst_h->do_put(*this, *l_rqst, l_pmap);
-                        break;
-                }
-                case HTTP_DELETE:
-                {
-                        l_hdlr_status = l_rqst_h->do_delete(*this, *l_rqst, l_pmap);
-                        break;
-                }
-                default:
+                if(l_rqst_h->get_do_default())
                 {
                         l_hdlr_status = l_rqst_h->do_default(*this, *l_rqst, l_pmap);
-                        break;
                 }
+                else
+                {
+                        // Method switch
+                        switch(l_rqst->m_method)
+                        {
+                        case HTTP_GET:
+                        {
+                                l_hdlr_status = l_rqst_h->do_get(*this, *l_rqst, l_pmap);
+                                break;
+                        }
+                        case HTTP_POST:
+                        {
+                                l_hdlr_status = l_rqst_h->do_post(*this, *l_rqst, l_pmap);
+                                break;
+                        }
+                        case HTTP_PUT:
+                        {
+                                l_hdlr_status = l_rqst_h->do_put(*this, *l_rqst, l_pmap);
+                                break;
+                        }
+                        case HTTP_DELETE:
+                        {
+                                l_hdlr_status = l_rqst_h->do_delete(*this, *l_rqst, l_pmap);
+                                break;
+                        }
+                        default:
+                        {
+                                l_hdlr_status = l_rqst_h->do_default(*this, *l_rqst, l_pmap);
+                                break;
+                        }
+                        }
                 }
         }
         else

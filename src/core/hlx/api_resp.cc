@@ -179,6 +179,19 @@ api_resp::~api_resp()
 }
 
 //: ----------------------------------------------------------------------------
+//:                                  Getters
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const kv_map_list_t &api_resp::get_headers(void)
+{
+        return m_headers;
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -254,6 +267,16 @@ int api_resp::set_header(const std::string &a_key, const std::string &a_val)
                 m_headers[a_key] = l_list;
         }
         return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void api_resp::set_headers(const kv_map_list_t &a_headers_list)
+{
+        m_headers = a_headers_list;
 }
 
 //: ----------------------------------------------------------------------------
@@ -354,6 +377,8 @@ int32_t api_resp::serialize(nbq &ao_q)
         {
                 nbq_write_body(ao_q, NULL, 0);
         }
+
+        ao_q.b_display_written();
 
         return 0;
 }

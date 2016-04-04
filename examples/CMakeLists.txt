@@ -51,10 +51,10 @@ target_link_libraries(subrequest ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIB
 # ----------------------------------------------------------
 # floodecho
 # ----------------------------------------------------------
-add_executable(floodecho floodecho.cc)
-add_dependencies(floodecho hlxcore)
-SET_TARGET_PROPERTIES(floodecho PROPERTIES OUTPUT_NAME "floodecho")
-target_link_libraries(floodecho ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+add_executable(flood flood.cc)
+add_dependencies(flood hlxcore)
+SET_TARGET_PROPERTIES(flood PROPERTIES OUTPUT_NAME "flood")
+target_link_libraries(flood ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
 # files

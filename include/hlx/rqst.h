@@ -50,6 +50,7 @@ public:
 
         void clear(void);
 
+        const std::string &get_url();
         const std::string &get_url_path();
         const std::string &get_url_query();
         const query_map_t &get_url_query_map();

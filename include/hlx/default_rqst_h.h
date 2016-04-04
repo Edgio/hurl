@@ -47,6 +47,10 @@ public:
         h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+
+        // Do default method override
+        bool get_do_default(void);
+
 private:
         // Disallow copy/assign
         default_rqst_h& operator=(const default_rqst_h &);

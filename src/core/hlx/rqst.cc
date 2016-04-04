@@ -89,6 +89,24 @@ void rqst::clear(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+const std::string &rqst::get_url()
+{
+        if(!m_url_parsed)
+        {
+                int32_t l_status = parse_uri();
+                if(l_status != STATUS_OK)
+                {
+                        // do nothing...
+                }
+        }
+        return m_url;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 const std::string &rqst::get_url_path()
 {
         if(!m_url_parsed)

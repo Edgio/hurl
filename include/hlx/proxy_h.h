@@ -2,10 +2,10 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    rqst_h.h
+//: \file:    stat_h.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    03/11/2015
+//: \date:    12/12/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,72 +20,62 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _RQST_H_H
-#define _RQST_H_H
+#ifndef _PROXY_H_H
+#define _PROXY_H_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/url_router.h"
-#include "hlx/h_resp.h"
-#include "hlx/http_status.h"
+#include "hlx/default_rqst_h.h"
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
+//: fwd decl's
 //: ----------------------------------------------------------------------------
 class hconn;
+class nconn;
 class rqst;
+class resp;
+class subr;
 
 //: ----------------------------------------------------------------------------
-//: rqst_h
+//: file_h
 //: ----------------------------------------------------------------------------
-class rqst_h
+class proxy_h: public default_rqst_h
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        rqst_h(void) {};
-        virtual ~rqst_h(){};
-
-        // -------------------------------------------------
-        // Public Virutal
-        // -------------------------------------------------
-        virtual h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        proxy_h(const std::string &a_ups_host, const std::string &a_route);
+        ~proxy_h();
+        h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
 
         // Do default method override
-        virtual bool get_do_default(void) = 0;
+        bool get_do_default(void);
 
         // -------------------------------------------------
-        // Helpers
+        // Public Class methods
         // -------------------------------------------------
-        h_resp_t send_not_found(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_not_implemented(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_internal_server_error(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_bad_request(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_json_resp(hconn &a_hconn, const rqst &a_rqst,
-                                http_status_t a_status, const char *a_json_resp);
-        h_resp_t send_json_resp_err(hconn &a_hconn, const rqst &a_rqst,
-                                    http_status_t a_status);
+        static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
 
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        rqst_h& operator=(const rqst_h &);
-        rqst_h(const rqst_h &);
+        proxy_h& operator=(const proxy_h &);
+        proxy_h(const proxy_h &);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        std::string m_ups_host;
+        std::string m_route;
+
 };
 
-}
+} //namespace ns_hlx {
 
 #endif
-
-
-

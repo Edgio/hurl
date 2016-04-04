@@ -56,11 +56,13 @@ public:
 
         // Request Parts
         // Getters
+        const kv_map_list_t &get_headers(void);
 
         // Setters
         void set_status(http_status_t a_status);
         int set_header(const std::string &a_header);
         int set_header(const std::string &a_key, const std::string &a_val);
+        void set_headers(const kv_map_list_t &a_headers_list);
         int set_headerf(const std::string &a_key, const char* fmt, ...) __attribute__((format(__printf__,3,4)));;
         void set_body_data(const char *a_ptr, uint32_t a_len);
         void add_std_headers(http_status_t a_status, const char *a_content_type,

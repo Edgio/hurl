@@ -98,4 +98,14 @@ h_resp_t default_rqst_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap
         return send_not_implemented(a_hconn, a_rqst);
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool default_rqst_h::get_do_default(void)
+{
+        return false;
+}
+
 } //namespace ns_hlx {

@@ -133,8 +133,9 @@ h_resp_t file_h::get_file(hconn &a_hconn,
 
         // Make relative...
         filesender *l_fs = new filesender();
-        int l_status = l_fs->fsinit(a_path.c_str());
-        if(l_status != STATUS_OK)
+        int32_t l_s;
+        l_s = l_fs->fsinit(a_path.c_str());
+        if(l_s != STATUS_OK)
         {
                 delete l_fs;
                 // TODO 5xx's for errors?
@@ -190,7 +191,11 @@ h_resp_t file_h::get_file(hconn &a_hconn,
                 l_read = l_fs->fssize();
         }
         l_fs->fsread(l_q, l_read);
-        queue_resp(a_hconn);
+        l_s = queue_resp(a_hconn);
+        if(l_s != HLX_STATUS_OK)
+        {
+                return H_RESP_SERVER_ERROR;
+        }
         return H_RESP_DONE;
 }
 

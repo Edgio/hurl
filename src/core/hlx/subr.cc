@@ -1073,6 +1073,15 @@ void subr::set_fragment(const std::string &a_fragment)
 void subr::set_headers(const kv_map_list_t &a_headers_list)
 {
         m_headers = a_headers_list;
+        kv_map_list_t::const_iterator i_vl = m_headers.find("Connection");
+        if(i_vl != m_headers.end())
+        {
+                if(i_vl->second.size() &&
+                   (strncasecmp(i_vl->second.begin()->c_str(), "keep-alive", sizeof("keep-alive")) == 0))
+                {
+                        m_keepalive = true;
+                }
+        }
 }
 
 //: ----------------------------------------------------------------------------
