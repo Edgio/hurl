@@ -334,17 +334,14 @@ void api_resp::clear_headers(void)
 //: ----------------------------------------------------------------------------
 int32_t api_resp::serialize(nbq &ao_q)
 {
-
         // -------------------------------------------
         // Reset write ptr.
         // -------------------------------------------
         ao_q.reset_write();
-
         // -------------------------------------------
         // Write status
         // -------------------------------------------
         nbq_write_status(ao_q, m_status);
-
         // -------------------------------------------
         // Write headers
         // -------------------------------------------
@@ -364,7 +361,6 @@ int32_t api_resp::serialize(nbq &ao_q)
                         nbq_write_header(ao_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
                 }
         }
-
         // -------------------------------------------
         // Write body
         // -------------------------------------------
@@ -377,9 +373,6 @@ int32_t api_resp::serialize(nbq &ao_q)
         {
                 nbq_write_body(ao_q, NULL, 0);
         }
-
-        ao_q.b_display_written();
-
         return 0;
 }
 
