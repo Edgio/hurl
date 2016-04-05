@@ -28,9 +28,9 @@ class default_h: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
-                                ns_hlx::rqst &a_rqst,
-                                const ns_hlx::url_pmap_t &a_url_pmap)
+        ns_hlx::h_resp_t do_default(ns_hlx::hconn &a_hconn,
+                                    ns_hlx::rqst &a_rqst,
+                                    const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 char l_len_str[64];
                 uint32_t l_body_len = strlen("Hello World\n");

@@ -523,7 +523,6 @@ int32_t hconn::handle_req(void)
         //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
         if(l_rqst_h)
         {
-                //NDBG_PRINT("l_rqst_h->get_do_default(): %d\n", l_rqst_h->get_do_default());
                 if(l_rqst_h->get_do_default())
                 {
                         l_hdlr_status = l_rqst_h->do_default(*this, *l_rqst, l_pmap);
