@@ -506,6 +506,7 @@ nconn::nconn(void):
       m_label(),
       m_stat(),
       m_collect_stats_flag(false),
+      m_ctx(NULL),
       m_data(NULL),
       m_connect_start_time_us(0),
       m_request_start_time_us(0),
@@ -520,6 +521,7 @@ nconn::nconn(void):
       m_nc_state(NC_STATE_FREE),
       m_id(0),
       m_idx(0),
+      m_pool_id(0),
       m_read_cb(NULL),
       m_write_cb(NULL)
 {

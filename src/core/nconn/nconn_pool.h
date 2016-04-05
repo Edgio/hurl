@@ -55,7 +55,8 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        nconn_pool(uint64_t a_max_active_size,
+        nconn_pool(uint32_t a_id,
+                   uint64_t a_max_active_size,
                    uint64_t a_max_idle_size);
         ~nconn_pool();
         nconn * get_new_active(const std::string &a_label, scheme_t a_scheme);
@@ -63,6 +64,7 @@ public:
         uint64_t get_active_available(void);
         nconn * get_idle(const std::string &a_label);
         uint64_t get_idle_size(void);
+        uint32_t get_id(void) { return m_id;}
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
 
@@ -87,6 +89,7 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
+        uint32_t m_id;
         bool m_initd;
 
         // Active connections

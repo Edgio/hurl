@@ -141,6 +141,10 @@ public:
         nconn(void);
         virtual ~nconn();
 
+        // ctx
+        void set_ctx(void * a_data) {m_ctx = a_data;}
+        void *get_ctx(void) {return m_ctx;}
+
         // Data
         void set_data(void * a_data) {m_data = a_data;}
         void *get_data(void) {return m_data;}
@@ -156,6 +160,7 @@ public:
         // Getters
         uint64_t get_id(void) {return m_id;}
         uint32_t get_idx(void) {return m_idx;}
+        uint32_t get_pool_id(void) {return m_pool_id;}
         const std::string &get_label(void) {return m_label;}
         scheme_t get_scheme(void) {return m_scheme;}
         bool get_collect_stats_flag(void) {return m_collect_stats_flag;}
@@ -173,6 +178,7 @@ public:
         void set_label(const std::string &a_label) {m_label = a_label;}
         void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
+        void set_pool_id(uint32_t a_id) {m_pool_id = a_id;}
         void set_host_info(const host_info &a_host_info) {m_host_info = a_host_info; m_host_info_is_set = true;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
         void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
@@ -234,6 +240,7 @@ protected:
         std::string m_label;
         conn_stat_t m_stat;
         bool m_collect_stats_flag;
+        void *m_ctx;
         void *m_data;
         uint64_t m_connect_start_time_us;
         uint64_t m_request_start_time_us;
@@ -272,6 +279,7 @@ private:
         nc_conn_state_t m_nc_state;
         uint64_t m_id;
         uint32_t m_idx;
+        uint32_t m_pool_id;
         nconn_cb_t m_read_cb;
         nconn_cb_t m_write_cb;
 };

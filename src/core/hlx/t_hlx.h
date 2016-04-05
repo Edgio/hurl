@@ -57,6 +57,7 @@ typedef obj_pool <rqst> rqst_pool_t;
 typedef obj_pool <nbq> nbq_pool_t;
 class url_router;
 struct host_info;
+class nbq;
 
 //: ----------------------------------------------------------------------------
 //: t_hlx
@@ -89,7 +90,7 @@ public:
         int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
         int32_t cancel_timer(void *a_timer);
         void signal(void);
-        int32_t cleanup_hconn(hconn &a_hconn);
+        int32_t cleanup_conn(hconn *a_hconn, nconn *a_nconn);
         void release_resp(resp *a_resp);
         void release_nbq(nbq *a_nbq);
 
@@ -127,6 +128,12 @@ public:
 
 private:
         // -------------------------------------------------
+        // const
+        // -------------------------------------------------
+        static const uint32_t S_POOL_ID_UPS_PROXY = 0xDEAD0001;
+        static const uint32_t S_POOL_ID_CLIENT    = 0xDEAD0002;
+
+        // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         DISALLOW_COPY_AND_ASSIGN(t_hlx)
@@ -162,7 +169,7 @@ private:
                 ++m_subr_list_size;
         }
 
-        int32_t handle_listen_ev(hconn &a_hconn, nconn &a_nconn);
+        int32_t handle_listen_ev(hconn *a_hconn, nconn *a_nconn);
 #ifdef ASYNC_DNS_SUPPORT
         int32_t async_dns_init(void);
         int32_t async_dns_handle_ev(void);
@@ -207,6 +214,9 @@ private:
         t_stat_t m_stat_copy;
         pthread_mutex_t m_stat_copy_mutex;
 
+        // Orphan q's
+        nbq *m_orphan_in_q;
+        nbq *m_orphan_out_q;
 };
 
 } //namespace ns_hlx {

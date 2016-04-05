@@ -36,8 +36,10 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn_pool::nconn_pool(uint64_t a_max_active_size,
+nconn_pool::nconn_pool(uint32_t a_id,
+                       uint64_t a_max_active_size,
                        uint64_t a_max_idle_size):
+                       m_id(a_id),
                        m_initd(false),
                        m_active_conn_map(),
                        m_active_conn_map_size(0),
@@ -94,6 +96,7 @@ nconn *nconn_pool::get_new_active(const std::string &a_label, scheme_t a_scheme)
                         NDBG_PRINT("Error performing create_conn\n");
                         return NULL;
                 }
+                l_nconn->set_pool_id(m_id);
                 m_nconn_obj_pool.add(l_nconn);
         }
         l_nconn->set_label(a_label);
@@ -214,19 +217,19 @@ int32_t nconn_pool::release(nconn *a_nconn)
         l_s = remove_active(a_nconn);
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error performing remove_active\n");
+                //NDBG_PRINT("Error performing remove_active\n");
                 //return STATUS_ERROR;
         }
         l_s = remove_idle(a_nconn);
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error performing remove_idle\n");
+                //NDBG_PRINT("Error performing remove_idle\n");
                 //return STATUS_ERROR;
         }
         l_s = cleanup(a_nconn);
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error performing cleanup\n");
+                //NDBG_PRINT("Error performing cleanup\n");
                 //return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -265,7 +268,7 @@ int nconn_pool::s_delete_cb(void* o_1, void *a_2)
         l_s = l_nconn_pool->cleanup(l_nconn);
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error performing cleanup\n");
+                //NDBG_PRINT("Error performing cleanup\n");
                 //return STATUS_ERROR;
         }
         return STATUS_OK;

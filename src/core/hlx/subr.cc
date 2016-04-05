@@ -1436,7 +1436,7 @@ int32_t subr::cancel(void)
                         {
                                 // TODO Check error;
                         }
-                        return m_hconn->m_t_hlx->cleanup_hconn(*m_hconn);
+                        return m_hconn->m_t_hlx->cleanup_conn(m_hconn, m_hconn->m_nconn);
                 }
                 else
                 {
