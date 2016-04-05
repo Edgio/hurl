@@ -74,10 +74,6 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         {
                 l_route.erase(i_s, m_route.length());
         }
-        else
-        {
-                return ns_hlx::H_RESP_CLIENT_ERROR;
-        }
         std::string l_url = m_ups_host + l_route;
         l_subr.init_with_url(l_url);
         l_subr.set_completion_cb(s_completion_cb);
