@@ -324,4 +324,19 @@ void rqst::show(void)
         NDBG_OUTPUT("\r\n");
 }
 
+
+//: ----------------------------------------------------------------------------
+//: rqst utils
+//: ----------------------------------------------------------------------------
+const char *get_http_method_str(int a_method)
+{
+        // -------------------------------------------------
+        // TODO enum cast here is of course uncool -but
+        // m_method value is populated by http_parser so
+        // "ought" to be safe.
+        // Will fix later
+        // -------------------------------------------------
+        return http_method_str((enum http_method)a_method);
+}
+
 } //namespace ns_hlx {

@@ -34,8 +34,6 @@
 #include "hconn.h"
 #include "nbq.h"
 
-#include "http_parser/http_parser.h"
-
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -87,7 +85,7 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         // "ought" to be safe.
         // Will fix later
         // -------------------------------------------------
-        l_subr.set_verb(http_method_str((enum http_method)a_rqst.m_method));
+        l_subr.set_verb(get_http_method_str(a_rqst.m_method));
         l_subr.set_body_data(a_rqst.get_body_data(), a_rqst.get_body_len());
         int32_t l_s;
         l_s = queue_subr(a_hconn, l_subr);
