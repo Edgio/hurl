@@ -10,6 +10,7 @@
 #include "hlx/hlx.h"
 #include "hlx/stat.h"
 #include "hlx/file_h.h"
+#include "hlx/lsnr.h"
 
 // getrlimit
 #include <sys/time.h>

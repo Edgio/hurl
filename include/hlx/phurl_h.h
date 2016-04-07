@@ -28,6 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/default_rqst_h.h"
 #include "hlx/subr.h"
+#include "hlx/scheme.h"
 
 // For fixed size types
 #include <stdint.h>
@@ -51,9 +52,11 @@ struct host_s
 {
         std::string m_host;
         uint16_t m_port;
+        scheme_t m_scheme;
         host_s(std::string a_host, uint16_t a_port = 80):
                m_host(a_host),
-               m_port(a_port)
+               m_port(a_port),
+               m_scheme(SCHEME_TCP)
         {};
 };
 

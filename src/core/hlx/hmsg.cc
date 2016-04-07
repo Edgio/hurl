@@ -134,14 +134,16 @@ nbq *hmsg::get_q(void) const
 //: ----------------------------------------------------------------------------
 const char *hmsg::get_body_data(void)
 {
-        if(NULL == m_q){
+        if(m_q == NULL)
+        {
                 // nothing here yet
-                return m_body;
+                return NULL;
         }
-        if(NULL == m_body){
+        if(m_body == NULL)
+        {
                 // body not initialized yet
                 m_body = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
-                m_body_len = m_p_body.m_len + 1;
+                m_body_len = m_p_body.m_len;
         }
         return m_body;
 }
