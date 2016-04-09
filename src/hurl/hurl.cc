@@ -2015,12 +2015,12 @@ void display_responses_line_desc(settings_struct &a_settings)
 //: ----------------------------------------------------------------------------
 void display_responses_line(settings_struct &a_settings)
 {
-        ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = hurl_get_time_ms();
-
         // Get stats
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
 
+        uint64_t l_cur_time_ms = hurl_get_time_ms();
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
                               ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         a_settings.m_last_display_time_ms = hurl_get_time_ms();
@@ -2178,10 +2178,12 @@ void display_results_line_desc(settings_struct &a_settings)
 //: ----------------------------------------------------------------------------
 void display_results_line(settings_struct &a_settings)
 {
-        ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = hurl_get_time_ms();
         // Get stats
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
+
+        uint64_t l_cur_time_ms = hurl_get_time_ms();
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_per_s = ((double)(l_total.m_total_bytes_read - a_settings.m_last_stat->m_total_bytes_read)*1000.0/1024) /
@@ -2236,10 +2238,10 @@ void get_results(settings_struct &a_settings,
                  double a_elapsed_time,
                  std::string &ao_results)
 {
-        ns_hlx::t_stat_t l_total;
-
         // Get stats
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
 
         std::string l_tag;
         char l_buf[1024];
@@ -2320,8 +2322,11 @@ void get_results_http_load(settings_struct &a_settings,
                            std::string &ao_results,
                            bool a_one_line_flag)
 {
+        // Get stats
         ns_hlx::t_stat_t l_total;
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
+
         std::string l_tag;
         // Separator
         std::string l_sep = "\n";
@@ -2374,8 +2379,11 @@ void get_results_json(settings_struct &a_settings,
                       double a_elapsed_time,
                       std::string &ao_results)
 {
+        // Get stats
         ns_hlx::t_stat_t l_total;
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
+
         uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
         rapidjson::Document l_body;
         l_body.SetObject();

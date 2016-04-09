@@ -103,6 +103,7 @@ int main(void)
         g_hlx->register_lsnr(l_lsnr);
         g_hlx->set_num_threads(0);
         g_hlx->set_num_parallel(32);
+        g_hlx->set_update_stats_ms(500);
         //ProfilerStart("tmp.prof");
         g_hlx->run();
         delete g_hlx;

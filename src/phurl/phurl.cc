@@ -1984,10 +1984,11 @@ void display_status_line(settings_struct_t &a_settings)
         // -------------------------------------------------
         // Get results from clients
         // -------------------------------------------------
-
         // Get stats
         ns_hlx::t_stat_t l_total;
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
+
         uint32_t l_num_done = l_total.m_ups_reqs;
         uint32_t l_num_resolve_active = l_total.m_dns_resolve_active;
         uint32_t l_num_resolve_req = l_total.m_dns_resolve_req;

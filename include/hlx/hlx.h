@@ -134,9 +134,7 @@ public:
         bool is_running(void);
 
         // Stats
-        void get_stat(t_stat_t &ao_stat);
-        void get_stat(const t_stat_list_t &a_stat_list, t_stat_t &ao_stat);
-        void get_thread_stat(t_stat_list_t &ao_stat);
+        void get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list);
         void display_stat(void);
 
         // TLS config
@@ -159,6 +157,11 @@ public:
         bool get_dns_use_sync(void);
 
 private:
+        // -------------------------------------------------
+        // Private Const
+        // -------------------------------------------------
+        static const uint32_t S_STAT_UPDATE_MS_DEFAULT = 10000;
+
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
@@ -185,6 +188,13 @@ private:
         bool m_is_initd;
         uint64_atomic_t m_cur_subr_uid;
         std::string m_server_name;
+
+        // stat cache
+        pthread_mutex_t m_stat_mutex;
+        uint32_t m_stat_update_ms;
+        uint64_t m_stat_last_time_ms;
+        t_stat_list_t m_stat_list_cache;
+        t_stat_t m_stat_cache;
 };
 
 //: ----------------------------------------------------------------------------

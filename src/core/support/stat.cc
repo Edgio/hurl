@@ -29,10 +29,19 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/stat.h"
+#include "ndebug.h"
 #include <stdio.h>
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <math.h>
+
+// getrusage...
+#ifdef __linux__
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <errno.h>
+#include <string.h>
+#endif
 
 namespace ns_hlx {
 
@@ -106,6 +115,30 @@ void show_stat(const xstat_t &ao_stat)
                  ao_stat.m_max,
                  ao_stat.m_num);
 }
+
+#ifdef __linux__
+//: ----------------------------------------------------------------------------
+//: \details: Get resource usage info
+//: \return:  n/a
+//: \param:   ao_stat stat display
+//: ----------------------------------------------------------------------------
+int32_t get_rusage(t_stat_t &ao_stat)
+{
+        struct rusage l_usage;
+        int l_status;
+        errno = 0;
+        l_status = getrusage(RUSAGE_SELF, &l_usage);
+        if(l_status != 0)
+        {
+                NDBG_PRINT("Error performing getrusage.  Reason: %s\n", strerror(errno));
+                return STATUS_ERROR;
+        }
+        ao_stat.m_rsc_cpu_usr_ms = l_usage.ru_utime.tv_sec*1000 + l_usage.ru_utime.tv_usec/1000;
+        ao_stat.m_rsc_cpu_sys_ms = l_usage.ru_stime.tv_sec*1000 + l_usage.ru_stime.tv_usec/1000;
+        ao_stat.m_rsc_mem_rss_kb = l_usage.ru_maxrss;
+        return STATUS_OK;
+}
+#endif
 
 //: ----------------------------------------------------------------------------
 //: Example...

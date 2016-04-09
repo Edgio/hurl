@@ -88,9 +88,8 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         // Create body...
         // -------------------------------------------------
         t_stat_list_t l_threads_stat;
-        l_hlx->get_thread_stat(l_threads_stat);
         t_stat_t l_stat;
-        l_hlx->get_stat(l_threads_stat, l_stat);
+        l_hlx->get_stat(l_stat, l_threads_stat);
 
         rapidjson::Document l_body;
         l_body.SetObject(); // Define doc as object -rather than array
@@ -128,6 +127,11 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         ADD_MEMBER(total_errors);
         ADD_MEMBER(total_bytes_read);
         ADD_MEMBER(total_bytes_written);
+#ifdef __linux__
+        ADD_MEMBER(rsc_cpu_usr_ms);
+        ADD_MEMBER(rsc_cpu_sys_ms);
+        ADD_MEMBER(rsc_mem_rss_kb);
+#endif
 
         //xstat_t m_stat_us_connect;
         //xstat_t m_stat_us_first_response;

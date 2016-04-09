@@ -131,6 +131,13 @@ typedef struct t_stat_struct
         uint64_t m_total_bytes_read;
         uint64_t m_total_bytes_written;
 
+        // Resources
+#ifdef __linux__
+        uint64_t m_rsc_cpu_usr_ms;
+        uint64_t m_rsc_cpu_sys_ms;
+        uint64_t m_rsc_mem_rss_kb;
+#endif
+
         t_stat_struct():
                 m_ups_stat_us_connect(),
                 m_ups_stat_us_first_response(),
@@ -167,6 +174,12 @@ typedef struct t_stat_struct
                 m_total_errors(0),
                 m_total_bytes_read(0),
                 m_total_bytes_written(0)
+#ifdef __linux__
+                ,
+                m_rsc_cpu_usr_ms(0),
+                m_rsc_cpu_sys_ms(0),
+                m_rsc_mem_rss_kb(0)
+#endif
         {}
         void clear()
         {
@@ -206,6 +219,11 @@ typedef struct t_stat_struct
                 m_total_errors = 0;
                 m_total_bytes_read = 0;
                 m_total_bytes_written = 0;
+#ifdef __linux__
+                m_rsc_cpu_usr_ms = 0;
+                m_rsc_cpu_sys_ms = 0;
+                m_rsc_mem_rss_kb = 0;
+#endif
         }
 } t_stat_t;
 
@@ -218,7 +236,9 @@ void update_stat(xstat_t &ao_stat, double a_val);
 void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat);
 void clear_stat(xstat_t &ao_stat);
 void show_stat(const xstat_t &ao_stat);
-
+#ifdef __linux__
+int32_t get_rusage(t_stat_t &ao_stat);
+#endif
 } //namespace ns_hlx {
 
 #endif

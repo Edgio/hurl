@@ -826,12 +826,12 @@ void display_results_line_desc(settings_struct &a_settings)
 //: ----------------------------------------------------------------------------
 void display_results_line(settings_struct &a_settings)
 {
-        ns_hlx::t_stat_t l_total;
-        uint64_t l_cur_time_ms = fsurv_get_time_ms();
-
         // Get stats
-        a_settings.m_hlx->get_stat(l_total);
+        ns_hlx::t_stat_t l_total;
+        ns_hlx::t_stat_list_t l_thread;
+        a_settings.m_hlx->get_stat(l_total, l_thread);
 
+        uint64_t l_cur_time_ms = fsurv_get_time_ms();
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
                         ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
         double l_kb_read_per_s = ((double)(l_total.m_total_bytes_read - a_settings.m_last_stat->m_total_bytes_read)*1000.0/1024) /

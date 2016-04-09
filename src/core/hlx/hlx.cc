@@ -43,6 +43,9 @@
 #include "tls_util.h"
 #include <openssl/ssl.h>
 
+// mutex
+#include <pthread.h>
+
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -71,9 +74,16 @@ hlx::hlx(void):
         m_t_hlx_list(),
         m_is_initd(false),
         m_cur_subr_uid(0),
-        m_server_name("hlx")
+        m_server_name("hlx"),
+        m_stat_mutex(),
+        m_stat_update_ms(S_STAT_UPDATE_MS_DEFAULT),
+        m_stat_last_time_ms(0),
+        m_stat_list_cache(),
+        m_stat_cache()
 {
         m_t_conf = new t_conf();
+
+        pthread_mutex_init(&m_stat_mutex, NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -135,31 +145,6 @@ hlx::~hlx()
 //: ----------------------------------------------------------------------------
 //:                               Getters
 //: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::get_thread_stat(t_stat_list_t &ao_stat_list)
-{
-        // Aggregate
-        for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
-           i_client != m_t_hlx_list.end();
-           ++i_client)
-        {
-                // Get stuff from client...
-                t_stat_t l_stat;
-                int32_t l_s;
-                l_s = (*i_client)->get_stat(l_stat);
-                if(l_s != STATUS_OK)
-                {
-                        // TODO -do nothing...
-                        continue;
-                }
-                ao_stat_list.emplace(ao_stat_list.begin(), l_stat);
-        }
-}
-
 //: ----------------------------------------------------------------------------
 //: \details: Aggregate thread stats.
 //: \return:  NA
@@ -226,30 +211,49 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::get_stat(const t_stat_list_t &a_stat_list, t_stat_t &ao_stat)
+void hlx::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
 {
+        pthread_mutex_lock(&m_stat_mutex);
+        // Check last time
+        // TODO
+        if((m_stat_last_time_ms + m_stat_update_ms) > get_time_ms())
+        {
+                ao_stat = m_stat_cache;
+                pthread_mutex_unlock(&m_stat_mutex);
+                return;
+        }
+        m_stat_list_cache.clear();
+        m_stat_cache.clear();
         // Aggregate
-        for(t_stat_list_t::const_iterator i_s = a_stat_list.begin();
-            i_s != a_stat_list.end();
-            ++i_s)
+        for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
+           i_client != m_t_hlx_list.end();
+           ++i_client)
         {
                 // Get stuff from client...
-                // TODO
                 t_stat_t l_stat;
-                aggregate_stat(ao_stat, *i_s);
+                int32_t l_s;
+                l_s = (*i_client)->get_stat(l_stat);
+                if(l_s != STATUS_OK)
+                {
+                        // TODO -do nothing...
+                        continue;
+                }
+                m_stat_list_cache.emplace(m_stat_list_cache.begin(), l_stat);
+                aggregate_stat(m_stat_cache, l_stat);
         }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void hlx::get_stat(t_stat_t &ao_stat)
-{
-        t_stat_list_t l_stat_list;
-        get_thread_stat(l_stat_list);
-        get_stat(l_stat_list, ao_stat);
+#ifdef __linux__
+        // rusage
+        int32_t l_s;
+        l_s = get_rusage(m_stat_cache);
+        if(l_s != STATUS_OK)
+        {
+                // TODO ...
+        }
+#endif
+        ao_stat = m_stat_cache;
+        ao_stat_list = m_stat_list_cache;
+        m_stat_last_time_ms = get_time_ms();
+        pthread_mutex_unlock(&m_stat_mutex);
 }
 
 //: ----------------------------------------------------------------------------
@@ -454,6 +458,7 @@ void hlx::set_collect_stats(bool a_val)
 void hlx::set_update_stats_ms(uint32_t a_update_ms)
 {
         m_t_conf->m_update_stats_ms = a_update_ms;
+        m_stat_update_ms = a_update_ms;
 }
 
 //: ----------------------------------------------------------------------------
