@@ -1033,9 +1033,9 @@ int32_t t_hlx::handle_listen_ev(hconn *a_hconn, nconn *a_nconn)
 
         // Get access info
         // TODO move to hconn???
-        l_new_nconn->get_remote_sa(l_hconn->m_access_info.m_conn_cln_sa,
-                                   l_hconn->m_access_info.m_conn_cln_sa_len);
-        l_hconn->m_lsnr->get_sa(l_hconn->m_access_info.m_conn_srv_sa,
+        a_nconn->get_remote_sa(l_hconn->m_access_info.m_conn_cln_sa,
+                               l_hconn->m_access_info.m_conn_cln_sa_len);
+        a_hconn->m_lsnr->get_sa(l_hconn->m_access_info.m_conn_srv_sa,
                                 l_hconn->m_access_info.m_conn_srv_sa_len);
         return STATUS_OK;
 }

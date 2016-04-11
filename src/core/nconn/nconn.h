@@ -175,7 +175,7 @@ public:
         pre_connect_cb_t get_pre_connect_cb(void) const { return m_pre_connect_cb;};
         void get_remote_sa(sockaddr_storage &ao_sa, socklen_t &ao_sa_len)
         {
-                ao_sa = m_remote_sa;
+                memcpy(&ao_sa, &m_remote_sa, m_remote_sa_len);
                 ao_sa_len = m_remote_sa_len;
         };
 

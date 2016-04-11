@@ -463,6 +463,8 @@ int32_t nconn_tcp::ncaccept()
         {
                 int l_fd;
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd);
+                m_remote_sa_len = sizeof(m_remote_sa);
+                bzero(&m_remote_sa, m_remote_sa_len);
 #ifdef __linux__
                 l_fd = accept4(m_fd, (struct sockaddr *)&m_remote_sa, &m_remote_sa_len, SOCK_NONBLOCK);
 #else
