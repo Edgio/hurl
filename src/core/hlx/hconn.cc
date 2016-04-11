@@ -114,7 +114,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         case nconn::NC_MODE_READ:
         {
-                NDBG_PRINT("LABEL[%s] l_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
+                //NDBG_PRINT("LABEL[%s] l_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
                 switch(a_conn_status)
                 {
                 case nconn::NC_STATUS_EOF:
