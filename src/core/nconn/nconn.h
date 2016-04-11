@@ -29,6 +29,9 @@
 #include "hlx/scheme.h"
 #include "hlx/conn_status.h"
 #include "hlx/host_info.h"
+
+// For memcpy -TODO move into impl file
+#include <string.h>
 #include <string>
 #include <string.h>
 
