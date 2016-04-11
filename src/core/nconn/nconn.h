@@ -30,6 +30,7 @@
 #include "hlx/conn_status.h"
 #include "hlx/host_info.h"
 #include <string>
+#include <string.h>
 
 //: ----------------------------------------------------------------------------
 //: Macros
