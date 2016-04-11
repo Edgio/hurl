@@ -30,12 +30,13 @@
 #include "evr.h"
 #include "nconn.h"
 
-// TODO TEST
+// TODO -make non-blocking upstream obj generic
 #include "file.h"
 
 #include "hlx/default_rqst_h.h"
 #include "hlx/hmsg.h"
 #include "hlx/stat.h"
+#include "hlx/access.h"
 #include "ndebug.h"
 
 //: ----------------------------------------------------------------------------
@@ -55,6 +56,11 @@ class nconn;
 class t_hlx;
 class subr;
 class lsnr;
+
+#ifndef resp_done_cb_t
+// TODO move to handler specific resp cb...
+typedef int32_t (*resp_done_cb_t)(hconn &);
+#endif
 
 //: ----------------------------------------------------------------------------
 //:
@@ -98,7 +104,7 @@ class hconn {
 
 public:
         // -------------------------------------------------
-        // Publice members
+        // Public members
         // -------------------------------------------------
         hconn_type_t m_type;
 
@@ -122,8 +128,11 @@ public:
         subr *m_subr;
         uint64_t m_idx;
 
-        // TODO Test
+        // TODO -make non-blocking upstream obj generic
         filesender *m_fs;
+
+        access_info m_access_info;
+        resp_done_cb_t m_resp_done_cb;
 
         // -------------------------------------------------
         // Public methods

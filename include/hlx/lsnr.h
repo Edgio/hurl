@@ -32,6 +32,8 @@
 #include <stdint.h>
 #include <string>
 
+#include <sys/socket.h>
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -57,6 +59,11 @@ public:
         scheme_t get_scheme(void) const { return m_scheme;}
         url_router *get_url_router(void) const { return m_url_router;}
         rqst_h * get_default_route(void) { return m_default_handler;}
+        void get_sa(sockaddr_storage &ao_sa, socklen_t &ao_sa_len)
+        {
+                ao_sa = m_sa;
+                ao_sa_len = m_sa_len;
+        }
 
         // Setters
         int32_t set_local_addr_v4(const char *a_addr_str);
@@ -79,6 +86,8 @@ private:
         scheme_t m_scheme;
         uint32_t m_local_addr_v4;
         uint16_t m_port;
+        sockaddr_storage m_sa;
+        socklen_t m_sa_len;
 
         rqst_h *m_default_handler;
         url_router *m_url_router;

@@ -472,6 +472,16 @@ void hlx::set_timeout_ms(uint32_t a_val)
 }
 
 //: ----------------------------------------------------------------------------
+//: \details: Set response done callback
+//: \return:  NA
+//: \param:   a_name: server name
+//: ----------------------------------------------------------------------------
+void hlx::set_resp_done_cb(resp_done_cb_t a_cb)
+{
+        m_t_conf->m_resp_done_cb = a_cb;
+}
+
+//: ----------------------------------------------------------------------------
 //: \details: Set server name -used for requests/response headers
 //: \return:  NA
 //: \param:   a_name: server name

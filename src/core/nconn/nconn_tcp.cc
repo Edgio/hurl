@@ -462,14 +462,11 @@ int32_t nconn_tcp::ncaccept()
         if(m_tcp_state == TCP_STATE_LISTENING)
         {
                 int l_fd;
-                sockaddr_in l_addr;
-                uint32_t l_len;
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd);
-                l_len = sizeof(sockaddr_in);
 #ifdef __linux__
-                l_fd = accept4(m_fd, (struct sockaddr *)&l_addr, &l_len, SOCK_NONBLOCK);
+                l_fd = accept4(m_fd, (struct sockaddr *)&m_remote_sa, &m_remote_sa_len, SOCK_NONBLOCK);
 #else
-                l_fd = accept(m_fd, (struct sockaddr *)&l_addr, &l_len);
+                l_fd = accept(m_fd, (struct sockaddr *)&m_remote_sa, &m_remote_sa_len);
 #endif
                 if (l_fd < 0)
                 {

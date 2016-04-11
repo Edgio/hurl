@@ -67,8 +67,11 @@ hconn::hconn(void):
         m_subr(NULL),
         m_idx(0),
 
-        // TODO TEST
-        m_fs(NULL)
+        // TODO -make non-blocking upstream obj generic
+        m_fs(NULL),
+
+        m_access_info(),
+        m_resp_done_cb(NULL)
 {}
 
 //: ----------------------------------------------------------------------------
@@ -102,7 +105,6 @@ void hconn::clear(void)
 //: ----------------------------------------------------------------------------
 int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_status)
 {
-
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN_MODE[%d] CONN_STATUS[%d]\n",
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_conn_mode, a_conn_status);
         switch(a_conn_mode)
@@ -112,19 +114,19 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         case nconn::NC_MODE_READ:
         {
-                //NDBG_PRINT("LABEL[%s] l_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
+                NDBG_PRINT("LABEL[%s] l_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
                 switch(a_conn_status)
                 {
                 case nconn::NC_STATUS_EOF:
                 {
                         // Connect only && done --early exit...
-                        //NDBG_PRINT("Cleanup EOF\n");
+                        //NDBG_PRINT("NC_STATUS_EOF\n");
                         return STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         // subr...
-                        //NDBG_PRINT("Error: nc_run_state_machine.\n");
+                        //NDBG_PRINT("NC_STATUS_ERROR\n");
                         return STATUS_OK;
                 }
                 default:
@@ -152,7 +154,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 // request handling...
                                 if(handle_req() != STATUS_OK)
                                 {
-                                        //NDBG_PRINT("Error performing handle_req\n");
+                                        //NDBG_PRINT("NC_STATUS_ERROR\n");
                                         return nconn::NC_STATUS_ERROR;
                                 }
                                 if(m_hmsg)
@@ -166,7 +168,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                         m_in_q->reset_write();
                                 }
                         }
-                        //NDBG_PRINT("Error: nc_run_state_machine.\n");
+                        //NDBG_PRINT("Default.\n");
                         return STATUS_OK;
                 }
                 }
@@ -195,11 +197,12 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 {
                 case nconn::NC_STATUS_ERROR:
                 {
+                        //NDBG_PRINT("NC_STATUS_ERROR\n");
                         return STATUS_OK;
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        //NDBG_PRINT("Cleanup EOF\n");
+                        //NDBG_PRINT("NC_STATUS_EOF\n");
                         return STATUS_OK;
                 }
                 default:
@@ -207,24 +210,41 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         if(!m_nconn->is_accepting() &&
                             (m_out_q && !m_out_q->read_avail()))
                         {
+                                if(m_resp_done_cb)
+                                {
+                                        int32_t l_s;
+                                        l_s = m_resp_done_cb(*this);
+                                        if(l_s != 0)
+                                        {
+                                                //NDBG_PRINT("Error performing m_resp_done_cb\n");
+                                                // TODO Do nothing???
+                                        }
+                                }
+                                // TODO
+                                // access info callback here???
+
                                 //NDBG_PRINT("m_hmsg: %p\n", m_hmsg);
                                 //if(m_hmsg) NDBG_PRINT("m_hmsg->m_supports_keep_alives: %d\n", m_hmsg->m_supports_keep_alives);
                                 m_out_q->reset_write();
                                 if((m_hmsg != NULL) &&
                                    (m_hmsg->m_supports_keep_alives))
                                 {
+                                        //NDBG_PRINT("NC_STATUS_BREAK\n");
                                         return nconn::NC_STATUS_BREAK;
                                 }
                                 // No data left to send
+                                //NDBG_PRINT("NC_STATUS_EOF\n");
                                 return nconn::NC_STATUS_EOF;
                         }
                         else
                         {
                                 if(a_conn_status == nconn::NC_STATUS_OK)
                                 {
+                                        //NDBG_PRINT("NC_STATUS_BREAK\n");
                                         return nconn::NC_STATUS_BREAK;
                                 }
                         }
+                        //NDBG_PRINT("STATUS_OK\n");
                         return STATUS_OK;
                 }
                 }
@@ -235,6 +255,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         case nconn::NC_MODE_TIMEOUT:
         {
                 m_t_hlx->bump_num_cln_idle_killed();
+                //NDBG_PRINT("NC_MODE_TIMEOUT\n");
                 return STATUS_OK;
         }
         // -----------------------------------------------------------
@@ -242,6 +263,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         case nconn::NC_MODE_ERROR:
         {
+                //NDBG_PRINT("NC_MODE_ERROR\n");
                 return STATUS_OK;
         }
         // -----------------------------------------------------------
@@ -249,9 +271,11 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         // -----------------------------------------------------------
         default:
         {
+                //NDBG_PRINT("STATUS_OK\n");
                 return STATUS_OK;
         }
         }
+        //NDBG_PRINT("STATUS_OK\n");
         return STATUS_OK;
 }
 
@@ -515,6 +539,36 @@ int32_t hconn::handle_req(void)
         {
                 return STATUS_ERROR;
         }
+
+        // -------------------------------------------------
+        // access info
+        // TODO -this is a lil clunky...
+        // -------------------------------------------------
+        m_access_info.m_rqst_request = l_rqst->get_url();
+        const kv_map_list_t &l_headers = l_rqst->get_headers();
+        kv_map_list_t::const_iterator i_h;
+        if((i_h = l_headers.find("User-Agent")) != l_headers.end())
+        {
+                if(!i_h->second.empty())
+                {
+                        m_access_info.m_rqst_http_user_agent = i_h->second.front();
+                }
+        }
+        if((i_h = l_headers.find("Host")) != l_headers.end())
+        {
+                if(!i_h->second.empty())
+                {
+                        m_access_info.m_rqst_host = i_h->second.front();
+                }
+        }
+        if((i_h = l_headers.find("Referer")) != l_headers.end())
+        {
+                if(!i_h->second.empty())
+                {
+                        m_access_info.m_rqst_http_referer = i_h->second.front();
+                }
+        }
+
         //NDBG_PRINT("a_url_router:   %p\n", m_url_router);
         //NDBG_PRINT("a_req.m_method: %d\n", l_rqst->m_method);
         url_pmap_t l_pmap;
@@ -929,5 +983,26 @@ hlx *get_hlx(hconn &a_hconn)
         }
         return a_hconn.m_t_hlx->get_hlx();
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nconn *get_nconn(hconn &a_hconn)
+{
+        return a_hconn.m_nconn;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const access_info &get_access_info(hconn &a_hconn)
+{
+        return a_hconn.m_access_info;
+}
+
 
 } //namespace ns_hlx {

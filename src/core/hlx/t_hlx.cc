@@ -362,6 +362,10 @@ int32_t t_hlx::queue_api_resp(api_resp &a_api_resp, hconn &a_hconn)
 
                 }
         }
+
+        // access info
+        a_hconn.m_access_info.m_resp_status = a_api_resp.get_status();
+
         a_api_resp.serialize(*a_hconn.m_out_q);
         evr_file_writeable_cb(a_hconn.m_nconn);
         return STATUS_OK;
@@ -504,7 +508,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nconn *t_hlx::get_new_client_conn(int a_fd, scheme_t a_scheme, lsnr *a_lsnr)
+nconn *t_hlx::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
 {
         nconn *l_nconn;
         l_nconn = m_nconn_pool.get_new_active("CLIENT", a_scheme);
@@ -1005,26 +1009,34 @@ int32_t t_hlx::handle_listen_ev(hconn *a_hconn, nconn *a_nconn)
                 return STATUS_ERROR;
         }
 
-        int l_fd = l_status;
         // Get new connected client conn
         nconn *l_new_nconn = NULL;
-        l_new_nconn = get_new_client_conn(l_fd, a_nconn->get_scheme(), a_hconn->m_lsnr);
+        l_new_nconn = get_new_client_conn(a_nconn->get_scheme(), a_hconn->m_lsnr);
         if(!l_new_nconn)
         {
                 //NDBG_PRINT("Error performing get_new_client_conn");
                 return STATUS_ERROR;
         }
 
+        hconn *l_hconn = static_cast<hconn *>(l_new_nconn->get_data());
+
         // Set connected
+        int l_fd = l_status;
         l_status = l_new_nconn->nc_set_accepting(l_fd);
         if(l_status != STATUS_OK)
         {
                 //NDBG_PRINT("Error: performing run_state_machine\n");
-                cleanup_conn((static_cast<hconn *>(l_new_nconn->get_data())),l_new_nconn);
+                cleanup_conn(l_hconn, l_new_nconn);
                 // TODO Check return
                 return STATUS_ERROR;
         }
 
+        // Get access info
+        // TODO move to hconn???
+        l_new_nconn->get_remote_sa(l_hconn->m_access_info.m_conn_cln_sa,
+                                   l_hconn->m_access_info.m_conn_cln_sa_len);
+        l_hconn->m_lsnr->get_sa(l_hconn->m_access_info.m_conn_cln_sa,
+                                l_hconn->m_access_info.m_conn_cln_sa_len);
         return STATUS_OK;
 }
 
@@ -1850,6 +1862,7 @@ hconn * t_hlx::get_hconn(lsnr *a_lsnr,
         if(a_type == HCONN_TYPE_CLIENT)
         {
                 http_parser_init(&(l_hconn->m_http_parser), HTTP_REQUEST);
+                l_hconn->m_resp_done_cb = m_t_conf->m_resp_done_cb;
         }
         else
         {

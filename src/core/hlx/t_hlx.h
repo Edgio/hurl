@@ -145,7 +145,7 @@ private:
         }
 
         // Get new client connection
-        nconn *get_new_client_conn(int a_fd, scheme_t a_scheme, lsnr *a_lsnr);
+        nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
         int32_t config_conn(nconn &a_nconn,
                             hconn_type_t a_type,
                             bool a_save,

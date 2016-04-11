@@ -70,6 +70,12 @@ struct t_conf;
 class nconn;
 class hconn;
 class api_resp;
+class access_info;
+
+#ifndef resp_done_cb_t
+// TODO move to handler specific resp cb...
+typedef int32_t (*resp_done_cb_t)(hconn &);
+#endif
 
 //: ----------------------------------------------------------------------------
 //: hlx
@@ -102,6 +108,7 @@ public:
         void set_collect_stats(bool a_val);
         void set_update_stats_ms(uint32_t a_update_ms);
         void set_timeout_ms(uint32_t a_val);
+        void set_resp_done_cb(resp_done_cb_t a_cb);
 
         // Server name
         void set_server_name(const std::string &a_name);
@@ -209,6 +216,12 @@ const std::string &nconn_get_last_error_str(nconn &a_nconn);
 //: ----------------------------------------------------------------------------
 //: hnconn_utils
 //: ----------------------------------------------------------------------------
+// Get connection
+nconn *get_nconn(hconn &a_hconn);
+
+// Get access info
+const access_info &get_access_info(hconn &a_hconn);
+
 // API Responses
 api_resp &create_api_resp(hconn &a_hconn);
 int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);

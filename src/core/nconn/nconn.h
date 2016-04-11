@@ -173,6 +173,11 @@ public:
         host_info get_host_info(void) {return m_host_info;}
         bool get_host_info_is_set(void) {return m_host_info_is_set;}
         pre_connect_cb_t get_pre_connect_cb(void) const { return m_pre_connect_cb;};
+        void get_remote_sa(sockaddr_storage &ao_sa, socklen_t &ao_sa_len)
+        {
+                ao_sa = m_remote_sa;
+                ao_sa_len = m_remote_sa_len;
+        };
 
         // Setters
         void set_label(const std::string &a_label) {m_label = a_label;}
@@ -251,6 +256,8 @@ protected:
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
         bool m_connect_only;
+        sockaddr_storage m_remote_sa;
+        socklen_t m_remote_sa_len;
         pre_connect_cb_t m_pre_connect_cb;
 
 private:
@@ -282,6 +289,7 @@ private:
         uint32_t m_pool_id;
         nconn_cb_t m_read_cb;
         nconn_cb_t m_write_cb;
+
 };
 
 } //namespace ns_hlx {

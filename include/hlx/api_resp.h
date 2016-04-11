@@ -57,6 +57,7 @@ public:
         // Request Parts
         // Getters
         const kv_map_list_t &get_headers(void);
+        http_status_t get_status(void);
 
         // Setters
         void set_status(http_status_t a_status);

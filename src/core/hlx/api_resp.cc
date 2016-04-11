@@ -196,6 +196,16 @@ const kv_map_list_t &api_resp::get_headers(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+http_status_t api_resp::get_status(void)
+{
+        return m_status;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void api_resp::add_std_headers(http_status_t a_status, const char *a_content_type,
                                uint64_t a_len, const rqst &a_rqst,
                                const hlx &a_hlx)

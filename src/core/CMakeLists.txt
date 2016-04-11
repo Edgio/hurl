@@ -115,6 +115,7 @@ SET(SRCS
     ./hlx/hlx.cc
     ./hlx/t_hlx.cc
     ./hlx/hconn.cc
+    ./hlx/access.cc
     ./hlx/api_resp.cc
     
     ./hlx/handler/rqst_h.cc
@@ -156,6 +157,7 @@ SET(HDRS
     ../../include/hlx/api_resp.h
     ../../include/hlx/lsnr.h
     ../../include/hlx/subr.h
+    ../../include/hlx/access.h
     ../../include/hlx/hlx.h
 
     ../../include/hlx/rqst_h.h

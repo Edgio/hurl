@@ -58,6 +58,7 @@ typedef struct t_conf
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
+        resp_done_cb_t m_resp_done_cb;
         hlx *m_hlx;
 
         // TLS Config
@@ -98,6 +99,7 @@ typedef struct t_conf
                 m_sock_opt_recv_buf_size(0),
                 m_sock_opt_send_buf_size(0),
                 m_sock_opt_no_delay(false),
+                m_resp_done_cb(NULL),
                 m_hlx(NULL),
                 m_tls_server_ctx(NULL),
                 m_tls_server_ctx_key(),
