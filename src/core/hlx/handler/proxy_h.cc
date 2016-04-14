@@ -77,7 +77,6 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         l_subr.set_completion_cb(s_completion_cb);
         std::string l_host = l_subr.get_host();
         l_subr.set_headers(a_rqst.get_headers());
-        l_subr.set_header("Host", l_host);
         l_subr.set_keepalive(true);
         // -------------------------------------------------
         // TODO enum cast here is of course uncool -but
