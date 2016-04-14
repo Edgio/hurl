@@ -89,20 +89,32 @@ endif()
 macro(find_ubuntu_package output_var_prefix include_test_file
                 library_test_file ubuntu_package
                 ubuntu_build_package)
+
+  # handle optional prefix_path arg
+  if (${ARGC} EQUAL 6)
+          set(prefix_path "${ARGN}")
+          message(STATUS "Got prefix path: '${prefix_path}' for package: ${ubuntu_build_package}")
+          # set(list_var "${ARGN}")
+          # message(STATUS "got ARGC: ${ARGC}")
+          # foreach(loop_var IN LISTS list_var)
+          #         message(STATUS "got arg: ${loop_var}")
+          # endforeach()
+  endif()
+
   if (NOT "${include_test_file}" STREQUAL "")
-          find_path(${output_var_prefix}_INCLUDE_DIR ${include_test_file})
+          find_path(${output_var_prefix}_INCLUDE_DIR ${include_test_file}) # HINTS ${prefix_path} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_SYSTEN_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
           if (${output_var_prefix}_INCLUDE_DIR)
-                  if(NOT "${output_var_prefix}_INCLUDE_DIR" STREQUAL "/usr/include")
+                  #if(NOT "${output_var_prefix}_INCLUDE_DIR" STREQUAL "/usr/include")
                           message(STATUS "Found ${output_var_prefix} include: ${${output_var_prefix}_INCLUDE_DIR}")
-                  endif()
+                  #endif()
           else()
-                  message("Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
+                  message("aaaa Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
                   LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
                   SET(FAILED_PACKAGES 1)
           endif()
   endif()
   if (NOT "${library_test_file}" STREQUAL "")
-          find_library(${output_var_prefix}_LIBS ${library_test_file})
+          find_library(${output_var_prefix}_LIBS ${library_test_file} HINTS ${prefix_path} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
           if (${output_var_prefix}_LIBS)
                   message(STATUS "Found ${output_var_prefix} lib: ${${output_var_prefix}_LIBS}")
                   LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
@@ -162,9 +174,9 @@ endif()
 # ------------------------------------------------------------------------------
 if (BUILD_TCMALLOC)
   if (BUILD_UBUNTU)
-    find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a "" "")
+    find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a "" libgoogle-perftools-dev)
     find_ubuntu_package(LIBZMA lzma.h liblzma.a liblzma5 liblzma-dev)
-    find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "" "")
+    find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "" libunwind8-dev)
     LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
   else()
     set(LIBRARIES ${LIBRARIES} tcmalloc)
@@ -209,7 +221,7 @@ if(BUILD_UDNS)
     CONFIGURE_COMMAND "./configure"
     BUILD_COMMAND make
     INSTALL_COMMAND ""
-  )  
+  )
   add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
 
