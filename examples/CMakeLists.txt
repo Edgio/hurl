@@ -41,12 +41,12 @@ SET_TARGET_PROPERTIES(basic PROPERTIES OUTPUT_NAME "basic")
 target_link_libraries(basic ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
-# subrequest
+# proxy
 # ----------------------------------------------------------
-add_executable(subrequest subrequest.cc)
-add_dependencies(subrequest hlxcore)
-SET_TARGET_PROPERTIES(subrequest PROPERTIES OUTPUT_NAME "subrequest")
-target_link_libraries(subrequest ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+add_executable(proxy proxy.cc)
+add_dependencies(proxy hlxcore)
+SET_TARGET_PROPERTIES(proxy PROPERTIES OUTPUT_NAME "proxy")
+target_link_libraries(proxy ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
 # floodecho
