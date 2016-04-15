@@ -129,7 +129,8 @@ int32_t proxy_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
         }
 
         // access info
-        l_hconn->m_access_info.m_resp_status = a_resp.get_status();
+        l_hconn->m_access_info.m_resp_status = (http_status_t)a_resp.get_status();
+        // TODO enum cast is bad -will fix
 
         int32_t l_s;
         l_s = queue_resp(*l_hconn);
