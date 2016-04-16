@@ -41,12 +41,28 @@ SET_TARGET_PROPERTIES(basic PROPERTIES OUTPUT_NAME "basic")
 target_link_libraries(basic ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
+# basic_accesslog
+# ----------------------------------------------------------
+add_executable(basic_accesslog basic_accesslog.cc)
+add_dependencies(basic_accesslog hlxcore)
+SET_TARGET_PROPERTIES(basic_accesslog PROPERTIES OUTPUT_NAME "basic_accesslog")
+target_link_libraries(basic_accesslog ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+
+# ----------------------------------------------------------
 # proxy
 # ----------------------------------------------------------
 add_executable(proxy proxy.cc)
 add_dependencies(proxy hlxcore)
 SET_TARGET_PROPERTIES(proxy PROPERTIES OUTPUT_NAME "proxy")
 target_link_libraries(proxy ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+
+# ----------------------------------------------------------
+# proxy_accesslog
+# ----------------------------------------------------------
+add_executable(proxy_accesslog proxy_accesslog.cc)
+add_dependencies(proxy_accesslog hlxcore)
+SET_TARGET_PROPERTIES(proxy_accesslog PROPERTIES OUTPUT_NAME "proxy_accesslog")
+target_link_libraries(proxy_accesslog ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 
 # ----------------------------------------------------------
 # floodecho

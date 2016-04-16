@@ -37,7 +37,6 @@
 #include "hlx/hmsg.h"
 #include "hlx/stat.h"
 #include "hlx/access.h"
-#include "ndebug.h"
 
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -120,8 +119,8 @@ public:
 
         bool m_save;
         //uint16_t m_status_code;
-        bool m_verbose;
-        bool m_color;
+        bool m_rqst_resp_logging;
+        bool m_rqst_resp_logging_color;
         lsnr *m_lsnr;
         nbq *m_in_q;
         nbq *m_out_q;

@@ -28,7 +28,7 @@
 #include "ai_cache.h"
 #include "nresolver.h"
 #include "ndebug.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "nlookup.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS

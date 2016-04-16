@@ -95,7 +95,8 @@ SET(SRCS
     ./support/uri.cc
     ./support/nbq.cc
     ./support/file.cc
-    
+    ./support/trace.cc
+
     ./nconn/nconn.cc
     ./nconn/nconn_tcp.cc
     ./nconn/nconn_tls.cc
@@ -147,6 +148,8 @@ SET(HDRS
 
     ../../include/hlx/url_router.h
 
+    ../../include/hlx/time_util.h
+    ../../include/hlx/trace.h
     ../../include/hlx/stat.h
 
     ../../include/hlx/hmsg.h

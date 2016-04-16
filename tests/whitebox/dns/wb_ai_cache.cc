@@ -26,7 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/host_info.h"
 #include "ai_cache.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "catch/catch.hpp"
 
 #include <unistd.h>

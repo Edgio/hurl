@@ -33,7 +33,7 @@
 #include "nbq.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "ndebug.h"
 
 #include <unistd.h>
@@ -451,11 +451,11 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
                 }
 
                 // Display data from out q
-                if(m_t_conf->m_verbose)
+                if(m_t_conf->m_rqst_resp_logging)
                 {
-                        if(m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
+                        if(m_t_conf->m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
                         a_hconn.m_out_q->print();
-                        if(m_t_conf->m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                        if(m_t_conf->m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
                 }
         }
         ++m_stat.m_ups_reqs;
@@ -1017,8 +1017,20 @@ int32_t t_hlx::handle_listen_ev(hconn *a_hconn, nconn *a_nconn)
                 //NDBG_PRINT("Error performing get_new_client_conn");
                 return STATUS_ERROR;
         }
-
         hconn *l_hconn = static_cast<hconn *>(l_new_nconn->get_data());
+
+        // ---------------------------------------
+        // Set access info
+        // TODO move to hconn???
+        // ---------------------------------------
+        a_nconn->get_remote_sa(l_hconn->m_access_info.m_conn_cln_sa,
+                               l_hconn->m_access_info.m_conn_cln_sa_len);
+        a_hconn->m_lsnr->get_sa(l_hconn->m_access_info.m_conn_srv_sa,
+                                l_hconn->m_access_info.m_conn_srv_sa_len);
+        l_hconn->m_access_info.m_start_time_ms = get_time_ms();
+        l_hconn->m_access_info.m_total_time_ms = 0;
+        l_hconn->m_access_info.m_bytes_in = 0;
+        l_hconn->m_access_info.m_bytes_out = 0;
 
         // Set connected
         int l_fd = l_status;
@@ -1030,13 +1042,6 @@ int32_t t_hlx::handle_listen_ev(hconn *a_hconn, nconn *a_nconn)
                 // TODO Check return
                 return STATUS_ERROR;
         }
-
-        // Get access info
-        // TODO move to hconn???
-        a_nconn->get_remote_sa(l_hconn->m_access_info.m_conn_cln_sa,
-                               l_hconn->m_access_info.m_conn_cln_sa_len);
-        a_hconn->m_lsnr->get_sa(l_hconn->m_access_info.m_conn_srv_sa,
-                                l_hconn->m_access_info.m_conn_srv_sa_len);
         return STATUS_OK;
 }
 
@@ -1552,7 +1557,6 @@ void *t_hlx::t_run(void *a_nothing)
                         // TODO log run failure???
 
                 }
-
                 // Subrequests
                 l_status = subr_try_deq();
                 if(l_status != STATUS_OK)
@@ -1560,7 +1564,6 @@ void *t_hlx::t_run(void *a_nothing)
                         //NDBG_PRINT("Error performing subr_try_deq.\n");
                         //return NULL;
                 }
-
         }
         //NDBG_PRINT("Stopped...\n");
         m_stopped = true;
@@ -1843,8 +1846,8 @@ hconn * t_hlx::get_hconn(lsnr *a_lsnr,
         l_hconn->m_lsnr = a_lsnr;
         l_hconn->m_timer_obj = NULL;
         l_hconn->m_save = a_save;
-        l_hconn->m_verbose = m_t_conf->m_verbose;
-        l_hconn->m_color = m_t_conf->m_color;
+        l_hconn->m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
+        l_hconn->m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
         l_hconn->m_type = a_type;
         //l_hconn->m_status_code = 0;
         l_hconn->m_http_parser_settings.on_status = hp_on_status;

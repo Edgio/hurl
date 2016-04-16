@@ -30,6 +30,8 @@
 #include "hlx/api_resp.h"
 #include "hlx/subr.h"
 #include "hlx/lsnr.h"
+#include "hlx/time_util.h"
+#include "hlx/trace.h"
 #include "tinymt64.h"
 
 #include <string.h>
@@ -220,9 +222,6 @@ private:
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-uint64_t hurl_get_time_us(void);
-uint64_t hurl_get_time_ms(void);
-uint64_t hurl_get_delta_time_ms(uint64_t a_start_time_ms);
 void display_results_line_desc(settings_struct &a_settings);
 void display_results_line(settings_struct &a_settings);
 void display_responses_line_desc(settings_struct &a_settings);
@@ -398,7 +397,7 @@ void command_exec(settings_struct_t &a_settings)
                 // Check for done
                 if(a_settings.m_run_time_ms != -1)
                 {
-                        int32_t l_time_delta_ms = (int32_t)(hurl_get_delta_time_ms(a_settings.m_start_time_ms));
+                        int32_t l_time_delta_ms = (int32_t)(ns_hlx::get_delta_time_ms(a_settings.m_start_time_ms));
                         if(l_time_delta_ms >= a_settings.m_run_time_ms)
                         {
                                 g_test_finished = true;
@@ -1098,7 +1097,7 @@ int main(int argc, char** argv)
 
         // Initialize rand...
         g_rand_ptr = (tinymt64_t*)calloc(1, sizeof(tinymt64_t));
-        tinymt64_init(g_rand_ptr, hurl_get_time_us());
+        tinymt64_init(g_rand_ptr, ns_hlx::get_time_us());
 
         // Initialize mutex for sequential path requesting
         pthread_mutex_init(&g_path_vector_mutex, NULL);
@@ -1503,7 +1502,7 @@ int main(int argc, char** argv)
                 {
                         l_settings.m_verbose = true;
                         l_subr->set_save(true);
-                        l_hlx->set_verbose(true);
+                        l_hlx->set_rqst_resp_logging(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1512,7 +1511,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx->set_color(true);
+                        l_hlx->set_rqst_resp_logging_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1775,7 +1774,7 @@ int main(int argc, char** argv)
                 return -1;
         }
 
-        uint64_t l_start_time_ms = hurl_get_time_ms();
+        uint64_t l_start_time_ms = ns_hlx::get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
         l_settings.m_last_display_time_ms = l_start_time_ms;
 
@@ -1796,7 +1795,7 @@ int main(int argc, char** argv)
         if (!l_gprof_file.empty())
                 ProfilerStop();
 #endif
-        uint64_t l_end_time_ms = hurl_get_time_ms() - l_start_time_ms;
+        uint64_t l_end_time_ms = ns_hlx::get_time_ms() - l_start_time_ms;
 
         std::string l_out_str;
         switch(l_results_scheme)

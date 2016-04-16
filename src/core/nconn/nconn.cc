@@ -27,7 +27,7 @@
 #include "nconn.h"
 #include "nbq.h"
 #include "evr.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "ndebug.h"
 
 #include <errno.h>

@@ -95,11 +95,6 @@ public:
         hlx();
         ~hlx();
 
-        // General
-        void set_verbose(bool a_val);
-        void set_color(bool a_val);
-        void set_stats(bool a_val);
-
         // Settings
         void set_num_threads(uint32_t a_num_threads);
         void set_num_parallel(uint32_t a_num_parallel);
@@ -109,6 +104,9 @@ public:
         void set_update_stats_ms(uint32_t a_update_ms);
         void set_timeout_ms(uint32_t a_val);
         void set_resp_done_cb(resp_done_cb_t a_cb);
+        void set_rqst_resp_logging(bool a_val);
+        void set_rqst_resp_logging_color(bool a_val);
+        void set_stats(bool a_val);
 
         // Server name
         void set_server_name(const std::string &a_name);

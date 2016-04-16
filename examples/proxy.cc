@@ -73,8 +73,8 @@ int main(void)
         g_hlx->register_lsnr(l_lsnr);
         g_hlx->set_num_threads(0);
         //g_hlx->set_num_threads(1);
-        //g_hlx->set_verbose(true);
-        //g_hlx->set_color(true);
+        //g_hlx->set_rqst_resp_logging(true);
+        //g_hlx->set_rqst_resp_logging_color(true);
         //ProfilerStart("tmp.prof");
         g_hlx->run();
         //sleep(1);

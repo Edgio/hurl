@@ -31,7 +31,6 @@
 #include "hlx/subr.h"
 
 #include "nconn_pool.h"
-#include "ndebug.h"
 #include "evr.h"
 #include "cb.h"
 #include "hconn.h"
@@ -136,7 +135,9 @@ private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        DISALLOW_COPY_AND_ASSIGN(t_hlx)
+        // Disallow copy/assign
+        t_hlx& operator=(const t_hlx &);
+        t_hlx(const t_hlx &);
 
         //Helper for pthreads
         static void *t_run_static(void *a_context)

@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/rqst.h"
+#include "hlx/trace.h"
 #include "http_parser/http_parser.h"
 #include "nbq.h"
 #include "ndebug.h"
@@ -42,7 +43,7 @@ namespace ns_hlx {
 rqst::rqst(void):
         hmsg(),
         m_p_url(),
-        m_method(),
+        m_method(HTTP_GET),
         m_url_parsed(false),
         m_url(),
         m_url_path(),
@@ -72,7 +73,7 @@ void rqst::clear(void)
 {
         hmsg::clear();
         m_p_url.clear();
-        m_method = 0;
+        m_method = HTTP_GET;
         m_url.clear();
         m_url_path.clear();
         m_url_query.clear();
@@ -156,7 +157,6 @@ const query_map_t &rqst::get_url_query_map()
         return m_url_query_map;
 }
 
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -173,6 +173,22 @@ const std::string &rqst::get_url_fragment()
                 }
         }
         return m_url_fragment;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+const char *rqst::get_method_str()
+{
+        // -------------------------------------------------
+        // TODO enum cast here is of course uncool -but
+        // m_method value is populated by http_parser so
+        // "ought" to be safe.
+        // Will fix later
+        // -------------------------------------------------
+        return http_method_str((enum http_method)m_method);
 }
 
 //: ----------------------------------------------------------------------------
@@ -311,32 +327,17 @@ void rqst::show(void)
         cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
         print_part(*m_q, m_p_url.m_off, m_p_url.m_len);
-        NDBG_OUTPUT("\r\n");
+        TRC_OUTPUT("\r\n");
         for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)
         {
                 print_part(*m_q, i_k->m_off, i_k->m_len);
-                NDBG_OUTPUT(": ");
+                TRC_OUTPUT(": ");
                 print_part(*m_q, i_v->m_off, i_v->m_len);
-                NDBG_OUTPUT("\r\n");
+                TRC_OUTPUT("\r\n");
         }
-        NDBG_OUTPUT("\r\n");
+        TRC_OUTPUT("\r\n");
         print_part(*m_q, m_p_body.m_off, m_p_body.m_len);
-        NDBG_OUTPUT("\r\n");
-}
-
-
-//: ----------------------------------------------------------------------------
-//: rqst utils
-//: ----------------------------------------------------------------------------
-const char *get_http_method_str(int a_method)
-{
-        // -------------------------------------------------
-        // TODO enum cast here is of course uncool -but
-        // m_method value is populated by http_parser so
-        // "ought" to be safe.
-        // Will fix later
-        // -------------------------------------------------
-        return http_method_str((enum http_method)a_method);
+        TRC_OUTPUT("\r\n");
 }
 
 } //namespace ns_hlx {

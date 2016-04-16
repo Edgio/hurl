@@ -28,10 +28,11 @@
 #include "hlx/url_router.h"
 #include "hlx/api_resp.h"
 #include "hlx/lsnr.h"
+#include "hlx/time_util.h"
+#include "hlx/trace.h"
 
 #include "t_hlx.h"
 #include "hconn.h"
-#include "time_util.h"
 #include "nbq.h"
 #include "ndebug.h"
 
@@ -59,8 +60,8 @@ hconn::hconn(void):
         m_cur_buf(NULL),
         m_save(false),
         //m_status_code(0),
-        m_verbose(false),
-        m_color(false),
+        m_rqst_resp_logging(false),
+        m_rqst_resp_logging_color(false),
         m_lsnr(NULL),
         m_in_q(NULL),
         m_out_q(NULL),
@@ -89,8 +90,8 @@ void hconn::clear(void)
         m_cur_off = 0;
         m_cur_buf = NULL;
         m_save = false;
-        m_verbose = false;
-        m_color = false;
+        m_rqst_resp_logging = false;
+        m_rqst_resp_logging_color = false;
         m_lsnr = NULL;
         m_in_q = NULL;
         m_out_q = NULL;
@@ -131,6 +132,10 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 }
                 default:
                 {
+                        if(a_conn_status > 0)
+                        {
+                                m_access_info.m_bytes_in += a_conn_status;
+                        }
                         //NDBG_PRINT("m_nconn->is_done(): %d\n", m_nconn->is_done());
                         //NDBG_PRINT("m_hmsg:             %p\n", m_hmsg);
                         //NDBG_PRINT("m_hmsg->m_complete: %d\n", m_hmsg->m_complete);
@@ -141,11 +146,11 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         {
                                 // Display...
                                 // TODO FIX!!!
-                                if(m_verbose && m_hmsg)
+                                if(m_rqst_resp_logging && m_hmsg)
                                 {
-                                        if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                                        if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
                                         m_hmsg->show();
-                                        if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                                        if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                                 }
 
                                 //NDBG_PRINT("g_req_num: %d\n", ++g_req_num);
@@ -207,9 +212,14 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 }
                 default:
                 {
+                        if(a_conn_status > 0)
+                        {
+                                m_access_info.m_bytes_out += a_conn_status;
+                        }
                         if(!m_nconn->is_accepting() &&
                             (m_out_q && !m_out_q->read_avail()))
                         {
+                                m_access_info.m_total_time_ms = get_time_ms() - m_access_info.m_start_time_ms;
                                 if(m_resp_done_cb)
                                 {
                                         int32_t l_s;
@@ -220,9 +230,6 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                                 // TODO Do nothing???
                                         }
                                 }
-                                // TODO
-                                // access info callback here???
-
                                 //NDBG_PRINT("m_hmsg: %p\n", m_hmsg);
                                 //if(m_hmsg) NDBG_PRINT("m_hmsg->m_supports_keep_alives: %d\n", m_hmsg->m_supports_keep_alives);
                                 m_out_q->reset_write();
@@ -352,11 +359,11 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         {
                                 // Display...
                                 // TODO FIX!!!
-                                if(m_verbose && m_hmsg)
+                                if(m_rqst_resp_logging && m_hmsg)
                                 {
-                                        if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                                        if(m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
                                         m_hmsg->show();
-                                        if(m_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                                        if(m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
                                 }
 
                                 // Get request time
@@ -568,13 +575,14 @@ int32_t hconn::handle_req(void)
                         m_access_info.m_rqst_http_referer = i_h->second.front();
                 }
         }
-
-        //NDBG_PRINT("a_url_router:   %p\n", m_url_router);
-        //NDBG_PRINT("a_req.m_method: %d\n", l_rqst->m_method);
+        m_access_info.m_rqst_method = l_rqst->get_method_str();
+        m_access_info.m_rqst_http_major = l_rqst->m_http_major;
+        m_access_info.m_rqst_http_minor = l_rqst->m_http_minor;
+        TRC_DEBUG("RQST: %s %s\n", l_rqst->get_method_str(), l_rqst->get_url().c_str());
         url_pmap_t l_pmap;
         h_resp_t l_hdlr_status = H_RESP_NONE;
         rqst_h *l_rqst_h = (rqst_h *)m_lsnr->get_url_router()->find_route(l_rqst->get_url_path(),l_pmap);
-        //NDBG_PRINT("l_rqst_h:       %p\n", l_rqst_h);
+        TRC_VERBOSE("l_rqst_h: %p\n", l_rqst_h);
         if(l_rqst_h)
         {
                 if(l_rqst_h->get_do_default())

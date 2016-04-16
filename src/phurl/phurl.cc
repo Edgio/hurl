@@ -1479,7 +1479,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_hlx->set_verbose(true);
+                        l_hlx->set_rqst_resp_logging(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1488,7 +1488,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx->set_color(true);
+                        l_hlx->set_rqst_resp_logging_color(true);
                         break;
                 }
                 // ---------------------------------------

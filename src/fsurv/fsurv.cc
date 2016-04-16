@@ -11,6 +11,7 @@
 #include "hlx/stat.h"
 #include "hlx/file_h.h"
 #include "hlx/lsnr.h"
+#include "hlx/time_util.h"
 
 // getrlimit
 #include <sys/time.h>
@@ -139,8 +140,6 @@ private:
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-uint64_t fsurv_get_time_ms(void);
-uint64_t fsurv_get_delta_time_ms(uint64_t a_start_time_ms);
 void display_results_line_desc(settings_struct &a_settings);
 void display_results_line(settings_struct &a_settings);
 
@@ -529,7 +528,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_hlx->set_verbose(true);
+                        l_hlx->set_rqst_resp_logging(true);
                         break;
                 }
                 // ---------------------------------------
@@ -538,7 +537,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx->set_color(true);
+                        l_hlx->set_rqst_resp_logging_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -670,7 +669,7 @@ int main(int argc, char** argv)
         }
 #endif
 
-        uint64_t l_start_time_ms = fsurv_get_time_ms();
+        uint64_t l_start_time_ms = ns_hlx::get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
 
         // -------------------------------------------

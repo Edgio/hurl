@@ -26,7 +26,6 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
 #include "evr.h"
 #include "hlx/hlx.h"
 
@@ -47,8 +46,8 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 typedef struct t_conf
 {
-        bool m_verbose;
-        bool m_color;
+        bool m_rqst_resp_logging;
+        bool m_rqst_resp_logging_color;
         evr_loop_type_t m_evr_loop_type;
         int32_t m_num_parallel;
         uint32_t m_timeout_ms;
@@ -82,8 +81,8 @@ typedef struct t_conf
         // Defaults...
         // ---------------------------------
         t_conf():
-                m_verbose(false),
-                m_color(false),
+                m_rqst_resp_logging(false),
+                m_rqst_resp_logging_color(false),
 #if defined(__linux__)
                 m_evr_loop_type(EVR_LOOP_EPOLL),
 #elif defined(__FreeBSD__) || defined(__APPLE__)
@@ -116,8 +115,9 @@ typedef struct t_conf
         {}
 
 private:
-        DISALLOW_COPY_AND_ASSIGN(t_conf);
-
+        // Disallow copy/assign
+        t_conf& operator=(const t_conf &);
+        t_conf(const t_conf &);
 } conf_t;
 
 } //namespace ns_hlx {

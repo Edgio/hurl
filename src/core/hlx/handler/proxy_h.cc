@@ -78,13 +78,7 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         std::string l_host = l_subr.get_host();
         l_subr.set_headers(a_rqst.get_headers());
         l_subr.set_keepalive(true);
-        // -------------------------------------------------
-        // TODO enum cast here is of course uncool -but
-        // m_method value is populated by http_parser so
-        // "ought" to be safe.
-        // Will fix later
-        // -------------------------------------------------
-        l_subr.set_verb(get_http_method_str(a_rqst.m_method));
+        l_subr.set_verb(a_rqst.get_method_str());
         l_subr.set_body_data(a_rqst.get_body_data(), a_rqst.get_body_len());
         int32_t l_s;
         l_s = queue_subr(a_hconn, l_subr);

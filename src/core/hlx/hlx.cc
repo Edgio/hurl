@@ -29,7 +29,7 @@
 #include "hlx/lsnr.h"
 
 #include "ndebug.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "t_hlx.h"
 #include "nresolver.h"
 #include "nconn_tcp.h"
@@ -375,9 +375,9 @@ bool hlx::is_running(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_verbose(bool a_val)
+void hlx::set_rqst_resp_logging(bool a_val)
 {
-        m_t_conf->m_verbose = a_val;
+        m_t_conf->m_rqst_resp_logging = a_val;
 }
 
 //: ----------------------------------------------------------------------------
@@ -385,9 +385,9 @@ void hlx::set_verbose(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_color(bool a_val)
+void hlx::set_rqst_resp_logging_color(bool a_val)
 {
-        m_t_conf->m_color = a_val;
+        m_t_conf->m_rqst_resp_logging_color = a_val;
 }
 
 //: ----------------------------------------------------------------------------

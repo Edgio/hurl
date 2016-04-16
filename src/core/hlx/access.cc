@@ -39,6 +39,9 @@ access_info::access_info(void):
         m_conn_srv_sa_len(0),
         m_rqst_host(),
         m_rqst_scheme(),
+        m_rqst_method(""),
+        m_rqst_http_major(0),
+        m_rqst_http_minor(0),
         m_rqst_request(),
         m_rqst_query_string(),
         m_rqst_http_user_agent(),
@@ -46,7 +49,10 @@ access_info::access_info(void):
         m_rqst_request_length(),
         m_resp_time_local(),
         m_resp_status(),
-        m_resp_bytes_sent()
+        m_bytes_in(0),
+        m_bytes_out(0),
+        m_start_time_ms(0),
+        m_total_time_ms(0)
 {
 }
 

@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn_tls.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "evr.h"
 #include "tls_util.h"
 #include "ndebug.h"

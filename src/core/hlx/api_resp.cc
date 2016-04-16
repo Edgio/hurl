@@ -30,7 +30,7 @@
 
 #include "nbq.h"
 #include "string_util.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 #include "http_resp.h"
 
 #include <string.h>

@@ -28,7 +28,7 @@
 #include "evr_select.h"
 #include "evr_epoll.h"
 #include "ndebug.h"
-#include "time_util.h"
+#include "hlx/time_util.h"
 
 #include <errno.h>
 #include <string.h>

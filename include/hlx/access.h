@@ -56,6 +56,9 @@ public:
         // -----------------------------------
         std::string m_rqst_host;
         scheme_t m_rqst_scheme;
+        const char *m_rqst_method;
+        uint8_t m_rqst_http_major;
+        uint8_t m_rqst_http_minor;
         std::string m_rqst_request;
         std::string m_rqst_query_string;
         std::string m_rqst_http_user_agent;
@@ -68,10 +71,13 @@ public:
         // -----------------------------------
         // Response info
         // -----------------------------------
-        // local time in the Common Log Format (1.3.12, 1.2.7)
+        // local time in the "Common Log Format"
         std::string m_resp_time_local;
         http_status_t m_resp_status;
-        uint64_t m_resp_bytes_sent;
+        uint64_t m_bytes_in;
+        uint64_t m_bytes_out;
+        uint64_t m_start_time_ms;
+        uint64_t m_total_time_ms;
 
         // -------------------------------------------------
         // Public methods

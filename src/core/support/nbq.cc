@@ -24,6 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/trace.h"
 #include "nbq.h"
 #include "ndebug.h"
 #include <string.h>
@@ -598,7 +599,7 @@ char *copy_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
 void print_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
 {
         char *l_buf = copy_part(a_nbq, a_off, a_len);
-        NDBG_OUTPUT("%.*s", (int)a_len, l_buf);
+        TRC_OUTPUT("%.*s", (int)a_len, l_buf);
         if(l_buf)
         {
                 free(l_buf);

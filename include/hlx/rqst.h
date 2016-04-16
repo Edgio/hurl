@@ -55,6 +55,7 @@ public:
         const std::string &get_url_query();
         const query_map_t &get_url_query_map();
         const std::string &get_url_fragment();
+        const char *get_method_str();
 
         // Debug
         void show();
@@ -86,11 +87,6 @@ private:
         query_map_t m_url_query_map;
         std::string m_url_fragment;
 };
-
-//: ----------------------------------------------------------------------------
-//: rqst utils
-//: ----------------------------------------------------------------------------
-const char *get_http_method_str(int a_method);
 
 }
 
