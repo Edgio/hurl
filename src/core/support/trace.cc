@@ -92,10 +92,10 @@ int32_t trc_log_file_close(void)
 int32_t trc_out_file_open(const std::string &a_file)
 {
         // WARNING DON'T USE TRC MACROS HERE'S -WILL BE RECURSIVE
-        g_trc_log_file = fopen(a_file.c_str(), "a");
-        if(!g_trc_log_file)
+        g_trc_out_file = fopen(a_file.c_str(), "a");
+        if(!g_trc_out_file)
         {
-                printf("Error opening trace logging file: %s. Reason: %s\n",
+                printf("Error opening trace output file: %s. Reason: %s\n",
                                 a_file.c_str(),
                                 strerror(errno));
                 return -1;
