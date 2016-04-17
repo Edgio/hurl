@@ -24,10 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/time_util.h"
+#include "hlx/trace.h"
+
 #include "nconn.h"
 #include "nbq.h"
 #include "evr.h"
-#include "hlx/time_util.h"
 #include "ndebug.h"
 
 #include <errno.h>
@@ -244,7 +246,7 @@ int32_t nconn::nc_read(nbq *a_in_q)
         //NDBG_PRINT("%sTRY_READ%s: \n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         if(!a_in_q)
         {
-                //NDBG_PRINT("Error a_in_q == NULL\n");
+                TRC_ERROR("a_in_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -339,7 +341,7 @@ int32_t nconn::nc_write(nbq *a_out_q)
         //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
         if(!a_out_q)
         {
-                //NDBG_PRINT("Error a_out_q == NULL\n");
+                TRC_ERROR("a_out_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
 
@@ -487,7 +489,7 @@ int32_t nconn::nc_cleanup()
         m_num_reqs = 0;
         if(l_status != NC_STATUS_OK)
         {
-                //NDBG_PRINT("Error performing nccleanup.\n");
+                TRC_ERROR("Error performing nccleanup.\n");
                 return STATUS_ERROR;
         }
         m_data = NULL;

@@ -24,8 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nconn_tls.h"
 #include "hlx/time_util.h"
+#include "hlx/trace.h"
+
+#include "nconn_tls.h"
 #include "evr.h"
 #include "tls_util.h"
 #include "ndebug.h"
@@ -532,6 +534,7 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
 
         // set connection socket to tls state
         SSL_set_fd(m_tls, a_fd);
+        // TODO Check return status
 
         // set to accepting state
         m_tls_state = TLS_STATE_ACCEPTING;
@@ -546,7 +549,7 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
                                             EVR_FILE_ATTR_MASK_ET,
                                             this))
                 {
-                        //NDBG_PRINT("Error: Couldn't add socket file descriptor\n");
+                        TRC_ERROR("Couldn't add socket file descriptor\n");
                         return NC_STATUS_ERROR;
                 }
         }
@@ -610,6 +613,7 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
                 }
                 default:
                 {
+                        TRC_ERROR("SSL_read failure.\n");
                         return NC_STATUS_ERROR;
                 }
         }
@@ -954,7 +958,7 @@ ncconnect_state_top:
         // -------------------------------------------------
         default:
         {
-                //NDBG_PRINT("State error: %d\n", m_tls_state);
+                TRC_ERROR("State error: %d\n", m_tls_state);
                 return NC_STATUS_ERROR;
         }
         }

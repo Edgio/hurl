@@ -26,6 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/rqst.h"
 #include "hlx/resp.h"
+#include "hlx/trace.h"
 
 #include "cb.h"
 #include "hconn.h"
@@ -79,10 +80,9 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
         //m_read_buf_idx += l_bytes_read;
         if(l_parse_status < (size_t)a_len)
         {
-                //NDBG_PRINT("Error: parse error.  Reason: %s: %s\n",
-                //           //"","");
-                //           http_errno_name((enum http_errno)l_hconn->m_http_parser.http_errno),
-                //           http_errno_description((enum http_errno)l_hconn->m_http_parser.http_errno));
+                TRC_ERROR("Parse error.  Reason: %s: %s\n",
+                           http_errno_name((enum http_errno)l_hconn->m_http_parser.http_errno),
+                           http_errno_description((enum http_errno)l_hconn->m_http_parser.http_errno));
                 return STATUS_ERROR;
         }
         return STATUS_OK;

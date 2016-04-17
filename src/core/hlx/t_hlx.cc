@@ -27,14 +27,14 @@
 #include "hlx/stat.h"
 #include "hlx/api_resp.h"
 #include "hlx/lsnr.h"
+#include "hlx/time_util.h"
+#include "hlx/trace.h"
 
 #include "t_hlx.h"
 #include "hconn.h"
 #include "nbq.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
-#include "hlx/time_util.h"
-#include "hlx/trace.h"
 #include "ndebug.h"
 
 #include <unistd.h>
@@ -1543,7 +1543,7 @@ void *t_hlx::t_run(void *a_nothing)
 
         // Pre-queue'd subrequests
         subr_try_deq();
-        // status???
+        // check return status???
 
         // -------------------------------------------------
         // Run server

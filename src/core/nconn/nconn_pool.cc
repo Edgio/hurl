@@ -24,6 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/trace.h"
+
 #include "nconn_pool.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
@@ -93,7 +95,7 @@ nconn *nconn_pool::get_new_active(const std::string &a_label, scheme_t a_scheme)
                 l_nconn = s_create_new_conn(a_scheme);
                 if(!l_nconn)
                 {
-                        NDBG_PRINT("Error performing create_conn\n");
+                        TRC_ERROR("Error performing create_conn\n");
                         return NULL;
                 }
                 l_nconn->set_pool_id(m_id);
@@ -105,7 +107,7 @@ nconn *nconn_pool::get_new_active(const std::string &a_label, scheme_t a_scheme)
         l_s = add_active(l_nconn);
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error performing add_active.\n");
+                TRC_ERROR("Error performing add_active.\n");
                 //return NULL;
         }
         return l_nconn;
@@ -175,14 +177,14 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
         }
         if(!a_nconn)
         {
-                //NDBG_PRINT("Error a_nconn == NULL\n");
+                TRC_ERROR("a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
         int32_t l_s;
         l_s = remove_active(a_nconn);
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error performing remove_active.\n");
+                TRC_ERROR("Error performing remove_active.\n");
                 return STATUS_ERROR;
         }
         id_t l_id;
@@ -205,7 +207,7 @@ int32_t nconn_pool::release(nconn *a_nconn)
 {
         if(!a_nconn)
         {
-                //NDBG_PRINT("Error a_nconn == NULL\n");
+                TRC_ERROR("a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
         //NDBG_PRINT("%sRELEASE%s:\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
@@ -364,7 +366,7 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
 {
         if(!a_nconn)
         {
-                NDBG_PRINT("Error a_nconn == NULL\n");
+                TRC_ERROR("Error a_nconn == NULL\n");
                 return STATUS_ERROR;
         }
         if(!m_initd)
@@ -375,7 +377,7 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
         l_s = a_nconn->nc_cleanup();
         if(l_s != STATUS_OK)
         {
-                NDBG_PRINT("Error perfrorming a_nconn->nc_cleanup()\n");
+                //NDBG_PRINT("Error perfrorming a_nconn->nc_cleanup()\n");
                 //return STATUS_ERROR;
         }
         a_nconn->reset_stats();
