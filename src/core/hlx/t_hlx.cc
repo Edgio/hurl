@@ -453,9 +453,9 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
                 // Display data from out q
                 if(m_t_conf->m_rqst_resp_logging)
                 {
-                        if(m_t_conf->m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
+                        if(m_t_conf->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
                         a_hconn.m_out_q->print();
-                        if(m_t_conf->m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                        if(m_t_conf->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 }
         }
         ++m_stat.m_ups_reqs;

@@ -369,7 +369,7 @@ void nbq::print(void)
         {
                 uint32_t l_read_avail = b_read_avail();
                 uint32_t l_read_size = (l_left > l_read_avail)?l_read_avail:l_left;
-                printf("%.*s", l_read_size, b_read_ptr());
+                TRC_OUTPUT("%.*s", l_read_size, b_read_ptr());
                 b_read_incr(l_read_size);
                 l_left -= l_read_size;
         }

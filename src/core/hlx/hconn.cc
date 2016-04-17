@@ -361,9 +361,9 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 // TODO FIX!!!
                                 if(m_rqst_resp_logging && m_hmsg)
                                 {
-                                        if(m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                                        if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
                                         m_hmsg->show();
-                                        if(m_rqst_resp_logging_color) NDBG_OUTPUT("%s", ANSI_COLOR_OFF);
+                                        if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                                 }
 
                                 // Get request time
