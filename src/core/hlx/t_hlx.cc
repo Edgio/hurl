@@ -34,6 +34,7 @@
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
 #include "hlx/time_util.h"
+#include "hlx/trace.h"
 #include "ndebug.h"
 
 #include <unistd.h>
