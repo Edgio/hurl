@@ -46,7 +46,10 @@ int32_t break_header_string(const std::string &a_header_str,
 		return -1;
 	}
 	ao_header_key = a_header_str.substr(0, l_colon_pos);
-	ao_header_val = a_header_str.substr(l_colon_pos+1, a_header_str.length());
+	++l_colon_pos;
+	// ignore spaces...
+	while(a_header_str[l_colon_pos] == ' ') ++l_colon_pos;
+	ao_header_val = a_header_str.substr(l_colon_pos, a_header_str.length());
 	return 0;
 }
 
