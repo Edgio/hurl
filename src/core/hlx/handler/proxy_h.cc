@@ -79,7 +79,9 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         l_subr.set_headers(a_rqst.get_headers());
         l_subr.set_keepalive(true);
         l_subr.set_verb(a_rqst.get_method_str());
-        l_subr.set_body_data(a_rqst.get_body_data(), a_rqst.get_body_len());
+        const char *l_body_data = a_rqst.get_body_data();
+        uint64_t l_body_data_len = a_rqst.get_body_len();
+        l_subr.set_body_data(l_body_data, l_body_data_len);
         int32_t l_s;
         l_s = queue_subr(a_hconn, l_subr);
         if(l_s != HLX_STATUS_OK)
