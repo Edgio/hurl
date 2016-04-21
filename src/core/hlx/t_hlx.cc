@@ -903,7 +903,6 @@ int32_t t_hlx::evr_file_timeout_cb(void *a_ctx, void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_hlx *l_t_hlx = static_cast<t_hlx *>(l_nconn->get_ctx());
         hconn *l_hconn = static_cast<hconn *>(l_nconn->get_data());
-
 #ifdef ASYNC_DNS_SUPPORT
         // Async Resolver
         if(l_nconn->get_id() == nresolver::S_RESOLVER_ID)
@@ -913,14 +912,11 @@ int32_t t_hlx::evr_file_timeout_cb(void *a_ctx, void *a_data)
                 return l_t_hlx->async_dns_lookup(l_unused, 0, NULL);
         }
 #endif
-        //NDBG_PRINT("%sTIMEOUT%s HOST: %s\n",
-        //           ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
-        //           l_nconn->get_label().c_str());
+        TRC_ERROR("connection timeout -host: %s\n", l_nconn->get_label().c_str());
         if(l_nconn->is_free())
         {
                 return STATUS_OK;
         }
-        //NDBG_PRINT("Error: evr_loop_file_timeout_cb\n");
         ++(l_t_hlx->m_stat.m_total_errors);
         if(l_hconn)
         {
