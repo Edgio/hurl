@@ -274,37 +274,31 @@ void phurl_h::set_host_list(const host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t phurl_h::do_get(hconn &a_hconn,
-                         rqst &a_rqst,
-                         const url_pmap_t &a_url_pmap)
-{
-        return do_get_w_subr_template(a_hconn, a_rqst, a_url_pmap, m_subr_template);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
-                                         const url_pmap_t &a_url_pmap, const subr &a_subr,
-                                         phurl_h_resp *a_phr,
-                                         uint32_t a_timeout_ms,
-                                         float a_completion_ratio)
+h_resp_t phurl_h::do_default(hconn &a_hconn,
+                             rqst &a_rqst,
+                             const url_pmap_t &a_url_pmap)
 {
         // Create request state if not already made
-        phurl_h_resp *l_phr = a_phr;
-        if(!l_phr)
-        {
-                l_phr = new phurl_h_resp();
-        }
+        phurl_h_resp *l_phr = new phurl_h_resp();
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
-                subr &l_subr = create_subr(a_hconn, a_subr);
+                subr &l_subr = create_subr(a_hconn, m_subr_template);
+
+                const char *l_body_data = a_rqst.get_body_data();
+                uint64_t l_body_data_len = a_rqst.get_body_len();
+
+                // subr setup
+                //l_subr.init_with_url(l_url);
+                l_subr.set_keepalive(true);
+                l_subr.set_timeout_ms(10000);
+                l_subr.set_verb(a_rqst.get_method_str());
+                l_subr.set_headers(a_rqst.get_headers());
                 l_subr.set_host(i_host->m_host);
                 l_subr.set_port(i_host->m_port);
                 l_subr.reset_label();
                 l_subr.set_data(l_phr);
+                l_subr.set_body_data(l_body_data, l_body_data_len);
+                l_subr.set_requester_hconn(&a_hconn);
 
                 // Add to pending map
                 l_phr->m_pending_subr_uid_map[l_subr.get_uid()] = &l_subr;
@@ -317,12 +311,12 @@ h_resp_t phurl_h::do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
                         return H_RESP_SERVER_ERROR;
                 }
         }
+
         l_phr->m_phurl_h = this;
         l_phr->m_requester_hconn = &a_hconn;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
-        l_phr->m_timeout_ms = a_timeout_ms;
-
-        l_phr->m_completion_ratio = a_completion_ratio;
+        l_phr->m_timeout_ms = 10000;
+        l_phr->m_completion_ratio = 100.0;
 
         if(l_phr->m_timeout_ms)
         {
@@ -428,7 +422,6 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
 //: ----------------------------------------------------------------------------
 int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
 {
-        //NDBG_PRINT("DONE\n");
         // Get body of resp
         char l_buf[2048];
         l_buf[0] = '\0';
@@ -461,6 +454,16 @@ int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
         // Queue
         queue_api_resp(*(a_phr->m_requester_hconn), l_api_resp);
         return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool phurl_h::get_do_default(void)
+{
+        return true;
 }
 
 } //namespace ns_hlx {

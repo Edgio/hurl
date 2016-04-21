@@ -146,7 +146,11 @@ public:
         phurl_h(void);
         ~phurl_h();
 
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+
+        // Do default method override
+        bool get_do_default(void);
+
         void add_host(const std::string a_host, uint16_t a_port = 80);
         void set_host_list(const host_list_t &a_host_list);
         const subr &get_subr_template(void) const;
@@ -161,15 +165,6 @@ public:
         static int32_t s_create_resp(phurl_h_resp *a_phr);
 
 protected:
-        // -------------------------------------------------
-        // Protected methods
-        // -------------------------------------------------
-        h_resp_t do_get_w_subr_template(hconn &a_hconn, rqst &a_rqst,
-                                        const url_pmap_t &a_url_pmap, const subr &a_subr,
-                                        phurl_h_resp *a_phr = NULL,
-                                        uint32_t a_timeout_ms = 10000,
-                                        float a_completion_ratio = 100.0);
-
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------

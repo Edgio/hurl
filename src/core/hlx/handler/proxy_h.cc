@@ -75,19 +75,21 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
                 l_route.erase(i_s, m_route.length());
         }
         std::string l_url = m_ups_host + l_route;
+        const char *l_body_data = a_rqst.get_body_data();
+        uint64_t l_body_data_len = a_rqst.get_body_len();
+
+        // subr setup
         l_subr.init_with_url(l_url);
         l_subr.set_completion_cb(s_completion_cb);
         l_subr.set_error_cb(s_error_cb);
-        std::string l_host = l_subr.get_host();
         l_subr.set_data(this);
         l_subr.set_headers(a_rqst.get_headers());
         l_subr.set_keepalive(true);
         l_subr.set_timeout_ms(m_timeout_ms);
         l_subr.set_verb(a_rqst.get_method_str());
-        const char *l_body_data = a_rqst.get_body_data();
-        uint64_t l_body_data_len = a_rqst.get_body_len();
         l_subr.set_body_data(l_body_data, l_body_data_len);
         l_subr.set_requester_hconn(&a_hconn);
+
         int32_t l_s;
         l_s = queue_subr(a_hconn, l_subr);
         if(l_s != HLX_STATUS_OK)

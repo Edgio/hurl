@@ -402,6 +402,7 @@ int32_t t_hlx::subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn)
                 l_resp->clear();
         }
         a_hconn.m_hmsg = l_resp;
+        a_hconn.m_expect_resp_body_flag = a_subr.get_expect_resp_body_flag();
 
         // Create request
         if(!a_subr.get_connect_only())

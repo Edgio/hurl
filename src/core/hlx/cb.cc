@@ -77,6 +77,7 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
                                              &(l_hconn->m_http_parser_settings),
                                              a_buf,
                                              a_len);
+        //NDBG_PRINT("STATUS: %lu\n", l_parse_status);
         //m_read_buf_idx += l_bytes_read;
         if(l_parse_status < (size_t)a_len)
         {
@@ -199,6 +200,13 @@ int hp_on_headers_complete(http_parser* a_parser)
                 {
                         rqst *l_rqst = static_cast<rqst *>(l_hconn->m_hmsg);
                         l_rqst->m_method = a_parser->method;
+                }
+        }
+        if(l_hconn->m_type == HCONN_TYPE_UPSTREAM)
+        {
+                if(!l_hconn->m_expect_resp_body_flag)
+                {
+                        return 1;
                 }
         }
         return 0;

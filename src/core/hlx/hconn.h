@@ -114,6 +114,7 @@ public:
         hmsg *m_hmsg;
         http_parser_settings m_http_parser_settings;
         http_parser m_http_parser;
+        bool m_expect_resp_body_flag;
         uint64_t m_cur_off;
         char * m_cur_buf;
 
@@ -132,6 +133,7 @@ public:
 
         access_info m_access_info;
         resp_done_cb_t m_resp_done_cb;
+
 
         // -------------------------------------------------
         // Public methods

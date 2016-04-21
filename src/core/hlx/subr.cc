@@ -673,6 +673,7 @@ void subr::set_num_to_request(int32_t a_val)
 void subr::set_keepalive(bool a_val)
 {
         m_keepalive = a_val;
+        del_header("Connection");
         if(m_keepalive)
         {
                 set_header("Connection", "keep-alive");
@@ -680,10 +681,6 @@ void subr::set_keepalive(bool a_val)
                 //{
                 //        set_num_reqs_per_conn(-1);
                 //}
-        }
-        else
-        {
-                del_header("Connection");
         }
 }
 
@@ -735,6 +732,8 @@ void subr::set_timeout_ms(int32_t a_val)
 void subr::set_host(const std::string &a_val)
 {
         m_host = a_val;
+        del_header("Host");
+        set_header("Host", a_val);
 }
 
 //: ----------------------------------------------------------------------------
@@ -959,6 +958,23 @@ void subr::set_pre_connect_cb(pre_connect_cb_t a_cb)
 const std::string &subr::get_verb(void)
 {
         return m_verb;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+bool subr::get_expect_resp_body_flag(void)
+{
+        if(m_verb == "HEAD")
+        {
+                return false;
+        }
+        else
+        {
+                return true;
+        }
 }
 
 //: ----------------------------------------------------------------------------

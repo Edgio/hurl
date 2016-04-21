@@ -56,6 +56,7 @@ hconn::hconn(void):
         m_hmsg(NULL),
         m_http_parser_settings(),
         m_http_parser(),
+        m_expect_resp_body_flag(true),
         m_cur_off(0),
         m_cur_buf(NULL),
         m_save(false),

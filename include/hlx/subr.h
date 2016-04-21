@@ -171,6 +171,7 @@ public:
         // Request Parts
         // Getters
         const std::string &get_verb(void);
+        bool get_expect_resp_body_flag(void);
         const std::string &get_path(void);
         const std::string &get_query(void);
         const std::string &get_fragment(void);
