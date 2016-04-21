@@ -44,7 +44,9 @@ namespace ns_hlx {
 proxy_h::proxy_h(const std::string &a_ups_host, const std::string &a_route):
         default_rqst_h(),
         m_ups_host(a_ups_host),
-        m_route(a_route)
+        m_route(a_route),
+        // 10 min
+        m_timeout_ms(600000)
 {
 }
 
@@ -75,13 +77,17 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         std::string l_url = m_ups_host + l_route;
         l_subr.init_with_url(l_url);
         l_subr.set_completion_cb(s_completion_cb);
+        l_subr.set_error_cb(s_error_cb);
         std::string l_host = l_subr.get_host();
+        l_subr.set_data(this);
         l_subr.set_headers(a_rqst.get_headers());
         l_subr.set_keepalive(true);
+        l_subr.set_timeout_ms(m_timeout_ms);
         l_subr.set_verb(a_rqst.get_method_str());
         const char *l_body_data = a_rqst.get_body_data();
         uint64_t l_body_data_len = a_rqst.get_body_len();
         l_subr.set_body_data(l_body_data, l_body_data_len);
+        l_subr.set_requester_hconn(&a_hconn);
         int32_t l_s;
         l_s = queue_subr(a_hconn, l_subr);
         if(l_s != HLX_STATUS_OK)
@@ -142,9 +148,42 @@ int32_t proxy_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t proxy_h::s_error_cb(subr &a_subr, nconn &a_nconn)
+{
+        proxy_h *l_proxy_h = (proxy_h *)a_subr.get_data();
+        if(!l_proxy_h)
+        {
+                return STATUS_ERROR;
+        }
+        if(!a_subr.get_requester_hconn())
+        {
+                return STATUS_ERROR;
+        }
+        l_proxy_h->send_json_resp_err(*a_subr.get_requester_hconn(),
+                                      false,
+                                      // TODO use supports keep-alives from client request
+                                      a_subr.get_fallback_status_code());
+        return STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 bool proxy_h::get_do_default(void)
 {
         return true;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void proxy_h::set_timeout_ms(uint32_t a_val)
+{
+        m_timeout_ms = a_val;
 }
 
 } //namespace ns_hlx {

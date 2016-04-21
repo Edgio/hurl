@@ -55,10 +55,14 @@ public:
         // Do default method override
         bool get_do_default(void);
 
+        // Setters
+        void set_timeout_ms(uint32_t a_val);
+
         // -------------------------------------------------
         // Public Class methods
         // -------------------------------------------------
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
+        static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
 
 private:
         // -------------------------------------------------
@@ -73,6 +77,7 @@ private:
         // -------------------------------------------------
         std::string m_ups_host;
         std::string m_route;
+        uint32_t m_timeout_ms;
 
 };
 

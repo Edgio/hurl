@@ -4,3 +4,5 @@
 { HTTP_STATUS_NOT_FOUND, "Not Found" },
 { HTTP_STATUS_INTERNAL_SERVER_ERROR, "Internal Server Error" },
 { HTTP_STATUS_NOT_IMPLEMENTED, "Not Implemented" },
+{ HTTP_STATUS_GATEWAY_TIMEOUT, "Gateway Timeout" },
+

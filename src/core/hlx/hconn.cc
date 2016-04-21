@@ -649,12 +649,12 @@ int32_t hconn::handle_req(void)
         }
         case H_RESP_CLIENT_ERROR:
         {
-                l_hdlr_status = s_default_rqst_h.send_bad_request(*this, *l_rqst);
+                l_hdlr_status = s_default_rqst_h.send_bad_request(*this, l_rqst->m_supports_keep_alives);
                 break;
         }
         case H_RESP_SERVER_ERROR:
         {
-                l_hdlr_status = s_default_rqst_h.send_internal_server_error(*this, *l_rqst);
+                l_hdlr_status = s_default_rqst_h.send_internal_server_error(*this, l_rqst->m_supports_keep_alives);
                 break;
         }
         default:

@@ -146,8 +146,10 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         l_body.Accept(l_writer);
 
         api_resp &l_api_resp = create_api_resp(a_hconn);
-        l_api_resp.add_std_headers(HTTP_STATUS_OK, "application/json",
-                                   l_strbuf.GetSize(), a_rqst,
+        l_api_resp.add_std_headers(HTTP_STATUS_OK,
+                                   "application/json",
+                                   l_strbuf.GetSize(),
+                                   a_rqst.m_supports_keep_alives,
                                    *(l_hlx));
         l_api_resp.set_body_data(l_strbuf.GetString(), l_strbuf.GetSize());
         queue_api_resp(a_hconn, l_api_resp);

@@ -206,15 +206,17 @@ http_status_t api_resp::get_status(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void api_resp::add_std_headers(http_status_t a_status, const char *a_content_type,
-                               uint64_t a_len, const rqst &a_rqst,
+void api_resp::add_std_headers(http_status_t a_status,
+                               const char *a_content_type,
+                               uint64_t a_len,
+                               bool a_keep_alive,
                                const hlx &a_hlx)
 {
         set_status(a_status);
         set_header("Server", a_hlx.get_server_name());
         set_header("Date", get_date_str());
         set_header("Content-type", a_content_type);
-        set_header("Connection", a_rqst.m_supports_keep_alives ? "keep-alive" : "close");
+        set_header("Connection", a_keep_alive ? "keep-alive" : "close");
         char l_length_str[64];
         sprintf(l_length_str, "%" PRIu64 "", a_len);
         set_header("Content-Length", l_length_str);

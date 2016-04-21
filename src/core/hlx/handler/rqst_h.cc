@@ -37,8 +37,10 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t rqst_h::send_json_resp(hconn &a_hconn, const rqst &a_rqst,
-                                http_status_t a_status, const char *a_json_resp)
+h_resp_t rqst_h::send_json_resp(hconn &a_hconn,
+                                bool a_keep_alive,
+                                http_status_t a_status,
+                                const char *a_json_resp)
 {
         hlx *l_hlx = get_hlx(a_hconn);
         if(!l_hlx)
@@ -46,8 +48,10 @@ h_resp_t rqst_h::send_json_resp(hconn &a_hconn, const rqst &a_rqst,
                 return H_RESP_SERVER_ERROR;
         }
         api_resp &l_api_resp = create_api_resp(a_hconn);
-        l_api_resp.add_std_headers(a_status, "application/json",
-                                   strlen(a_json_resp), a_rqst,
+        l_api_resp.add_std_headers(a_status,
+                                   "application/json",
+                                   strlen(a_json_resp),
+                                   a_keep_alive,
                                    *(l_hlx));
         l_api_resp.set_body_data(a_json_resp, strlen(a_json_resp));
         queue_api_resp(a_hconn, l_api_resp);
@@ -59,11 +63,11 @@ h_resp_t rqst_h::send_json_resp(hconn &a_hconn, const rqst &a_rqst,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t rqst_h::send_json_resp_err(hconn &a_hconn, const rqst &a_rqst, http_status_t a_status)
+h_resp_t rqst_h::send_json_resp_err(hconn &a_hconn, bool a_keep_alive, http_status_t a_status)
 {
         std::string l_resp;
         create_json_resp_str(a_status, l_resp);
-        return send_json_resp(a_hconn, a_rqst, a_status, l_resp.c_str());
+        return send_json_resp(a_hconn, a_keep_alive, a_status, l_resp.c_str());
 }
 
 //: ----------------------------------------------------------------------------
@@ -71,9 +75,9 @@ h_resp_t rqst_h::send_json_resp_err(hconn &a_hconn, const rqst &a_rqst, http_sta
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t rqst_h::send_not_found(hconn &a_hconn, const rqst &a_rqst)
+h_resp_t rqst_h::send_not_found(hconn &a_hconn, bool a_keep_alive)
 {
-        return send_json_resp_err(a_hconn, a_rqst, HTTP_STATUS_NOT_FOUND);
+        return send_json_resp_err(a_hconn, a_keep_alive, HTTP_STATUS_NOT_FOUND);
 }
 
 //: ----------------------------------------------------------------------------
@@ -81,9 +85,9 @@ h_resp_t rqst_h::send_not_found(hconn &a_hconn, const rqst &a_rqst)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t rqst_h::send_not_implemented(hconn &a_hconn, const rqst &a_rqst)
+h_resp_t rqst_h::send_not_implemented(hconn &a_hconn, bool a_keep_alive)
 {
-        return send_json_resp_err(a_hconn, a_rqst, HTTP_STATUS_NOT_IMPLEMENTED);
+        return send_json_resp_err(a_hconn, a_keep_alive, HTTP_STATUS_NOT_IMPLEMENTED);
 }
 
 //: ----------------------------------------------------------------------------
@@ -91,9 +95,9 @@ h_resp_t rqst_h::send_not_implemented(hconn &a_hconn, const rqst &a_rqst)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t rqst_h::send_internal_server_error(hconn &a_hconn, const rqst &a_rqst)
+h_resp_t rqst_h::send_internal_server_error(hconn &a_hconn, bool a_keep_alive)
 {
-        return send_json_resp_err(a_hconn, a_rqst, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+        return send_json_resp_err(a_hconn, a_keep_alive, HTTP_STATUS_INTERNAL_SERVER_ERROR);
 }
 
 //: ----------------------------------------------------------------------------
@@ -101,9 +105,9 @@ h_resp_t rqst_h::send_internal_server_error(hconn &a_hconn, const rqst &a_rqst)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t rqst_h::send_bad_request(hconn &a_hconn, const rqst &a_rqst)
+h_resp_t rqst_h::send_bad_request(hconn &a_hconn, bool a_keep_alive)
 {
-        return send_json_resp_err(a_hconn, a_rqst, HTTP_STATUS_BAD_REQUEST);
+        return send_json_resp_err(a_hconn, a_keep_alive, HTTP_STATUS_BAD_REQUEST);
 }
 
 } //namespace ns_hlx {

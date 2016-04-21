@@ -63,10 +63,11 @@ public:
 int main(void)
 {
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
-        ns_hlx::rqst_h *l_rqst_h = new ns_hlx::proxy_h("https://api.twitter.com", "/twootter");
+        ns_hlx::proxy_h *l_proxy_h = new ns_hlx::proxy_h("http://127.0.0.1:12346", "/proxy");
+        l_proxy_h->set_timeout_ms(1000);
         ns_hlx::rqst_h *l_default_h = new default_h();
         ns_hlx::rqst_h *l_rqst_h_quit = new quitter();
-        l_lsnr->add_route("/twootter/*", l_rqst_h);
+        l_lsnr->add_route("/proxy/*", l_proxy_h);
         l_lsnr->add_route("/quit", l_rqst_h_quit);
         l_lsnr->set_default_route(l_default_h);
         g_hlx = new ns_hlx::hlx();
@@ -85,6 +86,6 @@ int main(void)
         //}
         //ProfilerStop();
         if(g_hlx) {delete g_hlx; g_hlx = NULL;}
-        if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
+        if(l_proxy_h) {delete l_proxy_h; l_proxy_h = NULL;}
         if(l_rqst_h_quit) {delete l_rqst_h_quit; l_rqst_h_quit = NULL;}
 }

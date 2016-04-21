@@ -128,7 +128,7 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         if(!a_hconn.m_out_q)
         {
                 // TODO 5xx's for errors?
-                return send_not_found(a_hconn, a_rqst);
+                return send_not_found(a_hconn, a_rqst.m_supports_keep_alives);
         }
 
         // Make relative...
@@ -139,7 +139,7 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         {
                 delete l_fs;
                 // TODO 5xx's for errors?
-                return send_not_found(a_hconn, a_rqst);
+                return send_not_found(a_hconn, a_rqst.m_supports_keep_alives);
         }
 
         a_hconn.m_fs = l_fs;

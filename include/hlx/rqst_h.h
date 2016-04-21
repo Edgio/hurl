@@ -65,13 +65,13 @@ public:
         // -------------------------------------------------
         // Helpers
         // -------------------------------------------------
-        h_resp_t send_not_found(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_not_implemented(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_internal_server_error(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_bad_request(hconn &a_hconn, const rqst &a_rqst);
-        h_resp_t send_json_resp(hconn &a_hconn, const rqst &a_rqst,
+        h_resp_t send_not_found(hconn &a_hconn, bool a_keep_alive);
+        h_resp_t send_not_implemented(hconn &a_hconn, bool a_keep_alive);
+        h_resp_t send_internal_server_error(hconn &a_hconn, bool a_keep_alive);
+        h_resp_t send_bad_request(hconn &a_hconn, bool a_keep_alive);
+        h_resp_t send_json_resp(hconn &a_hconn, bool a_keep_alive,
                                 http_status_t a_status, const char *a_json_resp);
-        h_resp_t send_json_resp_err(hconn &a_hconn, const rqst &a_rqst,
+        h_resp_t send_json_resp_err(hconn &a_hconn, bool a_keep_alive,
                                     http_status_t a_status);
 
 private:
