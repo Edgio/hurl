@@ -85,6 +85,7 @@ typedef enum http_status_enum {
         HTTP_STATUS_GATEWAY_TIMEOUT                     = 504,
         HTTP_STATUS_HTTP_VERSION_NOT_SUPPORTED          = 505,
         HTTP_STATUS_INSUFFICIENT_STORAGE                = 507, /* WEBDAV */
+        HTTP_STATUS_LOOP_DETECTED                       = 508,
         HTTP_STATUS_BANDWIDTH_LIMIT_EXCEEDED            = 509,
 
 } http_status_t;
