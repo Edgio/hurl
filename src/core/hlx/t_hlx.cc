@@ -674,7 +674,6 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                 {
                         l_t_hlx->m_stat.m_total_bytes_written += l_status;
                 }
-
                 if(l_hconn)
                 {
                         int32_t l_hstatus;
@@ -712,6 +711,15 @@ int32_t t_hlx::evr_file_writeable_cb(void *a_data)
                         return STATUS_ERROR;
                 }
                 }
+
+                if(!l_hconn)
+                {
+                        //NDBG_PRINT("CLEANUP.\n");
+                        l_t_hlx->cleanup_conn(l_hconn, l_nconn);
+                        // TODO Check return
+                        return STATUS_OK;
+                }
+
         } while((l_status != nconn::NC_STATUS_AGAIN) &&
                 (!l_t_hlx->m_stopped));
 done:
@@ -876,6 +884,15 @@ int32_t t_hlx::evr_file_readable_cb(void *a_data)
                         return STATUS_ERROR;
                 }
                 }
+
+                if(!l_hconn)
+                {
+                        //NDBG_PRINT("CLEANUP.\n");
+                        l_t_hlx->cleanup_conn(l_hconn, l_nconn);
+                        // TODO Check return
+                        return STATUS_OK;
+                }
+
         } while((l_status != nconn::NC_STATUS_AGAIN) &&
                 (!l_t_hlx->m_stopped));
 done:
