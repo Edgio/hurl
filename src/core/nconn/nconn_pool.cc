@@ -362,7 +362,7 @@ int32_t nconn_pool::remove_active(nconn *a_nconn)
 int32_t nconn_pool::remove_idle(nconn *a_nconn)
 {
         if(m_idle_conn_ncache.size() &&
-           a_nconn->get_data())
+           a_nconn)
         {
                 uint64_t l_id = a_nconn->get_id();
                 m_idle_conn_ncache.remove(l_id);
