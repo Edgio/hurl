@@ -140,12 +140,12 @@ int32_t nconn_tls::tls_connect(void)
                         m_last_err = ERR_get_error();
                         if(gts_last_tls_error[0] != '\0')
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR: %s.", m_label.c_str(), gts_last_tls_error);
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR: %s.\n", m_label.c_str(), gts_last_tls_error);
                                 gts_last_tls_error[0] = '\0';
                         }
                         else
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR: OTHER.",m_label.c_str());
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR: OTHER.\n",m_label.c_str());
                         }
                         break;
                 }
@@ -165,7 +165,7 @@ int32_t nconn_tls::tls_connect(void)
 
                 case SSL_ERROR_WANT_X509_LOOKUP:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         m_last_err = ERR_get_error();
                         //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
@@ -177,13 +177,13 @@ int32_t nconn_tls::tls_connect(void)
                         m_last_err = ::ERR_get_error();
                         if(l_status == 0)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %ld: %s. An EOF was observed that violates the protocol",
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %ld: %s. An EOF was observed that violates the protocol\n",
                                             m_label.c_str(),
                                             m_last_err, ERR_error_string(m_last_err, NULL));
                         }
                         else if(l_status == -1)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %ld: %s. %s",
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %ld: %s. %s\n",
                                                 m_label.c_str(),
                                                 m_last_err, ERR_error_string(m_last_err, NULL),
                                                 strerror(errno));
@@ -192,22 +192,22 @@ int32_t nconn_tls::tls_connect(void)
                 }
                 case SSL_ERROR_ZERO_RETURN:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_ZERO_RETURN", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_ZERO_RETURN\n", m_label.c_str());
                         break;
                 }
                 case SSL_ERROR_WANT_CONNECT:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_CONNECT", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_CONNECT\n", m_label.c_str());
                         break;
                 }
                 case SSL_ERROR_WANT_ACCEPT:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_ACCEPT", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_ACCEPT\n", m_label.c_str());
                         break;
                 }
                 default:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: Unknown TLS error", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: Unknown TLS error\n", m_label.c_str());
                         break;
                 }
                 }
@@ -251,7 +251,8 @@ int32_t nconn_tls::tls_accept(void)
                         //                ERR_error_string(ERR_get_error(),NULL));
                         if(gts_last_tls_error[0] != '\0')
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR %lu: %s. Reason: %s\n",
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                            "LABEL[%s]: TLS_ERROR %lu: %s. Reason: %s\n",
                                             m_label.c_str(),
                                             ::ERR_get_error(),
                                             ::ERR_error_string(ERR_get_error(),NULL),
@@ -261,7 +262,8 @@ int32_t nconn_tls::tls_accept(void)
                         }
                         else
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR %lu: %s.\n",
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                            "LABEL[%s]: TLS_ERROR %lu: %s.\n",
                                             m_label.c_str(),
                                             ::ERR_get_error(),
                                             ::ERR_error_string(::ERR_get_error(),NULL));
@@ -283,19 +285,25 @@ int32_t nconn_tls::tls_accept(void)
 
                 case SSL_ERROR_WANT_X509_LOOKUP:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                    "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n",
+                                    m_label.c_str());
                         break;
                 }
 
                 // look at error stack/return value/errno
                 case SSL_ERROR_SYSCALL:
                 {
-                        if(l_status == 0) {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol",
+                        if(l_status == 0)
+                        {
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                            "LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. An EOF was observed that violates the protocol\n",
                                             m_label.c_str(),
                                             ::ERR_get_error(), ::ERR_error_string(::ERR_get_error(), NULL));
-                        } else if(l_status == -1) {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s",
+                        } else if(l_status == -1)
+                        {
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                            "LABEL[%s]: SSL_ERROR_SYSCALL %lu: %s. %s\n",
                                             m_label.c_str(),
                                             ::ERR_get_error(), ::ERR_error_string(::ERR_get_error(), NULL),
                                             strerror(errno));
@@ -304,22 +312,29 @@ int32_t nconn_tls::tls_accept(void)
                 }
                 case SSL_ERROR_ZERO_RETURN:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_ZERO_RETURN", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                    "LABEL[%s]: SSL_ERROR_ZERO_RETURN\n",
+                                    m_label.c_str());
                         break;
                 }
                 case SSL_ERROR_WANT_CONNECT:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_CONNECT", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                    "LABEL[%s]: SSL_ERROR_WANT_CONNECT\n",
+                                    m_label.c_str());
                         break;
                 }
                 case SSL_ERROR_WANT_ACCEPT:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_ACCEPT", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
+                                    "LABEL[%s]: SSL_ERROR_WANT_ACCEPT\n",
+                                    m_label.c_str());
                         break;
                 }
                 }
 
                 //ERR_print_errors_fp(stderr);
+                //NDBG_PRINT("RETURNING ERROR\n");
                 return NC_STATUS_ERROR;
         }
         else if(1 == l_status)
@@ -656,7 +671,7 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -673,7 +688,7 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             this))
                                 {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -767,7 +782,9 @@ ncaccept_state_top:
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     this))
                                         {
-                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                                            "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                                            m_label.c_str());
                                                 return NC_STATUS_ERROR;
                                         }
                                 }
@@ -782,7 +799,9 @@ ncaccept_state_top:
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     this))
                                         {
-                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                                            "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                                            m_label.c_str());
                                                 return NC_STATUS_ERROR;
                                         }
                                 }
@@ -791,6 +810,7 @@ ncaccept_state_top:
                 }
                 else if(l_status != NC_STATUS_OK)
                 {
+                        //NDBG_PRINT("Returning ERROR\n");
                         return NC_STATUS_ERROR;
                 }
 
@@ -803,7 +823,9 @@ ncaccept_state_top:
                                                     EVR_FILE_ATTR_MASK_ET,
                                                     this))
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                            "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                            m_label.c_str());
                                 return NC_STATUS_ERROR;
                         }
                 }
@@ -888,7 +910,7 @@ ncconnect_state_top:
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     this))
                                         {
-                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
                                                 //NDBG_PRINT("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
                                                 return NC_STATUS_ERROR;
                                         }
@@ -903,7 +925,7 @@ ncconnect_state_top:
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     this))
                                         {
-                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
                                                 //NDBG_PRINT("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
                                                 return NC_STATUS_ERROR;
                                         }
@@ -927,7 +949,7 @@ ncconnect_state_top:
                                                     EVR_FILE_ATTR_MASK_ET,
                                                     this))
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
+                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
                                 return NC_STATUS_ERROR;
                         }
                 }
@@ -946,7 +968,7 @@ ncconnect_state_top:
                         //NDBG_PRINT("VERIFY l_status: %d\n", l_status);
                         if(l_status != 0)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS_HOST, "LABEL[%s]: Error: %s", m_label.c_str(), gts_last_tls_error);
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS_HOST, "LABEL[%s]: Error: %s\n", m_label.c_str(), gts_last_tls_error);
                                 gts_last_tls_error[0] = '\0';
                                 return NC_STATUS_ERROR;
                         }

@@ -187,8 +187,8 @@ int32_t evr_loop::run(void)
                                 if(l_status != STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error\n");
-                                        //m_is_running = false;
-                                        //return STATUS_ERROR;
+                                        // Skip handling more events for this fd
+                                        continue;
                                 }
                         }
                 }
@@ -201,31 +201,33 @@ int32_t evr_loop::run(void)
                                 if(l_status != STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error\n");
-                                        //m_is_running = false;
-                                        //return STATUS_ERROR;
+                                        // Skip handling more events for this fd
+                                        continue;
                                 }
                         }
                 }
-                // TODO More errors...
+                // -----------------------------------------
+                // TODO other errors???
+                // Currently "most" errors handled by read
+                // callbacks
+                // -----------------------------------------
                 //uint32_t l_other_events = l_events & (~(EPOLLIN | EPOLLOUT));
                 //if(l_events & EPOLLRDHUP)
                 //if(l_events & EPOLLERR)
-                if(0)
-                {
-                        //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n",
-                        //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, i_event, l_num_events, l_events);
-                        if(m_error_cb)
-                        {
-                                int32_t l_status = STATUS_OK;
-                                l_status = m_error_cb(l_data);
-                                if(l_status != STATUS_OK)
-                                {
-                                        //NDBG_PRINT("Error: l_status: %d\n", l_status);
-                                        //m_is_running = false;
-                                        //return STATUS_ERROR;
-                                }
-                        }
-                }
+                //if(0)
+                //{
+                //        if(m_error_cb)
+                //        {
+                //                int32_t l_status = STATUS_OK;
+                //                l_status = m_error_cb(l_data);
+                //                if(l_status != STATUS_OK)
+                //                {
+                //                        //NDBG_PRINT("Error: l_status: %d\n", l_status);
+                //                        // Skip handling more events for this fd
+                //                        continue;
+                //                }
+                //        }
+                //}
         }
         return STATUS_OK;
 }

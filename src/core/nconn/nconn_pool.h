@@ -62,6 +62,7 @@ public:
         nconn * get_new_active(const std::string &a_label, scheme_t a_scheme);
         uint64_t get_active_size(void);
         uint64_t get_active_available(void);
+        uint64_t get_active_label(const std::string &a_label);
         nconn * get_idle(const std::string &a_label);
         uint64_t get_idle_size(void);
         uint32_t get_id(void) { return m_id;}

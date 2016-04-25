@@ -69,6 +69,7 @@ subr::subr(void):
         m_num_to_request(1),
         m_num_requested(0),
         m_num_completed(0),
+        m_max_parallel(-1),
         m_error_cb(NULL),
         m_completion_cb(NULL),
         m_create_req_cb(create_request),
@@ -123,6 +124,7 @@ subr::subr(const subr &a_subr):
         m_num_to_request(a_subr.m_num_to_request),
         m_num_requested(a_subr.m_num_requested),
         m_num_completed(a_subr.m_num_completed),
+        m_max_parallel(a_subr.m_max_parallel),
         m_error_cb(a_subr.m_error_cb),
         m_completion_cb(a_subr.m_completion_cb),
         m_create_req_cb(a_subr.m_create_req_cb),
@@ -286,6 +288,16 @@ uint32_t subr::get_num_requested(void) const
 uint32_t subr::get_num_completed(void) const
 {
         return m_num_completed;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t subr::get_max_parallel(void) const
+{
+        return m_max_parallel;
 }
 
 //: ----------------------------------------------------------------------------
@@ -663,6 +675,16 @@ void subr::set_is_multipath(bool a_val)
 void subr::set_num_to_request(int32_t a_val)
 {
         m_num_to_request = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_max_parallel(int32_t a_val)
+{
+        m_max_parallel = a_val;
 }
 
 //: ----------------------------------------------------------------------------

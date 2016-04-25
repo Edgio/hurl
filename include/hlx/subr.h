@@ -106,6 +106,7 @@ public:
         int32_t get_num_to_request(void) const;
         uint32_t get_num_requested(void) const;
         uint32_t get_num_completed(void) const;
+        int32_t get_max_parallel(void) const;
         bool get_keepalive(void) const;
         bool get_is_done(void) const;
         bool get_is_pending_done(void) const;
@@ -140,6 +141,7 @@ public:
         void set_connect_only(bool a_val);
         void set_is_multipath(bool a_val);
         void set_num_to_request(int32_t a_val);
+        void set_max_parallel(int32_t a_val);
         void set_keepalive(bool a_val);
         void set_error_cb(error_cb_t a_cb);
         void set_completion_cb(completion_cb_t a_cb);
@@ -244,6 +246,7 @@ private:
         int32_t m_num_to_request;
         uint32_t m_num_requested;
         uint32_t m_num_completed;
+        int32_t m_max_parallel;
         error_cb_t m_error_cb;
         completion_cb_t m_completion_cb;
         create_req_cb_t m_create_req_cb;

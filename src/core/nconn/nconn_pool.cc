@@ -133,6 +133,22 @@ uint64_t nconn_pool::get_active_available(void)
         return m_active_conn_map_max_size - m_active_conn_map_size;
 }
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t nconn_pool::get_active_label(const std::string &a_label)
+{
+        active_conn_map_t::const_iterator i_l;
+        if((i_l = m_active_conn_map.find(a_label)) != m_active_conn_map.end())
+        {
+                return i_l->second.size();
+        }
+        return 0;
+}
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

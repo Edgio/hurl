@@ -1268,6 +1268,15 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 {
                         return STATUS_AGAIN;
                 }
+                // Check if we've exceeded max parallel
+                // If we maxed out active connections for this label
+                // -try again later...
+                if((a_subr.get_max_parallel() > 0) &&
+                   (m_nconn_proxy_pool.get_active_label(a_subr.get_label()) >= (uint64_t)a_subr.get_max_parallel()))
+                {
+                        return STATUS_AGAIN;
+                }
+
                 nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
                 if(!l_nresolver)
                 {

@@ -382,8 +382,7 @@ int32_t nconn_tcp::ncsetup()
         m_fd = ::socket(m_host_info.m_sock_family,
                         m_host_info.m_sock_type,
                         m_host_info.m_sock_protocol);
-
-        //NDBG_OUTPUT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
+        //NDBG_PRINT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
         if (m_fd < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error creating socket. Reason: %s\n", m_label.c_str(), ::strerror(errno));
@@ -641,13 +640,13 @@ int32_t nconn_tcp::nccleanup()
         // Shut down connection
         //NDBG_PRINT("CLOSE[%d] %s--CONN--%s last_state: %d\n", m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_tcp_state);
         //NDBG_PRINT_BT();
-        if(m_fd > 0)
-        {
-                close(m_fd);
-        }
         if(m_evr_loop)
         {
                 m_evr_loop->del_fd(m_fd);
+        }
+        if(m_fd > 0)
+        {
+                close(m_fd);
         }
         m_fd = -1;
         m_evr_loop = NULL;

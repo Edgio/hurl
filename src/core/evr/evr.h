@@ -186,6 +186,7 @@ public:
                  uint32_t a_max_events = 512);
         ~evr_loop();
         int32_t run(void);
+        evr_loop_type get_loop_type(void) { return m_loop_type; }
 
         // -------------------------------------------
         // File events...
