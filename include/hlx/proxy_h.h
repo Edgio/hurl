@@ -57,6 +57,7 @@ public:
 
         // Setters
         void set_timeout_ms(uint32_t a_val);
+        void set_max_parallel(int32_t a_val);
 
         // -------------------------------------------------
         // Public Class methods
@@ -78,6 +79,7 @@ private:
         std::string m_ups_host;
         std::string m_route;
         uint32_t m_timeout_ms;
+        int32_t m_max_parallel;
 
 };
 

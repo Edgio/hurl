@@ -86,6 +86,7 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
         l_subr.set_headers(a_rqst.get_headers());
         l_subr.set_keepalive(true);
         l_subr.set_timeout_ms(m_timeout_ms);
+        l_subr.set_max_parallel(m_max_parallel);
         l_subr.set_verb(a_rqst.get_method_str());
         l_subr.set_body_data(l_body_data, l_body_data_len);
         l_subr.set_requester_hconn(&a_hconn);
@@ -186,6 +187,16 @@ bool proxy_h::get_do_default(void)
 void proxy_h::set_timeout_ms(uint32_t a_val)
 {
         m_timeout_ms = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void proxy_h::set_max_parallel(uint32_t a_val)
+{
+        m_max_parallel = a_val;
 }
 
 } //namespace ns_hlx {
