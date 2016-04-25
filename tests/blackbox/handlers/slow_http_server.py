@@ -12,7 +12,7 @@ G_SLOW_HTTP_SERVER_PORT = 12346
 class http_handler(BaseHTTPRequestHandler):
     #Handler for the GET requests
     def do_GET(self):
-        time.sleep(0.5)
+        time.sleep(2.0)
         self.send_response(200)
         self.send_header('Content-type','text/html')
         self.send_header('Content-length',len('monkeys are crazy!'))
