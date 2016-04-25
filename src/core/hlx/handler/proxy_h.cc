@@ -46,7 +46,8 @@ proxy_h::proxy_h(const std::string &a_ups_host, const std::string &a_route):
         m_ups_host(a_ups_host),
         m_route(a_route),
         // 10 min
-        m_timeout_ms(600000)
+        m_timeout_ms(600000),
+        m_max_parallel(-1)
 {
 }
 
@@ -194,7 +195,7 @@ void proxy_h::set_timeout_ms(uint32_t a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void proxy_h::set_max_parallel(uint32_t a_val)
+void proxy_h::set_max_parallel(int32_t a_val)
 {
         m_max_parallel = a_val;
 }
