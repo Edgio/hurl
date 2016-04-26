@@ -24,9 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/host_info.h"
 #include "ndebug.h"
+#include "nlookup.h"
+#include "hlx/host_info.h"
 #include "hlx/time_util.h"
+#include "hlx/status.h"
 
 #include <unistd.h>
 #include <netdb.h>
@@ -34,7 +36,6 @@
 
 // for inet_pton
 #include <arpa/inet.h>
-#include "nlookup.h"
 
 namespace ns_hlx {
 
@@ -69,7 +70,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         {
                 //NDBG_PRINT("Error getaddrinfo '%s': %s\n",
                 //           a_host.c_str(), gai_strerror(l_gaierr));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Find the first IPv4 and IPv6 entries.
@@ -105,7 +106,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                                    a_host.c_str(),
                               (unsigned long) sizeof(ao_host_info.m_sa),
                               (unsigned long) l_addrinfo_v4->ai_addrlen);
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 ao_host_info.m_sock_family = l_addrinfo_v4->ai_family;
                 ao_host_info.m_sock_type = l_addrinfo_v4->ai_socktype;
@@ -130,7 +131,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                                    a_host.c_str(),
                               (unsigned long) sizeof(ao_host_info.m_sa),
                               (unsigned long) l_addrinfo_v6->ai_addrlen);
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 ao_host_info.m_sock_family = l_addrinfo_v6->ai_family;
                 ao_host_info.m_sock_type = l_addrinfo_v6->ai_socktype;
@@ -151,12 +152,12 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         {
                 NDBG_PRINT("Error no valid address found for host %s\n",
                            a_host.c_str());
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Set to 60min -cuz getaddr-info stinks...
         ao_host_info.m_expires_s = get_time_s() + 3600;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 }

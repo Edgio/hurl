@@ -29,6 +29,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/stat.h"
+#include "hlx/status.h"
 #include "ndebug.h"
 #include <stdio.h>
 #define __STDC_FORMAT_MACROS 1
@@ -131,12 +132,12 @@ int32_t get_rusage(t_stat_t &ao_stat)
         if(l_status != 0)
         {
                 NDBG_PRINT("Error performing getrusage.  Reason: %s\n", strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ao_stat.m_rsc_cpu_usr_ms = l_usage.ru_utime.tv_sec*1000 + l_usage.ru_utime.tv_usec/1000;
         ao_stat.m_rsc_cpu_sys_ms = l_usage.ru_stime.tv_sec*1000 + l_usage.ru_stime.tv_usec/1000;
         ao_stat.m_rsc_mem_rss_kb = l_usage.ru_maxrss;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 #endif
 

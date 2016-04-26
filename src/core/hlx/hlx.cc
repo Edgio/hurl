@@ -24,26 +24,21 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
-#include "hlx/stat.h"
-#include "hlx/lsnr.h"
-
 #include "ndebug.h"
-#include "hlx/time_util.h"
 #include "t_hlx.h"
 #include "nresolver.h"
 #include "nconn_tcp.h"
-
+#include "tls_util.h"
+#include "hlx/hlx.h"
+#include "hlx/stat.h"
+#include "hlx/lsnr.h"
+#include "hlx/status.h"
+#include "hlx/time_util.h"
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
-
-// TLS Support
-#include "tls_util.h"
 #include <openssl/ssl.h>
-
-// mutex
 #include <pthread.h>
 
 //: ----------------------------------------------------------------------------
@@ -233,7 +228,7 @@ void hlx::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
                 t_stat_t l_stat;
                 int32_t l_s;
                 l_s = (*i_client)->get_stat(l_stat);
-                if(l_s != STATUS_OK)
+                if(l_s != HLX_STATUS_OK)
                 {
                         // TODO -do nothing...
                         continue;
@@ -245,7 +240,7 @@ void hlx::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
         // rusage
         int32_t l_s;
         l_s = get_rusage(m_stat_cache);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 // TODO ...
         }
@@ -277,7 +272,7 @@ void hlx::display_stat(void)
                 t_stat_t l_stat;
                 int32_t l_s;
                 l_s = (*i_client)->get_stat(l_stat);
-                if(l_s != STATUS_OK)
+                if(l_s != HLX_STATUS_OK)
                 {
                         // TODO -do nothing...
                         continue;
@@ -596,7 +591,7 @@ int hlx::set_tls_server_ctx_options(const std::string &a_tls_options_str)
 int hlx::set_tls_server_ctx_options(long a_tls_options)
 {
         m_t_conf->m_tls_server_ctx_options = a_tls_options;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -674,7 +669,7 @@ int hlx::set_tls_client_ctx_options(const std::string &a_tls_options_str)
 int hlx::set_tls_client_ctx_options(long a_tls_options)
 {
         m_t_conf->m_tls_client_ctx_options = a_tls_options;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -693,7 +688,7 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
         }
         int32_t l_status;
         l_status = a_lsnr->init();
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 NDBG_PRINT("Error performing lsnr init.\n");
                 return HLX_STATUS_ERROR;
@@ -707,7 +702,7 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
                         if(*i_t)
                         {
                                 l_status = (*i_t)->add_lsnr(*a_lsnr);
-                                if(l_status != STATUS_OK)
+                                if(l_status != HLX_STATUS_OK)
                                 {
                                         NDBG_PRINT("Error performing add_lsnr.\n");
                                         return HLX_STATUS_ERROR;
@@ -761,7 +756,7 @@ int32_t hlx::init_run(void)
         if(m_t_hlx_list.empty())
         {
                 l_status = init_t_hlx_list();
-                if(STATUS_OK != l_status)
+                if(HLX_STATUS_OK != l_status)
                 {
                         return HLX_STATUS_ERROR;
                 }
@@ -853,7 +848,7 @@ int hlx::init(void)
         // -------------------------------------------
         int32_t l_ldb_init_status;
         l_ldb_init_status = m_nresolver->init(m_dns_use_ai_cache, m_dns_ai_cache_file);
-        if(STATUS_OK != l_ldb_init_status)
+        if(HLX_STATUS_OK != l_ldb_init_status)
         {
                 NDBG_PRINT("Error performing resolver init with ai_cache: %s\n",
                            m_dns_ai_cache_file.c_str());
@@ -869,7 +864,7 @@ int hlx::init(void)
                 {
                         int32_t l_status;
                         l_status = (*i_t)->init();
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 NDBG_PRINT("Error performing lsnr setup.\n");
                                 return HLX_STATUS_ERROR;
@@ -945,20 +940,20 @@ int hlx::init_t_hlx_list(void)
                         if(*i_t)
                         {
                                 l_status = l_t_hlx->add_lsnr(*(*i_t));
-                                if(l_status != STATUS_OK)
+                                if(l_status != HLX_STATUS_OK)
                                 {
                                         delete l_t_hlx;
                                         l_t_hlx = NULL;
                                         NDBG_PRINT("Error performing add_lsnr.\n");
-                                        return STATUS_ERROR;
+                                        return HLX_STATUS_ERROR;
                                 }
                         }
                 }
                 l_status = l_t_hlx->init();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         NDBG_PRINT("Error performing init.\n");
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 m_t_hlx_list.push_back(l_t_hlx);
         }
@@ -975,25 +970,25 @@ int hlx::init_t_hlx_list(void)
                                 if(*i_t)
                                 {
                                         l_status = l_t_hlx->add_lsnr(*(*i_t));
-                                        if(l_status != STATUS_OK)
+                                        if(l_status != HLX_STATUS_OK)
                                         {
                                                 delete l_t_hlx;
                                                 l_t_hlx = NULL;
                                                 NDBG_PRINT("Error performing add_lsnr.\n");
-                                                return STATUS_ERROR;
+                                                return HLX_STATUS_ERROR;
                                         }
                                 }
                         }
                         l_status = l_t_hlx->init();
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 NDBG_PRINT("Error performing init.\n");
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
                         m_t_hlx_list.push_back(l_t_hlx);
                 }
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 } //namespace ns_hlx {

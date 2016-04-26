@@ -24,10 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/resp.h"
-#include "hlx/trace.h"
 #include "nbq.h"
 #include "ndebug.h"
+#include "hlx/resp.h"
+#include "hlx/trace.h"
+#include "hlx/status.h"
 
 namespace ns_hlx {
 

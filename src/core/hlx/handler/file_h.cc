@@ -24,11 +24,6 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/file_h.h"
-#include "hlx/rqst.h"
-#include "hlx/api_resp.h"
-#include "hlx/hlx.h"
-
 #include "file.h"
 #include "hconn.h"
 #include "nbq.h"
@@ -36,7 +31,11 @@
 #include "string_util.h"
 #include "mime_types.h"
 #include "ndebug.h"
-
+#include "hlx/file_h.h"
+#include "hlx/rqst.h"
+#include "hlx/api_resp.h"
+#include "hlx/hlx.h"
+#include "hlx/status.h"
 #include <string.h>
 
 namespace ns_hlx {
@@ -75,7 +74,7 @@ h_resp_t file_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         std::string l_path;
         int32_t l_s;
         l_s = get_path(m_root, m_index, m_route, a_rqst.get_url_path(), l_path);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 return H_RESP_CLIENT_ERROR;
         }
@@ -91,7 +90,7 @@ h_resp_t file_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
 int32_t file_h::set_root(const std::string &a_root)
 {
         m_root = a_root;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -102,7 +101,7 @@ int32_t file_h::set_root(const std::string &a_root)
 int32_t file_h::set_index(const std::string &a_index)
 {
         m_index = a_index;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -113,7 +112,7 @@ int32_t file_h::set_index(const std::string &a_index)
 int32_t file_h::set_route(const std::string &a_route)
 {
         m_route = a_route;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -135,7 +134,7 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         filesender *l_fs = new filesender();
         int32_t l_s;
         l_s = l_fs->fsinit(a_path.c_str());
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 delete l_fs;
                 // TODO 5xx's for errors?

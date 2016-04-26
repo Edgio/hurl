@@ -24,19 +24,15 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/phurl_h.h"
-#include "hlx/api_resp.h"
-
-#include "hlx/hlx.h"
-
-
 #include "hconn.h"
 #include "t_hlx.h"
 #include "ndebug.h"
-
+#include "hlx/phurl_h.h"
+#include "hlx/api_resp.h"
+#include "hlx/hlx.h"
+#include "hlx/status.h"
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
-
 #include <string.h>
 
 namespace ns_hlx {
@@ -131,7 +127,7 @@ int32_t phurl_h_resp::done(void)
 {
         if(m_done)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         m_done = true;
         // ---------------------------------------
@@ -145,7 +141,7 @@ int32_t phurl_h_resp::done(void)
                 {
                         int32_t l_status;
                         l_status = i_s->second->cancel();
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 // TODO ???
                         }
@@ -154,13 +150,13 @@ int32_t phurl_h_resp::done(void)
         // ---------------------------------------
         // Create Response...
         // ---------------------------------------
-        int32_t l_status = STATUS_OK;
+        int32_t l_status = HLX_STATUS_OK;
         if(m_create_resp_cb)
         {
                 l_status = m_create_resp_cb(this);
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
-                        //return STATUS_ERROR;
+                        //return HLX_STATUS_ERROR;
                 }
         }
         if(m_delete)
@@ -192,7 +188,7 @@ int32_t phurl_h_resp::s_timeout_cb(void *a_ctx, void *a_data)
         phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_data);
         if(!l_phr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         return l_phr->done();
 }
@@ -346,7 +342,7 @@ int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
         phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         hlx_resp *l_resp = new hlx_resp();
         l_resp->m_resp = &a_resp;
@@ -367,7 +363,7 @@ int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
         phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = NULL;
@@ -388,11 +384,11 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
 {
         if(!a_phr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         if(a_phr->m_done)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         if(( (a_phr->m_completion_ratio < 100.0) &&
              (a_phr->get_done_ratio() >= a_phr->m_completion_ratio)) ||
@@ -403,7 +399,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
                 if(a_subr.get_hconn())
                 {
                         l_status = cancel_timer(*a_subr.get_hconn(), a_phr->m_timer);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 // TODO ???
                                 // warn -still need to cancel...
@@ -412,7 +408,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
                 }
                 return a_phr->done();
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -442,7 +438,7 @@ int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
 
         if(!a_phr->m_requester_hconn)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Create resp
@@ -453,7 +449,7 @@ int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
 
         // Queue
         queue_api_resp(*(a_phr->m_requester_hconn), l_api_resp);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

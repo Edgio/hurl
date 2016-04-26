@@ -24,17 +24,17 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "t_hlx.h"
+#include "hconn.h"
+#include "nbq.h"
+#include "ndebug.h"
 #include "hlx/hlx.h"
 #include "hlx/url_router.h"
 #include "hlx/api_resp.h"
 #include "hlx/lsnr.h"
 #include "hlx/time_util.h"
 #include "hlx/trace.h"
-
-#include "t_hlx.h"
-#include "hconn.h"
-#include "nbq.h"
-#include "ndebug.h"
+#include "hlx/status.h"
 
 namespace ns_hlx {
 
@@ -123,13 +123,13 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 {
                         // Connect only && done --early exit...
                         //NDBG_PRINT("NC_STATUS_EOF\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         // subr...
                         //NDBG_PRINT("NC_STATUS_ERROR\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 default:
                 {
@@ -158,7 +158,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 m_t_hlx->bump_num_cln_reqs();
 
                                 // request handling...
-                                if(handle_req() != STATUS_OK)
+                                if(handle_req() != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("NC_STATUS_ERROR\n");
                                         return nconn::NC_STATUS_ERROR;
@@ -175,7 +175,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 }
                         }
                         //NDBG_PRINT("Default.\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 }
         }
@@ -204,12 +204,12 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 case nconn::NC_STATUS_ERROR:
                 {
                         //NDBG_PRINT("NC_STATUS_ERROR\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_EOF:
                 {
                         //NDBG_PRINT("NC_STATUS_EOF\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 default:
                 {
@@ -252,8 +252,8 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                         return nconn::NC_STATUS_BREAK;
                                 }
                         }
-                        //NDBG_PRINT("STATUS_OK\n");
-                        return STATUS_OK;
+                        //NDBG_PRINT("HLX_STATUS_OK\n");
+                        return HLX_STATUS_OK;
                 }
                 }
         }
@@ -264,7 +264,7 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         {
                 m_t_hlx->bump_num_cln_idle_killed();
                 //NDBG_PRINT("NC_MODE_TIMEOUT\n");
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         // -----------------------------------------------------------
         // Error
@@ -272,19 +272,19 @@ int32_t hconn::run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_s
         case nconn::NC_MODE_ERROR:
         {
                 //NDBG_PRINT("NC_MODE_ERROR\n");
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         // -----------------------------------------------------------
         // Default
         // -----------------------------------------------------------
         default:
         {
-                //NDBG_PRINT("STATUS_OK\n");
-                return STATUS_OK;
+                //NDBG_PRINT("HLX_STATUS_OK\n");
+                return HLX_STATUS_OK;
         }
         }
-        //NDBG_PRINT("STATUS_OK\n");
-        return STATUS_OK;
+        //NDBG_PRINT("HLX_STATUS_OK\n");
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -330,7 +330,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         m_subr->bump_num_completed();
                         subr_complete();
                         //NDBG_PRINT("Cleanup EOF\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
@@ -341,12 +341,12 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         }
                         int32_t l_status;
                         l_status = subr_error(HTTP_STATUS_BAD_GATEWAY);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error: subr_error.\n");
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 default:
                 {
@@ -422,7 +422,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                 return nconn::NC_STATUS_IDLE;
                         }
                         //NDBG_PRINT("Error: nc_run_state_machine.\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 }
         }
@@ -441,7 +441,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         {
                                 l_error_cb(*m_subr, *m_nconn);
                         }
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_EOF:
                 {
@@ -450,10 +450,10 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         if(l_complete)
                         {
                                 //NDBG_PRINT("Cleanup subr complete\n");
-                                return STATUS_OK;
+                                return HLX_STATUS_OK;
                         }
                         //NDBG_PRINT("Cleanup EOF\n");
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 default:
                 {
@@ -461,7 +461,7 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         {
                                 return nconn::NC_STATUS_BREAK;
                         }
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 }
         }
@@ -475,12 +475,12 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                 {
                         int32_t l_status;
                         l_status = subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
                 }
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         // -----------------------------------------------------------
         // Error
@@ -489,21 +489,21 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
         {
                 int32_t l_status;
                 l_status = subr_error(HTTP_STATUS_BAD_GATEWAY);
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         // -----------------------------------------------------------
         // Default
         // -----------------------------------------------------------
         default:
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -525,10 +525,10 @@ int32_t hconn::run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_statu
         }
         default:
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -541,11 +541,11 @@ int32_t hconn::handle_req(void)
         rqst *l_rqst = static_cast<rqst *>(m_hmsg);
         if(!l_rqst)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         if(!m_lsnr || !m_lsnr->get_url_router())
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // -------------------------------------------------
@@ -667,9 +667,9 @@ int32_t hconn::handle_req(void)
         // TODO Handler errors?
         if(l_hdlr_status == H_RESP_SERVER_ERROR)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -735,7 +735,7 @@ int32_t hconn::subr_error(http_status_t a_status)
 {
         if(!m_subr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         m_subr->set_fallback_status_code(a_status);
         m_subr->bump_num_completed();
@@ -767,7 +767,7 @@ int32_t hconn::subr_error(http_status_t a_status)
                         m_subr = NULL;
                 }
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -841,7 +841,7 @@ int32_t add_subr_t_hlx(void *a_t_hlx, subr &a_subr)
                 return HLX_STATUS_ERROR;
         }
         int32_t l_status = l_hlx->subr_add(a_subr);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
         }
@@ -908,7 +908,7 @@ int32_t add_timer(hconn &a_hconn, uint32_t a_ms,
         }
         int32_t l_status;
         l_status = a_hconn.m_t_hlx->add_timer(a_ms, a_cb, a_data, ao_timer);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
         }
@@ -928,7 +928,7 @@ int32_t cancel_timer(hconn &a_hconn, void *a_timer)
         }
         int32_t l_status;
         l_status = a_hconn.m_t_hlx->cancel_timer(a_timer);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
         }
@@ -951,7 +951,7 @@ int32_t add_timer(void *a_t_hlx, uint32_t a_ms,
         t_hlx *l_hlx = static_cast<t_hlx *>(a_t_hlx);
         int32_t l_status;
         l_status = l_hlx->add_timer(a_ms, a_cb, a_data, ao_timer);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
         }
@@ -972,7 +972,7 @@ int32_t cancel_timer(void *a_t_hlx, void *a_timer)
         t_hlx *l_hlx = static_cast<t_hlx *>(a_t_hlx);
         int32_t l_status;
         l_status = l_hlx->cancel_timer(a_timer);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
         }

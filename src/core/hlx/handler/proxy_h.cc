@@ -24,15 +24,16 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "ndebug.h"
+#include "hconn.h"
+#include "nbq.h"
 #include "hlx/http_status.h"
 #include "hlx/proxy_h.h"
 #include "hlx/subr.h"
 #include "hlx/rqst.h"
 #include "hlx/resp.h"
 #include "hlx/hlx.h"
-#include "ndebug.h"
-#include "hconn.h"
-#include "nbq.h"
+#include "hlx/status.h"
 
 namespace ns_hlx {
 
@@ -112,26 +113,26 @@ int32_t proxy_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
         hconn *l_hconn = a_subr.get_requester_hconn();
         if(!l_hconn)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         nbq *l_out_q = l_hconn->m_out_q;
         if(!l_out_q)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         // TODO needed ???
         l_out_q->reset_write();
         nbq *l_in_q = a_resp.get_q();
         if(!l_in_q)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         l_in_q->reset_read();
         int64_t l_size;
         l_size = l_out_q->write_q(*l_in_q);
         if(l_size < 0)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // access info
@@ -144,7 +145,7 @@ int32_t proxy_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
         {
                 return H_RESP_SERVER_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -157,17 +158,17 @@ int32_t proxy_h::s_error_cb(subr &a_subr, nconn &a_nconn)
         proxy_h *l_proxy_h = (proxy_h *)a_subr.get_data();
         if(!l_proxy_h)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         if(!a_subr.get_requester_hconn())
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         l_proxy_h->send_json_resp_err(*a_subr.get_requester_hconn(),
                                       false,
                                       // TODO use supports keep-alives from client request
                                       a_subr.get_fallback_status_code());
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

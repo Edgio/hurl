@@ -24,14 +24,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "ndebug.h"
 #include "hlx/lsnr.h"
 #include "hlx/url_router.h"
 #include "hlx/rqst_h.h"
-#include "ndebug.h"
-
+#include "hlx/status.h"
 #include <string.h>
 #include <errno.h>
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
@@ -56,9 +55,9 @@
                                 &_l__sock_opt_val, \
                                 sizeof(_l__sock_opt_val)); \
                                 if (_l_status == -1) { \
-                                        NDBG_PRINT("STATUS_ERROR: Failed to set %s.  Reason: %s.\n", \
+                                        NDBG_PRINT("HLX_STATUS_ERROR: Failed to set %s.  Reason: %s.\n", \
                                                    #_sock_opt_name, strerror(errno)); \
-                                        return STATUS_ERROR;\
+                                        return HLX_STATUS_ERROR;\
                                 } \
         } while(0)
 
@@ -108,7 +107,7 @@ static int32_t create_tcp_server_socket(uint16_t a_port,
         if (l_sock_fd < 0)
         {
                 NDBG_PRINT("Error socket() failed. Reason[%d]: %s\n", errno, strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // -------------------------------------------
@@ -133,7 +132,7 @@ static int32_t create_tcp_server_socket(uint16_t a_port,
         if (l_status < 0)
         {
                 NDBG_PRINT("Error bind() failed (port: %d). Reason[%d]: %s\n", a_port, errno, strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // -------------------------------------------
@@ -144,7 +143,7 @@ static int32_t create_tcp_server_socket(uint16_t a_port,
         if (l_status < 0)
         {
                 NDBG_PRINT("Error listen() failed. Reason[%d]: %s\n", errno, strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         return l_sock_fd;
@@ -159,20 +158,20 @@ int32_t lsnr::init(void)
 {
         if(m_is_initd)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
 
         // Create listen socket
         sockaddr_in *l_sa = (struct sockaddr_in *)(&m_sa);
         m_sa_len = sizeof(struct sockaddr_in);
         m_fd = create_tcp_server_socket(m_port, m_local_addr_v4, *l_sa);
-        if(m_fd == STATUS_ERROR)
+        if(m_fd == HLX_STATUS_ERROR)
         {
             NDBG_PRINT("Error performing create_tcp_server_socket with port number = %d\n", m_port);
             return HLX_STATUS_ERROR;
         }
         m_is_initd = true;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -188,10 +187,10 @@ int32_t lsnr::set_local_addr_v4(const char *a_addr_str)
         l_s = inet_pton(AF_INET, a_addr_str, &(l_c_addr.sin_addr));
         if(l_s != 1)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         m_local_addr_v4 = ntohl(l_c_addr.sin_addr.s_addr);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

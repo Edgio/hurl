@@ -29,9 +29,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "tls_util.h"
-
 #include "ndebug.h"
 #include "hostcheck/hostcheck.h"
+#include "hlx/status.h"
 
 #include <pthread.h>
 #include <openssl/ssl.h>
@@ -401,7 +401,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 if(i_option == g_tls_options_map.end())
                 {
                         NDBG_PRINT("Error unrecognized ssl option: %s\n", l_token.c_str());
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 ao_val |= i_option->second;
         };
@@ -411,13 +411,13 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         if(i_option == g_tls_options_map.end())
         {
                 NDBG_PRINT("Error unrecognized ssl option: %s\n", l_token.c_str());
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ao_val |= i_option->second;
 
         //NDBG_PRINT("ao_val: 0x%08lX\n", ao_val);
 
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

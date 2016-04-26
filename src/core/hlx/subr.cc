@@ -24,16 +24,15 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/subr.h"
-#include "hlx/api_resp.h"
-#include "hlx/resp.h"
-
 #include "t_hlx.h"
 #include "nconn_tcp.h"
 #include "ndebug.h"
 #include "string_util.h"
+#include "hlx/subr.h"
+#include "hlx/api_resp.h"
+#include "hlx/resp.h"
+#include "hlx/status.h"
 #include "http_parser/http_parser.h"
-
 #include <string.h>
 
 namespace ns_hlx {
@@ -1137,16 +1136,16 @@ int subr::set_header(const std::string &a_header)
         {
                 // If verbose???
                 NDBG_PRINT("Error header string[%s] is malformed\n", a_header.c_str());
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         l_status = set_header(l_header_key, l_header_val);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 // If verbose???
                 NDBG_PRINT("Error performing set header with key: %s value: %s\n", l_header_key.c_str(), l_header_val.c_str());
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1183,7 +1182,7 @@ int subr::set_header(const std::string &a_key, const std::string &a_val)
                 l_list.push_back(a_val);
                 m_headers[a_key] = l_list;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 
@@ -1199,7 +1198,7 @@ int subr::del_header(const std::string &a_key)
         {
                 m_headers.erase(i_obj);
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1275,7 +1274,7 @@ int32_t subr::init_with_url(const std::string &a_url)
         {
                 NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Set no port
@@ -1307,7 +1306,7 @@ int32_t subr::init_with_url(const std::string &a_url)
                                 else
                                 {
                                         NDBG_PRINT("Error schema[%s] is unsupported\n", l_part.c_str());
-                                        return STATUS_ERROR;
+                                        return HLX_STATUS_ERROR;
                                 }
                                 break;
                         }
@@ -1386,14 +1385,14 @@ int32_t subr::init_with_url(const std::string &a_url)
         //m_num_to_req = m_path_vector.size();
         //NDBG_PRINT("Showing parsed url.\n");
         //m_url.show();
-        if (STATUS_OK != l_status)
+        if (HLX_STATUS_OK != l_status)
         {
                 // Failure
                 NDBG_PRINT("Error parsing url: %s.\n", l_url_fixed.c_str());
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1426,7 +1425,7 @@ int32_t subr::cancel(void)
                 if(!get_detach_resp())
                 {
                         delete this;
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 break;
         }
@@ -1451,7 +1450,7 @@ int32_t subr::cancel(void)
                 if(!get_detach_resp())
                 {
                         delete this;
-                        return STATUS_OK;
+                        return HLX_STATUS_OK;
                 }
                 break;
         }
@@ -1470,7 +1469,7 @@ int32_t subr::cancel(void)
                         m_hconn->m_nconn->set_status(CONN_STATUS_CANCELLED);
                         int32_t l_status;
                         l_status = m_hconn->subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 // TODO Check error;
                         }
@@ -1479,7 +1478,7 @@ int32_t subr::cancel(void)
                 else
                 {
                         //NDBG_PRINT("ERROR\n");
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 break;
         }
@@ -1488,7 +1487,7 @@ int32_t subr::cancel(void)
                 break;
         }
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1565,7 +1564,7 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         {
                 if(!a_subr.m_t_hlx->get_hlx())
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 const std::string &l_ua = a_subr.m_t_hlx->get_hlx()->get_server_name();
                 nbq_write_header(ao_q, "User-Agent", strlen("User-Agent"),
@@ -1585,7 +1584,7 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
                 nbq_write_body(ao_q, NULL, 0);
         }
 
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

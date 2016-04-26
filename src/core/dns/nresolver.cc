@@ -24,12 +24,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/host_info.h"
 #include "ai_cache.h"
 #include "nresolver.h"
 #include "ndebug.h"
-#include "hlx/time_util.h"
 #include "nlookup.h"
+#include "hlx/host_info.h"
+#include "hlx/time_util.h"
+#include "hlx/status.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
@@ -106,7 +107,7 @@ int32_t nresolver::init(bool a_use_cache,
 {
         if(m_is_initd)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         m_use_cache = a_use_cache;
         if(m_use_cache)
@@ -122,12 +123,12 @@ int32_t nresolver::init(bool a_use_cache,
         if (dns_init(NULL, 0) < 0)
         {
                 NDBG_PRINT("Error unable to initialize dns library\n");
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 #endif
 
         m_is_initd = true;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -182,7 +183,7 @@ int32_t nresolver::destroy_async(void* a_ctx,
                 }
                 ao_lookup_job_q.pop();
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 #endif
 
@@ -198,9 +199,9 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
 #ifdef ASYNC_DNS_WITH_UDNS
@@ -211,14 +212,14 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
         {
                 NDBG_PRINT("Error performing dns_new\n");
                 pthread_mutex_unlock(&m_cache_mutex);
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         l_status = dns_init(l_ctx, 0);
         if(l_status < 0)
         {
                 NDBG_PRINT("Error performing dns_init\n");
                 pthread_mutex_unlock(&m_cache_mutex);
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Specified Name servers
@@ -229,7 +230,7 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
                 if(l_status < 0)
                 {
                         NDBG_PRINT("Error performing dns_add_serv\n");
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 for(resolver_host_list_t::iterator i_s = m_resolver_host_list.begin();
                     i_s != m_resolver_host_list.end();
@@ -239,7 +240,7 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
                         if(l_status < 0)
                         {
                                 NDBG_PRINT("Error performing dns_add_serv\n");
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
                 }
         }
@@ -257,13 +258,13 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
         {
                 NDBG_PRINT("Error performing dns_open\n");
                 pthread_mutex_unlock(&m_cache_mutex);
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         *ao_ctx = l_ctx;
         pthread_mutex_unlock(&m_cache_mutex);
 #endif
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 #endif
 
@@ -292,9 +293,9 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
         // ---------------------------------------
@@ -319,7 +320,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
         if(l_host_info)
         {
                 ao_host_info = *l_host_info;
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
 
         // Lookup inline
@@ -327,7 +328,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, ho
         {
                 return lookup_inline(a_host, a_port, ao_host_info);
         }
-        return STATUS_ERROR;
+        return HLX_STATUS_ERROR;
 }
 
 //: ----------------------------------------------------------------------------
@@ -340,25 +341,25 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         int32_t l_status;
         host_info *l_host_info = new host_info();
         l_status = nlookup(a_host, a_port, *l_host_info);
-        if(l_status != STATUS_OK)
+        if(l_status != HLX_STATUS_OK)
         {
                 delete l_host_info;
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         //show_host_info();
         if(m_use_cache && m_ai_cache)
         {
                 l_host_info = m_ai_cache->lookup(get_cache_key(a_host, a_port), l_host_info);
         }
-        int32_t l_retval = STATUS_OK;
+        int32_t l_retval = HLX_STATUS_OK;
         if(l_host_info)
         {
                 ao_host_info = *l_host_info;
-                l_retval = STATUS_OK;
+                l_retval = HLX_STATUS_OK;
         }
         else
         {
-                l_retval = STATUS_ERROR;
+                l_retval = HLX_STATUS_ERROR;
         }
         if(l_host_info && (!m_use_cache || !m_ai_cache))
         {
@@ -382,17 +383,17 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
 
         // tryfast lookup
         l_status = lookup_tryfast(a_host, a_port, ao_host_info);
-        if(l_status == STATUS_OK)
+        if(l_status == HLX_STATUS_OK)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         return lookup_inline(a_host, a_port, ao_host_info);
 }
@@ -445,7 +446,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 {
                         int32_t l_status = 0;
                         l_status = l_job->m_cb(NULL, l_job->m_data);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error performing callback.\n");
                         }
@@ -504,7 +505,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         {
                 int32_t l_status = 0;
                 l_status = l_job->m_cb(l_host_info, l_job->m_data);
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing callback.\n");
                 }
@@ -565,9 +566,9 @@ int32_t nresolver::lookup_async(void* a_ctx,
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
 #ifdef ASYNC_DNS_WITH_UDNS
@@ -575,7 +576,7 @@ int32_t nresolver::lookup_async(void* a_ctx,
         dns_ctx *l_ctx = static_cast<dns_ctx *>(a_ctx);
         if(!l_ctx)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         if(!a_host.empty())
@@ -613,7 +614,7 @@ int32_t nresolver::lookup_async(void* a_ctx,
                 {
                         NDBG_PRINT("Error performing dns_submit_a4.  Last status: %d\n",
                                    dns_status(NULL));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 l_job->m_dns_ctx = l_ctx;
                 l_job->m_start_time = get_time_s();
@@ -654,7 +655,7 @@ int32_t nresolver::lookup_async(void* a_ctx,
         }
         // Get active number
         a_active = dns_active(l_ctx);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 #endif
 
@@ -670,11 +671,11 @@ int32_t nresolver::handle_io(void* a_ctx)
         dns_ctx *l_ctx = static_cast<dns_ctx *>(a_ctx);
         if(!l_ctx)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         dns_ioevent(l_ctx, 0);
 #endif
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 #endif
 

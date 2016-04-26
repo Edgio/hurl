@@ -12,6 +12,7 @@
 #include "hlx/file_h.h"
 #include "hlx/lsnr.h"
 #include "hlx/time_util.h"
+#include "hlx/status.h"
 
 // getrlimit
 #include <sys/time.h>
@@ -52,17 +53,6 @@
 //: ----------------------------------------------------------------------------
 #define NB_ENABLE  1
 #define NB_DISABLE 0
-
-//: ----------------------------------------------------------------------------
-//: Status
-//: ----------------------------------------------------------------------------
-#ifndef STATUS_ERROR
-#define STATUS_ERROR -1
-#endif
-
-#ifndef STATUS_OK
-#define STATUS_OK 0
-#endif
 
 //: ----------------------------------------------------------------------------
 //: ANSI Color Code Strings
@@ -515,9 +505,9 @@ int main(int argc, char** argv)
                 {
                         int32_t l_status;
                         l_status = l_hlx->set_tls_server_ctx_options(l_argument);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
 
                         break;

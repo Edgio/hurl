@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/trace.h"
-
+#include "hlx/status.h"
 #include "nconn_pool.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
@@ -105,7 +105,7 @@ nconn *nconn_pool::get_new_active(const std::string &a_label, scheme_t a_scheme)
 
         int32_t l_s;
         l_s = add_active(l_nconn);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 TRC_ERROR("Error performing add_active.\n");
                 //return NULL;
@@ -194,14 +194,14 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
         if(!a_nconn)
         {
                 TRC_ERROR("a_nconn == NULL\n");
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         int32_t l_s;
         l_s = remove_active(a_nconn);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 TRC_ERROR("Error performing remove_active.\n");
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         id_t l_id;
         l_id = m_idle_conn_ncache.insert(a_nconn->get_label(), a_nconn);
@@ -211,7 +211,7 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
         //                m_idle_conn_ncache.size(),
         //                a_nconn->get_label().c_str(),
         //                l_id);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -224,7 +224,7 @@ int32_t nconn_pool::release(nconn *a_nconn)
         if(!a_nconn)
         {
                 TRC_ERROR("a_nconn == NULL\n");
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         //NDBG_PRINT("%sRELEASE%s:\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
         if(!m_initd)
@@ -233,24 +233,24 @@ int32_t nconn_pool::release(nconn *a_nconn)
         }
         int32_t l_s;
         l_s = remove_active(a_nconn);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error performing remove_active\n");
-                //return STATUS_ERROR;
+                //return HLX_STATUS_ERROR;
         }
         l_s = remove_idle(a_nconn);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error performing remove_idle\n");
-                //return STATUS_ERROR;
+                //return HLX_STATUS_ERROR;
         }
         l_s = cleanup(a_nconn);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error performing cleanup\n");
-                //return STATUS_ERROR;
+                //return HLX_STATUS_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -284,12 +284,12 @@ int nconn_pool::s_delete_cb(void* o_1, void *a_2)
         nconn *l_nconn = reinterpret_cast<nconn *>(a_2);
         int32_t l_s;
         l_s = l_nconn_pool->cleanup(l_nconn);
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error performing cleanup\n");
-                //return STATUS_ERROR;
+                //return HLX_STATUS_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -321,7 +321,7 @@ int32_t nconn_pool::add_active(nconn *a_nconn)
                 m_active_conn_map[a_nconn->get_label()] = l_cs;
         }
         ++m_active_conn_map_size;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -338,12 +338,12 @@ int32_t nconn_pool::remove_active(nconn *a_nconn)
         active_conn_map_t::iterator i_cl = m_active_conn_map.find(a_nconn->get_label());
         if(i_cl == m_active_conn_map.end())
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         nconn_set_t::iterator i_n = i_cl->second.find(a_nconn);
         if(i_n == i_cl->second.end())
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         i_cl->second.erase(i_n);
         if(!i_cl->second.size())
@@ -351,7 +351,7 @@ int32_t nconn_pool::remove_active(nconn *a_nconn)
                 m_active_conn_map.erase(i_cl);
         }
         --m_active_conn_map_size;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -370,7 +370,7 @@ int32_t nconn_pool::remove_idle(nconn *a_nconn)
                 //           m_idle_conn_ncache.size(),
                 //           l_id);
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -383,7 +383,7 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
         if(!a_nconn)
         {
                 TRC_ERROR("Error a_nconn == NULL\n");
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         if(!m_initd)
         {
@@ -391,14 +391,14 @@ int32_t nconn_pool::cleanup(nconn *a_nconn)
         }
         int32_t l_s;
         l_s = a_nconn->nc_cleanup();
-        if(l_s != STATUS_OK)
+        if(l_s != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error perfrorming a_nconn->nc_cleanup()\n");
-                //return STATUS_ERROR;
+                //return HLX_STATUS_ERROR;
         }
         a_nconn->reset_stats();
         m_nconn_obj_pool.release(a_nconn);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 } //namespace ns_hlx {

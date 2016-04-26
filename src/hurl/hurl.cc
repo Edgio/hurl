@@ -32,6 +32,7 @@
 #include "hlx/lsnr.h"
 #include "hlx/time_util.h"
 #include "hlx/trace.h"
+#include "hlx/status.h"
 #include "tinymt64.h"
 
 #include <string.h>
@@ -89,17 +90,6 @@
 //: Macros
 //: ----------------------------------------------------------------------------
 #define UNUSED(x) ( (void)(x) )
-
-//: ----------------------------------------------------------------------------
-//: Status
-//: ----------------------------------------------------------------------------
-#ifndef STATUS_ERROR
-#define STATUS_ERROR -1
-#endif
-
-#ifndef STATUS_OK
-#define STATUS_OK 0
-#endif
 
 //: ----------------------------------------------------------------------------
 //: ANSI Color Code Strings
@@ -491,7 +481,7 @@ static int32_t s_pre_connect_cb(int a_fd)
                 printf("%s.%s.%d: Error performing bind. Reason: %s.\n",
                        __FILE__,__FUNCTION__,__LINE__,strerror(errno));
                 pthread_mutex_unlock(&g_addrx_mutex);
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ++g_addrx_addr_ipv4;
         if(g_addrx_addr_ipv4 >= g_addrx_addr_ipv4_max)
@@ -499,7 +489,7 @@ static int32_t s_pre_connect_cb(int a_fd)
                 g_addrx_addr_ipv4 = LOCAL_ADDR_V4_MIN;
         }
         pthread_mutex_unlock(&g_addrx_mutex);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -525,20 +515,20 @@ static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_
         l_status = sscanf(l_expr, "[%x-%x]", &l_start, &l_end);
         if(2 == l_status) goto success;
 
-        return STATUS_ERROR;
+        return HLX_STATUS_ERROR;
 
 success:
         // Check range...
         if(l_start > l_end)
         {
-                printf("STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
-                return STATUS_ERROR;
+                printf("HLX_STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
+                return HLX_STATUS_ERROR;
         }
 
         // Successfully matched we outie
         ao_range.m_start = l_start;
         ao_range.m_end = l_end;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -563,8 +553,8 @@ int32_t parse_path(const char *a_path,
         {
                 if((l_range_end_pos = l_path.find("]", l_range_start_pos)) == std::string::npos)
                 {
-                        printf("STATUS_ERROR: Bad range for path: %s at pos: %lu\n", a_path, l_range_start_pos);
-                        return STATUS_ERROR;
+                        printf("HLX_STATUS_ERROR: Bad range for path: %s at pos: %lu\n", a_path, l_range_start_pos);
+                        return HLX_STATUS_ERROR;
                 }
 
                 // Push path back...
@@ -581,12 +571,12 @@ int32_t parse_path(const char *a_path,
                 //NDBG_PRINT("l_range_exp: %s\n", l_range_exp.c_str());
 
                 range_t l_range;
-                int l_status = STATUS_OK;
+                int l_status = HLX_STATUS_OK;
                 l_status = convert_exp_to_range(l_range_exp, l_range);
-                if(STATUS_OK != l_status)
+                if(HLX_STATUS_OK != l_status)
                 {
-                        printf("STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
-                        return STATUS_ERROR;
+                        printf("HLX_STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
+                        return HLX_STATUS_ERROR;
                 }
 
                 ao_range_vector.push_back(l_range);
@@ -621,7 +611,7 @@ int32_t parse_path(const char *a_path,
                 printf("RANGE: %u -- %u\n", i_range->m_start, i_range->m_end);
         }
 #endif
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -639,7 +629,7 @@ int32_t path_exploder(std::string a_path_part,
         if(a_substr_idx >= a_substr_vector.size())
         {
                 g_path_vector.push_back(a_path_part);
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
 
         a_path_part.append(a_substr_vector[a_substr_idx]);
@@ -648,7 +638,7 @@ int32_t path_exploder(std::string a_path_part,
         if(a_range_idx >= a_range_vector.size())
         {
                 g_path_vector.push_back(a_path_part);
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
 
         range_t l_range = a_range_vector[a_range_idx];
@@ -661,7 +651,7 @@ int32_t path_exploder(std::string a_path_part,
                 l_path.append(l_num_str);
                 path_exploder(l_path, a_substr_vector, a_substr_idx,a_range_vector,a_range_idx);
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -689,8 +679,8 @@ int32_t add_option(const char *a_key, const char *a_val)
                 }
                 else
                 {
-                        printf("STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                        return STATUS_ERROR;
+                        printf("HLX_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                        return HLX_STATUS_ERROR;
                 }
         }
         //: ------------------------------------------------
@@ -711,17 +701,17 @@ int32_t add_option(const char *a_key, const char *a_val)
                 else if (l_val == "reuse") m_run_only_once_flag = false;
                 else
                 {
-                        NDBG_PRINT("STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                        return STATUS_ERROR;
+                        NDBG_PRINT("HLX_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                        return HLX_STATUS_ERROR;
                 }
         }
 #endif
         else
         {
-                printf("STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
-                return STATUS_ERROR;
+                printf("HLX_STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
+                return HLX_STATUS_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -743,7 +733,7 @@ int32_t special_effects_parse(std::string &a_path)
         // Bail out if no path
         if(a_path.empty())
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
 
         // -------------------------------------------
@@ -767,10 +757,10 @@ int32_t special_effects_parse(std::string &a_path)
                 if(l_p)
                 {
                         l_status = parse_path(l_p, l_path_substr_vector, l_range_vector);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
-                                printf("STATUS_ERROR: Performing parse_path(%s)\n", l_p);
-                                return STATUS_ERROR;
+                                printf("HLX_STATUS_ERROR: Performing parse_path(%s)\n", l_p);
+                                return HLX_STATUS_ERROR;
                         }
                 }
 
@@ -778,10 +768,10 @@ int32_t special_effects_parse(std::string &a_path)
                 if(l_range_vector.size())
                 {
                         l_status = path_exploder(std::string(""), l_path_substr_vector, 0, l_range_vector, 0);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
-                                printf("STATUS_ERROR: Performing explode_path(%s)\n", l_p);
-                                return STATUS_ERROR;
+                                printf("HLX_STATUS_ERROR: Performing explode_path(%s)\n", l_p);
+                                return HLX_STATUS_ERROR;
                         }
                         // DEBUG show paths
                         //printf(" -- Displaying Paths --\n");
@@ -818,9 +808,9 @@ int32_t special_effects_parse(std::string &a_path)
                         char *l_v = strtok_r(NULL, SPECIAL_EFX_KV_SEPARATOR, &l_options_save_ptr);
                         int32_t l_add_option_status;
                         l_add_option_status = add_option(l_k, l_v);
-                        if(l_add_option_status != STATUS_OK)
+                        if(l_add_option_status != HLX_STATUS_OK)
                         {
-                                printf("STATUS_ERROR: Performing add_option(%s,%s)\n", l_k,l_v);
+                                printf("HLX_STATUS_ERROR: Performing add_option(%s,%s)\n", l_k,l_v);
                                 // Nuttin doing???
 
                         }
@@ -830,7 +820,7 @@ int32_t special_effects_parse(std::string &a_path)
                 l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         }
         //printf("a_path: %s\n", a_path.c_str());
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -886,7 +876,7 @@ static int32_t s_create_request_cb(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
 {
         if((g_num_to_request != -1) && (g_num_requested >= (uint32_t)g_num_to_request))
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ++g_num_requested;
 
@@ -958,7 +948,7 @@ static int32_t s_create_request_cb(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
                 ns_hlx::nbq_write_body(a_nbq, NULL, 0);
         }
 
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1657,7 +1647,7 @@ int main(int argc, char** argv)
         {
                 int32_t l_status;
                 l_status = special_effects_parse(l_raw_path);
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         printf("Error performing special_effects_parse with path: %s\n", l_raw_path.c_str());
                         return -1;
@@ -1843,7 +1833,7 @@ int main(int argc, char** argv)
                 if(l_file_ptr == NULL)
                 {
                         printf("Error performing fopen. Reason: %s\n", strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 // Write
@@ -1852,7 +1842,7 @@ int main(int argc, char** argv)
                 {
                         printf("Error performing fwrite. Reason: %s\n", strerror(errno));
                         fclose(l_file_ptr);
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 // Close
@@ -1860,7 +1850,7 @@ int main(int argc, char** argv)
                 if(l_status != 0)
                 {
                         printf("Error performing fclose. Reason: %s\n", strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
 
@@ -2440,7 +2430,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 {
         // Check is a file
         struct stat l_stat;
-        int32_t l_status = STATUS_OK;
+        int32_t l_status = HLX_STATUS_OK;
         l_status = stat(a_file, &l_stat);
         if(l_status != 0)
         {
@@ -2479,7 +2469,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 
         // Close file...
         l_status = fclose(l_file);
-        if (STATUS_OK != l_status)
+        if (HLX_STATUS_OK != l_status)
         {
                 printf("Error performing fclose.  Reason: %s\n", strerror(errno));
                 return -1;

@@ -27,6 +27,7 @@
 #include "hlx/hlx.h"
 #include "hlx/phurl_h.h"
 #include "hlx/resp.h"
+#include "hlx/status.h"
 
 #include "support/tls_util.h"
 #include "rapidjson/document.h"
@@ -80,17 +81,6 @@
 #define NB_DISABLE 0
 
 #define MAX_READLINE_SIZE 1024
-
-//: ----------------------------------------------------------------------------
-//: Status
-//: ----------------------------------------------------------------------------
-#ifndef STATUS_ERROR
-#define STATUS_ERROR -1
-#endif
-
-#ifndef STATUS_OK
-#define STATUS_OK 0
-#endif
 
 //: ----------------------------------------------------------------------------
 //: ANSI Color Code Strings
@@ -388,7 +378,7 @@ int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
 int32_t broadcast_h::create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *a_fanout_resp)
 {
         //printf("%s.%s.%d: %sDONE%s\n",__FILE__,__FUNCTION__,__LINE__, ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -401,7 +391,7 @@ int32_t broadcast_h::s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_ncon
         ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = &a_resp;
@@ -451,7 +441,7 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
         ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = NULL;
@@ -880,7 +870,7 @@ int32_t add_line(FILE *a_file_ptr, phurl_host_list_t &a_host_list)
                         // Bail out -reject lines longer than limit
                         // -host names ought not be too long
                         printf("Error: hostnames must be shorter than %d chars\n", MAX_READLINE_SIZE);
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 // read full line
                 // Nuke endline
@@ -893,7 +883,7 @@ int32_t add_line(FILE *a_file_ptr, phurl_host_list_t &a_host_list)
                         a_host_list.push_back(l_host);
                 //printf("READLINE: %s\n", l_readline);
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1248,9 +1238,9 @@ int main(int argc, char** argv)
                 {
                         int32_t l_status;
                         l_status = l_hlx->set_tls_client_ctx_options(l_argument);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
 
                         break;
@@ -1596,7 +1586,7 @@ int main(int argc, char** argv)
         if(!l_execute_line.empty())
         {
                 FILE *fp;
-                int32_t l_status = STATUS_OK;
+                int32_t l_status = HLX_STATUS_OK;
 
                 fp = popen(l_execute_line.c_str(), "r");
                 // Error executing...
@@ -1605,9 +1595,9 @@ int main(int argc, char** argv)
                 }
 
                 l_status = add_line(fp, *l_host_list);
-                if(STATUS_OK != l_status)
+                if(HLX_STATUS_OK != l_status)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 l_status = pclose(fp);
@@ -1615,7 +1605,7 @@ int main(int argc, char** argv)
                 if (l_status == -1)
                 {
                         printf("Error: performing pclose\n");
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 // Use macros described under wait() to inspect `status' in order
                 // to determine success/failure of command executed by popen()
@@ -1627,19 +1617,19 @@ int main(int argc, char** argv)
         else if(!l_host_file_str.empty())
         {
                 FILE * l_file;
-                int32_t l_status = STATUS_OK;
+                int32_t l_status = HLX_STATUS_OK;
 
                 l_file = fopen(l_host_file_str.c_str(),"r");
                 if (NULL == l_file)
                 {
                         printf("Error opening file: %s.  Reason: %s\n", l_host_file_str.c_str(), strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 l_status = add_line(l_file, *l_host_list);
-                if(STATUS_OK != l_status)
+                if(HLX_STATUS_OK != l_status)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 //printf("ADD_FILE: DONE: %s\n", a_url_file.c_str());
@@ -1648,7 +1638,7 @@ int main(int argc, char** argv)
                 if (0 != l_status)
                 {
                         printf("Error performing fclose.  Reason: %s\n", strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
         else if(!l_host_file_json_str.empty())
@@ -1659,19 +1649,19 @@ int main(int argc, char** argv)
                 // TODO
                 // ---------------------------------------
                 struct stat l_stat;
-                int32_t l_status = STATUS_OK;
+                int32_t l_status = HLX_STATUS_OK;
                 l_status = stat(l_host_file_json_str.c_str(), &l_stat);
                 if(l_status != 0)
                 {
                         printf("Error performing stat on file: %s.  Reason: %s\n", l_host_file_json_str.c_str(), strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 // Check if is regular file
                 if(!(l_stat.st_mode & S_IFREG))
                 {
                         printf("Error opening file: %s.  Reason: is NOT a regular file\n", l_host_file_json_str.c_str());
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 // ---------------------------------------
@@ -1682,7 +1672,7 @@ int main(int argc, char** argv)
                 if (NULL == l_file)
                 {
                         printf("Error opening file: %s.  Reason: %s\n", l_host_file_json_str.c_str(), strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 // ---------------------------------------
@@ -1696,7 +1686,7 @@ int main(int argc, char** argv)
                 {
                         printf("Error performing fread.  Reason: %s [%d:%d]\n",
                                         strerror(errno), l_read_size, l_size);
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 std::string l_buf_str;
                 l_buf_str.assign(l_buf, l_size);
@@ -1714,7 +1704,7 @@ int main(int argc, char** argv)
                 {
                         printf("Error reading json from file: %s.  Reason: data is not an array\n",
                                         l_host_file_json_str.c_str());
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
 
                 // rapidjson uses SizeType instead of size_t.
@@ -1724,7 +1714,7 @@ int main(int argc, char** argv)
                         {
                                 printf("Error reading json from file: %s.  Reason: array member not an object\n",
                                                 l_host_file_json_str.c_str());
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
                         phurl_host_t l_host;
                         // "host" : "coolhost.com:443",
@@ -1748,20 +1738,20 @@ int main(int argc, char** argv)
                 // Close file...
                 // ---------------------------------------
                 l_status = fclose(l_file);
-                if (STATUS_OK != l_status)
+                if (HLX_STATUS_OK != l_status)
                 {
                         printf("Error performing fclose.  Reason: %s\n", strerror(errno));
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
         // Read from stdin
         else
         {
-                int32_t l_status = STATUS_OK;
+                int32_t l_status = HLX_STATUS_OK;
                 l_status = add_line(stdin, *l_host_list);
-                if(STATUS_OK != l_status)
+                if(HLX_STATUS_OK != l_status)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
         }
 
@@ -1857,7 +1847,7 @@ int main(int argc, char** argv)
                         if(l_file_ptr == NULL)
                         {
                                 printf("Error performing fopen. Reason: %s\n", strerror(errno));
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
 
                         // Write
@@ -1866,7 +1856,7 @@ int main(int argc, char** argv)
                         {
                                 printf("Error performing fwrite. Reason: %s\n", strerror(errno));
                                 fclose(l_file_ptr);
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
 
                         // Close
@@ -1874,7 +1864,7 @@ int main(int argc, char** argv)
                         if(l_status != 0)
                         {
                                 printf("Error performing fclose. Reason: %s\n", strerror(errno));
-                                return STATUS_ERROR;
+                                return HLX_STATUS_ERROR;
                         }
                 }
         }
@@ -2023,7 +2013,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 {
         // Check is a file
         struct stat l_stat;
-        int32_t l_status = STATUS_OK;
+        int32_t l_status = HLX_STATUS_OK;
         l_status = stat(a_file, &l_stat);
         if(l_status != 0)
         {
@@ -2062,7 +2052,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 
         // Close file...
         l_status = fclose(l_file);
-        if (STATUS_OK != l_status)
+        if (HLX_STATUS_OK != l_status)
         {
                 printf("Error performing fclose.  Reason: %s\n", strerror(errno));
                 return -1;

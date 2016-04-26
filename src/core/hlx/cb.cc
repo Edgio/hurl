@@ -24,15 +24,14 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/rqst.h"
-#include "hlx/resp.h"
-#include "hlx/trace.h"
-
 #include "cb.h"
 #include "hconn.h"
 #include "ndebug.h"
 #include "nconn.h"
-
+#include "hlx/rqst.h"
+#include "hlx/resp.h"
+#include "hlx/trace.h"
+#include "hlx/status.h"
 #include <string.h>
 
 //: ----------------------------------------------------------------------------
@@ -51,7 +50,7 @@
 #define CHECK_FOR_NULL_ERROR(_data) \
         do {\
                 if(!_data) {\
-                        return STATUS_ERROR;\
+                        return HLX_STATUS_ERROR;\
                 }\
         } while(0);
 
@@ -84,9 +83,9 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
                 TRC_ERROR("Parse error.  Reason: %s: %s\n",
                            http_errno_name((enum http_errno)l_hconn->m_http_parser.http_errno),
                            http_errno_description((enum http_errno)l_hconn->m_http_parser.http_errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

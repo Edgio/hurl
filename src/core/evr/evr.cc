@@ -29,6 +29,7 @@
 #include "evr_epoll.h"
 #include "ndebug.h"
 #include "hlx/time_util.h"
+#include "hlx/status.h"
 
 #include <errno.h>
 #include <string.h>
@@ -184,7 +185,7 @@ int32_t evr_loop::run(void)
                         {
                                 int32_t l_status;
                                 l_status = m_read_cb(l_data);
-                                if(l_status != STATUS_OK)
+                                if(l_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error\n");
                                         // Skip handling more events for this fd
@@ -198,7 +199,7 @@ int32_t evr_loop::run(void)
                         {
                                 int32_t l_status;
                                 l_status = m_write_cb(l_data);
-                                if(l_status != STATUS_OK)
+                                if(l_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error\n");
                                         // Skip handling more events for this fd
@@ -218,9 +219,9 @@ int32_t evr_loop::run(void)
                 //{
                 //        if(m_error_cb)
                 //        {
-                //                int32_t l_status = STATUS_OK;
+                //                int32_t l_status = HLX_STATUS_OK;
                 //                l_status = m_error_cb(l_data);
-                //                if(l_status != STATUS_OK)
+                //                if(l_status != HLX_STATUS_OK)
                 //                {
                 //                        //NDBG_PRINT("Error: l_status: %d\n", l_status);
                 //                        // Skip handling more events for this fd
@@ -229,7 +230,7 @@ int32_t evr_loop::run(void)
                 //        }
                 //}
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -267,7 +268,7 @@ int32_t evr_loop::del_fd(int a_fd)
 {
         if(!m_evr)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         int l_status;
         l_status = m_evr->del(a_fd);
@@ -293,7 +294,7 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb,
         //NDBG_PRINT_BT();
         m_timer_pq.push(l_timer_event);
         *ao_timer = l_timer_event;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -310,11 +311,11 @@ int32_t evr_loop::cancel_timer(evr_timer_event_t *a_timer)
         {
                 //printf("%sXXX%s: %p TIMER AT %24lu ms --> %24lu\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer,0,l_timer_event->m_time_ms);
                 a_timer->m_state = EVR_TIMER_CANCELLED;
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
         else
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 }
 
@@ -328,7 +329,7 @@ int32_t evr_loop::signal(void)
         //NDBG_PRINT("%sSIGNAL%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         if(!m_evr)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         return m_evr->signal();
 }

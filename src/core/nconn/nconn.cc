@@ -26,12 +26,11 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/time_util.h"
 #include "hlx/trace.h"
-
+#include "hlx/status.h"
 #include "nconn.h"
 #include "nbq.h"
 #include "evr.h"
 #include "ndebug.h"
-
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
@@ -312,7 +311,7 @@ int32_t nconn::nc_read(nbq *a_in_q)
                         if(m_read_cb)
                         {
                                 int32_t l_status = m_read_cb(m_data, l_buf, l_bytes_read, a_in_q->get_cur_write_offset());
-                                if(l_status != STATUS_OK)
+                                if(l_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
                                         return NC_STATUS_ERROR;
@@ -382,7 +381,7 @@ int32_t nconn::nc_write(nbq *a_out_q)
                 {
                         // TODO Unused???
                         int32_t l_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_bytes_written, 0);
-                        if(l_status != STATUS_OK)
+                        if(l_status != HLX_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error performing m_write_cb\n");
                                 return NC_STATUS_ERROR;
@@ -430,11 +429,11 @@ int32_t nconn::nc_set_listening(int32_t a_val)
         l_status = ncset_listening(a_val);
         if(l_status != NC_STATUS_OK)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_LISTENING;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -449,11 +448,11 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
         l_status = ncset_listening_nb(a_val);
         if(l_status != NC_STATUS_OK)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_LISTENING;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -467,11 +466,11 @@ int32_t nconn::nc_set_accepting(int a_fd)
         l_status = ncset_accepting(a_fd);
         if(l_status != NC_STATUS_OK)
         {
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_ACCEPTING;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -490,11 +489,11 @@ int32_t nconn::nc_cleanup()
         if(l_status != NC_STATUS_OK)
         {
                 TRC_ERROR("Error performing nccleanup.\n");
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         m_data = NULL;
         m_host_info_is_set = false;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

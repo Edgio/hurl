@@ -24,11 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/rqst.h"
-#include "hlx/trace.h"
-#include "http_parser/http_parser.h"
 #include "nbq.h"
 #include "ndebug.h"
+#include "hlx/rqst.h"
+#include "hlx/trace.h"
+#include "hlx/status.h"
+#include "http_parser/http_parser.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -95,7 +96,7 @@ const std::string &rqst::get_url()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -113,7 +114,7 @@ const std::string &rqst::get_url_path()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -131,7 +132,7 @@ const std::string &rqst::get_url_query()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -149,7 +150,7 @@ const query_map_t &rqst::get_url_query_map()
         if(m_url_query_map.empty())
         {
                 int32_t l_status = parse_query(get_url_query(), m_url_query_map);
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -167,7 +168,7 @@ const std::string &rqst::get_url_fragment()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if(l_status != HLX_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -205,7 +206,7 @@ int32_t rqst::parse_uri()
 {
         if(m_url_parsed)
         {
-                return STATUS_OK;
+                return HLX_STATUS_OK;
         }
 
         // Copy out the url...
@@ -237,7 +238,7 @@ int32_t rqst::parse_uri()
         {
                 NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
@@ -281,7 +282,7 @@ int32_t rqst::parse_uri()
                 }
         }
         m_url_parsed = true;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

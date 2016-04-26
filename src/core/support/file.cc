@@ -27,7 +27,7 @@
 #include "file.h"
 #include "nbq.h"
 #include "ndebug.h"
-
+#include "hlx/status.h"
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -74,19 +74,19 @@ int32_t filesender::fsinit(const char *a_filename)
         // TODO
         // ---------------------------------------
         struct stat l_stat;
-        int32_t l_status = STATUS_OK;
+        int32_t l_status = HLX_STATUS_OK;
         l_status = stat(a_filename, &l_stat);
         if(l_status != 0)
         {
                 //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n", a_filename, strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Check if is regular file
         if(!(l_stat.st_mode & S_IFREG))
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n", a_filename);
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Set size
@@ -97,13 +97,13 @@ int32_t filesender::fsinit(const char *a_filename)
         if (m_fd < 0)
         {
                 //NDBG_PRINT("Open: %s failed\n", a_filename);
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
 
         // Start sending it
         m_read = 0;
         m_state = SENDING;
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -127,7 +127,7 @@ ssize_t filesender::fsread(char *ao_dst, size_t a_len)
         else if(l_read < 0)
         {
                 //NDBG_PRINT("Error performing read. Reason: %s\n", strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         if(l_read > 0)
         {
@@ -155,7 +155,7 @@ ssize_t filesender::fsread(nbq &ao_q, size_t a_len)
         if(l_read < 0)
         {
                 //NDBG_PRINT("Error performing read. Reason: %s\n", strerror(errno));
-                return STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         else if(l_read >= 0)
         {
@@ -228,7 +228,7 @@ int32_t get_path(const std::string &a_root,
                         ao_path += l_url_path;
                 }
         }
-        return STATUS_OK;
+        return HLX_STATUS_OK;
 }
 
 }

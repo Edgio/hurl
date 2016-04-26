@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/trace.h"
+#include "hlx/status.h"
 #include "nbq.h"
 #include "ndebug.h"
 #include <string.h>
@@ -150,7 +151,7 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len)
                 ssize_t l_status = ::read(a_fd, b_write_ptr(), l_write);
                 if(l_status < 0)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 if(l_status == 0)
                 {
@@ -191,7 +192,7 @@ int64_t nbq::write_q(nbq &a_q)
                 ssize_t l_status = a_q.read(b_write_ptr(), l_write);
                 if(l_status < 0)
                 {
-                        return STATUS_ERROR;
+                        return HLX_STATUS_ERROR;
                 }
                 if(l_status == 0)
                 {
