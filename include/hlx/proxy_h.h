@@ -63,7 +63,10 @@ public:
         // Public Class methods
         // -------------------------------------------------
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
-        static int32_t s_error_cb(subr &a_subr, nconn &a_nconn);
+        static int32_t s_error_cb(subr &a_subr,
+                                  nconn *a_nconn,
+                                  http_status_t a_status,
+                                  const char *a_error_str);
 
 private:
         // -------------------------------------------------

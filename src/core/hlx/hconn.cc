@@ -324,7 +324,6 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                                         resp *l_resp = static_cast<resp *>(m_hmsg);
                                         l_resp->set_status(HTTP_STATUS_OK);
                                 }
-                                m_subr->set_fallback_status_code(HTTP_STATUS_OK);
                                 m_t_hlx->add_stat_to_agg(m_nconn->get_stats(), HTTP_STATUS_OK);
                         }
                         m_subr->bump_num_completed();
@@ -439,7 +438,13 @@ int32_t hconn::run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_s
                         subr::error_cb_t l_error_cb = m_subr->get_error_cb();
                         if(l_error_cb)
                         {
-                                l_error_cb(*m_subr, *m_nconn);
+                                const char *l_err_str = "unknown";
+                                if(m_nconn)
+                                {
+                                        l_err_str = m_nconn->get_last_error().c_str();
+                                }
+                                l_error_cb(*m_subr, m_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR, l_err_str);
+                                // TODO check status
                         }
                         return HLX_STATUS_OK;
                 }
@@ -737,7 +742,6 @@ int32_t hconn::subr_error(http_status_t a_status)
         {
                 return HLX_STATUS_ERROR;
         }
-        m_subr->set_fallback_status_code(a_status);
         m_subr->bump_num_completed();
         if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
         {
@@ -753,7 +757,13 @@ int32_t hconn::subr_error(http_status_t a_status)
         subr::error_cb_t l_error_cb = m_subr->get_error_cb();
         if(l_error_cb)
         {
-                l_error_cb(*(m_subr), *m_nconn);
+                const char *l_err_str = NULL;
+                if(m_nconn)
+                {
+                        l_err_str = m_nconn->get_last_error().c_str();
+                }
+                l_error_cb(*(m_subr), m_nconn, a_status, l_err_str);
+                // TODO Check status...
         }
         if(l_detach_resp)
         {
@@ -806,21 +816,6 @@ int32_t queue_subr(hconn &a_hconn, subr &a_subr)
         a_subr.set_requester_hconn(&a_hconn);
         a_hconn.m_t_hlx->subr_add(a_subr);
         return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-uint16_t get_status_code(subr &a_subr)
-{
-        if(!a_subr.get_hconn() || !(a_subr.get_hconn()->m_hmsg))
-        {
-                return a_subr.get_fallback_status_code();
-        }
-        resp *l_resp = static_cast<resp *>(a_subr.get_hconn()->m_hmsg);
-        return l_resp->get_status();
 }
 
 //: ----------------------------------------------------------------------------

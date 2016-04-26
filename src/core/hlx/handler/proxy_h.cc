@@ -153,7 +153,10 @@ int32_t proxy_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t proxy_h::s_error_cb(subr &a_subr, nconn &a_nconn)
+int32_t proxy_h::s_error_cb(subr &a_subr,
+                            nconn *a_nconn,
+                            http_status_t a_status,
+                            const char *a_error_str)
 {
         proxy_h *l_proxy_h = (proxy_h *)a_subr.get_data();
         if(!l_proxy_h)
@@ -167,7 +170,7 @@ int32_t proxy_h::s_error_cb(subr &a_subr, nconn &a_nconn)
         l_proxy_h->send_json_resp_err(*a_subr.get_requester_hconn(),
                                       false,
                                       // TODO use supports keep-alives from client request
-                                      a_subr.get_fallback_status_code());
+                                      a_status);
         return HLX_STATUS_OK;
 }
 

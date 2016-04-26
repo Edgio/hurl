@@ -293,7 +293,10 @@ public:
         static int32_t s_completion_cb(ns_hlx::subr &a_subr,
                                        ns_hlx::nconn &a_nconn,
                                        ns_hlx::resp &a_resp);
-        static int32_t s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn);
+        static int32_t s_error_cb(ns_hlx::subr &a_subr,
+                                  ns_hlx::nconn *a_nconn,
+                                  ns_hlx::http_status_t a_status,
+                                  const char *a_error_str);
         static int32_t s_create_resp(ns_hlx::phurl_h_resp *a_phr);
 };
 
@@ -436,7 +439,10 @@ int32_t broadcast_h::s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_ncon
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
+int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr,
+                                ns_hlx::nconn *a_nconn,
+                                ns_hlx::http_status_t a_status,
+                                const char *a_error_str)
 {
         ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
@@ -446,81 +452,87 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn)
         ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = NULL;
         l_resp->m_subr = &a_subr;
-        l_resp->m_error_str = ns_hlx::nconn_get_last_error_str(a_nconn);
-        ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(a_nconn);
-        settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
-        //printf("%s.%s.%d: host:          %s\n",__FILE__,__FUNCTION__,__LINE__,a_subr.get_host().c_str());
-        //printf("%s.%s.%d: m_error_str:   %s\n",__FILE__,__FUNCTION__,__LINE__,l_resp->m_error_str.c_str());
-        //printf("%s.%s.%d: l_conn_status: %d\n",__FILE__,__FUNCTION__,__LINE__,l_conn_status);
-        if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
-        if(l_s)
+        l_resp->m_error_str = a_error_str;
+        if(a_nconn)
         {
-                switch(l_conn_status)
+                ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(*a_nconn);
+                settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
+                //printf("%s.%s.%d: host:          %s\n",__FILE__,__FUNCTION__,__LINE__,a_subr.get_host().c_str());
+                //printf("%s.%s.%d: m_error_str:   %s\n",__FILE__,__FUNCTION__,__LINE__,l_resp->m_error_str.c_str());
+                //printf("%s.%s.%d: l_conn_status: %d\n",__FILE__,__FUNCTION__,__LINE__,l_conn_status);
+                if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
+                if(l_s)
                 {
-                case ns_hlx::CONN_STATUS_CANCELLED:
-                {
-                        ++(l_s->m_summary_info.m_cancelled);
-                        break;
-                }
-                case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE:
-                {
-                        ++(l_s->m_summary_info.m_error_addr);
-                        break;
-                }
-                case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_TIMEOUT:
-                {
-                        ++(l_s->m_summary_info.m_error_addr_timeout);
-                        break;
-                }
-                case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS:
-                {
-                        ++(l_s->m_summary_info.m_error_conn);
-                        // Get last error
-                        SSL *l_tls = ns_hlx::nconn_get_SSL(a_nconn);
-                        long l_tls_vr = SSL_get_verify_result(l_tls);
-                        if ((l_tls_vr == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
-                            (l_tls_vr == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
+                        switch(l_conn_status)
                         {
-                                ++(l_s->m_summary_info.m_tls_error_self_signed);
-                        }
-                        else if(l_tls_vr == X509_V_ERR_CERT_HAS_EXPIRED)
+                        case ns_hlx::CONN_STATUS_CANCELLED:
                         {
-                                ++(l_s->m_summary_info.m_tls_error_expired);
+                                ++(l_s->m_summary_info.m_cancelled);
+                                break;
                         }
-                        else if((l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) ||
-                                (l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY))
+                        case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE:
                         {
-                                ++(l_s->m_summary_info.m_tls_error_issuer);
+                                ++(l_s->m_summary_info.m_error_addr);
+                                break;
                         }
-                        else
+                        case ns_hlx::CONN_STATUS_ERROR_ADDR_LOOKUP_TIMEOUT:
                         {
-                                //long l_err = ns_hlx::nconn_get_last_SSL_err(a_nconn);
-                                //printf("ERRORXXXX: %ld\n", l_err);
-                                //printf("ERRORXXXX: %s\n", ERR_error_string(l_err,NULL));
-                                //printf("ERRORXXXX: %s\n", l_resp->m_error_str.c_str());
-                                ++(l_s->m_summary_info.m_tls_error_other);
+                                ++(l_s->m_summary_info.m_error_addr_timeout);
+                                break;
                         }
-                        break;
+                        case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS:
+                        {
+                                ++(l_s->m_summary_info.m_error_conn);
+                                // Get last error
+                                if(a_nconn)
+                                {
+                                        SSL *l_tls = ns_hlx::nconn_get_SSL(*a_nconn);
+                                        long l_tls_vr = SSL_get_verify_result(l_tls);
+                                        if ((l_tls_vr == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
+                                            (l_tls_vr == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
+                                        {
+                                                ++(l_s->m_summary_info.m_tls_error_self_signed);
+                                        }
+                                        else if(l_tls_vr == X509_V_ERR_CERT_HAS_EXPIRED)
+                                        {
+                                                ++(l_s->m_summary_info.m_tls_error_expired);
+                                        }
+                                        else if((l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT) ||
+                                                (l_tls_vr == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY))
+                                        {
+                                                ++(l_s->m_summary_info.m_tls_error_issuer);
+                                        }
+                                        else
+                                        {
+                                                //long l_err = ns_hlx::nconn_get_last_SSL_err(a_nconn);
+                                                //printf("ERRORXXXX: %ld\n", l_err);
+                                                //printf("ERRORXXXX: %s\n", ERR_error_string(l_err,NULL));
+                                                //printf("ERRORXXXX: %s\n", l_resp->m_error_str.c_str());
+                                                ++(l_s->m_summary_info.m_tls_error_other);
+                                        }
+                                }
+                                break;
 
+                        }
+                        case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS_HOST:
+                        {
+                                ++(l_s->m_summary_info.m_error_conn);
+                                ++(l_s->m_summary_info.m_tls_error_hostname);
+                                break;
+                        }
+                        default:
+                        {
+                                //printf("CONN STATUS: %d\n", l_conn_status);
+                                ++(l_s->m_summary_info.m_error_conn);
+                                ++(l_s->m_summary_info.m_error_unknown);
+                                break;
+                        }
+                        }
                 }
-                case ns_hlx::CONN_STATUS_ERROR_CONNECT_TLS_HOST:
-                {
-                        ++(l_s->m_summary_info.m_error_conn);
-                        ++(l_s->m_summary_info.m_tls_error_hostname);
-                        break;
-                }
-                default:
-                {
-                        //printf("CONN STATUS: %d\n", l_conn_status);
-                        ++(l_s->m_summary_info.m_error_conn);
-                        ++(l_s->m_summary_info.m_error_unknown);
-                        break;
-                }
-                }
+                l_phr->m_resp_list.push_back(l_resp);
+                l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
+                if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
         }
-        l_phr->m_resp_list.push_back(l_resp);
-        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
-        if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
         return s_done_check(a_subr, l_phr);
 }
 

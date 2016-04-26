@@ -65,6 +65,7 @@ int main(void)
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::proxy_h *l_proxy_h = new ns_hlx::proxy_h("http://127.0.0.1:12346", "/proxy");
         l_proxy_h->set_timeout_ms(1000);
+        l_proxy_h->set_max_parallel(2);
         ns_hlx::rqst_h *l_default_h = new default_h();
         ns_hlx::rqst_h *l_rqst_h_quit = new quitter();
         l_lsnr->add_route("/proxy/*", l_proxy_h);

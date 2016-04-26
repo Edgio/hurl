@@ -45,6 +45,20 @@
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
+//: response helpers
+//: ----------------------------------------------------------------------------
+const char *get_resp_status_str(http_status_t a_status)
+{
+        const char *l_err_str = NULL;
+        http_resp_strs::code_resp_map_t::const_iterator i_r = http_resp_strs::S_CODE_RESP_MAP.find(a_status);
+        if(i_r != http_resp_strs::S_CODE_RESP_MAP.end())
+        {
+                l_err_str = i_r->second.c_str();
+        }
+        return l_err_str;
+}
+
+//: ----------------------------------------------------------------------------
 //: nbq utilities
 //: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------

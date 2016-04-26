@@ -80,7 +80,7 @@ public:
         // ---------------------------------------
         // Callbacks
         // ---------------------------------------
-        typedef int32_t (*error_cb_t)(subr &, nconn &);
+        typedef int32_t (*error_cb_t)(subr &, nconn *, http_status_t, const char *);
         typedef int32_t (*completion_cb_t)(subr &, nconn &, resp &);
         typedef int32_t (*create_req_cb_t)(subr &, nbq &);
         typedef int32_t (*pre_connect_cb_t)(int);
@@ -130,7 +130,6 @@ public:
         bool get_tls_self_ok(void) const;
         bool get_tls_no_host_check(void) const;
         const std::string &get_label(void);
-        http_status_t get_fallback_status_code(void);
         pre_connect_cb_t get_pre_connect_cb(void) const;
 
         // Setters
@@ -167,7 +166,6 @@ public:
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
         void set_tls_no_host_check(bool a_val);
-        void set_fallback_status_code(http_status_t a_status);
         void set_pre_connect_cb(pre_connect_cb_t a_cb);
 
         // Request Parts
@@ -265,7 +263,6 @@ private:
         bool m_tls_sni;
         bool m_tls_self_ok;
         bool m_tls_no_host_check;
-        http_status_t m_fallback_status_code;
         pre_connect_cb_t m_pre_connect_cb;
 
 };
@@ -278,7 +275,6 @@ subr &create_subr(hconn &a_hconn);
 subr &create_subr(hconn &a_hconn, const subr &a_subr);
 int32_t queue_subr(hconn &a_hconn, subr &a_subr);
 int32_t add_subr_t_hlx(void *a_t_hlx, subr &a_subr);
-uint16_t get_status_code(subr &a_subr);
 
 }
 

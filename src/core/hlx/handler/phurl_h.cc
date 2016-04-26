@@ -358,7 +358,10 @@ int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
+int32_t phurl_h::s_error_cb(subr &a_subr,
+                            nconn *a_nconn,
+                            http_status_t a_status,
+                            const char *a_error_str)
 {
         phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
         if(!l_phr)
@@ -368,8 +371,8 @@ int32_t phurl_h::s_error_cb(subr &a_subr, nconn &a_nconn)
         ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = NULL;
         l_resp->m_subr = &a_subr;
-        l_resp->m_error_str = ns_hlx::nconn_get_last_error_str(a_nconn);
-        l_resp->m_status_code = get_status_code(a_subr);
+        l_resp->m_error_str = a_error_str;
+        l_resp->m_status_code = a_status;
         l_phr->m_resp_list.push_back(l_resp);
         l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
         return s_done_check(a_subr, l_phr);

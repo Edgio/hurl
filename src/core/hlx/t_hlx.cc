@@ -338,6 +338,10 @@ int32_t t_hlx::subr_add(subr &a_subr)
                         a_subr.set_i_q(m_subr_list.end());
                         return HLX_STATUS_OK;
                 }
+                else if(l_status ==  HLX_STATUS_OK)
+                {
+                        return HLX_STATUS_OK;
+                }
                 else
                 {
                         return HLX_STATUS_ERROR;
@@ -366,8 +370,17 @@ int32_t t_hlx::queue_api_resp(api_resp &a_api_resp, hconn &a_hconn)
         // access info
         a_hconn.m_access_info.m_resp_status = a_api_resp.get_status();
 
-        a_api_resp.serialize(*a_hconn.m_out_q);
-        evr_file_writeable_cb(a_hconn.m_nconn);
+        int32_t l_s;
+        l_s = a_api_resp.serialize(*a_hconn.m_out_q);
+        if(l_s != HLX_STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        l_s = evr_file_writeable_cb(a_hconn.m_nconn);
+        if(l_s != HLX_STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
         return HLX_STATUS_OK;
 }
 
@@ -378,7 +391,12 @@ int32_t t_hlx::queue_api_resp(api_resp &a_api_resp, hconn &a_hconn)
 //: ----------------------------------------------------------------------------
 int32_t t_hlx::queue_output(hconn &a_hconn)
 {
-        evr_file_writeable_cb(a_hconn.m_nconn);
+        int32_t l_s;
+        l_s = evr_file_writeable_cb(a_hconn.m_nconn);
+        if(l_s != HLX_STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
         return HLX_STATUS_OK;
 }
 
@@ -1234,9 +1252,8 @@ int32_t t_hlx::async_dns_resolved_cb(const host_info *a_host_info, void *a_data)
                 subr::error_cb_t l_error_cb = l_subr->get_error_cb();
                 if(l_error_cb)
                 {
-                        nconn_tcp l_nconn;
-                        l_nconn.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
-                        l_error_cb(*l_subr, l_nconn);
+                        l_error_cb(*l_subr, NULL, HTTP_STATUS_BAD_GATEWAY, "address lookup failure");
+                        // TODO check status
                 }
                 if(!l_subr->get_detach_resp())
                 {
@@ -1290,7 +1307,18 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                 if((a_subr.get_max_parallel() > 0) &&
                    (m_nconn_proxy_pool.get_active_label(a_subr.get_label()) >= (uint64_t)a_subr.get_max_parallel()))
                 {
-                        return HLX_STATUS_AGAIN;
+                        // Send 503 (HTTP_STATUS_SERVICE_UNAVAILABLE) back to requester
+                        subr::error_cb_t l_error_cb = a_subr.get_error_cb();
+                        if(l_error_cb)
+                        {
+                                l_error_cb(a_subr,
+                                           NULL,
+                                           HTTP_STATUS_SERVICE_NOT_AVAILABLE,
+                                           get_resp_status_str(HTTP_STATUS_SERVICE_NOT_AVAILABLE));
+                                // TODO check status
+                        }
+                        if(a_subr.get_error_cb());
+                        return HLX_STATUS_OK;
                 }
 
                 nresolver *l_nresolver = m_t_conf->m_hlx->get_nresolver();
@@ -1347,9 +1375,8 @@ int32_t t_hlx::subr_try_start(subr &a_subr)
                                 subr::error_cb_t l_error_cb = a_subr.get_error_cb();
                                 if(l_error_cb)
                                 {
-                                        nconn_tcp l_nconn_status;
-                                        l_nconn_status.set_status(CONN_STATUS_ERROR_ADDR_LOOKUP_FAILURE);
-                                        l_error_cb(a_subr, l_nconn_status);
+                                        l_error_cb(a_subr, NULL, HTTP_STATUS_BAD_GATEWAY, "address lookup failure");
+                                        // TODO check status
                                 }
                                 return HLX_STATUS_ERROR;
                         }

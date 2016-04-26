@@ -87,7 +87,6 @@ subr::subr(void):
         m_tls_sni(false),
         m_tls_self_ok(false),
         m_tls_no_host_check(false),
-        m_fallback_status_code(HTTP_STATUS_INTERNAL_SERVER_ERROR),
         m_pre_connect_cb(NULL)
 {
 }
@@ -142,7 +141,6 @@ subr::subr(const subr &a_subr):
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
         m_tls_no_host_check(a_subr.m_tls_no_host_check),
-        m_fallback_status_code(a_subr.m_fallback_status_code),
         m_pre_connect_cb(a_subr.m_pre_connect_cb)
 {
 }
@@ -588,16 +586,6 @@ const std::string &subr::get_label(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-http_status_t subr::get_fallback_status_code(void)
-{
-        return m_fallback_status_code;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 subr::pre_connect_cb_t subr::get_pre_connect_cb(void) const
 {
         return m_pre_connect_cb;
@@ -945,16 +933,6 @@ void subr::set_tls_self_ok(bool a_val)
 void subr::set_tls_no_host_check(bool a_val)
 {
         m_tls_no_host_check = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_fallback_status_code(http_status_t a_status)
-{
-        m_fallback_status_code = a_status;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1412,14 +1390,11 @@ int32_t subr::cancel(void)
         {
                 // Delete from queue
                 *m_i_q = NULL;
-                m_fallback_status_code = HTTP_STATUS_GATEWAY_TIMEOUT;
                 bump_num_completed();
                 bump_num_requested();
                 if(m_error_cb)
                 {
-                        nconn_tcp l_nconn;
-                        l_nconn.set_status(CONN_STATUS_CANCELLED);
-                        m_error_cb(*(this), l_nconn);
+                        m_error_cb(*(this), NULL, HTTP_STATUS_GATEWAY_TIMEOUT, get_resp_status_str(HTTP_STATUS_GATEWAY_TIMEOUT));
                         // TODO Check status...
                 }
                 if(!get_detach_resp())
@@ -1437,14 +1412,11 @@ int32_t subr::cancel(void)
                 {
                         l_job->m_cb = NULL;
                 }
-                m_fallback_status_code = HTTP_STATUS_GATEWAY_TIMEOUT;
                 bump_num_requested();
                 bump_num_completed();
                 if(m_error_cb)
                 {
-                        nconn_tcp l_nconn;
-                        l_nconn.set_status(CONN_STATUS_CANCELLED);
-                        m_error_cb(*(this), l_nconn);
+                        m_error_cb(*(this), NULL, HTTP_STATUS_GATEWAY_TIMEOUT, get_resp_status_str(HTTP_STATUS_GATEWAY_TIMEOUT));
                         // TODO Check status...
                 }
                 if(!get_detach_resp())
