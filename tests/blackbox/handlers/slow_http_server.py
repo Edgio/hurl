@@ -10,6 +10,7 @@ import time
 # ------------------------------------------------------------------------------
 G_SLOW_HTTP_SERVER_PORT = 12346
 class http_handler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
     #Handler for the GET requests
     def do_GET(self):
         time.sleep(3.0)
@@ -21,7 +22,6 @@ class http_handler(BaseHTTPRequestHandler):
         return
 try:
     l_server = HTTPServer(('', G_SLOW_HTTP_SERVER_PORT), http_handler)
-    l_server.protocol_version = 'HTTP/1.1'
     l_server.serve_forever()
 except KeyboardInterrupt:
     print '^C received, shutting down the web server'

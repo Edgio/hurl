@@ -105,8 +105,8 @@ int main(void)
         g_hlx->set_num_parallel(32);
         g_hlx->set_update_stats_ms(500);
 
-        g_hlx->set_rqst_resp_logging(true);
-        g_hlx->set_rqst_resp_logging_color(true);
+        //g_hlx->set_rqst_resp_logging(true);
+        //g_hlx->set_rqst_resp_logging_color(true);
 
         //ProfilerStart("tmp.prof");
         g_hlx->run();
