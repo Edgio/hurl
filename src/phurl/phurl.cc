@@ -629,7 +629,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         }
 
         // Split host list between threads...
-        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = a_settings.m_srvr->get_t_hlx_list();
+        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = a_settings.m_srvr->get_t_srvr_list();
         size_t l_num_per = a_settings.m_host_list->size() / l_t_srvr_list.size();
         phurl_host_list_t::iterator i_h = a_settings.m_host_list->begin();
         for(ns_hlx::srvr::t_srvr_list_t::iterator i_t = l_t_srvr_list.begin();

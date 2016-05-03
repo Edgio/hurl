@@ -130,7 +130,7 @@ public:
         subr_uid_map_t m_pending_subr_uid_map;
         hlx_resp_list_t m_resp_list;
         phurl_h *m_phurl_h;
-        clnt_session *m_requester_clnt_session;
+        clnt_session *m_clnt_session;
         void *m_data;
         void *m_timer;
         uint64_t m_size;

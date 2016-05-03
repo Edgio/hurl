@@ -153,7 +153,7 @@ h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
         }
 
         l_phr->m_phurl_h = this;
-        l_phr->m_requester_clnt_session = &a_clnt_session;
+        l_phr->m_clnt_session = &a_clnt_session;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
         l_phr->m_timeout_ms = 10000;
         l_phr->m_completion_ratio = 100.0;
@@ -283,19 +283,19 @@ int32_t phurl_h::s_create_resp(phurl_u *a_phr)
         char l_len_str[64];
         sprintf(l_len_str, "%" PRIu64 "", l_len);
 
-        if(!a_phr->m_requester_clnt_session)
+        if(!a_phr->m_clnt_session)
         {
                 return HLX_STATUS_ERROR;
         }
 
         // Create resp
-        api_resp &l_api_resp = create_api_resp(*(a_phr->m_requester_clnt_session));
+        api_resp &l_api_resp = create_api_resp(*(a_phr->m_clnt_session));
         l_api_resp.set_status(HTTP_STATUS_OK);
         l_api_resp.set_header("Content-Length", l_len_str);
         l_api_resp.set_body_data(l_buf, l_len);
 
         // Queue
-        queue_api_resp(*(a_phr->m_requester_clnt_session), l_api_resp);
+        queue_api_resp(*(a_phr->m_clnt_session), l_api_resp);
         return HLX_STATUS_OK;
 }
 

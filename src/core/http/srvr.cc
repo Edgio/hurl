@@ -733,7 +733,7 @@ uint64_t srvr::get_next_subr_uuid(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-srvr::t_srvr_list_t &srvr::get_t_hlx_list(void)
+srvr::t_srvr_list_t &srvr::get_t_srvr_list(void)
 {
         return m_t_srvr_list;
 }

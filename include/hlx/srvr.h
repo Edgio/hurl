@@ -124,7 +124,7 @@ public:
         uint64_t get_next_subr_uuid(void);
 
         // Helper for apps
-        t_srvr_list_t &get_t_hlx_list(void);
+        t_srvr_list_t &get_t_srvr_list(void);
 
         // Running...
         int32_t init_run(void); // init for running but don't start

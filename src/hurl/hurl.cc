@@ -1720,7 +1720,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Add subrequests
         // -------------------------------------------
-        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = l_srvr->get_t_hlx_list();
+        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = l_srvr->get_t_srvr_list();
         uint32_t l_num_hlx = (uint32_t)l_t_srvr_list.size();
         uint32_t i_hlx_idx = 0;
         for(ns_hlx::srvr::t_srvr_list_t::iterator i_t = l_t_srvr_list.begin();

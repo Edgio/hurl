@@ -75,7 +75,7 @@ phurl_u::phurl_u(uint32_t a_timeout_ms, float a_completion_ratio):
         m_pending_subr_uid_map(),
         m_resp_list(),
         m_phurl_h(NULL),
-        m_requester_clnt_session(NULL),
+        m_clnt_session(NULL),
         m_data(NULL),
         m_timer(NULL),
         m_size(0),
@@ -98,9 +98,9 @@ phurl_u::~phurl_u(void)
         {
                 if(*i_resp)
                 {
-                        if(m_requester_clnt_session && m_requester_clnt_session->m_t_srvr)
+                        if(m_clnt_session && m_clnt_session->m_t_srvr)
                         {
-                                t_srvr *l_t_hlx = m_requester_clnt_session->m_t_srvr;
+                                t_srvr *l_t_hlx = m_clnt_session->m_t_srvr;
                                 resp *l_resp = (*i_resp)->m_resp;
                                 if(l_resp)
                                 {
