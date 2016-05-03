@@ -30,6 +30,7 @@
 #include "ndebug.h"
 #include "hlx/time_util.h"
 #include "hlx/status.h"
+#include "hlx/trace.h"
 
 #include <errno.h>
 #include <string.h>
@@ -42,20 +43,14 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-evr_loop::evr_loop(evr_file_cb_t a_read_cb,
-                   evr_file_cb_t a_write_cb,
-                   evr_file_cb_t a_error_cb,
-                   evr_loop_type_t a_type,
+evr_loop::evr_loop(evr_loop_type_t a_type,
                    uint32_t a_max_events):
         m_timer_pq(),
         m_max_events(a_max_events),
         m_loop_type(a_type),
         m_events(NULL),
         m_stopped(false),
-        m_evr(NULL),
-        m_read_cb(a_read_cb),
-        m_write_cb(a_write_cb),
-        m_error_cb(a_error_cb)
+        m_evr(NULL)
 {
 
         // -------------------------------------------
@@ -92,11 +87,11 @@ evr_loop::~evr_loop(void)
         // Clean out timer q
         while(!m_timer_pq.empty())
         {
-                evr_timer_event_t *l_timer_event = m_timer_pq.top();
-                if(l_timer_event)
+                evr_timer_t *l_timer = m_timer_pq.top();
+                if(l_timer)
                 {
-                        delete l_timer_event;
-                        l_timer_event = NULL;
+                        delete l_timer;
+                        l_timer = NULL;
                 }
                 m_timer_pq.pop();
         }
@@ -123,17 +118,17 @@ int32_t evr_loop::run(void)
         // TODO:
         // EPOLL specific for now
         // -------------------------------------------
-        evr_timer_event_t *l_timer_event = NULL;
+        evr_timer_t *l_timer = NULL;
         uint32_t l_time_diff_ms = EVR_DEFAULT_TIME_WAIT_MS;
 
         // Pop events off pq until time > now
         while(!m_timer_pq.empty())
         {
                 uint64_t l_now_ms = get_time_ms();
-                l_timer_event = m_timer_pq.top();
-                if(l_now_ms < l_timer_event->m_time_ms)
+                l_timer = m_timer_pq.top();
+                if(l_now_ms < l_timer->m_time_ms)
                 {
-                        l_time_diff_ms = l_timer_event->m_time_ms - l_now_ms;
+                        l_time_diff_ms = l_timer->m_time_ms - l_now_ms;
                         break;
                 }
                 else
@@ -141,14 +136,14 @@ int32_t evr_loop::run(void)
                         // Delete
                         m_timer_pq.pop();
                         // If not cancelled
-                        if(l_timer_event->m_state != EVR_TIMER_CANCELLED)
+                        if(l_timer->m_state != EVR_TIMER_CANCELLED)
                         {
                                 //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer_event,l_now_ms);
-                                l_timer_event->m_timer_cb(l_timer_event->m_ctx, l_timer_event->m_data);
+                                l_timer->m_timer_cb(l_timer->m_ctx, l_timer->m_data);
                         }
                         //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer_event);
-                        delete l_timer_event;
-                        l_timer_event = NULL;
+                        delete l_timer;
+                        l_timer = NULL;
                 }
         }
 
@@ -166,25 +161,29 @@ int32_t evr_loop::run(void)
         // -------------------------------------------
         for (int i_event = 0; (i_event < l_num_events) && (!m_stopped); ++i_event)
         {
-                // -------------------------------------------
-                // TODO:
-                // EPOLL specific for now
-                // -------------------------------------------
-                void* l_data = m_events[i_event].data.ptr;
+                evr_fd_t* l_evr_fd = static_cast<evr_fd_t*>(m_events[i_event].data.ptr);
+                // Validity checks
+                if(!l_evr_fd ||
+                   (l_evr_fd->m_magic != EVR_EVENT_FD_MAGIC))
+                {
+                        TRC_ERROR("bad event -ignoring.\n");
+                        continue;
+                }
                 uint32_t l_events = m_events[i_event].events;
 
-                //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, i_event, l_num_events, l_events);
-
+                //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n",
+                //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
+                //           i_event, l_num_events, l_events);
                 // Service callbacks per type
                 if((l_events & EVR_EV_IN) ||
                    (l_events & EVR_EV_RDHUP) ||
                    (l_events & EVR_EV_HUP) ||
                    (l_events & EVR_EV_ERR))
                 {
-                        if(m_read_cb)
+                        if(l_evr_fd->m_read_cb)
                         {
                                 int32_t l_status;
-                                l_status = m_read_cb(l_data);
+                                l_status = l_evr_fd->m_read_cb(l_evr_fd->m_data);
                                 if(l_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error\n");
@@ -195,10 +194,10 @@ int32_t evr_loop::run(void)
                 }
                 if(l_events & EVR_EV_OUT)
                 {
-                        if(m_write_cb)
+                        if(l_evr_fd->m_write_cb)
                         {
                                 int32_t l_status;
-                                l_status = m_write_cb(l_data);
+                                l_status = l_evr_fd->m_write_cb(l_evr_fd->m_data);
                                 if(l_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("Error\n");
@@ -217,10 +216,10 @@ int32_t evr_loop::run(void)
                 //if(l_events & EPOLLERR)
                 //if(0)
                 //{
-                //        if(m_error_cb)
+                //        if(l_evr_event->m_error_cb)
                 //        {
                 //                int32_t l_status = HLX_STATUS_OK;
-                //                l_status = m_error_cb(l_data);
+                //                l_status = l_evr_event->m_error_cb(l_evr_event->m_data);
                 //                if(l_status != HLX_STATUS_OK)
                 //                {
                 //                        //NDBG_PRINT("Error: l_status: %d\n", l_status);
@@ -238,11 +237,11 @@ int32_t evr_loop::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
+int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         int l_status;
         //NDBG_PRINT("%sADD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
-        l_status = m_evr->add(a_fd, a_attr_mask, a_data);
+        l_status = m_evr->add(a_fd, a_attr_mask, a_evr_fd_event);
         return l_status;
 }
 
@@ -251,11 +250,11 @@ int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, void *a_data)
+int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         int l_status;
         //NDBG_PRINT("%sMOD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
-        l_status = m_evr->mod(a_fd, a_attr_mask, a_data);
+        l_status = m_evr->mod(a_fd, a_attr_mask, a_evr_fd_event);
         return l_status;
 }
 
@@ -280,20 +279,22 @@ int32_t evr_loop::del_fd(int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb,
-                            void *a_ctx, void *a_data,
-                            evr_timer_event_t **ao_timer)
+int32_t evr_loop::add_timer(uint32_t a_time_ms,
+                            evr_timer_cb_t a_timer_cb,
+                            void *a_ctx,
+                            void *a_data,
+                            evr_timer_t **ao_timer)
 {
-        evr_timer_event_t *l_timer_event = new evr_timer_event_t();
-        l_timer_event->m_ctx = a_ctx;
-        l_timer_event->m_data = a_data;
-        l_timer_event->m_state = EVR_TIMER_ACTIVE;
-        l_timer_event->m_time_ms = get_time_ms() + a_time_ms;
-        l_timer_event->m_timer_cb = a_timer_cb;
+        evr_timer_t *l_timer = new evr_timer_t();
+        l_timer->m_ctx = a_ctx;
+        l_timer->m_data = a_data;
+        l_timer->m_state = EVR_TIMER_ACTIVE;
+        l_timer->m_time_ms = get_time_ms() + a_time_ms;
+        l_timer->m_timer_cb = a_timer_cb;
         //NDBG_PRINT("%sADDING__%s[%p] TIMER: %p at %lu ms --> %lu\n",ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,a_data,l_timer_event,a_time_ms, l_timer_event->m_time_ms);
         //NDBG_PRINT_BT();
-        m_timer_pq.push(l_timer_event);
-        *ao_timer = l_timer_event;
+        m_timer_pq.push(l_timer);
+        *ao_timer = l_timer;
         return HLX_STATUS_OK;
 }
 
@@ -302,7 +303,7 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms, evr_timer_cb_t a_timer_cb,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::cancel_timer(evr_timer_event_t *a_timer)
+int32_t evr_loop::cancel_timer(evr_timer_t *a_timer)
 {
         //NDBG_PRINT("%sCANCEL__%s TIMER: %p\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer);
         //NDBG_PRINT_BT();

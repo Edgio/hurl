@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    hlx.h
+//: \file:    srvr.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    03/11/2015
@@ -57,37 +57,38 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-class t_hlx;
+class t_srvr;
 class lsnr;
 class nresolver;
 struct t_conf;
 class nconn;
-class hconn;
+class clnt_session;
+class ups_srvr_session;
 class api_resp;
 class access_info;
 
 #ifndef resp_done_cb_t
 // TODO move to handler specific resp cb...
-typedef int32_t (*resp_done_cb_t)(hconn &);
+typedef int32_t (*resp_done_cb_t)(clnt_session &);
 #endif
 
 //: ----------------------------------------------------------------------------
-//: hlx
+//: srvr
 //: ----------------------------------------------------------------------------
-class hlx
+class srvr
 {
 public:
         //: --------------------------------------------------------------------
         //: Types
         //: --------------------------------------------------------------------
-        typedef std::list <t_hlx *> t_hlx_list_t;
+        typedef std::list <t_srvr *> t_srvr_list_t;
         typedef std::list <lsnr *> lsnr_list_t;
 
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        hlx();
-        ~hlx();
+        srvr();
+        ~srvr();
 
         // Settings
         void set_num_threads(uint32_t a_num_threads);
@@ -123,7 +124,7 @@ public:
         uint64_t get_next_subr_uuid(void);
 
         // Helper for apps
-        t_hlx_list_t &get_t_hlx_list(void);
+        t_srvr_list_t &get_t_hlx_list(void);
 
         // Running...
         int32_t init_run(void); // init for running but don't start
@@ -165,11 +166,11 @@ private:
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        hlx& operator=(const hlx &);
-        hlx(const hlx &);
+        srvr& operator=(const srvr &);
+        srvr(const srvr &);
 
         int init(void);
-        int init_t_hlx_list(void);
+        int init_t_srvr_list(void);
 
         // -------------------------------------------------
         // Private members
@@ -183,7 +184,7 @@ private:
         bool m_dns_use_ai_cache;
         std::string m_dns_ai_cache_file;
         uint64_t m_start_time_ms;
-        t_hlx_list_t m_t_hlx_list;
+        t_srvr_list_t m_t_srvr_list;
         bool m_is_initd;
         uint64_atomic_t m_cur_subr_uid;
         std::string m_server_name;
@@ -209,32 +210,35 @@ const std::string &nconn_get_last_error_str(nconn &a_nconn);
 //: hnconn_utils
 //: ----------------------------------------------------------------------------
 // Get connection
-nconn *get_nconn(hconn &a_hconn);
+nconn *get_nconn(clnt_session &a_clnt_session);
 
 // Get access info
-const access_info &get_access_info(hconn &a_hconn);
+const access_info &get_access_info(clnt_session &a_clnt_session);
 
 // API Responses
-api_resp &create_api_resp(hconn &a_hconn);
-int32_t queue_api_resp(hconn &a_hconn, api_resp &a_api_resp);
-int32_t queue_resp(hconn &a_hconn);
+api_resp &create_api_resp(clnt_session &a_clnt_session);
+int32_t queue_api_resp(clnt_session &a_clnt_session, api_resp &a_api_resp);
+int32_t queue_resp(clnt_session &a_clnt_session);
 void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str);
 
-// Timer by hconn
+// Timer by clnt_session
 typedef int32_t (*timer_cb_t)(void *, void *);
-int32_t add_timer(hconn &a_hconn, uint32_t a_ms,
+int32_t add_timer(clnt_session &a_clnt_session, uint32_t a_ms,
                   timer_cb_t a_cb, void *a_data,
                   void **ao_timer);
-int32_t cancel_timer(hconn &a_hconn, void *a_timer);
+int32_t cancel_timer(clnt_session &a_clnt_session, void *a_timer);
 
-// Timer by t_hlx
-int32_t add_timer(void *a_t_hlx, uint32_t a_ms,
+// Timer by t_srvr
+int32_t add_timer(void *a_t_srvr, uint32_t a_ms,
                   timer_cb_t a_cb, void *a_data,
                   void **ao_timer);
-int32_t cancel_timer(void *a_t_hlx, void *a_timer);
+int32_t cancel_timer(void *a_t_srvr, void *a_timer);
+
+// Timer by upstream server session
+int32_t cancel_timer(ups_srvr_session &a_ups_srvr_session, void *a_timer);
 
 // Helper
-hlx *get_hlx(hconn &a_hconn);
+srvr *get_srvr(clnt_session &a_clnt_session);
 
 } //namespace ns_hlx {
 

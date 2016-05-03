@@ -34,6 +34,7 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 #define EVR_DEFAULT_TIME_WAIT_MS (-1)
+#define EVR_EVENT_FD_MAGIC 0xDEADF154
 
 namespace ns_hlx {
 
@@ -104,21 +105,6 @@ typedef enum evr_event_types_enum
 } evr_event_types_t;
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
-class evr
-{
-public:
-        evr() {};
-        virtual ~evr() {};
-        virtual int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec) = 0;
-        virtual int add(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
-        virtual int mod(int a_fd, uint32_t a_attr_mask, void* a_data) = 0;
-        virtual int del(int a_fd) = 0;
-        virtual int signal(void) = 0;
-};
-
-//: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
 
@@ -135,39 +121,49 @@ typedef int32_t (*evr_timer_cb_t)(void *, void *);
 // Event Types
 // -----------------------------------------------
 // File event
-typedef struct evr_file_event_struct {
-        // -------------------------------------------
-        // TODO Reevaluate Using class member instead
-        // of fd specific cb's
-        // -------------------------------------------
-        //evr_file_cb_t m_read_cb;
-        //evr_file_cb_t m_write_cb;
-        //evr_file_cb_t m_error_cb; // TODO for EPOLLHUP/EPOLLERR
+typedef struct evr_fd {
+        uint32_t m_magic;
+        evr_file_cb_t m_read_cb;
+        evr_file_cb_t m_write_cb;
+        evr_file_cb_t m_error_cb;
         void *m_data;
-} evr_file_event_t;
+} evr_fd_t;
 
 // Timer event
-typedef struct evr_timer_event_struct {
+typedef struct evr_timer {
         uint64_t m_time_ms;
         evr_timer_cb_t m_timer_cb;
         evr_timer_state_t m_state;
         void *m_ctx;
         void *m_data;
-} evr_timer_event_t;
+} evr_timer_t;
 
 //: ----------------------------------------------------------------------------
 //: Priority queue sorting
 //: ----------------------------------------------------------------------------
 class evr_compare_timers {
 public:
-        bool operator()(evr_timer_event_t* t1, evr_timer_event_t* t2) // Returns true if t1 is greater than t2
+        bool operator()(evr_timer_t* t1, evr_timer_t* t2) // Returns true if t1 is greater than t2
         {
                 return (t1->m_time_ms > t2->m_time_ms);
         }
 };
+typedef std::priority_queue<evr_timer_t *, std::vector<evr_timer_t *>, evr_compare_timers> evr_timer_pq_t;
 
-typedef std::priority_queue<evr_timer_event_t *, std::vector<evr_timer_event_t *>, evr_compare_timers> evr_timer_pq_t;
-
+//: ----------------------------------------------------------------------------
+//: \details: evr object -wraps OS specific implementations
+//: ----------------------------------------------------------------------------
+class evr
+{
+public:
+        evr() {};
+        virtual ~evr() {};
+        virtual int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec) = 0;
+        virtual int add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event) = 0;
+        virtual int mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event) = 0;
+        virtual int del(int a_fd) = 0;
+        virtual int signal(void) = 0;
+};
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -179,10 +175,7 @@ public:
         // TODO Reevaluate Using class member instead
         // of fd specific cb's
         // -------------------------------------------
-        evr_loop(evr_file_cb_t a_read_cb = NULL,
-                 evr_file_cb_t a_write_cb = NULL,
-                 evr_file_cb_t a_error_cb = NULL,
-                 evr_loop_type_t a_type = EVR_LOOP_SELECT,
+        evr_loop(evr_loop_type_t a_type = EVR_LOOP_SELECT,
                  uint32_t a_max_events = 512);
         ~evr_loop();
         int32_t run(void);
@@ -191,8 +184,8 @@ public:
         // -------------------------------------------
         // File events...
         // -------------------------------------------
-        int32_t add_fd(int a_fd, uint32_t a_attr_mask, void *a_data);
-        int32_t mod_fd(int a_fd, uint32_t a_attr_mask, void *a_data);
+        int32_t add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
+        int32_t mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
         int32_t del_fd(int a_fd);
 
         uint64_t get_pq_size(void) { return m_timer_pq.size();};
@@ -204,8 +197,8 @@ public:
                           evr_timer_cb_t a_timer_cb,
                           void *a_ctx,
                           void *a_data,
-                          evr_timer_event_t **ao_timer);
-        int32_t cancel_timer(evr_timer_event_t *a_timer);
+                          evr_timer_t **ao_timer);
+        int32_t cancel_timer(evr_timer_t *a_timer);
         int32_t signal(void);
 private:
         evr_loop(const evr_loop&);
@@ -218,15 +211,6 @@ private:
         evr_event_t *m_events;
         bool m_stopped;
         evr* m_evr;
-
-        // -------------------------------------------
-        // TODO Reevaluate Using class member instead
-        // of fd specific cb's
-        // -------------------------------------------
-        evr_file_cb_t m_read_cb;
-        evr_file_cb_t m_write_cb;
-        evr_file_cb_t m_error_cb; // TODO for EPOLLHUP/EPOLLERR
-
 };
 
 } //namespace ns_hlx {

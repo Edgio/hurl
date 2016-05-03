@@ -2,7 +2,7 @@
 ;//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    http_data.h
+//: \file:    clnt_session.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    07/20/2015
@@ -20,23 +20,20 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _HTTP_DATA_H
-#define _HTTP_DATA_H
+#ifndef _CLNT_SESSION_H
+#define _CLNT_SESSION_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "http_parser/http_parser.h"
 #include "evr.h"
 #include "nconn.h"
-
-// TODO -make non-blocking upstream obj generic
-#include "file.h"
-
 #include "hlx/default_rqst_h.h"
 #include "hlx/hmsg.h"
 #include "hlx/stat.h"
 #include "hlx/access.h"
+#include "hlx/base_u.h"
+#include <stdint.h>
 
 namespace ns_hlx {
 
@@ -44,115 +41,73 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nconn;
-class t_hlx;
+class t_srvr;
 class subr;
 class lsnr;
+class clnt_session;
 
 #ifndef resp_done_cb_t
 // TODO move to handler specific resp cb...
-typedef int32_t (*resp_done_cb_t)(hconn &);
+typedef int32_t (*resp_done_cb_t)(clnt_session &);
 #endif
-
-//: ----------------------------------------------------------------------------
-//:
-//: ----------------------------------------------------------------------------
-typedef enum hconn_ev_cb_enum {
-
-        HCONN_EV_CB_READABLE = 0,
-        HCONN_EV_CB_WRITEABLE,
-        HCONN_EV_CB_TIMEOUT,
-        HCONN_EV_CB_ERROR,
-
-} hconn_ev_cb_t;
-
-//: ----------------------------------------------------------------------------
-//:
-//: ----------------------------------------------------------------------------
-typedef enum hconn_type_enum {
-
-        HCONN_TYPE_NONE = 0,
-        HCONN_TYPE_CLIENT,
-        HCONN_TYPE_UPSTREAM,
-
-} hconn_type_t;
-
-//: ----------------------------------------------------------------------------
-//: HL_HTTP_CLIENT_STATE
-//: ----------------------------------------------------------------------------
-typedef enum http_client_state_enum {
-
-        HTTP_CLIENT_STATE_NONE = 0,
-        HTTP_CLIENT_STATE_READ_RQST,
-        HTTP_CLIENT_STATE_UPST_RQST,
-        HTTP_CLIENT_STATE_SEND_RESP,
-
-} http_client_state_t;
 
 //: ----------------------------------------------------------------------------
 //: Connection data
 //: ----------------------------------------------------------------------------
-class hconn {
+class clnt_session {
 
 public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        hconn_type_t m_type;
-
         nconn *m_nconn;
-        t_hlx *m_t_hlx;
-        evr_timer_event_t *m_timer_obj;
+        t_srvr *m_t_srvr;
+        evr_timer_t *m_timer_obj;
 
-        hmsg *m_hmsg;
-        http_parser_settings m_http_parser_settings;
-        http_parser m_http_parser;
-        bool m_expect_resp_body_flag;
-        uint64_t m_cur_off;
-        char * m_cur_buf;
-
-        bool m_save;
-        //uint16_t m_status_code;
+        rqst *m_rqst;
         bool m_rqst_resp_logging;
         bool m_rqst_resp_logging_color;
         lsnr *m_lsnr;
         nbq *m_in_q;
         nbq *m_out_q;
-        subr *m_subr;
         uint64_t m_idx;
 
-        // TODO -make non-blocking upstream obj generic
-        filesender *m_fs;
+        // upstream
+        base_u *m_ups;
 
         access_info m_access_info;
         resp_done_cb_t m_resp_done_cb;
 
-
         // -------------------------------------------------
-        // Public methods
+        // Public static default
         // -------------------------------------------------
         static default_rqst_h s_default_rqst_h;
 
         // -------------------------------------------------
+        // Public Static (class) methods
+        // -------------------------------------------------
+        static int32_t evr_fd_readable_cb(void *a_data);
+        static int32_t evr_fd_writeable_cb(void *a_data);
+        static int32_t evr_fd_error_cb(void *a_data);
+        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data);
+
+        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        hconn(void);
+        clnt_session(void);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
-        int32_t subr_error(http_status_t a_status);
-        bool subr_complete(void);
         void clear(void);
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        hconn& operator=(const hconn &);
-        hconn(const hconn &);
+        clnt_session& operator=(const clnt_session &);
+        clnt_session(const clnt_session &);
         int32_t handle_req(void);
-        int32_t run_state_machine_cln(nconn::mode_t a_conn_mode, int32_t a_conn_status);
-        int32_t run_state_machine_ups(nconn::mode_t a_conn_mode, int32_t a_conn_status);
-
+        void cancel_ups();
 };
 
 } // ns_hlx

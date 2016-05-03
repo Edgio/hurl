@@ -35,7 +35,7 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-class hconn;
+class clnt_session;
 class rqst;
 
 //: ----------------------------------------------------------------------------
@@ -53,11 +53,11 @@ public:
         // -------------------------------------------------
         // Public Virutal
         // -------------------------------------------------
-        virtual h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
-        virtual h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_post(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_put(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_delete(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
+        virtual h_resp_t do_default(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap) = 0;
 
         // Do default method override
         virtual bool get_do_default(void) = 0;
@@ -65,14 +65,14 @@ public:
         // -------------------------------------------------
         // Helpers
         // -------------------------------------------------
-        h_resp_t send_not_found(hconn &a_hconn, bool a_keep_alive);
-        h_resp_t send_not_implemented(hconn &a_hconn, bool a_keep_alive);
-        h_resp_t send_internal_server_error(hconn &a_hconn, bool a_keep_alive);
-        h_resp_t send_bad_request(hconn &a_hconn, bool a_keep_alive);
-        h_resp_t send_json_resp(hconn &a_hconn, bool a_keep_alive,
-                                http_status_t a_status, const char *a_json_resp);
-        h_resp_t send_json_resp_err(hconn &a_hconn, bool a_keep_alive,
-                                    http_status_t a_status);
+        static h_resp_t send_not_found(clnt_session &a_clnt_session, bool a_keep_alive);
+        static h_resp_t send_not_implemented(clnt_session &a_clnt_session, bool a_keep_alive);
+        static h_resp_t send_internal_server_error(clnt_session &a_clnt_session, bool a_keep_alive);
+        static h_resp_t send_bad_request(clnt_session &a_clnt_session, bool a_keep_alive);
+        static h_resp_t send_json_resp(clnt_session &a_clnt_session, bool a_keep_alive,
+                                       http_status_t a_status, const char *a_json_resp);
+        static h_resp_t send_json_resp_err(clnt_session &a_clnt_session, bool a_keep_alive,
+                                           http_status_t a_status);
 
 private:
         // -------------------------------------------------

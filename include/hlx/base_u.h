@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    evr_kqueue.h
+//: \file:    file_u.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/29/2016
+//: \date:    11/20/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,46 +20,38 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _EVR_KQUEUE_H
-#define _EVR_KQUEUE_H
+#ifndef _BASE_U_H
+#define _BASE_U_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "evr.h"
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd Decl's
+//: Fwd decl's
 //: ----------------------------------------------------------------------------
+class nbq;
 
 //: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
+//: base class for all upstream objects
 //: ----------------------------------------------------------------------------
-class evr_kqueue: public evr
+class base_u
 {
-public:
-        evr_kqueue(void);
-        int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec);
-        int add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
-        int mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
-        int del(int a_fd);
-        int signal(void);
-private:
-        // Disallow copy/assign
-        evr_kqueue& operator=(const evr_kqueue &);
-        evr_kqueue(const evr_kqueue &);
 
-        int m_fd;
+public:
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
+        virtual ~base_u() {};
+        virtual ssize_t ups_read(char *ao_dst, size_t a_len) = 0;
+        virtual ssize_t ups_read(nbq &ao_q, size_t a_len) = 0;
+        virtual bool ups_done(void) = 0;
+        virtual int32_t ups_cancel(void) = 0;
+        virtual uint32_t get_type(void) = 0;
 };
 
 } //namespace ns_hlx {
 
 #endif
-
-
-
-

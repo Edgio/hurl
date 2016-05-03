@@ -41,7 +41,7 @@ public:
         // -------------------------------------------------
         stat_h(void);
         ~stat_h();
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
 
 private:
         // -------------------------------------------------

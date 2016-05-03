@@ -149,7 +149,7 @@ int32_t nconn_tcp::ncset_listening(int32_t a_val)
         {
                 if (0 != m_evr_loop->add_fd(a_val,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
-                                            this))
+                                            &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket file descriptor\n");
                         return NC_STATUS_ERROR;
@@ -176,13 +176,17 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
         const int flags = ::fcntl(m_fd, F_GETFL, 0);
         if (flags == -1)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error getting flags for fd. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error getting flags for fd. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
         if (::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
@@ -191,7 +195,7 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
         {
                 if (0 != m_evr_loop->add_fd(a_val,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                            this))
+                                            &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket fd\n");
                         return NC_STATUS_ERROR;
@@ -238,13 +242,17 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
         const int flags = ::fcntl(m_fd, F_GETFL, 0);
         if (flags == -1)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error getting flags for fd. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error getting flags for fd. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
         if (::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 #endif
@@ -254,7 +262,7 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
         {
                 if (0 != m_evr_loop->add_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                            this))
+                                            &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket fd\n");
                         return NC_STATUS_ERROR;
@@ -350,9 +358,11 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                                            this))
+                                                            &m_evr_fd))
                                 {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                                    "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                                    m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -361,7 +371,9 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
                 else
                 {
                         //NDBG_PRINT("LABEL[%s]: Error: performing write.  Reason: %s.\n", m_label.c_str(), ::strerror(errno));
-                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: performing write.  Reason: %s.\n", m_label.c_str(), ::strerror(errno));
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                    "LABEL[%s]: Error: performing write.  Reason: %s.\n",
+                                    m_label.c_str(), ::strerror(errno));
                         return NC_STATUS_ERROR;
                 }
         }
@@ -385,7 +397,9 @@ int32_t nconn_tcp::ncsetup()
         //NDBG_PRINT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
         if (m_fd < 0)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error creating socket. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error creating socket. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
@@ -416,13 +430,17 @@ int32_t nconn_tcp::ncsetup()
         const int flags = ::fcntl(m_fd, F_GETFL, 0);
         if (flags == -1)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error getting flags for fd. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error getting flags for fd. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
         if (::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
-                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                            "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n",
+                            m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
 
@@ -435,7 +453,9 @@ int32_t nconn_tcp::ncsetup()
                 l_s = m_pre_connect_cb(m_fd);
                 if(l_s != 0)
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error performing prebind callback\n", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                    "LABEL[%s]: Error performing prebind callback\n",
+                                    m_label.c_str());
                         return NC_STATUS_ERROR;
                 }
         }
@@ -447,9 +467,11 @@ int32_t nconn_tcp::ncsetup()
         {
                 if (0 != m_evr_loop->add_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                            this))
+                                            &m_evr_fd))
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                    "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                    m_label.c_str());
                         return NC_STATUS_ERROR;
                 }
         }
@@ -545,19 +567,21 @@ state_top:
                         l_errlen = sizeof(l_err);
                         if (::getsockopt(m_fd, SOL_SOCKET, SO_ERROR, (void*) &l_err, &l_errlen) < 0)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error performing getsockopt. Unknown connect error\n",
-                                                m_label.c_str());
+                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                            "LABEL[%s]: Error performing getsockopt. Unknown connect error\n",
+                                            m_label.c_str());
                         }
                         else
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error performing getsockopt. %s\n", m_label.c_str(),
-                                            ::strerror(l_err));
+                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                            "LABEL[%s]: Error performing getsockopt. %s\n",
+                                            m_label.c_str(), ::strerror(l_err));
                         }
                         return NC_STATUS_ERROR;
                 }
                 case ECONNREFUSED:
                 {
-                        TRC_ERROR("connect failed. Reason: %s\n", strerror(errno));
+                        TRC_ERROR("LABEL[%s]: connect failed. Reason: %s\n", m_label.c_str(), strerror(errno));
                         return NC_STATUS_ERROR;
                 }
                 case EAGAIN:
@@ -569,9 +593,11 @@ state_top:
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
-                                                            this))
+                                                            &m_evr_fd))
                                 {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                                    "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                                    m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
@@ -591,14 +617,18 @@ state_top:
                         }
                         else
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error connect().  Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                            "LABEL[%s]: Error connect().  Reason: %s\n",
+                                            m_label.c_str(), ::strerror(errno));
                                 return NC_STATUS_ERROR;
                         }
                         break;
                 }
                 default:
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error Unkown. Reason: %s\n", m_label.c_str(), ::strerror(errno));
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                    "LABEL[%s]: Error Unkown. Reason: %s\n",
+                                    m_label.c_str(), ::strerror(errno));
                         return NC_STATUS_ERROR;
                 }
                 }
@@ -620,9 +650,11 @@ state_top:
         {
                 if (0 != m_evr_loop->mod_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
-                                            this))
+                                            &m_evr_fd))
                 {
-                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
+                                    "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
+                                    m_label.c_str());
                         return NC_STATUS_ERROR;
                 }
         }

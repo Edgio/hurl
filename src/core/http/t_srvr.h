@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    t_hlx.h
+//: \file:    t_srvr.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    10/05/2015
@@ -20,8 +20,8 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _T_HLX_H
-#define _T_HLX_H
+#ifndef _T_SRVR_H
+#define _T_SRVR_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
@@ -32,11 +32,8 @@
 
 #include "nconn_pool.h"
 #include "evr.h"
-#include "cb.h"
-#include "hconn.h"
 #include "obj_pool.h"
-#include "t_conf.h"
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/stat.h"
 #include "nresolver.h"
 
@@ -44,13 +41,22 @@
 
 // for sig_atomic_t
 #include <signal.h>
+#include "cb.h"
+#include "clnt_session.h"
+#include "ups_srvr_session.h"
+
+//: ----------------------------------------------------------------------------
+//: External Fwd decl's
+//: ----------------------------------------------------------------------------
+typedef struct ssl_ctx_st SSL_CTX;
+
+namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
-namespace ns_hlx {
-
-typedef obj_pool <hconn> hconn_pool_t;
+typedef obj_pool <clnt_session> clnt_session_pool_t;
+typedef obj_pool <ups_srvr_session> ups_srvr_session_pool_t;
 typedef obj_pool <resp> resp_pool_t;
 typedef obj_pool <rqst> rqst_pool_t;
 typedef obj_pool <nbq> nbq_pool_t;
@@ -59,9 +65,90 @@ struct host_info;
 class nbq;
 
 //: ----------------------------------------------------------------------------
-//: t_hlx
+//: Virtual Server conf
+//: TODO Allow many t_hlx_conf's
+//: one per listener
 //: ----------------------------------------------------------------------------
-class t_hlx
+typedef struct t_conf
+{
+        bool m_rqst_resp_logging;
+        bool m_rqst_resp_logging_color;
+        evr_loop_type_t m_evr_loop_type;
+        int32_t m_num_parallel;
+        uint32_t m_timeout_ms;
+        int32_t m_num_reqs_per_conn;
+        bool m_collect_stats;
+        uint32_t m_update_stats_ms;
+        uint32_t m_sock_opt_recv_buf_size;
+        uint32_t m_sock_opt_send_buf_size;
+        bool m_sock_opt_no_delay;
+        resp_done_cb_t m_resp_done_cb;
+        srvr *m_srvr;
+
+        // TLS Config
+        // Server ctx
+        SSL_CTX* m_tls_server_ctx;
+        std::string m_tls_server_ctx_key;
+        std::string m_tls_server_ctx_crt;
+        std::string m_tls_server_ctx_cipher_list;
+        std::string m_tls_server_ctx_options_str;
+        long m_tls_server_ctx_options;
+
+        // client ctx
+        SSL_CTX *m_tls_client_ctx;
+        std::string m_tls_client_ctx_cipher_list;
+        std::string m_tls_client_ctx_options_str;
+        long m_tls_client_ctx_options;
+        std::string m_tls_client_ctx_ca_file;
+        std::string m_tls_client_ctx_ca_path;
+
+        // ---------------------------------
+        // Defaults...
+        // ---------------------------------
+        t_conf():
+                m_rqst_resp_logging(false),
+                m_rqst_resp_logging_color(false),
+#if defined(__linux__)
+                m_evr_loop_type(EVR_LOOP_EPOLL),
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+                m_evr_loop_type(EVR_LOOP_SELECT),
+#else
+                m_evr_loop_type(EVR_LOOP_SELECT),
+#endif
+                m_num_parallel(1024),
+                m_timeout_ms(10000),
+                m_num_reqs_per_conn(-1),
+                m_collect_stats(false),
+                m_update_stats_ms(0),
+                m_sock_opt_recv_buf_size(0),
+                m_sock_opt_send_buf_size(0),
+                m_sock_opt_no_delay(false),
+                m_resp_done_cb(NULL),
+                m_srvr(NULL),
+                m_tls_server_ctx(NULL),
+                m_tls_server_ctx_key(),
+                m_tls_server_ctx_crt(),
+                m_tls_server_ctx_cipher_list(),
+                m_tls_server_ctx_options_str(),
+                m_tls_server_ctx_options(0),
+                m_tls_client_ctx(NULL),
+                m_tls_client_ctx_cipher_list(),
+                m_tls_client_ctx_options_str(),
+                m_tls_client_ctx_options(0),
+                m_tls_client_ctx_ca_file(),
+                m_tls_client_ctx_ca_path()
+        {}
+
+private:
+        // Disallow copy/assign
+        t_conf& operator=(const t_conf &);
+        t_conf(const t_conf &);
+} conf_t;
+
+//: ----------------------------------------------------------------------------
+//: t_srvr
+//: ----------------------------------------------------------------------------
+class t_srvr
 {
 public:
         // -------------------------------------------------
@@ -72,24 +159,25 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_hlx(const t_conf *a_t_conf);
-        ~t_hlx();
+        t_srvr(const t_conf *a_t_conf);
+        ~t_srvr();
         int32_t init(void);
         int run(void);
         void *t_run(void *a_nothing);
         void stop(void);
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
-        hlx *get_hlx(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_hlx;}
+        srvr *get_srvr(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_srvr;}
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
-        int32_t queue_output(hconn &a_hconn);
-        int32_t queue_api_resp(api_resp &a_api_resp, hconn &a_hconn);
+        int32_t queue_output(clnt_session &a_clnt_session);
+        int32_t queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_session);
         void add_stat_to_agg(const conn_stat_t &a_conn_stat, uint16_t a_status_code);
         int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
         int32_t cancel_timer(void *a_timer);
         void signal(void);
-        int32_t cleanup_conn(hconn *a_hconn, nconn *a_nconn);
+        int32_t cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn);
+        int32_t cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn);
         void release_resp(resp *a_resp);
         void release_nbq(nbq *a_nbq);
 
@@ -101,24 +189,32 @@ public:
         void bump_num_cln_idle_killed(void) { ++m_stat.m_cln_idle_killed;}
         void bump_num_ups_idle_killed(void) { ++m_stat.m_ups_idle_killed;}
 
+        // TODO Move to lsnr readable...
+        static int32_t evr_fd_readable_lsnr_cb(void *a_data);
+
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
         // Needs to be public for now -to join externally
         pthread_t m_t_run_thread;
 
-        // -------------------------------------------------
-        // Public Static (class) methods
-        // -------------------------------------------------
-        static int32_t evr_file_writeable_cb(void *a_data);
-        static int32_t evr_file_readable_cb(void *a_data);
-        static int32_t evr_file_error_cb(void *a_data);
-        static int32_t evr_file_timeout_cb(void *a_ctx, void *a_data);
-        static int32_t evr_timer_cb(void *a_ctx, void *a_data);
+        // TODO hide -or prefer getters
+        // Orphan q's
+        nbq *m_orphan_in_q;
+        nbq *m_orphan_out_q;
+
+        // TODO hide -or prefer getters
+        t_stat_t m_stat;
+
+        // TODO hide -or prefer getters
+        nconn_pool m_nconn_pool;
+        nconn_pool m_nconn_proxy_pool;
+        clnt_session_pool_t m_clnt_session_pool;
+        ups_srvr_session_pool_t m_ups_srvr_session_pool;
 
         // Resolver callback
 #ifdef ASYNC_DNS_SUPPORT
-        static int32_t async_dns_resolved_cb(const host_info *a_host_info, void *a_data);
+        static int32_t adns_resolved_cb(const host_info *a_host_info, void *a_data);
 #endif
 
         // Async stat update
@@ -136,27 +232,26 @@ private:
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        t_hlx& operator=(const t_hlx &);
-        t_hlx(const t_hlx &);
+        t_srvr& operator=(const t_srvr &);
+        t_srvr(const t_srvr &);
 
         //Helper for pthreads
         static void *t_run_static(void *a_context)
         {
-                return reinterpret_cast<t_hlx *>(a_context)->t_run(NULL);
+                return reinterpret_cast<t_srvr *>(a_context)->t_run(NULL);
         }
 
         // Get new client connection
         nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
-        int32_t config_conn(nconn &a_nconn,
-                            hconn_type_t a_type,
-                            bool a_save,
-                            bool a_connect_only);
+        int32_t config_clnt_conn(nconn &a_nconn);
+        int32_t config_ups_server_conn(nconn &a_nconn);
+        int32_t config_resp(resp &a_resp, bool a_save, void *a_data);
 
-        hconn * get_hconn(lsnr *a_lsnr,
-                          hconn_type_t a_type,
-                          bool a_save);
+        clnt_session * get_clnt(lsnr *a_lsnr);
+        ups_srvr_session * get_ups_srvr(lsnr *a_lsnr);
+
         int32_t subr_try_start(subr &a_subr);
-        int32_t subr_start(subr &a_subr, hconn &a_hconn, nconn &a_nconn);
+        int32_t subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, nconn &a_nconn);
         int32_t subr_try_deq(void);
 
         inline void subr_dequeue(void)
@@ -169,13 +264,6 @@ private:
                 m_subr_list.push_back(&a_subr);
                 ++m_subr_list_size;
         }
-
-        int32_t handle_listen_ev(hconn *a_hconn, nconn *a_nconn);
-#ifdef ASYNC_DNS_SUPPORT
-        int32_t async_dns_init(void);
-        int32_t async_dns_handle_ev(void);
-        int32_t async_dns_lookup(const std::string &a_host, uint16_t a_port, subr *a_subr);
-#endif
 
         // -------------------------------------------------
         // Private members
@@ -190,34 +278,20 @@ private:
         uint64_t m_subr_list_size;
 
         // Pools
-        nconn_pool m_nconn_pool;
-        nconn_pool m_nconn_proxy_pool;
-        hconn_pool_t m_hconn_pool;
         resp_pool_t m_resp_pool;
         rqst_pool_t m_rqst_pool;
         nbq_pool_t m_nbq_pool;
 
 #ifdef ASYNC_DNS_SUPPORT
-        bool m_async_dns_is_initd;
-        void *m_async_dns_ctx;
-        int m_async_dns_fd;
-        nconn *m_async_dns_nconn;
-        evr_timer_event_struct *m_async_dns_timer_obj;
-        nresolver::lookup_job_q_t m_lookup_job_q;
-        nresolver::lookup_job_pq_t m_lookup_job_pq;
+        nresolver::adns_ctx *m_adns_ctx;
 #endif
 
         // is initialized flag
         bool m_is_initd;
 
         // Stat (internal)
-        t_stat_t m_stat;
         t_stat_t m_stat_copy;
         pthread_mutex_t m_stat_copy_mutex;
-
-        // Orphan q's
-        nbq *m_orphan_in_q;
-        nbq *m_orphan_out_q;
 };
 
 } //namespace ns_hlx {

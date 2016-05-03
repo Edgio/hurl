@@ -24,174 +24,18 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hconn.h"
-#include "t_hlx.h"
 #include "ndebug.h"
+#include "clnt_session.h"
+#include "t_srvr.h"
 #include "hlx/phurl_h.h"
 #include "hlx/api_resp.h"
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/status.h"
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <string.h>
 
 namespace ns_hlx {
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-hlx_resp::hlx_resp():
-        m_subr(NULL),
-        m_resp(NULL),
-        m_error_str(),
-        m_status_code(0)
-{
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-hlx_resp::~hlx_resp()
-{
-        if(m_subr)
-        {
-                delete m_subr;
-                m_subr = NULL;
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-phurl_h_resp::phurl_h_resp(uint32_t a_timeout_ms, float a_completion_ratio) :
-        m_pending_subr_uid_map(),
-        m_resp_list(),
-        m_phurl_h(NULL),
-        m_requester_hconn(NULL),
-        m_data(NULL),
-        m_timer(NULL),
-        m_size(0),
-        m_timeout_ms(a_timeout_ms),
-        m_completion_ratio(a_completion_ratio),
-        m_delete(true),
-        m_done(false),
-        m_create_resp_cb(phurl_h::s_create_resp)
-{
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-phurl_h_resp::~phurl_h_resp(void)
-{
-        for(hlx_resp_list_t::iterator i_resp = m_resp_list.begin(); i_resp != m_resp_list.end(); ++i_resp)
-        {
-                if(*i_resp)
-                {
-                        if(m_requester_hconn && m_requester_hconn->m_t_hlx)
-                        {
-                                t_hlx *l_t_hlx = m_requester_hconn->m_t_hlx;
-                                resp *l_resp = (*i_resp)->m_resp;
-                                if(l_resp)
-                                {
-                                        if(l_resp->get_q())
-                                        {
-                                                l_t_hlx->release_nbq(l_resp->get_q());
-                                                l_resp->set_q(NULL);
-                                        }
-                                        l_t_hlx->release_resp((*i_resp)->m_resp);
-                                        (*i_resp)->m_resp = NULL;
-                                }
-                        }
-                        delete *i_resp;
-                        *i_resp = NULL;
-                }
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t phurl_h_resp::done(void)
-{
-        if(m_done)
-        {
-                return HLX_STATUS_OK;
-        }
-        m_done = true;
-        // ---------------------------------------
-        // Cancel pending...
-        // ---------------------------------------
-        subr_uid_map_t l_map = m_pending_subr_uid_map;
-        //NDBG_PRINT("Cancel pending size: %lu\n", l_map.size());
-        for(subr_uid_map_t::iterator i_s = l_map.begin(); i_s != l_map.end(); ++i_s)
-        {
-                if(i_s->second)
-                {
-                        int32_t l_status;
-                        l_status = i_s->second->cancel();
-                        if(l_status != HLX_STATUS_OK)
-                        {
-                                // TODO ???
-                        }
-                }
-        }
-        // ---------------------------------------
-        // Create Response...
-        // ---------------------------------------
-        int32_t l_status = HLX_STATUS_OK;
-        if(m_create_resp_cb)
-        {
-                l_status = m_create_resp_cb(this);
-                if(l_status != HLX_STATUS_OK)
-                {
-                        //return HLX_STATUS_ERROR;
-                }
-        }
-        if(m_delete)
-        {
-                delete this;
-        }
-        return l_status;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-float phurl_h_resp::get_done_ratio(void)
-{
-        float l_size = (float)m_size;
-        float l_done = (float)(m_pending_subr_uid_map.size());
-        return 100.0*((l_size - l_done)/l_size);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t phurl_h_resp::s_timeout_cb(void *a_ctx, void *a_data)
-{
-        phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_data);
-        if(!l_phr)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        return l_phr->done();
-}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -270,15 +114,15 @@ void phurl_h::set_host_list(const host_list_t &a_host_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t phurl_h::do_default(hconn &a_hconn,
+h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
                              rqst &a_rqst,
                              const url_pmap_t &a_url_pmap)
 {
         // Create request state if not already made
-        phurl_h_resp *l_phr = new phurl_h_resp();
+        phurl_u *l_phr = new phurl_u();
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
-                subr &l_subr = create_subr(a_hconn, m_subr_template);
+                subr &l_subr = create_subr(a_clnt_session, m_subr_template);
 
                 const char *l_body_data = a_rqst.get_body_data();
                 uint64_t l_body_data_len = a_rqst.get_body_len();
@@ -294,13 +138,13 @@ h_resp_t phurl_h::do_default(hconn &a_hconn,
                 l_subr.reset_label();
                 l_subr.set_data(l_phr);
                 l_subr.set_body_data(l_body_data, l_body_data_len);
-                l_subr.set_requester_hconn(&a_hconn);
+                l_subr.set_clnt_session(&a_clnt_session);
 
                 // Add to pending map
                 l_phr->m_pending_subr_uid_map[l_subr.get_uid()] = &l_subr;
 
                 int32_t l_status = 0;
-                l_status = queue_subr(a_hconn, l_subr);
+                l_status = queue_subr(a_clnt_session, l_subr);
                 if(l_status != HLX_STATUS_OK)
                 {
                         //("Error: performing add_subreq.\n");
@@ -309,7 +153,7 @@ h_resp_t phurl_h::do_default(hconn &a_hconn,
         }
 
         l_phr->m_phurl_h = this;
-        l_phr->m_requester_hconn = &a_hconn;
+        l_phr->m_requester_clnt_session = &a_clnt_session;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
         l_phr->m_timeout_ms = 10000;
         l_phr->m_completion_ratio = 100.0;
@@ -317,13 +161,13 @@ h_resp_t phurl_h::do_default(hconn &a_hconn,
         if(l_phr->m_timeout_ms)
         {
                 // TODO set timeout
-                if(!a_hconn.m_t_hlx)
+                if(!a_clnt_session.m_t_srvr)
                 {
                         return H_RESP_SERVER_ERROR;
                 }
                 // TODO -cancel pending???
                 int32_t l_status;
-                l_status = add_timer(a_hconn, l_phr->m_timeout_ms, phurl_h_resp::s_timeout_cb, l_phr, &(l_phr->m_timer));
+                l_status = add_timer(a_clnt_session, l_phr->m_timeout_ms, phurl_u::s_timeout_cb, l_phr, &(l_phr->m_timer));
                 if(l_status != HLX_STATUS_OK)
                 {
                         return H_RESP_SERVER_ERROR;
@@ -339,7 +183,7 @@ h_resp_t phurl_h::do_default(hconn &a_hconn,
 //: ----------------------------------------------------------------------------
 int32_t phurl_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 {
-        phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
+        phurl_u *l_phr = static_cast<phurl_u *>(a_subr.get_data());
         if(!l_phr)
         {
                 return HLX_STATUS_ERROR;
@@ -363,7 +207,7 @@ int32_t phurl_h::s_error_cb(subr &a_subr,
                             http_status_t a_status,
                             const char *a_error_str)
 {
-        phurl_h_resp *l_phr = static_cast<phurl_h_resp *>(a_subr.get_data());
+        phurl_u *l_phr = static_cast<phurl_u *>(a_subr.get_data());
         if(!l_phr)
         {
                 return HLX_STATUS_ERROR;
@@ -383,7 +227,7 @@ int32_t phurl_h::s_error_cb(subr &a_subr,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
+int32_t phurl_h::s_done_check(subr &a_subr, phurl_u *a_phr)
 {
         if(!a_phr)
         {
@@ -399,9 +243,9 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
         {
                 // Cancel pending
                 int32_t l_status;
-                if(a_subr.get_hconn())
+                if(a_subr.get_ups_srvr_session())
                 {
-                        l_status = cancel_timer(*a_subr.get_hconn(), a_phr->m_timer);
+                        l_status = cancel_timer(*a_subr.get_ups_srvr_session(), a_phr->m_timer);
                         if(l_status != HLX_STATUS_OK)
                         {
                                 // TODO ???
@@ -409,7 +253,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
                         }
                         a_phr->m_timer = NULL;
                 }
-                return a_phr->done();
+                return a_phr->ups_cancel();
         }
         return HLX_STATUS_OK;
 }
@@ -419,7 +263,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_h_resp *a_phr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
+int32_t phurl_h::s_create_resp(phurl_u *a_phr)
 {
         // Get body of resp
         char l_buf[2048];
@@ -439,19 +283,19 @@ int32_t phurl_h::s_create_resp(phurl_h_resp *a_phr)
         char l_len_str[64];
         sprintf(l_len_str, "%" PRIu64 "", l_len);
 
-        if(!a_phr->m_requester_hconn)
+        if(!a_phr->m_requester_clnt_session)
         {
                 return HLX_STATUS_ERROR;
         }
 
         // Create resp
-        api_resp &l_api_resp = create_api_resp(*(a_phr->m_requester_hconn));
+        api_resp &l_api_resp = create_api_resp(*(a_phr->m_requester_clnt_session));
         l_api_resp.set_status(HTTP_STATUS_OK);
         l_api_resp.set_header("Content-Length", l_len_str);
         l_api_resp.set_body_data(l_buf, l_len);
 
         // Queue
-        queue_api_resp(*(a_phr->m_requester_hconn), l_api_resp);
+        queue_api_resp(*(a_phr->m_requester_clnt_session), l_api_resp);
         return HLX_STATUS_OK;
 }
 

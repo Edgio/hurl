@@ -146,16 +146,12 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->set_retries(1);
                 l_nresolver->set_timeout_s(1);
 
-                void *l_ctx = NULL;
-                int l_fd = -1;
-                l_nresolver->init_async(&l_ctx, l_fd);
-                REQUIRE((l_fd > 0));
-                REQUIRE((l_ctx != NULL));
-
                 // Set up poller
-                struct pollfd l_pfd;
-                l_pfd.fd = l_fd;
-                l_pfd.events = POLLIN;
+                // TODO
+
+                ns_hlx::nresolver::adns_ctx *l_adns_ctx = NULL;
+                l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
+                REQUIRE((l_adns_ctx != NULL));
 
                 uint64_t l_active;
                 ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
@@ -170,25 +166,23 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
                 // Good
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "google.com", 80,
-                                                     test_resolved_cb,
                                                      (void *)(GOOD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Good
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "yahoo.com", 80,
-                                                     test_resolved_cb,
                                                      (void *)(GOOD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "arfarhfarfbloop", 9874,
                                                      test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
@@ -197,11 +191,10 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
                 // Bad
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "wonbaombaboiuiuiuoad.com", 80,
-                                                     test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
 
@@ -245,11 +238,10 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 INFO("g_lkp_err:     " << g_lkp_err)
                 REQUIRE((g_lkp_err == 0));
 
-                l_nresolver->destroy_async(l_ctx, l_fd, l_lookup_job_q, l_lookup_job_pq);
+                l_nresolver->destroy_async(l_adns_ctx);
                 delete l_nresolver;
         }
 #endif
-
         // ---------------------------------------------------------------------
         // TODO: Quarantining flaky test...
         // ---------------------------------------------------------------------
@@ -268,20 +260,14 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->set_retries(1);
                 l_nresolver->set_timeout_s(1);
 
-                void *l_ctx = NULL;
-                int l_fd = -1;
-                l_nresolver->init_async(&l_ctx, l_fd);
-                REQUIRE((l_fd > 0));
-                REQUIRE((l_ctx != NULL));
-
                 // Set up poller
-                struct pollfd l_pfd;
-                l_pfd.fd = l_fd;
-                l_pfd.events = POLLIN;
+                // TODO
+
+                ns_hlx::nresolver::adns_ctx *l_adns_ctx = NULL;
+                l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
+                REQUIRE((l_adns_ctx != NULL));
 
                 uint64_t l_active;
-                ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
-                ns_hlx::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
                 void *l_job_handle = NULL;
 
@@ -292,38 +278,34 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
                 // Good
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "google.com", 80,
-                                                     test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Good
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "yahoo.com", 80,
-                                                     test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "arfarhfarfbloop", 9874,
-                                                     test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_1),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
                 // Bad
                 ++g_dns_reqs_qd;
-                l_status = l_nresolver->lookup_async(l_ctx,
+                l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                      "wonbaombaboiuiuiuoad.com", 80,
-                                                     test_resolved_cb,
                                                      (void *)(BAD_DATA_VALUE_2),
-                                                     l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                     l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
 
 
@@ -337,11 +319,10 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                         //printf("DEBUG: poll: %d\n", l_count);
                         l_status = l_nresolver->handle_io(l_ctx);
                         std::string l_unused;
-                        l_status = l_nresolver->lookup_async(l_ctx,
+                        l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                              l_unused, 0,
-                                                             test_resolved_cb,
                                                              NULL,
-                                                             l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
+                                                             l_active, &l_job_handle);
                         REQUIRE((l_status == 0));
                         if(g_dns_reqs_qd == 0)
                         {
@@ -370,7 +351,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 INFO("g_lkp_err:     " << g_lkp_err)
                 REQUIRE((g_lkp_err == 0));
 
-                l_nresolver->destroy_async(l_ctx, l_fd, l_lookup_job_q, l_lookup_job_pq);
+                l_nresolver->destroy_async(l_adns_ctx);
                 delete l_nresolver;
         }
 #endif

@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    hlx.cc
+//: \file:    srvr.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    05/28/2015
@@ -25,11 +25,12 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "t_hlx.h"
 #include "nresolver.h"
 #include "nconn_tcp.h"
 #include "tls_util.h"
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
+
+#include "t_srvr.h"
 #include "hlx/stat.h"
 #include "hlx/lsnr.h"
 #include "hlx/status.h"
@@ -56,7 +57,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hlx::hlx(void):
+srvr::srvr(void):
         m_t_conf(NULL),
         m_stats(false),
         m_num_threads(1),
@@ -66,10 +67,10 @@ hlx::hlx(void):
         m_dns_use_ai_cache(true),
         m_dns_ai_cache_file(NRESOLVER_DEFAULT_AI_CACHE_FILE),
         m_start_time_ms(0),
-        m_t_hlx_list(),
+        m_t_srvr_list(),
         m_is_initd(false),
         m_cur_subr_uid(0),
-        m_server_name("hlx"),
+        m_server_name("srvr"),
         m_stat_mutex(),
         m_stat_update_ms(S_STAT_UPDATE_MS_DEFAULT),
         m_stat_last_time_ms(0),
@@ -86,10 +87,10 @@ hlx::hlx(void):
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hlx::~hlx()
+srvr::~srvr()
 {
-        for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                        i_t != m_t_hlx_list.end();
+        for(t_srvr_list_t::iterator i_t = m_t_srvr_list.begin();
+                        i_t != m_t_srvr_list.end();
                         ++i_t)
         {
                 if(*i_t)
@@ -97,7 +98,7 @@ hlx::~hlx()
                         delete *i_t;
                 }
         }
-        m_t_hlx_list.clear();
+        m_t_srvr_list.clear();
 
         for(lsnr_list_t::iterator i_t = m_lsnr_list.begin();
                         i_t != m_lsnr_list.end();
@@ -187,8 +188,8 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         ao_total.m_pool_conn_idle += a_stat.m_pool_conn_idle;
         ao_total.m_pool_proxy_conn_active += a_stat.m_pool_proxy_conn_active;
         ao_total.m_pool_proxy_conn_idle += a_stat.m_pool_proxy_conn_idle;
-        ao_total.m_pool_hconn_free += a_stat.m_pool_hconn_free;
-        ao_total.m_pool_hconn_used += a_stat.m_pool_hconn_used;
+        ao_total.m_pool_clnt_free += a_stat.m_pool_clnt_free;
+        ao_total.m_pool_clnt_used += a_stat.m_pool_clnt_used;
         ao_total.m_pool_resp_free += a_stat.m_pool_resp_free;
         ao_total.m_pool_resp_used += a_stat.m_pool_resp_used;
         ao_total.m_pool_rqst_free += a_stat.m_pool_rqst_free;
@@ -202,11 +203,11 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
 }
 
 //: ----------------------------------------------------------------------------
-//: \details: Get hlx stats
+//: \details: Get srvr stats
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
+void srvr::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
 {
         pthread_mutex_lock(&m_stat_mutex);
         // Check last time
@@ -220,8 +221,8 @@ void hlx::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
         m_stat_list_cache.clear();
         m_stat_cache.clear();
         // Aggregate
-        for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
-           i_client != m_t_hlx_list.end();
+        for(t_srvr_list_t::const_iterator i_client = m_t_srvr_list.begin();
+           i_client != m_t_srvr_list.end();
            ++i_client)
         {
                 // Get stuff from client...
@@ -260,11 +261,11 @@ void hlx::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
 #define DISPLAY_CLN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_GREEN,   #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
 #define DISPLAY_SRV_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_BLUE,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
 #define DISPLAY_GEN_STAT(_stat) NDBG_OUTPUT("| %s%24s%s: %12" PRIu64 "\n", ANSI_COLOR_FG_CYAN,    #_stat, ANSI_COLOR_OFF,(uint64_t)l_stat._stat)
-void hlx::display_stat(void)
+void srvr::display_stat(void)
 {
         uint32_t i_t = 0;
-        for(t_hlx_list_t::const_iterator i_client = m_t_hlx_list.begin();
-           i_client != m_t_hlx_list.end();
+        for(t_srvr_list_t::const_iterator i_client = m_t_srvr_list.begin();
+           i_client != m_t_srvr_list.end();
            ++i_client, ++i_t)
         {
                 // Get stuff from client...
@@ -300,8 +301,8 @@ void hlx::display_stat(void)
                 DISPLAY_SRV_STAT(m_pool_conn_idle);
                 DISPLAY_SRV_STAT(m_pool_proxy_conn_active);
                 DISPLAY_SRV_STAT(m_pool_proxy_conn_idle);
-                DISPLAY_SRV_STAT(m_pool_hconn_free);
-                DISPLAY_SRV_STAT(m_pool_hconn_used);
+                DISPLAY_SRV_STAT(m_pool_clnt_free);
+                DISPLAY_SRV_STAT(m_pool_clnt_used);
                 DISPLAY_SRV_STAT(m_pool_resp_free);
                 DISPLAY_SRV_STAT(m_pool_resp_used);
                 DISPLAY_SRV_STAT(m_pool_rqst_free);
@@ -328,7 +329,7 @@ void hlx::display_stat(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nresolver *hlx::get_nresolver(void)
+nresolver *srvr::get_nresolver(void)
 {
         return m_nresolver;
 }
@@ -338,7 +339,7 @@ nresolver *hlx::get_nresolver(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool hlx::get_dns_use_sync(void)
+bool srvr::get_dns_use_sync(void)
 {
         return m_dns_use_sync;
 }
@@ -348,10 +349,10 @@ bool hlx::get_dns_use_sync(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool hlx::is_running(void)
+bool srvr::is_running(void)
 {
-        for (t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                        i_t != m_t_hlx_list.end();
+        for (t_srvr_list_t::iterator i_t = m_t_srvr_list.begin();
+                        i_t != m_t_srvr_list.end();
                         ++i_t)
         {
                 if((*i_t)->is_running())
@@ -370,7 +371,7 @@ bool hlx::is_running(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_rqst_resp_logging(bool a_val)
+void srvr::set_rqst_resp_logging(bool a_val)
 {
         m_t_conf->m_rqst_resp_logging = a_val;
 }
@@ -380,7 +381,7 @@ void hlx::set_rqst_resp_logging(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_rqst_resp_logging_color(bool a_val)
+void srvr::set_rqst_resp_logging_color(bool a_val)
 {
         m_t_conf->m_rqst_resp_logging_color = a_val;
 }
@@ -390,7 +391,7 @@ void hlx::set_rqst_resp_logging_color(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_stats(bool a_val)
+void srvr::set_stats(bool a_val)
 {
         m_t_conf->m_collect_stats = a_val;
 }
@@ -400,7 +401,7 @@ void hlx::set_stats(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_num_threads(uint32_t a_num_threads)
+void srvr::set_num_threads(uint32_t a_num_threads)
 {
         m_num_threads = a_num_threads;
 }
@@ -410,7 +411,7 @@ void hlx::set_num_threads(uint32_t a_num_threads)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_num_parallel(uint32_t a_num_parallel)
+void srvr::set_num_parallel(uint32_t a_num_parallel)
 {
         m_t_conf->m_num_parallel = a_num_parallel;
 }
@@ -420,7 +421,7 @@ void hlx::set_num_parallel(uint32_t a_num_parallel)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_num_reqs_per_conn(int32_t a_num_reqs_per_conn)
+void srvr::set_num_reqs_per_conn(int32_t a_num_reqs_per_conn)
 {
         m_t_conf->m_num_reqs_per_conn = a_num_reqs_per_conn;
 }
@@ -430,7 +431,7 @@ void hlx::set_num_reqs_per_conn(int32_t a_num_reqs_per_conn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_start_time_ms(uint64_t a_start_time_ms)
+void srvr::set_start_time_ms(uint64_t a_start_time_ms)
 {
         m_start_time_ms = a_start_time_ms;
 }
@@ -440,7 +441,7 @@ void hlx::set_start_time_ms(uint64_t a_start_time_ms)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_collect_stats(bool a_val)
+void srvr::set_collect_stats(bool a_val)
 {
         m_t_conf->m_collect_stats = a_val;
 }
@@ -450,7 +451,7 @@ void hlx::set_collect_stats(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_update_stats_ms(uint32_t a_update_ms)
+void srvr::set_update_stats_ms(uint32_t a_update_ms)
 {
         m_t_conf->m_update_stats_ms = a_update_ms;
         m_stat_update_ms = a_update_ms;
@@ -461,7 +462,7 @@ void hlx::set_update_stats_ms(uint32_t a_update_ms)
 //: \return:  NA
 //: \param:   a_val: timeout in seconds
 //: ----------------------------------------------------------------------------
-void hlx::set_timeout_ms(uint32_t a_val)
+void srvr::set_timeout_ms(uint32_t a_val)
 {
         m_t_conf->m_timeout_ms = a_val;
 }
@@ -471,7 +472,7 @@ void hlx::set_timeout_ms(uint32_t a_val)
 //: \return:  NA
 //: \param:   a_name: server name
 //: ----------------------------------------------------------------------------
-void hlx::set_resp_done_cb(resp_done_cb_t a_cb)
+void srvr::set_resp_done_cb(resp_done_cb_t a_cb)
 {
         m_t_conf->m_resp_done_cb = a_cb;
 }
@@ -481,7 +482,7 @@ void hlx::set_resp_done_cb(resp_done_cb_t a_cb)
 //: \return:  NA
 //: \param:   a_name: server name
 //: ----------------------------------------------------------------------------
-void hlx::set_server_name(const std::string &a_name)
+void srvr::set_server_name(const std::string &a_name)
 {
         m_server_name = a_name;
 }
@@ -491,7 +492,7 @@ void hlx::set_server_name(const std::string &a_name)
 //: \return:  server name
 //: \param:   NA
 //: ----------------------------------------------------------------------------
-const std::string &hlx::get_server_name(void) const
+const std::string &srvr::get_server_name(void) const
 {
         return m_server_name;
 }
@@ -501,7 +502,7 @@ const std::string &hlx::get_server_name(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_sock_opt_no_delay(bool a_val)
+void srvr::set_sock_opt_no_delay(bool a_val)
 {
         m_t_conf->m_sock_opt_no_delay = a_val;
 }
@@ -511,7 +512,7 @@ void hlx::set_sock_opt_no_delay(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_sock_opt_send_buf_size(uint32_t a_send_buf_size)
+void srvr::set_sock_opt_send_buf_size(uint32_t a_send_buf_size)
 {
         m_t_conf->m_sock_opt_send_buf_size = a_send_buf_size;
 }
@@ -521,7 +522,7 @@ void hlx::set_sock_opt_send_buf_size(uint32_t a_send_buf_size)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
+void srvr::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
 {
         m_t_conf->m_sock_opt_recv_buf_size = a_recv_buf_size;
 }
@@ -531,7 +532,7 @@ void hlx::set_sock_opt_recv_buf_size(uint32_t a_recv_buf_size)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_dns_use_sync(bool a_val)
+void srvr::set_dns_use_sync(bool a_val)
 {
         m_dns_use_sync = a_val;
 }
@@ -541,7 +542,7 @@ void hlx::set_dns_use_sync(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_dns_use_ai_cache(bool a_val)
+void srvr::set_dns_use_ai_cache(bool a_val)
 {
         m_dns_use_ai_cache = a_val;
 }
@@ -551,7 +552,7 @@ void hlx::set_dns_use_ai_cache(bool a_val)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_dns_ai_cache_file(const std::string &a_file)
+void srvr::set_dns_ai_cache_file(const std::string &a_file)
 {
         m_dns_ai_cache_file = a_file;
 }
@@ -561,7 +562,7 @@ void hlx::set_dns_ai_cache_file(const std::string &a_file)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_server_ctx_cipher_list(const std::string &a_cipher_list)
+void srvr::set_tls_server_ctx_cipher_list(const std::string &a_cipher_list)
 {
         m_t_conf->m_tls_server_ctx_cipher_list = a_cipher_list;
 }
@@ -571,7 +572,7 @@ void hlx::set_tls_server_ctx_cipher_list(const std::string &a_cipher_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::set_tls_server_ctx_options(const std::string &a_tls_options_str)
+int srvr::set_tls_server_ctx_options(const std::string &a_tls_options_str)
 {
         int32_t l_status;
         l_status = get_tls_options_str_val(a_tls_options_str,
@@ -588,7 +589,7 @@ int hlx::set_tls_server_ctx_options(const std::string &a_tls_options_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::set_tls_server_ctx_options(long a_tls_options)
+int srvr::set_tls_server_ctx_options(long a_tls_options)
 {
         m_t_conf->m_tls_server_ctx_options = a_tls_options;
         return HLX_STATUS_OK;
@@ -599,7 +600,7 @@ int hlx::set_tls_server_ctx_options(long a_tls_options)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_server_ctx_key(const std::string &a_tls_key)
+void srvr::set_tls_server_ctx_key(const std::string &a_tls_key)
 {
         m_t_conf->m_tls_server_ctx_key = a_tls_key;
 }
@@ -609,7 +610,7 @@ void hlx::set_tls_server_ctx_key(const std::string &a_tls_key)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_server_ctx_crt(const std::string &a_tls_crt)
+void srvr::set_tls_server_ctx_crt(const std::string &a_tls_crt)
 {
         m_t_conf->m_tls_server_ctx_crt = a_tls_crt;
 }
@@ -619,7 +620,7 @@ void hlx::set_tls_server_ctx_crt(const std::string &a_tls_crt)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_client_ctx_cipher_list(const std::string &a_cipher_list)
+void srvr::set_tls_client_ctx_cipher_list(const std::string &a_cipher_list)
 {
         m_t_conf->m_tls_client_ctx_cipher_list = a_cipher_list;
 }
@@ -629,7 +630,7 @@ void hlx::set_tls_client_ctx_cipher_list(const std::string &a_cipher_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_client_ctx_ca_path(const std::string &a_tls_ca_path)
+void srvr::set_tls_client_ctx_ca_path(const std::string &a_tls_ca_path)
 {
         m_t_conf->m_tls_client_ctx_ca_path = a_tls_ca_path;
 }
@@ -639,7 +640,7 @@ void hlx::set_tls_client_ctx_ca_path(const std::string &a_tls_ca_path)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hlx::set_tls_client_ctx_ca_file(const std::string &a_tls_ca_file)
+void srvr::set_tls_client_ctx_ca_file(const std::string &a_tls_ca_file)
 {
         m_t_conf->m_tls_client_ctx_ca_file = a_tls_ca_file;
 }
@@ -649,7 +650,7 @@ void hlx::set_tls_client_ctx_ca_file(const std::string &a_tls_ca_file)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::set_tls_client_ctx_options(const std::string &a_tls_options_str)
+int srvr::set_tls_client_ctx_options(const std::string &a_tls_options_str)
 {
         int32_t l_status;
         l_status = get_tls_options_str_val(a_tls_options_str,
@@ -666,7 +667,7 @@ int hlx::set_tls_client_ctx_options(const std::string &a_tls_options_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::set_tls_client_ctx_options(long a_tls_options)
+int srvr::set_tls_client_ctx_options(long a_tls_options)
 {
         m_t_conf->m_tls_client_ctx_options = a_tls_options;
         return HLX_STATUS_OK;
@@ -680,7 +681,7 @@ int hlx::set_tls_client_ctx_options(long a_tls_options)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::register_lsnr(lsnr *a_lsnr)
+int32_t srvr::register_lsnr(lsnr *a_lsnr)
 {
         if(!a_lsnr)
         {
@@ -695,8 +696,8 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
         }
         if(is_running())
         {
-                for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                    i_t != m_t_hlx_list.end();
+                for(t_srvr_list_t::iterator i_t = m_t_srvr_list.begin();
+                    i_t != m_t_srvr_list.end();
                     ++i_t)
                 {
                         if(*i_t)
@@ -722,7 +723,7 @@ int32_t hlx::register_lsnr(lsnr *a_lsnr)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint64_t hlx::get_next_subr_uuid(void)
+uint64_t srvr::get_next_subr_uuid(void)
 {
         return ++m_cur_subr_uid;
 }
@@ -732,9 +733,9 @@ uint64_t hlx::get_next_subr_uuid(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hlx::t_hlx_list_t &hlx::get_t_hlx_list(void)
+srvr::t_srvr_list_t &srvr::get_t_hlx_list(void)
 {
-        return m_t_hlx_list;
+        return m_t_srvr_list;
 }
 
 //: ----------------------------------------------------------------------------
@@ -742,7 +743,7 @@ hlx::t_hlx_list_t &hlx::get_t_hlx_list(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::init_run(void)
+int32_t srvr::init_run(void)
 {
         int l_status = 0;
         if(!m_is_initd)
@@ -753,9 +754,9 @@ int32_t hlx::init_run(void)
                         return HLX_STATUS_ERROR;
                 }
         }
-        if(m_t_hlx_list.empty())
+        if(m_t_srvr_list.empty())
         {
-                l_status = init_t_hlx_list();
+                l_status = init_t_srvr_list();
                 if(HLX_STATUS_OK != l_status)
                 {
                         return HLX_STATUS_ERROR;
@@ -769,7 +770,7 @@ int32_t hlx::init_run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::run(void)
+int32_t srvr::run(void)
 {
         //NDBG_PRINT("Running...\n");
         int32_t l_status;
@@ -781,12 +782,12 @@ int32_t hlx::run(void)
         set_start_time_ms(get_time_ms());
         if(m_num_threads == 0)
         {
-                (*(m_t_hlx_list.begin()))->t_run(NULL);
+                (*(m_t_srvr_list.begin()))->t_run(NULL);
         }
         else
         {
-                for(t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                                i_t != m_t_hlx_list.end();
+                for(t_srvr_list_t::iterator i_t = m_t_srvr_list.begin();
+                                i_t != m_t_srvr_list.end();
                                 ++i_t)
                 {
                         (*i_t)->run();
@@ -800,11 +801,11 @@ int32_t hlx::run(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::stop(void)
+int srvr::stop(void)
 {
         int32_t l_retval = HLX_STATUS_OK;
-        for (t_hlx_list_t::iterator i_t = m_t_hlx_list.begin();
-                        i_t != m_t_hlx_list.end();
+        for (t_srvr_list_t::iterator i_t = m_t_srvr_list.begin();
+                        i_t != m_t_srvr_list.end();
                         ++i_t)
         {
                 (*i_t)->stop();
@@ -817,11 +818,11 @@ int hlx::stop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t hlx::wait_till_stopped(void)
+int32_t srvr::wait_till_stopped(void)
 {
         // Join all threads before exit
-        for(t_hlx_list_t::iterator i_server = m_t_hlx_list.begin();
-           i_server != m_t_hlx_list.end();
+        for(t_srvr_list_t::iterator i_server = m_t_srvr_list.begin();
+           i_server != m_t_srvr_list.end();
             ++i_server)
         {
                 pthread_join(((*i_server)->m_t_run_thread), NULL);
@@ -834,7 +835,7 @@ int32_t hlx::wait_till_stopped(void)
 //: \return:  client status indicating success or failure
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::init(void)
+int srvr::init(void)
 {
         if(true == m_is_initd)
         {
@@ -922,70 +923,70 @@ int hlx::init(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int hlx::init_t_hlx_list(void)
+int srvr::init_t_srvr_list(void)
 {
         // -------------------------------------------
-        // Create t_hlx list...
+        // Create t_srvr list...
         // -------------------------------------------
-        // 0 threads -make a single hlx
-        m_t_conf->m_hlx = this;
+        // 0 threads -make a single srvr
+        m_t_conf->m_srvr = this;
         if(m_num_threads == 0)
         {
                 int32_t l_status;
-                t_hlx *l_t_hlx = new t_hlx(m_t_conf);
+                t_srvr *l_t_srvr = new t_srvr(m_t_conf);
                 for(lsnr_list_t::iterator i_t = m_lsnr_list.begin();
                                 i_t != m_lsnr_list.end();
                                 ++i_t)
                 {
                         if(*i_t)
                         {
-                                l_status = l_t_hlx->add_lsnr(*(*i_t));
+                                l_status = l_t_srvr->add_lsnr(*(*i_t));
                                 if(l_status != HLX_STATUS_OK)
                                 {
-                                        delete l_t_hlx;
-                                        l_t_hlx = NULL;
+                                        delete l_t_srvr;
+                                        l_t_srvr = NULL;
                                         NDBG_PRINT("Error performing add_lsnr.\n");
                                         return HLX_STATUS_ERROR;
                                 }
                         }
                 }
-                l_status = l_t_hlx->init();
+                l_status = l_t_srvr->init();
                 if(l_status != HLX_STATUS_OK)
                 {
                         NDBG_PRINT("Error performing init.\n");
                         return HLX_STATUS_ERROR;
                 }
-                m_t_hlx_list.push_back(l_t_hlx);
+                m_t_srvr_list.push_back(l_t_srvr);
         }
         else
         {
                 for(uint32_t i_server_idx = 0; i_server_idx < m_num_threads; ++i_server_idx)
                 {
                         int32_t l_status;
-                        t_hlx *l_t_hlx = new t_hlx(m_t_conf);
+                        t_srvr *l_t_srvr = new t_srvr(m_t_conf);
                         for(lsnr_list_t::iterator i_t = m_lsnr_list.begin();
                                         i_t != m_lsnr_list.end();
                                         ++i_t)
                         {
                                 if(*i_t)
                                 {
-                                        l_status = l_t_hlx->add_lsnr(*(*i_t));
+                                        l_status = l_t_srvr->add_lsnr(*(*i_t));
                                         if(l_status != HLX_STATUS_OK)
                                         {
-                                                delete l_t_hlx;
-                                                l_t_hlx = NULL;
+                                                delete l_t_srvr;
+                                                l_t_srvr = NULL;
                                                 NDBG_PRINT("Error performing add_lsnr.\n");
                                                 return HLX_STATUS_ERROR;
                                         }
                                 }
                         }
-                        l_status = l_t_hlx->init();
+                        l_status = l_t_srvr->init();
                         if(l_status != HLX_STATUS_OK)
                         {
                                 NDBG_PRINT("Error performing init.\n");
                                 return HLX_STATUS_ERROR;
                         }
-                        m_t_hlx_list.push_back(l_t_hlx);
+                        m_t_srvr_list.push_back(l_t_srvr);
                 }
         }
         return HLX_STATUS_OK;

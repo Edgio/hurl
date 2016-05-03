@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    phurl_h.h
+//: \file:    proxy_u.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    11/20/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,82 +20,75 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _PHURL_H_H
-#define _PHURL_H_H
+#ifndef _PROXY_U_H
+#define _PROXY_U_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
-#include "hlx/subr.h"
-#include "hlx/scheme.h"
-#include "hlx/phurl_u.h"
-
-// For fixed size types
 #include <stdint.h>
-#include <map>
-#include <string>
+#include <sys/types.h>
+#include "hlx/base_u.h"
+#include "hlx/subr.h"
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
-class clnt_session;
-class nconn;
-class resp;
+class nbq;
+class subr;
 
 //: ----------------------------------------------------------------------------
-//: Types
+//: proxy_u upstream proxy object
 //: ----------------------------------------------------------------------------
-typedef std::list <struct host_s> host_list_t;
-
-//: ----------------------------------------------------------------------------
-//: phurl_h
-//: ----------------------------------------------------------------------------
-class phurl_h: public default_rqst_h
+class proxy_u: public base_u
 {
+
 public:
+        // -------------------------------------------------
+        // const
+        // -------------------------------------------------
+        static const uint32_t S_UPS_TYPE_PROXY = 0xFFFF000B;
+
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        phurl_h(void);
-        ~phurl_h();
-
-        h_resp_t do_default(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-
-        // Do default method override
-        bool get_do_default(void);
-
-        void add_host(const std::string a_host, uint16_t a_port = 80);
-        void set_host_list(const host_list_t &a_host_list);
-        const subr &get_subr_template(void) const;
-        subr &get_subr_template_mutable(void);
+        proxy_u();
+        ~proxy_u();
+        void set_subr(subr *a_subr);
 
         // -------------------------------------------------
-        // Public static methods
+        // upstream methods
+        // -------------------------------------------------
+        ssize_t ups_read(char *ao_dst, size_t a_len);
+        ssize_t ups_read(nbq &ao_q, size_t a_len);
+        bool ups_done(void);
+        int32_t ups_cancel(void);
+        uint32_t get_type(void) { return S_UPS_TYPE_PROXY;}
+
+        // -------------------------------------------------
+        // Public Class methods
         // -------------------------------------------------
         static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
         static int32_t s_error_cb(subr &a_subr,
                                   nconn *a_nconn,
                                   http_status_t a_status,
                                   const char *a_error_str);
-        static int32_t s_done_check(subr &a_subr, phurl_u *a_phr);
-        static int32_t s_create_resp(phurl_u *a_phr);
 
-protected:
-        // -------------------------------------------------
-        // Protected members
-        // -------------------------------------------------
-        subr m_subr_template;
-        host_list_t m_host_list;
+
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        phurl_h& operator=(const phurl_h &);
-        phurl_h(const phurl_h &);
+        proxy_u& operator=(const proxy_u &);
+        proxy_u(const proxy_u &);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        subr *m_subr;
 };
 
 } //namespace ns_hlx {

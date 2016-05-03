@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    default_rqst_h.cc
+//: \file:    rqst_h.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    08/29/2015
@@ -24,8 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
-#include "hlx/rqst.h"
+#include "hlx/rqst_h.h"
+#include "hlx/api_resp.h"
+#include "hlx/srvr.h"
+
+#include <string.h>
 
 namespace ns_hlx {
 
@@ -34,9 +37,25 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-default_rqst_h::default_rqst_h(void)
+h_resp_t rqst_h::send_json_resp(clnt_session &a_clnt_session,
+                                bool a_keep_alive,
+                                http_status_t a_status,
+                                const char *a_json_resp)
 {
-
+        srvr *l_srvr = get_srvr(a_clnt_session);
+        if(!l_srvr)
+        {
+                return H_RESP_SERVER_ERROR;
+        }
+        api_resp &l_api_resp = create_api_resp(a_clnt_session);
+        l_api_resp.add_std_headers(a_status,
+                                   "application/json",
+                                   strlen(a_json_resp),
+                                   a_keep_alive,
+                                   *(l_srvr));
+        l_api_resp.set_body_data(a_json_resp, strlen(a_json_resp));
+        queue_api_resp(a_clnt_session, l_api_resp);
+        return H_RESP_DONE;
 }
 
 //: ----------------------------------------------------------------------------
@@ -44,9 +63,11 @@ default_rqst_h::default_rqst_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-default_rqst_h::~default_rqst_h()
+h_resp_t rqst_h::send_json_resp_err(clnt_session &a_clnt_session, bool a_keep_alive, http_status_t a_status)
 {
-
+        std::string l_resp;
+        create_json_resp_str(a_status, l_resp);
+        return send_json_resp(a_clnt_session, a_keep_alive, a_status, l_resp.c_str());
 }
 
 //: ----------------------------------------------------------------------------
@@ -54,9 +75,9 @@ default_rqst_h::~default_rqst_h()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t rqst_h::send_not_found(clnt_session &a_clnt_session, bool a_keep_alive)
 {
-        return send_not_implemented(a_hconn, a_rqst.m_supports_keep_alives);
+        return send_json_resp_err(a_clnt_session, a_keep_alive, HTTP_STATUS_NOT_FOUND);
 }
 
 //: ----------------------------------------------------------------------------
@@ -64,9 +85,9 @@ h_resp_t default_rqst_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t rqst_h::send_not_implemented(clnt_session &a_clnt_session, bool a_keep_alive)
 {
-        return send_not_implemented(a_hconn, a_rqst.m_supports_keep_alives);
+        return send_json_resp_err(a_clnt_session, a_keep_alive, HTTP_STATUS_NOT_IMPLEMENTED);
 }
 
 //: ----------------------------------------------------------------------------
@@ -74,9 +95,9 @@ h_resp_t default_rqst_h::do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t 
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t rqst_h::send_internal_server_error(clnt_session &a_clnt_session, bool a_keep_alive)
 {
-        return send_not_implemented(a_hconn, a_rqst.m_supports_keep_alives);
+        return send_json_resp_err(a_clnt_session, a_keep_alive, HTTP_STATUS_INTERNAL_SERVER_ERROR);
 }
 
 //: ----------------------------------------------------------------------------
@@ -84,29 +105,9 @@ h_resp_t default_rqst_h::do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t rqst_h::send_bad_request(clnt_session &a_clnt_session, bool a_keep_alive)
 {
-        return send_not_implemented(a_hconn, a_rqst.m_supports_keep_alives);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-h_resp_t default_rqst_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
-{
-        return send_not_implemented(a_hconn, a_rqst.m_supports_keep_alives);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool default_rqst_h::get_do_default(void)
-{
-        return false;
+        return send_json_resp_err(a_clnt_session, a_keep_alive, HTTP_STATUS_BAD_REQUEST);
 }
 
 } //namespace ns_hlx {

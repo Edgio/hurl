@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/stat.h"
 #include "hlx/stat_h.h"
 #include "hlx/api_resp.h"
@@ -167,7 +167,7 @@ typedef struct settings_struct
         bool m_show_response_codes;
         bool m_show_per_interval;
         uint32_t m_num_parallel;
-        ns_hlx::hlx *m_hlx;
+        ns_hlx::srvr *m_srvr;
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
         ns_hlx::t_stat_t *m_last_stat;
@@ -184,7 +184,7 @@ typedef struct settings_struct
                 m_show_response_codes(false),
                 m_show_per_interval(false),
                 m_num_parallel(1),
-                m_hlx(NULL),
+                m_srvr(NULL),
                 m_start_time_ms(),
                 m_last_display_time_ms(),
                 m_last_stat(NULL),
@@ -231,7 +231,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
-static ns_hlx::hlx *g_hlx = NULL;
+static ns_hlx::srvr *g_hlx = NULL;
 static bool g_test_finished = false;
 static bool g_cancelled = false;
 static settings_struct_t *g_settings = NULL;
@@ -273,7 +273,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_hlx->stop();
+                g_settings->m_srvr->stop();
         }
 }
 
@@ -339,7 +339,7 @@ void command_exec(settings_struct_t &a_settings)
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
-        ns_hlx::hlx *l_hlx = a_settings.m_hlx;
+        ns_hlx::srvr *l_srvr = a_settings.m_srvr;
         bool l_first_time = true;
 
         nonblock(NB_ENABLE);
@@ -365,7 +365,7 @@ void command_exec(settings_struct_t &a_settings)
                         // -------------------------------------------
                         case 'd':
                         {
-                                a_settings.m_hlx->display_stat();
+                                a_settings.m_srvr->display_stat();
                                 break;
                         }
                         // -------------------------------------------
@@ -373,7 +373,7 @@ void command_exec(settings_struct_t &a_settings)
                         // -------------------------------------------
                         case 'q':
                                 g_test_finished = true;
-                                l_hlx->stop();
+                                l_srvr->stop();
                                 l_sent_stop = true;
                                 break;
                         default:
@@ -391,7 +391,7 @@ void command_exec(settings_struct_t &a_settings)
                         if(l_time_delta_ms >= a_settings.m_run_time_ms)
                         {
                                 g_test_finished = true;
-                                l_hlx->stop();
+                                l_srvr->stop();
                                 l_sent_stop = true;
                         }
                 }
@@ -418,7 +418,7 @@ void command_exec(settings_struct_t &a_settings)
                         }
                 }
 
-                if (!l_hlx->is_running())
+                if (!l_srvr->is_running())
                 {
                         g_test_finished = true;
                 }
@@ -428,7 +428,7 @@ void command_exec(settings_struct_t &a_settings)
         // Send stop -if unsent
         if(!l_sent_stop)
         {
-                l_hlx->stop();
+                l_srvr->stop();
                 l_sent_stop = true;
         }
         nonblock(NB_DISABLE);
@@ -449,7 +449,7 @@ static int32_t s_completion_cb(ns_hlx::subr &a_subr,
         if((g_num_to_request != -1) && (g_num_completed >= (uint32_t)g_num_to_request))
         {
                 g_test_finished = true;
-                g_settings->m_hlx->stop();
+                g_settings->m_srvr->stop();
                 return 0;
         }
 
@@ -1045,29 +1045,33 @@ int main(int argc, char** argv)
         bool l_wildcarding = true;
         std::string l_output_file = "";
 
-        // Get hurl instance
-        settings_struct_t l_settings;
-        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_settings.m_hlx = l_hlx;
-        g_hlx = l_hlx;
+        // Get srvr instance
+        ns_hlx::srvr *l_srvr = new ns_hlx::srvr();
+        g_hlx = l_srvr;
+
+        // Suppress errors
+        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+
         // For sighandler
+        settings_struct_t l_settings;
+        l_settings.m_srvr = l_srvr;
         g_settings = &l_settings;
 
         // hlx settings
-        l_hlx->set_collect_stats(true);
-        l_hlx->set_dns_use_ai_cache(true);
-        l_hlx->set_dns_use_sync(true);
-        l_hlx->set_num_threads(l_max_threads);
-        l_hlx->set_num_parallel(l_start_parallel);
-        l_hlx->set_num_reqs_per_conn(-1);
-        l_hlx->set_update_stats_ms(500);
+        l_srvr->set_collect_stats(true);
+        l_srvr->set_dns_use_ai_cache(true);
+        l_srvr->set_dns_use_sync(true);
+        l_srvr->set_num_threads(l_max_threads);
+        l_srvr->set_num_parallel(l_start_parallel);
+        l_srvr->set_num_reqs_per_conn(-1);
+        l_srvr->set_update_stats_ms(500);
 
         // -------------------------------------------------
         // Subrequest settings
         // -------------------------------------------------
 
         ns_hlx::subr *l_subr = new ns_hlx::subr();
-        l_subr->set_uid(l_hlx->get_next_subr_uuid());
+        l_subr->set_uid(l_srvr->get_next_subr_uuid());
         l_subr->set_save(false);
 
         // Default headers
@@ -1264,7 +1268,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        l_hlx->set_tls_client_ctx_cipher_list(l_argument);
+                        l_srvr->set_tls_client_ctx_cipher_list(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1280,7 +1284,7 @@ int main(int argc, char** argv)
                                 printf("Error parallel must be at least 1\n");
                                 return -1;
                         }
-                        l_hlx->set_num_parallel(l_start_parallel);
+                        l_srvr->set_num_parallel(l_start_parallel);
                         l_settings.m_num_parallel = l_start_parallel;
                         break;
                 }
@@ -1328,7 +1332,7 @@ int main(int argc, char** argv)
                                 printf("Error num-threads must be 0 or greater\n");
                                 return -1;
                         }
-                        l_hlx->set_num_threads(l_max_threads);
+                        l_srvr->set_num_threads(l_max_threads);
                         g_num_threads = l_max_threads;
                         break;
                 }
@@ -1419,7 +1423,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_recv_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_hlx->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
+                        l_srvr->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
 
                         break;
                 }
@@ -1430,7 +1434,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_send_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_hlx->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
+                        l_srvr->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -1438,7 +1442,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        l_hlx->set_sock_opt_no_delay(true);
+                        l_srvr->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1463,7 +1467,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'x':
                 {
-                        l_hlx->set_collect_stats(false);
+                        l_srvr->set_collect_stats(false);
                         break;
                 }
                 // ---------------------------------------
@@ -1492,7 +1496,7 @@ int main(int argc, char** argv)
                 {
                         l_settings.m_verbose = true;
                         l_subr->set_save(true);
-                        l_hlx->set_rqst_resp_logging(true);
+                        l_srvr->set_rqst_resp_logging(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1501,7 +1505,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx->set_rqst_resp_logging_color(true);
+                        l_srvr->set_rqst_resp_logging_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1680,7 +1684,7 @@ int main(int argc, char** argv)
                         printf("Error: adding endpoint: %s\n", "/");
                         return -1;
                 }
-                l_hlx->register_lsnr(l_lsnr);
+                l_srvr->register_lsnr(l_lsnr);
         }
 
 #ifdef ENABLE_PROFILER
@@ -1690,7 +1694,7 @@ int main(int argc, char** argv)
 #endif
 
         // Message
-        if(!l_settings.m_quiet)
+        if(!l_settings.m_quiet && !l_settings.m_verbose)
         {
                 if(l_max_reqs_per_conn < 0)
                 {
@@ -1706,7 +1710,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Setup to run -but don't start
         // -------------------------------------------
-        l_status = l_hlx->init_run();
+        l_status = l_srvr->init_run();
         if(HLX_STATUS_OK != l_status)
         {
                 printf("Error: performing hlx::init_run\n");
@@ -1716,11 +1720,11 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Add subrequests
         // -------------------------------------------
-        ns_hlx::hlx::t_hlx_list_t &l_t_hlx_list = l_hlx->get_t_hlx_list();
-        uint32_t l_num_hlx = (uint32_t)l_t_hlx_list.size();
+        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = l_srvr->get_t_hlx_list();
+        uint32_t l_num_hlx = (uint32_t)l_t_srvr_list.size();
         uint32_t i_hlx_idx = 0;
-        for(ns_hlx::hlx::t_hlx_list_t::iterator i_t = l_t_hlx_list.begin();
-            i_t != l_t_hlx_list.end();
+        for(ns_hlx::srvr::t_srvr_list_t::iterator i_t = l_t_srvr_list.begin();
+            i_t != l_t_srvr_list.end();
             ++i_t, ++i_hlx_idx)
         {
                 if(!(*i_t))
@@ -1728,7 +1732,7 @@ int main(int argc, char** argv)
                         continue;
                 }
                 ns_hlx::subr *l_duped_subr = new ns_hlx::subr(*l_subr);
-                l_duped_subr->set_uid(l_hlx->get_next_subr_uuid());
+                l_duped_subr->set_uid(l_srvr->get_next_subr_uuid());
 
                 // Recalculate num fetches per thread
                 if(l_duped_subr->get_num_to_request() > 0)
@@ -1747,17 +1751,17 @@ int main(int argc, char** argv)
                 if(l_duped_subr->get_num_to_request() != 0)
                 {
                         //a_http_req.m_sr_child_list.push_back(&l_rqst);
-                        l_status = add_subr_t_hlx(*i_t, *l_duped_subr);
+                        l_status = add_subr_t_srvr(*i_t, *l_duped_subr);
                         if(l_status != HLX_STATUS_OK)
                         {
-                                printf("Error: performing add_subr_t_hlx\n");
+                                printf("Error: performing add_subr_t_srvr\n");
                                 return -1;
                         }
                 }
         }
         delete l_subr;
 
-        l_status = l_hlx->run();
+        l_status = l_srvr->run();
         if(HLX_STATUS_OK != l_status)
         {
                 printf("Error: performing hlx::run");
@@ -1773,13 +1777,8 @@ int main(int argc, char** argv)
         // -------------------------------------------
         command_exec(l_settings);
 
-        if(l_settings.m_verbose)
-        {
-                printf("Finished -joining all threads\n");
-        }
-
         // Wait for completion
-        l_hlx->wait_till_stopped();
+        l_srvr->wait_till_stopped();
 
 #ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
@@ -1822,7 +1821,10 @@ int main(int argc, char** argv)
         // -------------------------------------------
         if(l_output_file.empty())
         {
-                printf("%s\n", l_out_str.c_str());
+                if(!l_settings.m_verbose)
+                {
+                        printf("%s\n", l_out_str.c_str());
+                }
         }
         else
         {
@@ -1857,13 +1859,13 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_hlx)
+        if(l_srvr)
         {
-                delete l_hlx;
-                l_hlx = NULL;
+                delete l_srvr;
+                l_srvr = NULL;
         }
         //if(l_settings.m_verbose)
-        //{
+        //{mak
         //      NDBG_PRINT("Cleanup\n");
         //}
         return 0;
@@ -2007,7 +2009,7 @@ void display_responses_line(settings_struct &a_settings)
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         uint64_t l_cur_time_ms = hurl_get_time_ms();
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
@@ -2170,7 +2172,7 @@ void display_results_line(settings_struct &a_settings)
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         uint64_t l_cur_time_ms = hurl_get_time_ms();
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
@@ -2230,7 +2232,7 @@ void get_results(settings_struct &a_settings,
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         std::string l_tag;
         char l_buf[1024];
@@ -2314,7 +2316,7 @@ void get_results_http_load(settings_struct &a_settings,
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         std::string l_tag;
         // Separator
@@ -2371,7 +2373,7 @@ void get_results_json(settings_struct &a_settings,
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
         rapidjson::Document l_body;

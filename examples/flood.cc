@@ -3,7 +3,7 @@
 //: compile with:
 //:   g++ floodecho.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o floodecho
 //: ----------------------------------------------------------------------------
-#include <hlx/hlx.h>
+#include <hlx/srvr.h>
 #include <hlx/phurl_h.h>
 #include <hlx/stat_h.h>
 #include <hlx/lsnr.h>
@@ -19,18 +19,18 @@
 #endif
 #include <inttypes.h>
 
-ns_hlx::hlx *g_hlx = NULL;
+ns_hlx::srvr *g_srvr = NULL;
 
 class hello_from: public ns_hlx::phurl_h
 {
 public:
-        int32_t create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *l_fanout_resp)
+        int32_t create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_u *a_phurl_u)
         {
                 // Get body of resp
                 char l_buf[4096];
                 l_buf[0] = '\0';
-                for(ns_hlx::hlx_resp_list_t::iterator i_resp = l_fanout_resp->m_resp_list.begin();
-                    i_resp != l_fanout_resp->m_resp_list.end();
+                for(ns_hlx::hlx_resp_list_t::iterator i_resp = a_phurl_u->m_resp_list.begin();
+                    i_resp != a_phurl_u->m_resp_list.end();
                     ++i_resp)
                 {
                         char *l_status_buf = NULL;
@@ -47,14 +47,14 @@ public:
                 sprintf(l_len_str, "%" PRIu64 "", l_len);
 
                 // Create resp
-                ns_hlx::api_resp &l_api_resp = ns_hlx::create_api_resp(*(a_subr.get_requester_hconn()));
+                ns_hlx::api_resp &l_api_resp = ns_hlx::create_api_resp(*(a_subr.get_clnt_session()));
                 l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
                 l_api_resp.set_header("Content-Length", l_len_str);
                 l_api_resp.set_body_data(l_buf, l_len);
 
                 // Queue
-                ns_hlx::queue_api_resp(*(a_subr.get_requester_hconn()), l_api_resp);
-                delete l_fanout_resp;
+                ns_hlx::queue_api_resp(*(a_subr.get_clnt_session()), l_api_resp);
+                delete a_phurl_u;
                 return 0;
         }
 };
@@ -63,13 +63,13 @@ class quitter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
+        ns_hlx::h_resp_t do_get(ns_hlx::clnt_session &a_clnt_session,
                                 ns_hlx::rqst &a_rqst,
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
-                if(g_hlx)
+                if(g_srvr)
                 {
-                        g_hlx->stop();
+                        g_srvr->stop();
                 }
                 return ns_hlx::H_RESP_DONE;
         }
@@ -99,18 +99,18 @@ int main(void)
         l_lsnr->add_route("/stat", l_stat_h);
         l_lsnr->add_route("/quit", new quitter());
 
-        g_hlx = new ns_hlx::hlx();
-        g_hlx->register_lsnr(l_lsnr);
-        g_hlx->set_num_threads(0);
-        g_hlx->set_num_parallel(32);
-        g_hlx->set_update_stats_ms(500);
+        g_srvr = new ns_hlx::srvr();
+        g_srvr->register_lsnr(l_lsnr);
+        g_srvr->set_num_threads(0);
+        g_srvr->set_num_parallel(32);
+        g_srvr->set_update_stats_ms(500);
 
-        //g_hlx->set_rqst_resp_logging(true);
-        //g_hlx->set_rqst_resp_logging_color(true);
+        //g_srvr->set_rqst_resp_logging(true);
+        //g_srvr->set_rqst_resp_logging_color(true);
 
         //ProfilerStart("tmp.prof");
-        g_hlx->run();
-        delete g_hlx;
-        g_hlx = NULL;
+        g_srvr->run();
+        delete g_srvr;
+        g_srvr = NULL;
         //ProfilerStop();
 }

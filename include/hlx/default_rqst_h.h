@@ -42,11 +42,11 @@ public:
         default_rqst_h(void);
         ~default_rqst_h();
 
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_post(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_put(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_delete(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_post(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_put(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_delete(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_default(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
 
         // Do default method override
         bool get_do_default(void);

@@ -27,7 +27,7 @@
 #include "hlx/hmsg.h"
 #include "nbq.h"
 #include "ndebug.h"
-
+#include "http_parser/http_parser.h"
 #include <stdlib.h>
 
 namespace ns_hlx {
@@ -38,6 +38,12 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 hmsg::hmsg(void):
+        m_http_parser_settings(NULL),
+        m_http_parser(NULL),
+        m_expect_resp_body_flag(true),
+        m_cur_off(0),
+        m_cur_buf(NULL),
+        m_save(false),
         m_p_h_list_key(),
         m_p_h_list_val(),
         m_p_body(),
@@ -52,7 +58,8 @@ hmsg::hmsg(void):
         m_body(NULL),
         m_body_len(0)
 {
-
+        m_http_parser_settings = (http_parser_settings *)calloc(1, sizeof(http_parser_settings));
+        m_http_parser = (http_parser *)calloc(1, sizeof(http_parser));
 }
 
 //: ----------------------------------------------------------------------------
@@ -71,6 +78,14 @@ hmsg::~hmsg(void)
         if(m_headers)
         {
                 delete m_headers;
+        }
+        if(m_http_parser_settings)
+        {
+                free(m_http_parser_settings);
+        }
+        if(m_http_parser)
+        {
+                free(m_http_parser);
         }
 }
 

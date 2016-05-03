@@ -36,8 +36,15 @@
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
+// TODO REMOVE
+#define ASYNC_DNS_WITH_UDNS 1
+
 #ifdef ASYNC_DNS_WITH_UDNS
   #define ASYNC_DNS_SUPPORT 1
+#endif
+
+#ifdef ASYNC_DNS_SUPPORT
+#include "evr.h"
 #endif
 
 #define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
@@ -75,7 +82,10 @@ public:
         // Async resolver callback
         typedef int32_t (*resolved_cb)(const host_info *, void *);
 
-        struct lookup_job {
+        //: ------------------------------------------------
+        //: lookup job
+        //: ------------------------------------------------
+        struct job {
                 void *m_data;
                 resolved_cb m_cb;
                 std::string m_host;
@@ -87,7 +97,7 @@ public:
                 struct dns_ctx *m_dns_ctx;
 #endif
                 nresolver *m_nresolver;
-                lookup_job(void):
+                job(void):
                         m_data(NULL),
                         m_cb(NULL),
                         m_host(),
@@ -102,29 +112,73 @@ public:
                 {}
         private:
                 // Disallow copy/assign
-                lookup_job& operator=(const lookup_job &);
-                lookup_job(const lookup_job &);
+                job& operator=(const job &);
+                job(const job &);
         };
-        typedef std::queue<lookup_job *>lookup_job_q_t;
+        typedef std::queue<job *>job_q_t;
 
-        //: ----------------------------------------------------------------------------
+        //: ------------------------------------------------
         //: Priority queue sorting
-        //: ----------------------------------------------------------------------------
+        //: ------------------------------------------------
         class lj_compare_start_times {
         public:
-                bool operator()(lookup_job* t1, lookup_job* t2)
+                bool operator()(job* t1, job* t2)
                 {
                         return (t1->m_start_time > t2->m_start_time);
                 }
         };
-        typedef std::priority_queue<lookup_job *, std::vector<lookup_job *>, lj_compare_start_times> lookup_job_pq_t;
+        typedef std::priority_queue<job *, std::vector<job *>, lj_compare_start_times> job_pq_t;
+
+
+        //: ------------------------------------------------
+        //: async context object
+        //: ------------------------------------------------
+        struct adns_ctx {
+
+                nresolver *m_ctx;
+                resolved_cb m_cb;
+#ifdef ASYNC_DNS_WITH_UDNS
+                int m_fd;
+                dns_ctx *m_udns_ctx;
+#endif
+                evr_fd m_evr_fd;
+                evr_loop *m_evr_loop;
+                evr_timer *m_timer_obj;
+                job_q_t m_job_q;
+                job_pq_t m_job_pq;
+                adns_ctx():
+                        m_ctx(NULL),
+                        m_cb(NULL),
+#ifdef ASYNC_DNS_WITH_UDNS
+                        m_fd(-1),
+                        m_udns_ctx(NULL),
+#endif
+                        m_evr_fd(),
+                        m_evr_loop(NULL),
+                        m_timer_obj(NULL),
+                        m_job_q(),
+                        m_job_pq()
+                {
+
+                }
+                ~adns_ctx()
+                {
+                        // empty job queues
+                        // TODO
+                }
+        private:
+                // Disallow copy/assign
+                adns_ctx& operator=(const adns_ctx &);
+                adns_ctx(const adns_ctx &);
+
+        };
+
 #endif
 
         //: ------------------------------------------------
         //: Const
         //: ------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-        static const uint64_t S_RESOLVER_ID         = 0xFFFFDEADBEEF0001UL;
         static const uint32_t S_TIMEOUT_S = 4;
         static const uint32_t S_RETRIES = 3;
         static const uint32_t S_MAX_PARALLEL_LOOKUPS = 100;
@@ -149,23 +203,25 @@ public:
         int32_t lookup_sync(const std::string &a_host, uint16_t a_port, host_info &ao_host_info);
 
 #ifdef ASYNC_DNS_SUPPORT
-        int32_t init_async(void** ao_ctx, int &ao_fd);
-        int32_t destroy_async(void* a_ctx, int &a_fd,
-                              lookup_job_q_t &ao_lookup_job_q,
-                              lookup_job_pq_t &ao_lookup_job_pq);
-        int32_t lookup_async(void* a_ctx,
+        adns_ctx* get_new_adns_ctx(evr_loop *a_evr_loop, resolved_cb a_cb);
+        int32_t get_active(adns_ctx* a_adns_ctx);
+        int32_t destroy_async(adns_ctx* a_adns_ctx);
+        int32_t lookup_async(adns_ctx* a_adns_ctx,
                              const std::string &a_host,
                              uint16_t a_port,
-                             resolved_cb a_cb,
                              void *a_data,
-                             uint64_t &a_active,
-                             lookup_job_q_t &ao_lookup_job_q,
-                             lookup_job_pq_t &ao_lookup_job_pq,
                              void **ao_job_handle);
-        int32_t handle_io(void* a_ctx);
         void set_timeout_s(uint32_t a_val) { m_timeout_s = a_val;}
         void set_retries(uint32_t a_val) { m_retries = a_val;}
         void set_max_parllel(uint32_t a_val) { m_max_parallel = a_val;}
+
+        // -------------------------------------------------
+        // Public Static (class) methods
+        // -------------------------------------------------
+        static int32_t evr_fd_writeable_cb(void *a_data);
+        static int32_t evr_fd_readable_cb(void *a_data);
+        static int32_t evr_fd_error_cb(void *a_data);
+        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data);
 #endif
 
 private:

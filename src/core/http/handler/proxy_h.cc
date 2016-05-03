@@ -25,14 +25,15 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hconn.h"
 #include "nbq.h"
+#include "clnt_session.h"
 #include "hlx/http_status.h"
 #include "hlx/proxy_h.h"
+#include "hlx/proxy_u.h"
 #include "hlx/subr.h"
 #include "hlx/rqst.h"
 #include "hlx/resp.h"
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/status.h"
 
 namespace ns_hlx {
@@ -66,9 +67,8 @@ proxy_h::~proxy_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t proxy_h::do_default(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
-        ns_hlx::subr &l_subr = ns_hlx::create_subr(a_hconn);
         // Remove route from url
         std::string l_route = a_rqst.get_url();
         std::string::size_type i_s = l_route.find(m_route);
@@ -77,101 +77,47 @@ h_resp_t proxy_h::do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_u
                 l_route.erase(i_s, m_route.length());
         }
         std::string l_url = m_ups_host + l_route;
-        const char *l_body_data = a_rqst.get_body_data();
-        uint64_t l_body_data_len = a_rqst.get_body_len();
 
+        //NDBG_PRINT("l_path: %s\n",l_path.c_str());
+        return get_proxy(a_clnt_session, a_rqst, l_url);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+h_resp_t proxy_h::get_proxy(clnt_session &a_clnt_session,
+                            rqst &a_rqst,
+                            const std::string &a_url)
+{
         // subr setup
-        l_subr.init_with_url(l_url);
-        l_subr.set_completion_cb(s_completion_cb);
-        l_subr.set_error_cb(s_error_cb);
+        ns_hlx::subr &l_subr = ns_hlx::create_subr(a_clnt_session);
+        l_subr.init_with_url(a_url);
+        l_subr.set_completion_cb(proxy_u::s_completion_cb);
+        l_subr.set_error_cb(proxy_u::s_error_cb);
         l_subr.set_data(this);
         l_subr.set_headers(a_rqst.get_headers());
         l_subr.set_keepalive(true);
         l_subr.set_timeout_ms(m_timeout_ms);
         l_subr.set_max_parallel(m_max_parallel);
         l_subr.set_verb(a_rqst.get_method_str());
+        const char *l_body_data = a_rqst.get_body_data();
+        uint64_t l_body_data_len = a_rqst.get_body_len();
         l_subr.set_body_data(l_body_data, l_body_data_len);
-        l_subr.set_requester_hconn(&a_hconn);
+        l_subr.set_clnt_session(&a_clnt_session);
 
+        proxy_u *l_px = new proxy_u();
+        l_px->set_subr(&l_subr);
+        l_subr.set_ups(l_px);
+        a_clnt_session.m_ups = l_px;
         int32_t l_s;
-        l_s = queue_subr(a_hconn, l_subr);
+        l_s = queue_subr(a_clnt_session, l_subr);
         if(l_s != HLX_STATUS_OK)
         {
                 return ns_hlx::H_RESP_SERVER_ERROR;
         }
         return ns_hlx::H_RESP_DONE;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t proxy_h::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
-{
-        // Create resp
-        hconn *l_hconn = a_subr.get_requester_hconn();
-        if(!l_hconn)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        nbq *l_out_q = l_hconn->m_out_q;
-        if(!l_out_q)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        // TODO needed ???
-        l_out_q->reset_write();
-        nbq *l_in_q = a_resp.get_q();
-        if(!l_in_q)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        l_in_q->reset_read();
-        int64_t l_size;
-        l_size = l_out_q->write_q(*l_in_q);
-        if(l_size < 0)
-        {
-                return HLX_STATUS_ERROR;
-        }
-
-        // access info
-        l_hconn->m_access_info.m_resp_status = (http_status_t)a_resp.get_status();
-        // TODO enum cast is bad -will fix
-
-        int32_t l_s;
-        l_s = queue_resp(*l_hconn);
-        if(l_s != HLX_STATUS_OK)
-        {
-                return H_RESP_SERVER_ERROR;
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t proxy_h::s_error_cb(subr &a_subr,
-                            nconn *a_nconn,
-                            http_status_t a_status,
-                            const char *a_error_str)
-{
-        proxy_h *l_proxy_h = (proxy_h *)a_subr.get_data();
-        if(!l_proxy_h)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        if(!a_subr.get_requester_hconn())
-        {
-                return HLX_STATUS_ERROR;
-        }
-        l_proxy_h->send_json_resp_err(*a_subr.get_requester_hconn(),
-                                      false,
-                                      // TODO use supports keep-alives from client request
-                                      a_status);
-        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

@@ -24,17 +24,17 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "file.h"
-#include "hconn.h"
 #include "nbq.h"
-#include "hlx/time_util.h"
 #include "string_util.h"
-#include "mime_types.h"
 #include "ndebug.h"
+#include "clnt_session.h"
+#include "mime_types.h"
+#include "hlx/time_util.h"
 #include "hlx/file_h.h"
+#include "hlx/file_u.h"
 #include "hlx/rqst.h"
 #include "hlx/api_resp.h"
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/status.h"
 #include <string.h>
 
@@ -67,7 +67,7 @@ file_h::~file_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t file_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t file_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         // GET
         // Set path
@@ -79,7 +79,7 @@ h_resp_t file_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
                 return H_RESP_CLIENT_ERROR;
         }
         //NDBG_PRINT("l_path: %s\n",l_path.c_str());
-        return get_file(a_hconn, a_rqst, l_path);
+        return get_file(a_clnt_session, a_rqst, l_path);
 }
 
 //: ----------------------------------------------------------------------------
@@ -120,39 +120,39 @@ int32_t file_h::set_route(const std::string &a_route)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t file_h::get_file(hconn &a_hconn,
+h_resp_t file_h::get_file(clnt_session &a_clnt_session,
                           rqst &a_rqst,
                           const std::string &a_path)
 {
-        if(!a_hconn.m_out_q)
+        if(!a_clnt_session.m_out_q)
         {
                 // TODO 5xx's for errors?
-                return send_not_found(a_hconn, a_rqst.m_supports_keep_alives);
+                return send_not_found(a_clnt_session, a_rqst.m_supports_keep_alives);
         }
 
         // Make relative...
-        filesender *l_fs = new filesender();
+        file_u *l_fs = new file_u();
         int32_t l_s;
         l_s = l_fs->fsinit(a_path.c_str());
         if(l_s != HLX_STATUS_OK)
         {
                 delete l_fs;
                 // TODO 5xx's for errors?
-                return send_not_found(a_hconn, a_rqst.m_supports_keep_alives);
+                return send_not_found(a_clnt_session, a_rqst.m_supports_keep_alives);
         }
 
-        a_hconn.m_fs = l_fs;
-        nbq &l_q = *(a_hconn.m_out_q);
+        a_clnt_session.m_ups = l_fs;
+        nbq &l_q = *(a_clnt_session.m_out_q);
 
         // ---------------------------------------
         // Write headers
         // ---------------------------------------
-        if(!get_hlx(a_hconn))
+        if(!get_srvr(a_clnt_session))
         {
                 return H_RESP_SERVER_ERROR;
         }
         nbq_write_status(l_q, HTTP_STATUS_OK);
-        nbq_write_header(l_q, "Server", get_hlx(a_hconn)->get_server_name().c_str());
+        nbq_write_header(l_q, "Server", get_srvr(a_clnt_session)->get_server_name().c_str());
         nbq_write_header(l_q, "Date", get_date_str());
 
         // Get extension
@@ -189,8 +189,8 @@ h_resp_t file_h::get_file(hconn &a_hconn,
         {
                 l_read = l_fs->fssize();
         }
-        l_fs->fsread(l_q, l_read);
-        l_s = queue_resp(a_hconn);
+        l_fs->ups_read(l_q, l_read);
+        l_s = queue_resp(a_clnt_session);
         if(l_s != HLX_STATUS_OK)
         {
                 return H_RESP_SERVER_ERROR;

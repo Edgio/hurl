@@ -130,13 +130,13 @@ int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_select::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X --data: %p\n",
         //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
         //           a_fd, a_attr_mask, a_data);
-        m_conn_map[a_fd] = a_data;
-        mod(a_fd, a_attr_mask, a_data);
+        m_conn_map[a_fd] = a_evr_fd_event;
+        mod(a_fd, a_attr_mask, a_evr_fd_event);
         return HLX_STATUS_OK;
 }
 
@@ -145,7 +145,7 @@ int evr_select::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_select::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_select::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         //NDBG_PRINT("%smod%s: fd: %d --attr: 0x%08X\n",
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,

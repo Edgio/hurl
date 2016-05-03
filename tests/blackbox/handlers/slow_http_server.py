@@ -13,13 +13,12 @@ class http_handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
     #Handler for the GET requests
     def do_GET(self):
-        time.sleep(3.0)
+        time.sleep(2.0)
         self.send_response(200)
         self.send_header('Content-type','text/html')
-        self.send_header('Content-length',len('monkeys are crazy!'))
+        self.send_header('Content-length',3*len('monkeys are crazy!\n'))
         self.end_headers()
-        self.wfile.write('monkeys are crazy!')
-        return
+        self.wfile.write('monkeys are crazy!\n')
 try:
     l_server = HTTPServer(('', G_SLOW_HTTP_SERVER_PORT), http_handler)
     l_server.serve_forever()

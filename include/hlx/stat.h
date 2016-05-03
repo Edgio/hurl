@@ -116,8 +116,8 @@ typedef struct t_stat_struct
         uint64_t m_pool_conn_idle;
         uint64_t m_pool_proxy_conn_active;
         uint64_t m_pool_proxy_conn_idle;
-        uint64_t m_pool_hconn_free;
-        uint64_t m_pool_hconn_used;
+        uint64_t m_pool_clnt_free;
+        uint64_t m_pool_clnt_used;
         uint64_t m_pool_resp_free;
         uint64_t m_pool_resp_used;
         uint64_t m_pool_rqst_free;
@@ -162,8 +162,8 @@ typedef struct t_stat_struct
                 m_pool_conn_idle(0),
                 m_pool_proxy_conn_active(0),
                 m_pool_proxy_conn_idle(0),
-                m_pool_hconn_free(0),
-                m_pool_hconn_used(0),
+                m_pool_clnt_free(0),
+                m_pool_clnt_used(0),
                 m_pool_resp_free(0),
                 m_pool_resp_used(0),
                 m_pool_rqst_free(0),
@@ -207,8 +207,8 @@ typedef struct t_stat_struct
                 m_pool_conn_idle = 0;
                 m_pool_proxy_conn_active = 0;
                 m_pool_proxy_conn_idle = 0;
-                m_pool_hconn_free = 0;
-                m_pool_hconn_used = 0;
+                m_pool_clnt_free = 0;
+                m_pool_clnt_used = 0;
                 m_pool_resp_free = 0;
                 m_pool_resp_used = 0;
                 m_pool_rqst_free = 0;

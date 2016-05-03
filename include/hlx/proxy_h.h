@@ -33,7 +33,7 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: fwd decl's
 //: ----------------------------------------------------------------------------
-class hconn;
+class clnt_session;
 class nconn;
 class rqst;
 class resp;
@@ -50,7 +50,9 @@ public:
         // -------------------------------------------------
         proxy_h(const std::string &a_ups_host, const std::string &a_route);
         ~proxy_h();
-        h_resp_t do_default(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_default(clnt_session &a_clnt_session,
+                            rqst &a_rqst,
+                            const url_pmap_t &a_url_pmap);
 
         // Do default method override
         bool get_do_default(void);
@@ -59,15 +61,13 @@ public:
         void set_timeout_ms(uint32_t a_val);
         void set_max_parallel(int32_t a_val);
 
+protected:
         // -------------------------------------------------
-        // Public Class methods
+        // Protected methods
         // -------------------------------------------------
-        static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
-        static int32_t s_error_cb(subr &a_subr,
-                                  nconn *a_nconn,
-                                  http_status_t a_status,
-                                  const char *a_error_str);
-
+        h_resp_t get_proxy(clnt_session &a_clnt_session,
+                           rqst &a_rqst,
+                           const std::string &a_url);
 private:
         // -------------------------------------------------
         // Private methods

@@ -1,11 +1,12 @@
+
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2015 Verizon.  All Rights Reserved.
+;//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    file.h
+//: \file:    http_resp.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    11/20/2015
+//: \date:    07/20/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,71 +21,70 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _FILE_H
-#define _FILE_H
+#ifndef _HTTP_RESP_H
+#define _HTTP_RESP_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
+#include <map>
+
+//: ----------------------------------------------------------------------------
+//: Macros
+//: ----------------------------------------------------------------------------
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#endif
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: Fwd decl's
+//: http_resp strings
 //: ----------------------------------------------------------------------------
-class nbq;
-
-//: ----------------------------------------------------------------------------
-//: filesender
-//: Example based on Dan Kegel's "Introduction to non-blocking I/O"
-//: ref: http://www.kegel.com/dkftpbench/nonblocking.html
-//: ----------------------------------------------------------------------------
-class filesender
+class http_resp_strs
 {
-
 public:
         // -------------------------------------------------
-        // Public methods
+        // Types
         // -------------------------------------------------
-        filesender();
-        ~filesender();
-        int fsinit(const char *a_filename);
-        ssize_t fsread(char *ao_dst, size_t a_len);
-        ssize_t fsread(nbq &ao_q, size_t a_len);
-        bool fsdone(void) {return (m_state == DONE);}
-        size_t fssize(void) { return m_size;}
-private:
+        typedef std::map<uint16_t, std::string> code_resp_map_t;
 
         // -------------------------------------------------
-        // Private types
+        // ext->type pair
         // -------------------------------------------------
-        typedef enum
+        struct T
         {
-                IDLE,
-                SENDING,
-                DONE
-        } state_t;
+                uint16_t m_http_status_code;
+                const char* m_resp_str;
+                operator code_resp_map_t::value_type() const
+                {
+                        return std::pair<uint16_t, std::string>(m_http_status_code, m_resp_str);
+                }
+        };
 
         // -------------------------------------------------
-        // Private members
+        // Private class members
         // -------------------------------------------------
-        int m_fd;
-        size_t m_size;
-        size_t m_read;
-        state_t m_state;
+        static const T S_CODE_RESP_PAIRS[];
+        static const code_resp_map_t S_CODE_RESP_MAP;
 };
 
 //: ----------------------------------------------------------------------------
-//: Prototypes
+//: Generated file extensions -> mime types associations
 //: ----------------------------------------------------------------------------
-int32_t get_path(const std::string &a_root,
-                 const std::string &a_index,
-                 const std::string &a_route,
-                 const std::string &a_url_path,
-                 std::string &ao_path);
+const http_resp_strs::T http_resp_strs::S_CODE_RESP_PAIRS[] =
+{
+#include "_http_resp_strs.h"
+};
 
+//: ----------------------------------------------------------------------------
+//: Map
+//: ----------------------------------------------------------------------------
+const http_resp_strs::code_resp_map_t http_resp_strs::S_CODE_RESP_MAP(S_CODE_RESP_PAIRS,
+                                                                      S_CODE_RESP_PAIRS +
+                                                                      ARRAY_SIZE(http_resp_strs::S_CODE_RESP_PAIRS));
 
-} //namespace ns_hlx {
+} // ns_hlx
 
 #endif

@@ -40,7 +40,7 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 class nbq;
 class rqst;
-class hlx;
+class srvr;
 
 //: ----------------------------------------------------------------------------
 //: api_resp
@@ -70,7 +70,7 @@ public:
                              const char *a_content_type,
                              uint64_t a_len,
                              bool a_keep_alive,
-                             const hlx &a_hlx);
+                             const srvr &a_srvr);
         // Clear
         void clear_headers(void);
 

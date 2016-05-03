@@ -3,7 +3,7 @@
 //: compile with:
 //:   g++ subrequest.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o subrequest
 //: ----------------------------------------------------------------------------
-#include <hlx/hlx.h>
+#include <hlx/srvr.h>
 #include <hlx/lsnr.h>
 #include <hlx/proxy_h.h>
 #include <hlx/default_rqst_h.h>
@@ -41,7 +41,7 @@ FILE *g_accesslog_file_ptr = stdout;
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_resp_done_cb(ns_hlx::hconn &a_hconn)
+static int32_t s_resp_done_cb(ns_hlx::clnt_session &a_clnt_session)
 {
         //NDBG_PRINT(0, "RESP DONE\n");
         if(!g_accesslog_file_ptr)
@@ -61,7 +61,7 @@ static int32_t s_resp_done_cb(ns_hlx::hconn &a_hconn)
         // 127.0.0.1 - - [30/Mar/2016:18:13:04 -0700] "GET / HTTP/1.1" 200 612 "-" "curl/7.35.0"
         // -------------------------------------------------
         // Get access_info
-        const ns_hlx::access_info &l_ai = ns_hlx::get_access_info(a_hconn);
+        const ns_hlx::access_info &l_ai = ns_hlx::get_access_info(a_clnt_session);
         char l_cln_addr_str[INET6_ADDRSTRLEN];
         l_cln_addr_str[0] = '\0';
         if(l_ai.m_conn_cln_sa_len == sizeof(sockaddr_in))
@@ -110,24 +110,24 @@ static int32_t s_resp_done_cb(ns_hlx::hconn &a_hconn)
         return 0;
 }
 
-ns_hlx::hlx *g_hlx = NULL;
+ns_hlx::srvr *g_srvr = NULL;
 
 class default_h: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_default(ns_hlx::hconn &a_hconn,
+        ns_hlx::h_resp_t do_default(ns_hlx::clnt_session &a_clnt_session,
                                     ns_hlx::rqst &a_rqst,
                                     const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 char l_len_str[64];
                 uint32_t l_body_len = strlen("Hello World\n");
                 sprintf(l_len_str, "%u", l_body_len);
-                ns_hlx::api_resp &l_api_resp = create_api_resp(a_hconn);
+                ns_hlx::api_resp &l_api_resp = create_api_resp(a_clnt_session);
                 l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
                 l_api_resp.set_header("Content-Length", l_len_str);
                 l_api_resp.set_body_data("Hello World\n", l_body_len);
-                ns_hlx::queue_api_resp(a_hconn, l_api_resp);
+                ns_hlx::queue_api_resp(a_clnt_session, l_api_resp);
                 return ns_hlx::H_RESP_DONE;
         }
 };
@@ -136,13 +136,13 @@ class quitter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
+        ns_hlx::h_resp_t do_get(ns_hlx::clnt_session &a_clnt_session,
                                 ns_hlx::rqst &a_rqst,
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
-                if(g_hlx)
+                if(g_srvr)
                 {
-                        g_hlx->stop();
+                        g_srvr->stop();
                 }
                 return ns_hlx::H_RESP_DONE;
         }
@@ -157,25 +157,25 @@ int main(void)
         l_lsnr->add_route("/twootter/*", l_rqst_h);
         l_lsnr->add_route("/quit", l_rqst_h_quit);
         l_lsnr->set_default_route(l_default_h);
-        g_hlx = new ns_hlx::hlx();
-        g_hlx->register_lsnr(l_lsnr);
-        g_hlx->set_num_threads(0);
+        g_srvr = new ns_hlx::srvr();
+        g_srvr->register_lsnr(l_lsnr);
+        g_srvr->set_num_threads(0);
         //ns_hlx::trc_log_file_open("error.log");
         ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_DEBUG);
-        g_hlx->set_resp_done_cb(s_resp_done_cb);
-        //g_hlx->set_num_threads(1);
-        //g_hlx->set_rqst_resp_logging(true);
-        //g_hlx->set_rqst_resp_logging_color(true);
+        g_srvr->set_resp_done_cb(s_resp_done_cb);
+        //g_srvr->set_num_threads(1);
+        //g_srvr->set_rqst_resp_logging(true);
+        //g_srvr->set_rqst_resp_logging_color(true);
         //ProfilerStart("tmp.prof");
-        g_hlx->run();
+        g_srvr->run();
         //sleep(1);
-        //while(g_hlx->is_running())
+        //while(g_srvr->is_running())
         //{
         //        sleep(1);
-        //        //g_hlx->display_stats();
+        //        //g_srvr->display_stats();
         //}
         //ProfilerStop();
-        if(g_hlx) {delete g_hlx; g_hlx = NULL;}
+        if(g_srvr) {delete g_srvr; g_srvr = NULL;}
         if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
         if(l_rqst_h_quit) {delete l_rqst_h_quit; l_rqst_h_quit = NULL;}
 }

@@ -2,7 +2,7 @@
 ;//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    http_resp.h
+//: \file:    ups_srvr_session.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    07/20/2015
@@ -20,70 +20,82 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _HTTP_RESP_H
-#define _HTTP_RESP_H
+#ifndef _UPS_SRVR_SESSION_H
+#define _UPS_SRVR_SESSION_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <string>
-#include <map>
-
-//: ----------------------------------------------------------------------------
-//: Macros
-//: ----------------------------------------------------------------------------
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-#endif
+#include "evr.h"
+#include "nconn.h"
+#include "hlx/resp.h"
+#include "hlx/http_status.h"
+#include <stdint.h>
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: http_resp strings
+//: Fwd Decl's
 //: ----------------------------------------------------------------------------
-class http_resp_strs
-{
+class nconn;
+class t_srvr;
+class subr;
+
+//: ----------------------------------------------------------------------------
+//: Connection data
+//: ----------------------------------------------------------------------------
+class ups_srvr_session {
+
 public:
         // -------------------------------------------------
-        // Types
+        // Public members
         // -------------------------------------------------
-        typedef std::map<uint16_t, std::string> code_resp_map_t;
+        nconn *m_nconn;
+        t_srvr *m_t_srvr;
+        evr_timer_t *m_timer_obj;
+
+        resp *m_resp;
+        bool m_rqst_resp_logging;
+        bool m_rqst_resp_logging_color;
+        nbq *m_in_q;
+        nbq *m_out_q;
+        subr *m_subr;
+        uint64_t m_idx;
 
         // -------------------------------------------------
-        // ext->type pair
+        // Public Static (class) methods
         // -------------------------------------------------
-        struct T
-        {
-                uint16_t m_http_status_code;
-                const char* m_resp_str;
-                operator code_resp_map_t::value_type() const
-                {
-                        return std::pair<uint16_t, std::string>(m_http_status_code, m_resp_str);
-                }
-        };
+        static int32_t evr_fd_readable_cb(void *a_data);
+        static int32_t evr_fd_writeable_cb(void *a_data);
+        static int32_t evr_fd_error_cb(void *a_data);
+        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data);
 
         // -------------------------------------------------
-        // Private class members
+        // Public methods
         // -------------------------------------------------
-        static const T S_CODE_RESP_PAIRS[];
-        static const code_resp_map_t S_CODE_RESP_MAP;
+        ups_srvr_session(void);
+        uint64_t get_idx(void) {return m_idx;}
+        void set_idx(uint64_t a_idx) {m_idx = a_idx;}
+        int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
+        void clear(void);
+        int32_t subr_error(http_status_t a_status);
+
+private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        // Disallow copy/assign
+        ups_srvr_session& operator=(const ups_srvr_session &);
+        ups_srvr_session(const ups_srvr_session &);
+        bool subr_complete(void);
 };
-
-//: ----------------------------------------------------------------------------
-//: Generated file extensions -> mime types associations
-//: ----------------------------------------------------------------------------
-const http_resp_strs::T http_resp_strs::S_CODE_RESP_PAIRS[] =
-{
-#include "_http_resp_strs.h"
-};
-
-//: ----------------------------------------------------------------------------
-//: Map
-//: ----------------------------------------------------------------------------
-const http_resp_strs::code_resp_map_t http_resp_strs::S_CODE_RESP_MAP(S_CODE_RESP_PAIRS,
-                                                                      S_CODE_RESP_PAIRS +
-                                                                      ARRAY_SIZE(http_resp_strs::S_CODE_RESP_PAIRS));
 
 } // ns_hlx
 
 #endif
+
+
+
+
+
+

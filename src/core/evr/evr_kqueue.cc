@@ -93,7 +93,7 @@ int evr_kqueue::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         struct kevent l_ke;
         // TODO -map attributes...
@@ -121,7 +121,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_kqueue::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_kqueue::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         // TODO -map attributes...
         return HLX_STATUS_OK;

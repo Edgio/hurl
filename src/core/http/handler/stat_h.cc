@@ -28,7 +28,7 @@
 #include "hlx/stat.h"
 #include "hlx/rqst.h"
 #include "hlx/api_resp.h"
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 
 #include "ndebug.h"
 
@@ -62,7 +62,7 @@ stat_h::~stat_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t stat_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap)
 {
         // Get verbose
         int32_t l_verbose = 0;
@@ -78,8 +78,8 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
                 }
         }
 
-        hlx *l_hlx = get_hlx(a_hconn);
-        if(!l_hlx)
+        srvr *l_srvr = get_srvr(a_clnt_session);
+        if(!l_srvr)
         {
                 return H_RESP_SERVER_ERROR;
         }
@@ -89,7 +89,7 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         // -------------------------------------------------
         t_stat_list_t l_threads_stat;
         t_stat_t l_stat;
-        l_hlx->get_stat(l_stat, l_threads_stat);
+        l_srvr->get_stat(l_stat, l_threads_stat);
 
         rapidjson::Document l_body;
         l_body.SetObject(); // Define doc as object -rather than array
@@ -115,8 +115,8 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         ADD_MEMBER(pool_conn_idle);
         ADD_MEMBER(pool_proxy_conn_active);
         ADD_MEMBER(pool_proxy_conn_idle);
-        ADD_MEMBER(pool_hconn_free);
-        ADD_MEMBER(pool_hconn_used);
+        ADD_MEMBER(pool_clnt_free);
+        ADD_MEMBER(pool_clnt_used);
         ADD_MEMBER(pool_resp_free);
         ADD_MEMBER(pool_resp_used);
         ADD_MEMBER(pool_rqst_free);
@@ -145,14 +145,14 @@ h_resp_t stat_h::do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pm
         rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
         l_body.Accept(l_writer);
 
-        api_resp &l_api_resp = create_api_resp(a_hconn);
+        api_resp &l_api_resp = create_api_resp(a_clnt_session);
         l_api_resp.add_std_headers(HTTP_STATUS_OK,
                                    "application/json",
                                    l_strbuf.GetSize(),
                                    a_rqst.m_supports_keep_alives,
-                                   *(l_hlx));
+                                   *(l_srvr));
         l_api_resp.set_body_data(l_strbuf.GetString(), l_strbuf.GetSize());
-        queue_api_resp(a_hconn, l_api_resp);
+        queue_api_resp(a_clnt_session, l_api_resp);
         return H_RESP_DONE;
 }
 

@@ -42,12 +42,14 @@ namespace ns_hlx {
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class url_router;
-class hconn;
+class ups_srvr_session;
+class clnt_session;
 class nconn;
-class t_hlx;
+class t_srvr;
 class subr;
 class resp;
 class nbq;
+class base_u;
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -118,10 +120,10 @@ public:
         void *get_data(void) const;
         bool get_detach_resp(void) const;
         uint64_t get_uid(void) const;
-        hconn *get_hconn(void);
-        hconn *get_requester_hconn(void) const;
+        ups_srvr_session *get_ups_srvr_session(void);
+        clnt_session *get_clnt_session(void) const;
         const host_info &get_host_info(void) const;
-        t_hlx *get_t_hlx(void) const;
+        t_srvr *get_t_hlx(void) const;
         uint64_t get_start_time_ms(void) const;
         uint64_t get_end_time_ms(void) const;
         void * get_lookup_job(void);
@@ -131,6 +133,7 @@ public:
         bool get_tls_no_host_check(void) const;
         const std::string &get_label(void);
         pre_connect_cb_t get_pre_connect_cb(void) const;
+        base_u *get_ups(void);
 
         // Setters
         void set_state(subr_state_t a_state);
@@ -154,10 +157,10 @@ public:
         void set_data(void *a_data);
         void set_detach_resp(bool a_val);
         void set_uid(uint64_t a_uid);
-        void set_hconn(hconn *a_hconn);
-        void set_requester_hconn(hconn *a_hconn);
+        void set_ups_srvr_session(ups_srvr_session *a_ups_srvr_session);
+        void set_clnt_session(clnt_session *a_clnt_session);
         void set_host_info(const host_info &a_host_info);
-        void set_t_hlx(t_hlx *a_t_hlx);
+        void set_t_hlx(t_srvr *a_t_hlx);
         void set_start_time_ms(uint64_t a_val);
         void set_end_time_ms(uint64_t a_val);
         void set_lookup_job(void *a_data);
@@ -167,6 +170,7 @@ public:
         void set_tls_self_ok(bool a_val);
         void set_tls_no_host_check(bool a_val);
         void set_pre_connect_cb(pre_connect_cb_t a_cb);
+        void set_ups(base_u *a_ups);
 
         // Request Parts
         // Getters
@@ -251,10 +255,10 @@ private:
         void *m_data;
         bool m_detach_resp;
         uint64_t m_uid;
-        hconn *m_hconn;
-        hconn *m_requester_hconn;
+        ups_srvr_session *m_ups_srvr_session;
+        clnt_session *m_clnt_session;
         host_info m_host_info;
-        t_hlx *m_t_hlx;
+        t_srvr *m_t_srvr;
         uint64_t m_start_time_ms;
         uint64_t m_end_time_ms;
         void *m_lookup_job;
@@ -264,6 +268,7 @@ private:
         bool m_tls_self_ok;
         bool m_tls_no_host_check;
         pre_connect_cb_t m_pre_connect_cb;
+        base_u *m_ups;
 
 };
 
@@ -271,10 +276,10 @@ private:
 //: hnconn_utils
 //: ----------------------------------------------------------------------------
 // Subrequests
-subr &create_subr(hconn &a_hconn);
-subr &create_subr(hconn &a_hconn, const subr &a_subr);
-int32_t queue_subr(hconn &a_hconn, subr &a_subr);
-int32_t add_subr_t_hlx(void *a_t_hlx, subr &a_subr);
+subr &create_subr(clnt_session &a_clnt_session);
+subr &create_subr(clnt_session &a_clnt_session, const subr &a_subr);
+int32_t queue_subr(clnt_session &a_clnt_session, subr &a_subr);
+int32_t add_subr_t_srvr(void *a_t_srvr, subr &a_subr);
 
 }
 

@@ -41,7 +41,7 @@ public:
         // -------------------------------------------------
         file_h(void);
         ~file_h();
-        h_resp_t do_get(hconn &a_hconn, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        h_resp_t do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
         int32_t set_root(const std::string &a_root);
         int32_t set_index(const std::string &a_index);
         int32_t set_route(const std::string &a_route);
@@ -49,7 +49,7 @@ protected:
         // -------------------------------------------------
         // Protected methods
         // -------------------------------------------------
-        h_resp_t get_file(hconn &a_hconn, rqst &a_rqst, const std::string &a_path);
+        h_resp_t get_file(clnt_session &a_clnt_session, rqst &a_rqst, const std::string &a_path);
 
 private:
         // -------------------------------------------------

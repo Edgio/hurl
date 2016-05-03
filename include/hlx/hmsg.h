@@ -32,6 +32,12 @@
 #include "hlx/cr.h"
 #include "hlx/kv_map_list.h"
 
+//: ----------------------------------------------------------------------------
+//: External Fwd Decl's
+//: ----------------------------------------------------------------------------
+struct http_parser_settings;
+struct http_parser;
+
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
@@ -82,6 +88,14 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
+        // Parser settings
+        http_parser_settings *m_http_parser_settings;
+        http_parser *m_http_parser;
+        bool m_expect_resp_body_flag;
+        uint64_t m_cur_off;
+        char * m_cur_buf;
+        bool m_save;
+
         // ---------------------------------------
         // raw http request offsets
         // ---------------------------------------

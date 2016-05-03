@@ -7,12 +7,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/stat.h"
 #include "hlx/file_h.h"
 #include "hlx/lsnr.h"
 #include "hlx/time_util.h"
 #include "hlx/status.h"
+#include "hlx/trace.h"
 
 // getrlimit
 #include <sys/time.h>
@@ -92,7 +93,7 @@ typedef struct settings_struct
         bool m_verbose;
         bool m_color;
         bool m_show_stats;
-        ns_hlx::hlx *m_hlx;
+        ns_hlx::srvr *m_srvr;
         ns_hlx::t_stat_t *m_last_stat;
         uint64_t m_start_time_ms;
         uint64_t m_last_display_time_ms;
@@ -105,7 +106,7 @@ typedef struct settings_struct
                 m_verbose(false),
                 m_color(false),
                 m_show_stats(false),
-                m_hlx(NULL),
+                m_srvr(NULL),
                 m_last_stat(NULL),
                 m_start_time_ms(),
                 m_last_display_time_ms(),
@@ -148,7 +149,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_hlx->stop();
+                g_settings->m_srvr->stop();
         }
 }
 
@@ -208,7 +209,7 @@ void command_exec(settings_struct_t &a_settings)
         int i = 0;
         char l_cmd = ' ';
         bool l_sent_stop = false;
-        ns_hlx::hlx *l_hlx = a_settings.m_hlx;
+        ns_hlx::srvr *l_srvr = a_settings.m_srvr;
         bool l_first_time = true;
 
         nonblock(NB_ENABLE);
@@ -231,7 +232,7 @@ void command_exec(settings_struct_t &a_settings)
                         {
                                 g_test_finished = true;
                                 g_cancelled = true;
-                                l_hlx->stop();
+                                l_srvr->stop();
                                 l_sent_stop = true;
                                 break;
                         }
@@ -257,7 +258,7 @@ void command_exec(settings_struct_t &a_settings)
                         display_results_line(a_settings);
                 }
 
-                if (!l_hlx->is_running())
+                if (!l_srvr->is_running())
                 {
                         g_test_finished = true;
                 }
@@ -266,7 +267,7 @@ void command_exec(settings_struct_t &a_settings)
         // Send stop -if unsent
         if(!l_sent_stop)
         {
-                l_hlx->stop();
+                l_srvr->stop();
                 l_sent_stop = true;
         }
 
@@ -343,13 +344,19 @@ void print_usage(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
+        // srvr instance
+        ns_hlx::srvr *l_srvr = new ns_hlx::srvr();
 
+        // Suppress errors
+        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+
+        // Settings
         settings_struct_t l_settings;
-        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_hlx->set_update_stats_ms(500);
-        l_settings.m_hlx = l_hlx;
-        // For sighandler
+        l_settings.m_srvr = l_srvr;
         g_settings = &l_settings;
+
+        // stats update interval
+        l_srvr->set_update_stats_ms(500);
 
         // -------------------------------------------
         // Get args...
@@ -448,7 +455,7 @@ int main(int argc, char** argv)
                                 printf("num-threads must be at least 0\n");
                                 print_usage(stdout, -1);
                         }
-                        l_hlx->set_num_threads(l_num_threads);
+                        l_srvr->set_num_threads(l_num_threads);
                         break;
                 }
                 // ---------------------------------------
@@ -495,7 +502,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        l_hlx->set_tls_server_ctx_cipher_list(l_argument);
+                        l_srvr->set_tls_server_ctx_cipher_list(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -504,7 +511,7 @@ int main(int argc, char** argv)
                 case 'O':
                 {
                         int32_t l_status;
-                        l_status = l_hlx->set_tls_server_ctx_options(l_argument);
+                        l_status = l_srvr->set_tls_server_ctx_options(l_argument);
                         if(l_status != HLX_STATUS_OK)
                         {
                                 return HLX_STATUS_ERROR;
@@ -518,7 +525,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_hlx->set_rqst_resp_logging(true);
+                        l_srvr->set_rqst_resp_logging(true);
                         break;
                 }
                 // ---------------------------------------
@@ -527,7 +534,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx->set_rqst_resp_logging_color(true);
+                        l_srvr->set_rqst_resp_logging_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -537,7 +544,7 @@ int main(int argc, char** argv)
                 {
                         l_settings.m_show_stats = true;
                         l_show_status = true;
-                        l_hlx->set_stats(true);
+                        l_srvr->set_stats(true);
                         break;
                 }
 #ifdef ENABLE_PROFILER
@@ -595,8 +602,8 @@ int main(int argc, char** argv)
                         printf("Error: TLS selected but not private key or public crt provided\n");
                         return -1;
                 }
-                l_hlx->set_tls_server_ctx_key(l_tls_key);
-                l_hlx->set_tls_server_ctx_crt(l_tls_crt);
+                l_srvr->set_tls_server_ctx_key(l_tls_key);
+                l_srvr->set_tls_server_ctx_crt(l_tls_crt);
         }
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(l_server_port, l_scheme);
 
@@ -633,7 +640,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Register lsnr
         // -------------------------------------------
-        l_hlx->register_lsnr(l_lsnr);
+        l_srvr->register_lsnr(l_lsnr);
 
         // -------------------------------------------
         // Sigint handler
@@ -666,7 +673,7 @@ int main(int argc, char** argv)
         // Run...
         // -------------------------------------------
         int32_t l_run_status = 0;
-        l_run_status = l_hlx->run();
+        l_run_status = l_srvr->run();
         if(l_run_status != 0)
         {
                 printf("Error: performing hlx::run");
@@ -678,7 +685,7 @@ int main(int argc, char** argv)
         {
                 printf("Finished -joining all threads\n");
         }
-        l_hlx->wait_till_stopped();
+        l_srvr->wait_till_stopped();
 
         // -------------------------------------------
         // Profiling
@@ -703,10 +710,10 @@ int main(int argc, char** argv)
         }
 
         // Cleanup...
-        if(l_hlx)
+        if(l_srvr)
         {
-                delete l_hlx;
-                l_hlx = NULL;
+                delete l_srvr;
+                l_srvr = NULL;
         }
         if(l_file_getter)
         {
@@ -818,7 +825,7 @@ void display_results_line(settings_struct &a_settings)
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         uint64_t l_cur_time_ms = fsurv_get_time_ms();
         double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /

@@ -310,7 +310,7 @@ int32_t nconn::nc_read(nbq *a_in_q)
                         //ns_hlx::mem_display((uint8_t *)(l_buf), l_bytes_read);
                         if(m_read_cb)
                         {
-                                int32_t l_status = m_read_cb(m_data, l_buf, l_bytes_read, a_in_q->get_cur_write_offset());
+                                int32_t l_status = m_read_cb(m_read_cb_data, l_buf, l_bytes_read, a_in_q->get_cur_write_offset());
                                 if(l_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
@@ -503,6 +503,7 @@ int32_t nconn::nc_cleanup()
 //: ----------------------------------------------------------------------------
 nconn::nconn(void):
       m_evr_loop(NULL),
+      m_evr_fd(),
       m_scheme(SCHEME_NONE),
       m_label(),
       m_stat(),
@@ -526,6 +527,7 @@ nconn::nconn(void):
       m_idx(0),
       m_pool_id(0),
       m_read_cb(NULL),
+      m_read_cb_data(NULL),
       m_write_cb(NULL)
 {
         // Set stats

@@ -1,11 +1,11 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2015 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    phurl_h.h
+//: \file:    file_u.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    11/20/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,20 +20,13 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _PHURL_H_H
-#define _PHURL_H_H
+#ifndef _FILE_U_H
+#define _FILE_U_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
-#include "hlx/subr.h"
-#include "hlx/scheme.h"
-#include "hlx/phurl_u.h"
-
-// For fixed size types
-#include <stdint.h>
-#include <map>
+#include "hlx/base_u.h"
 #include <string>
 
 namespace ns_hlx {
@@ -41,62 +34,73 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
-class clnt_session;
-class nconn;
-class resp;
+class nbq;
 
 //: ----------------------------------------------------------------------------
-//: Types
+//: file_u
+//: Example based on Dan Kegel's "Introduction to non-blocking I/O"
+//: ref: http://www.kegel.com/dkftpbench/nonblocking.html
 //: ----------------------------------------------------------------------------
-typedef std::list <struct host_s> host_list_t;
-
-//: ----------------------------------------------------------------------------
-//: phurl_h
-//: ----------------------------------------------------------------------------
-class phurl_h: public default_rqst_h
+class file_u: public base_u
 {
 public:
         // -------------------------------------------------
+        // const
+        // -------------------------------------------------
+        static const uint32_t S_UPS_TYPE_FILE = 0xFFFF000A;
+
+        // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        phurl_h(void);
-        ~phurl_h();
-
-        h_resp_t do_default(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-
-        // Do default method override
-        bool get_do_default(void);
-
-        void add_host(const std::string a_host, uint16_t a_port = 80);
-        void set_host_list(const host_list_t &a_host_list);
-        const subr &get_subr_template(void) const;
-        subr &get_subr_template_mutable(void);
+        file_u();
+        ~file_u();
+        int fsinit(const char *a_filename);
+        size_t fssize(void) { return m_size;}
 
         // -------------------------------------------------
-        // Public static methods
+        // upstream methods
         // -------------------------------------------------
-        static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
-        static int32_t s_error_cb(subr &a_subr,
-                                  nconn *a_nconn,
-                                  http_status_t a_status,
-                                  const char *a_error_str);
-        static int32_t s_done_check(subr &a_subr, phurl_u *a_phr);
-        static int32_t s_create_resp(phurl_u *a_phr);
-
-protected:
-        // -------------------------------------------------
-        // Protected members
-        // -------------------------------------------------
-        subr m_subr_template;
-        host_list_t m_host_list;
+        ssize_t ups_read(char *ao_dst, size_t a_len);
+        ssize_t ups_read(nbq &ao_q, size_t a_len);
+        bool ups_done(void) {return (m_state == DONE);}
+        int32_t ups_cancel(void);
+        uint32_t get_type(void) { return S_UPS_TYPE_FILE;}
 private:
+        // -------------------------------------------------
+        // Private types
+        // -------------------------------------------------
+        typedef enum
+        {
+                IDLE,
+                SENDING,
+                DONE
+        } state_t;
+
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         // Disallow copy/assign
-        phurl_h& operator=(const phurl_h &);
-        phurl_h(const phurl_h &);
+        file_u& operator=(const file_u &);
+        file_u(const file_u &);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        int m_fd;
+        size_t m_size;
+        size_t m_read;
+        state_t m_state;
 };
+
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+int32_t get_path(const std::string &a_root,
+                 const std::string &a_index,
+                 const std::string &a_route,
+                 const std::string &a_url_path,
+                 std::string &ao_path);
+
 
 } //namespace ns_hlx {
 

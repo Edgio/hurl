@@ -24,10 +24,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/hlx.h"
+#include "hlx/srvr.h"
 #include "hlx/phurl_h.h"
+#include "hlx/phurl_u.h"
 #include "hlx/resp.h"
 #include "hlx/status.h"
+#include "hlx/stat.h"
+#include "hlx/trace.h"
 
 #include "support/tls_util.h"
 #include "rapidjson/document.h"
@@ -59,7 +62,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "../../include/hlx/stat.h"
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
@@ -200,7 +202,7 @@ typedef struct host_struct {
 } phurl_host_t;
 
 //typedef std::list <phurl_resp_t *> phurl_resp_list_t;
-typedef std::list <ns_hlx::phurl_h_resp *> phurl_h_resp_list_t;
+typedef std::list <ns_hlx::phurl_u *> phurl_h_resp_list_t;
 typedef std::set <uint64_t> phurl_uid_set_t;
 typedef std::list <phurl_host_t> phurl_host_list_t;
 typedef std::map <std::string, tls_info_t> tls_info_map_t;
@@ -217,7 +219,7 @@ typedef struct settings_struct
         bool m_quiet;
         bool m_show_stats;
         bool m_show_summary;
-        ns_hlx::hlx *m_hlx;
+        ns_hlx::srvr *m_srvr;
         broadcast_h *m_broadcast_h;
         phurl_h_resp_list_t m_phr_list;
         phurl_host_list_t *m_host_list;
@@ -239,7 +241,7 @@ typedef struct settings_struct
                 m_quiet(false),
                 m_show_stats(false),
                 m_show_summary(false),
-                m_hlx(NULL),
+                m_srvr(NULL),
                 m_broadcast_h(NULL),
                 m_phr_list(),
                 m_host_list(NULL),
@@ -284,12 +286,12 @@ std::string dump_all_responses(settings_struct_t &a_settings,
 class broadcast_h: public ns_hlx::phurl_h
 {
 public:
-        int32_t do_get_bc(ns_hlx::hlx *a_hlx,
-                          ns_hlx::t_hlx *a_t_hlx,
+        int32_t do_get_bc(ns_hlx::srvr *a_srvr,
+                          ns_hlx::t_srvr *a_t_srvr,
                           const phurl_host_list_t &a_host_list,
-                          ns_hlx::phurl_h_resp *a_phr);
+                          ns_hlx::phurl_u *a_phr);
         int32_t create_resp(ns_hlx::subr &a_subr,
-                            ns_hlx::phurl_h_resp *l_fanout_resp);
+                            ns_hlx::phurl_u *l_fanout_resp);
         static int32_t s_completion_cb(ns_hlx::subr &a_subr,
                                        ns_hlx::nconn &a_nconn,
                                        ns_hlx::resp &a_resp);
@@ -297,7 +299,7 @@ public:
                                   ns_hlx::nconn *a_nconn,
                                   ns_hlx::http_status_t a_status,
                                   const char *a_error_str);
-        static int32_t s_create_resp(ns_hlx::phurl_h_resp *a_phr);
+        static int32_t s_create_resp(ns_hlx::phurl_u *a_phr);
 };
 
 //: ----------------------------------------------------------------------------
@@ -305,12 +307,12 @@ public:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
-                               ns_hlx::t_hlx *a_t_hlx,
+int32_t broadcast_h::do_get_bc(ns_hlx::srvr *a_srvr,
+                               ns_hlx::t_srvr *a_t_srvr,
                                const phurl_host_list_t &a_host_list,
-                               ns_hlx::phurl_h_resp *a_phr)
+                               ns_hlx::phurl_u *a_phr)
 {
-        if(!a_hlx)
+        if(!a_srvr)
         {
                 return HLX_STATUS_ERROR;
         }
@@ -321,7 +323,7 @@ int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
         {
                 // Make subr
                 ns_hlx::subr *l_subr = new ns_hlx::subr(m_subr_template);
-                l_subr->set_uid(a_hlx->get_next_subr_uuid());
+                l_subr->set_uid(a_srvr->get_next_subr_uuid());
                 l_subr->set_host(i_host->m_host);
                 if(!i_host->m_hostname.empty())
                 {
@@ -346,7 +348,7 @@ int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
                 a_phr->m_pending_subr_uid_map[l_subr->get_uid()] = l_subr;
 
                 int32_t l_status = 0;
-                l_status = add_subr_t_hlx(a_t_hlx, *l_subr);
+                l_status = add_subr_t_srvr(a_t_srvr, *l_subr);
                 if(l_status != HLX_STATUS_OK)
                 {
                         //("Error: performing add_subreq.\n");
@@ -358,13 +360,13 @@ int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
         a_phr->m_timeout_ms = g_settings->m_timeout_ms;
         if(a_phr->m_timeout_ms)
         {
-                if(!a_t_hlx)
+                if(!a_t_srvr)
                 {
                         return HLX_STATUS_ERROR;
                 }
                 //printf("Add timeout: %u\n", m_timeout_ms);
                 int32_t l_status;
-                l_status = add_timer(a_t_hlx, a_phr->m_timeout_ms, ns_hlx::phurl_h_resp::s_timeout_cb, a_phr, &(a_phr->m_timer));
+                l_status = add_timer(a_t_srvr, a_phr->m_timeout_ms, ns_hlx::phurl_u::s_timeout_cb, a_phr, &(a_phr->m_timer));
                 if(l_status != HLX_STATUS_OK)
                 {
                         return HLX_STATUS_ERROR;
@@ -378,7 +380,7 @@ int32_t broadcast_h::do_get_bc(ns_hlx::hlx *a_hlx,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t broadcast_h::create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *a_fanout_resp)
+int32_t broadcast_h::create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_u *a_fanout_resp)
 {
         //printf("%s.%s.%d: %sDONE%s\n",__FILE__,__FUNCTION__,__LINE__, ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
         return HLX_STATUS_OK;
@@ -391,7 +393,7 @@ int32_t broadcast_h::create_resp(ns_hlx::subr &a_subr, ns_hlx::phurl_h_resp *a_f
 //: ----------------------------------------------------------------------------
 int32_t broadcast_h::s_completion_cb(ns_hlx::subr &a_subr, ns_hlx::nconn &a_nconn, ns_hlx::resp &a_resp)
 {
-        ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
+        ns_hlx::phurl_u *l_phr = static_cast<ns_hlx::phurl_u *>(a_subr.get_data());
         if(!l_phr)
         {
                 return HLX_STATUS_ERROR;
@@ -444,23 +446,25 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr,
                                 ns_hlx::http_status_t a_status,
                                 const char *a_error_str)
 {
-        ns_hlx::phurl_h_resp *l_phr = static_cast<ns_hlx::phurl_h_resp *>(a_subr.get_data());
+        //printf("%s.%s.%d: subr_host: %s\n",__FILE__,__FUNCTION__,__LINE__,a_subr.get_host().c_str());
+        ns_hlx::phurl_u *l_phr = static_cast<ns_hlx::phurl_u *>(a_subr.get_data());
         if(!l_phr)
         {
+                //printf("%s.%s.%d: l_phr == NULL\n",__FILE__,__FUNCTION__,__LINE__);
                 return HLX_STATUS_ERROR;
         }
         ns_hlx::hlx_resp *l_resp = new ns_hlx::hlx_resp();
         l_resp->m_resp = NULL;
         l_resp->m_subr = &a_subr;
         l_resp->m_error_str = a_error_str;
+        settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
+        if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
         if(a_nconn)
         {
                 ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(*a_nconn);
-                settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
                 //printf("%s.%s.%d: host:          %s\n",__FILE__,__FUNCTION__,__LINE__,a_subr.get_host().c_str());
                 //printf("%s.%s.%d: m_error_str:   %s\n",__FILE__,__FUNCTION__,__LINE__,l_resp->m_error_str.c_str());
                 //printf("%s.%s.%d: l_conn_status: %d\n",__FILE__,__FUNCTION__,__LINE__,l_conn_status);
-                if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
                 if(l_s)
                 {
                         switch(l_conn_status)
@@ -529,10 +533,10 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr,
                         }
                         }
                 }
-                l_phr->m_resp_list.push_back(l_resp);
-                l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
-                if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
         }
+        l_phr->m_resp_list.push_back(l_resp);
+        l_phr->m_pending_subr_uid_map.erase(a_subr.get_uid());
+        if(l_s) pthread_mutex_unlock(&(l_s->m_mutex));
         return s_done_check(a_subr, l_phr);
 }
 
@@ -541,7 +545,7 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t broadcast_h::s_create_resp(ns_hlx::phurl_h_resp *a_phr)
+int32_t broadcast_h::s_create_resp(ns_hlx::phurl_u *a_phr)
 {
         return 0;
 }
@@ -558,7 +562,7 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_hlx->stop();
+                g_settings->m_srvr->stop();
         }
 }
 
@@ -625,11 +629,11 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         }
 
         // Split host list between threads...
-        ns_hlx::hlx::t_hlx_list_t &l_t_hlx_list = a_settings.m_hlx->get_t_hlx_list();
-        size_t l_num_per = a_settings.m_host_list->size() / l_t_hlx_list.size();
+        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = a_settings.m_srvr->get_t_hlx_list();
+        size_t l_num_per = a_settings.m_host_list->size() / l_t_srvr_list.size();
         phurl_host_list_t::iterator i_h = a_settings.m_host_list->begin();
-        for(ns_hlx::hlx::t_hlx_list_t::iterator i_t = l_t_hlx_list.begin();
-            (i_t != l_t_hlx_list.end()) && (i_h != a_settings.m_host_list->end());
+        for(ns_hlx::srvr::t_srvr_list_t::iterator i_t = l_t_srvr_list.begin();
+            (i_t != l_t_srvr_list.end()) && (i_h != a_settings.m_host_list->end());
             ++i_t)
         {
                 phurl_host_list_t l_host_list;
@@ -640,11 +644,11 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         //printf("%s.%s.%d: PUSHING: host: %s\n", __FILE__,__FUNCTION__,__LINE__,i_h->m_host.c_str());
                         l_host_list.push_back(*i_h);
                 }
-                ns_hlx::phurl_h_resp *l_phr = new ns_hlx::phurl_h_resp();
+                ns_hlx::phurl_u *l_phr = new ns_hlx::phurl_u();
                 l_phr->m_delete = false;
                 l_phr->m_data = &a_settings;
                 a_settings.m_phr_list.push_back(l_phr);
-                l_status = a_settings.m_broadcast_h->do_get_bc(a_settings.m_hlx,
+                l_status = a_settings.m_broadcast_h->do_get_bc(a_settings.m_srvr,
                                                                *i_t,
                                                                l_host_list,
                                                                l_phr);
@@ -656,7 +660,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
         a_settings.m_total_reqs = a_settings.m_host_list->size();
 
         // run...
-        l_status = a_settings.m_hlx->run();
+        l_status = a_settings.m_srvr->run();
         if(HLX_STATUS_OK != l_status)
         {
                 return -1;
@@ -683,7 +687,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         // -------------------------------------------
                         case 'd':
                         {
-                                a_settings.m_hlx->display_stat();
+                                a_settings.m_srvr->display_stat();
                                 break;
                         }
                         // -------------------------------------------
@@ -693,7 +697,7 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         case 'q':
                         {
                                 g_test_finished = true;
-                                a_settings.m_hlx->stop();
+                                a_settings.m_srvr->stop();
                                 //l_sent_stop = true;
                                 break;
                         }
@@ -733,15 +737,15 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         }
                         pthread_mutex_unlock(&(a_settings.m_mutex));
                 }
-                //if (!a_settings.m_hlx->is_running())
+                //if (!a_settings.m_srvr->is_running())
                 //{
                 //        //printf("IS NOT RUNNING.\n");
                 //        g_test_finished = true;
                 //}
         }
         //printf("%s.%s.%d: STOP\n", __FILE__,__FUNCTION__,__LINE__);
-        a_settings.m_hlx->stop();
-        a_settings.m_hlx->wait_till_stopped();
+        a_settings.m_srvr->stop();
+        a_settings.m_srvr->wait_till_stopped();
 
         // One more status for the lovers
         if(a_settings.m_show_stats)
@@ -841,7 +845,7 @@ int command_exec_cli(settings_struct_t &a_settings)
                 // -------------------------------------------
                 case 'd':
                 {
-                        a_settings.m_hlx->display_stat();
+                        a_settings.m_srvr->display_stat();
                         break;
                 }
                 // -------------------------------------------
@@ -995,16 +999,19 @@ void print_usage(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-        settings_struct_t l_settings;
-        ns_hlx::hlx *l_hlx = new ns_hlx::hlx();
-        l_settings.m_hlx = l_hlx;
+        ns_hlx::srvr *l_srvr = new ns_hlx::srvr();
 
         // For sighandler
+        settings_struct_t l_settings;
+        l_settings.m_srvr = l_srvr;
         g_settings = &l_settings;
 
-        l_hlx->set_collect_stats(false);
-        l_hlx->set_dns_use_ai_cache(true);
-        l_hlx->set_update_stats_ms(500);
+        // Suppress errors
+        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+
+        l_srvr->set_collect_stats(false);
+        l_srvr->set_dns_use_ai_cache(true);
+        l_srvr->set_update_stats_ms(500);
 
         // -------------------------------------------------
         // Subrequest settings
@@ -1021,11 +1028,11 @@ int main(int argc, char** argv)
         // Setup default headers before the user
         l_subr->set_header("User-Agent", "Verizon Digital Media Parallel Curl phurl ");
         //l_subr->set_header("Accept", "*/*");
-        //l_hlx->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
-        //l_hlx->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-        //l_hlx->set_header("x-select-backend", "self");
-        //l_hlx->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-        //l_hlx->set_header("Accept-Encoding", "gzip,deflate");
+        //l_srvr->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
+        //l_srvr->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
+        //l_srvr->set_header("x-select-backend", "self");
+        //l_srvr->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+        //l_srvr->set_header("Accept-Encoding", "gzip,deflate");
         l_subr->set_completion_cb(broadcast_h::s_completion_cb);
         l_subr->set_error_cb(broadcast_h::s_error_cb);
         //l_subr->set_keepalive(true);
@@ -1240,7 +1247,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        l_hlx->set_tls_client_ctx_cipher_list(l_argument);
+                        l_srvr->set_tls_client_ctx_cipher_list(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1249,7 +1256,7 @@ int main(int argc, char** argv)
                 case 'O':
                 {
                         int32_t l_status;
-                        l_status = l_hlx->set_tls_client_ctx_options(l_argument);
+                        l_status = l_srvr->set_tls_client_ctx_options(l_argument);
                         if(l_status != HLX_STATUS_OK)
                         {
                                 return HLX_STATUS_ERROR;
@@ -1294,7 +1301,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'F':
                 {
-                        l_hlx->set_tls_client_ctx_ca_file(l_argument);
+                        l_srvr->set_tls_client_ctx_ca_file(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1302,7 +1309,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'L':
                 {
-                        l_hlx->set_tls_client_ctx_ca_path(l_argument);
+                        l_srvr->set_tls_client_ctx_ca_path(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1328,7 +1335,7 @@ int main(int argc, char** argv)
                                 return -1;
                         }
 
-                        l_hlx->set_num_parallel(l_num_parallel);
+                        l_srvr->set_num_parallel(l_num_parallel);
                         break;
                 }
                 // ---------------------------------------
@@ -1344,7 +1351,7 @@ int main(int argc, char** argv)
                                 printf("Error num-threads must be 0 or greater\n");
                                 return -1;
                         }
-                        l_hlx->set_num_threads(l_max_threads);
+                        l_srvr->set_num_threads(l_max_threads);
                         break;
                 }
                 // ---------------------------------------
@@ -1397,7 +1404,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_recv_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_hlx->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
+                        l_srvr->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -1407,7 +1414,7 @@ int main(int argc, char** argv)
                 {
                         int l_sock_opt_send_buf_size = atoi(optarg);
                         // TODO Check value...
-                        l_hlx->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
+                        l_srvr->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
                         break;
                 }
                 // ---------------------------------------
@@ -1415,7 +1422,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        l_hlx->set_sock_opt_no_delay(true);
+                        l_srvr->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1423,7 +1430,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'n':
                 {
-                        l_hlx->set_dns_use_sync(true);
+                        l_srvr->set_dns_use_sync(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1431,7 +1438,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'k':
                 {
-                        l_hlx->set_dns_use_ai_cache(false);
+                        l_srvr->set_dns_use_ai_cache(false);
                         break;
                 }
                 // ---------------------------------------
@@ -1439,7 +1446,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'A':
                 {
-                        l_hlx->set_dns_ai_cache_file(l_argument);
+                        l_srvr->set_dns_ai_cache_file(l_argument);
                         break;
                 }
                 // ---------------------------------------
@@ -1481,7 +1488,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         l_settings.m_verbose = true;
-                        l_hlx->set_rqst_resp_logging(true);
+                        l_srvr->set_rqst_resp_logging(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1490,7 +1497,7 @@ int main(int argc, char** argv)
                 case 'c':
                 {
                         l_settings.m_color = true;
-                        l_hlx->set_rqst_resp_logging_color(true);
+                        l_srvr->set_rqst_resp_logging_color(true);
                         break;
                 }
                 // ---------------------------------------
@@ -1789,7 +1796,7 @@ int main(int argc, char** argv)
         // Setup to run -but don't start
         // -------------------------------------------
         int32_t l_status = 0;
-        l_status = l_hlx->init_run();
+        l_status = l_srvr->init_run();
         if(HLX_STATUS_OK != l_status)
         {
                 printf("Error: performing hlx::init_run\n");
@@ -1892,10 +1899,10 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_hlx)
+        if(l_srvr)
         {
-                delete l_hlx;
-                l_hlx = NULL;
+                delete l_srvr;
+                l_srvr = NULL;
         }
 
         if(l_host_list)
@@ -1989,7 +1996,7 @@ void display_status_line(settings_struct_t &a_settings)
         // Get stats
         ns_hlx::t_stat_t l_total;
         ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_hlx->get_stat(l_total, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_thread);
 
         uint32_t l_num_done = l_total.m_ups_reqs;
         uint32_t l_num_resolve_active = l_total.m_dns_resolve_active;

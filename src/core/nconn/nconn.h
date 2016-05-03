@@ -29,6 +29,7 @@
 #include "hlx/scheme.h"
 #include "hlx/conn_status.h"
 #include "hlx/host_info.h"
+#include "evr.h"
 
 // For memcpy -TODO move into impl file
 #include <string.h>
@@ -63,7 +64,6 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
-class evr_loop;
 class nbq;
 class host_info;
 
@@ -166,9 +166,10 @@ public:
         void set_pool_id(uint32_t a_id) {m_pool_id = a_id;}
         void set_host_info(const host_info &a_host_info) {m_host_info = a_host_info; m_host_info_is_set = true;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
-        void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;};
-        void set_connect_only(bool a_flag) {m_connect_only = a_flag;};
+        void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;}
+        void set_connect_only(bool a_flag) {m_connect_only = a_flag;}
         void set_read_cb(nconn_cb_t a_cb) {m_read_cb = a_cb;}
+        void set_read_cb_data(void *a_data) {m_read_cb_data = a_data;}
         void set_write_cb(nconn_cb_t a_cb) {m_write_cb = a_cb;}
         void set_collect_stats_flag(bool a_val) {m_collect_stats_flag = a_val;}
         void set_request_start_time_us(uint64_t a_val) {m_request_start_time_us = a_val;}
@@ -177,6 +178,16 @@ public:
         void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
         void set_status(conn_status_t a_status) { m_conn_status = a_status;}
         void set_pre_connect_cb(pre_connect_cb_t a_cb) {m_pre_connect_cb = a_cb;}
+        void setup_evr_fd(evr_file_cb_t a_read_cb,
+                          evr_file_cb_t a_write_cb,
+                          evr_file_cb_t a_error_cb)
+        {
+                m_evr_fd.m_magic = EVR_EVENT_FD_MAGIC;
+                m_evr_fd.m_read_cb = a_read_cb;
+                m_evr_fd.m_write_cb = a_write_cb;
+                m_evr_fd.m_error_cb = a_error_cb;
+                m_evr_fd.m_data = this;
+        }
 
         // State
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
@@ -221,6 +232,7 @@ protected:
         // Protected members
         // -------------------------------------------------
         evr_loop *m_evr_loop;
+        evr_fd_t m_evr_fd;
         scheme_t m_scheme;
         std::string m_label;
         conn_stat_t m_stat;
@@ -268,8 +280,8 @@ private:
         uint32_t m_idx;
         uint32_t m_pool_id;
         nconn_cb_t m_read_cb;
+        void *m_read_cb_data;
         nconn_cb_t m_write_cb;
-
 };
 
 } //namespace ns_hlx {

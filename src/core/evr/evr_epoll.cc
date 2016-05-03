@@ -113,7 +113,7 @@ static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_epoll::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         //NDBG_PRINT("%sadd%s: fd: %d --attr: 0x%08X\n",
         //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
@@ -121,7 +121,7 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
         //NDBG_PRINT_BT();
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
-        ev.data.ptr = a_data;
+        ev.data.ptr = a_evr_fd_event;
         if (0 != epoll_ctl(m_fd, EPOLL_CTL_ADD, a_fd, &ev))
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_ADD fd[%d] failed (%s)\n",
@@ -136,7 +136,7 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, void* a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
+int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         //NDBG_PRINT("%smod%s: fd: %d --attr: 0x%08X\n",
         //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
@@ -144,7 +144,7 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, void* a_data)
         //NDBG_PRINT_BT();
         struct epoll_event ev;
         ev.events = get_epoll_attr(a_attr_mask);
-        ev.data.ptr = a_data;
+        ev.data.ptr = a_evr_fd_event;
         if (0 != epoll_ctl(m_fd, EPOLL_CTL_MOD, a_fd, &ev))
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_MOD fd[%d] failed (%s)\n",

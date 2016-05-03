@@ -24,7 +24,6 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "t_hlx.h"
 #include "nconn_tcp.h"
 #include "ndebug.h"
 #include "string_util.h"
@@ -34,6 +33,7 @@
 #include "hlx/status.h"
 #include "http_parser/http_parser.h"
 #include <string.h>
+#include "t_srvr.h"
 
 namespace ns_hlx {
 
@@ -75,10 +75,10 @@ subr::subr(void):
         m_data(NULL),
         m_detach_resp(false),
         m_uid(0),
-        m_hconn(NULL),
-        m_requester_hconn(NULL),
+        m_ups_srvr_session(NULL),
+        m_clnt_session(NULL),
         m_host_info(),
-        m_t_hlx(NULL),
+        m_t_srvr(NULL),
         m_start_time_ms(0),
         m_end_time_ms(0),
         m_lookup_job(NULL),
@@ -87,7 +87,8 @@ subr::subr(void):
         m_tls_sni(false),
         m_tls_self_ok(false),
         m_tls_no_host_check(false),
-        m_pre_connect_cb(NULL)
+        m_pre_connect_cb(NULL),
+        m_ups(NULL)
 {
 }
 
@@ -129,10 +130,10 @@ subr::subr(const subr &a_subr):
         m_data(a_subr.m_data),
         m_detach_resp(a_subr.m_detach_resp),
         m_uid(a_subr.m_uid),
-        m_hconn(a_subr.m_hconn),
-        m_requester_hconn(a_subr.m_requester_hconn),
+        m_ups_srvr_session(a_subr.m_ups_srvr_session),
+        m_clnt_session(a_subr.m_clnt_session),
         m_host_info(a_subr.m_host_info),
-        m_t_hlx(a_subr.m_t_hlx),
+        m_t_srvr(a_subr.m_t_srvr),
         m_start_time_ms(a_subr.m_start_time_ms),
         m_end_time_ms(a_subr.m_end_time_ms),
         m_lookup_job(a_subr.m_lookup_job),
@@ -141,7 +142,8 @@ subr::subr(const subr &a_subr):
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
         m_tls_no_host_check(a_subr.m_tls_no_host_check),
-        m_pre_connect_cb(a_subr.m_pre_connect_cb)
+        m_pre_connect_cb(a_subr.m_pre_connect_cb),
+        m_ups(a_subr.m_ups)
 {
 }
 
@@ -426,9 +428,9 @@ uint64_t subr::get_uid(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hconn *subr::get_hconn(void)
+ups_srvr_session *subr::get_ups_srvr_session(void)
 {
-        return m_hconn;
+        return m_ups_srvr_session;
 }
 
 //: ----------------------------------------------------------------------------
@@ -436,9 +438,9 @@ hconn *subr::get_hconn(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-hconn *subr::get_requester_hconn(void) const
+clnt_session *subr::get_clnt_session(void) const
 {
-        return m_requester_hconn;
+        return m_clnt_session;
 }
 
 //: ----------------------------------------------------------------------------
@@ -456,9 +458,9 @@ const host_info &subr::get_host_info(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-t_hlx *subr::get_t_hlx(void) const
+t_srvr *subr::get_t_hlx(void) const
 {
-        return m_t_hlx;
+        return m_t_srvr;
 }
 
 //: ----------------------------------------------------------------------------
@@ -589,6 +591,16 @@ const std::string &subr::get_label(void)
 subr::pre_connect_cb_t subr::get_pre_connect_cb(void) const
 {
         return m_pre_connect_cb;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+base_u *subr::get_ups(void)
+{
+        return m_ups;
 }
 
 //: ----------------------------------------------------------------------------
@@ -820,9 +832,9 @@ void subr::set_uid(uint64_t a_uid)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_hconn(hconn *a_hconn)
+void subr::set_ups_srvr_session(ups_srvr_session *a_ups_srvr_session)
 {
-        m_hconn = a_hconn;
+        m_ups_srvr_session = a_ups_srvr_session;
 }
 
 //: ----------------------------------------------------------------------------
@@ -830,9 +842,9 @@ void subr::set_hconn(hconn *a_hconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_requester_hconn(hconn *a_hconn)
+void subr::set_clnt_session(clnt_session *a_clnt_session)
 {
-        m_requester_hconn = a_hconn;
+        m_clnt_session = a_clnt_session;
 }
 
 //: ----------------------------------------------------------------------------
@@ -850,9 +862,9 @@ void subr::set_host_info(const host_info &a_host_info)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_t_hlx(t_hlx *a_t_hlx)
+void subr::set_t_hlx(t_srvr *a_t_hlx)
 {
-        m_t_hlx = a_t_hlx;
+        m_t_srvr = a_t_hlx;
 }
 
 //: ----------------------------------------------------------------------------
@@ -943,6 +955,16 @@ void subr::set_tls_no_host_check(bool a_val)
 void subr::set_pre_connect_cb(pre_connect_cb_t a_cb)
 {
         m_pre_connect_cb = a_cb;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void subr::set_ups(base_u *a_ups)
+{
+        m_ups = a_ups;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1397,17 +1419,12 @@ int32_t subr::cancel(void)
                         m_error_cb(*(this), NULL, HTTP_STATUS_GATEWAY_TIMEOUT, get_resp_status_str(HTTP_STATUS_GATEWAY_TIMEOUT));
                         // TODO Check status...
                 }
-                if(!get_detach_resp())
-                {
-                        delete this;
-                        return HLX_STATUS_OK;
-                }
-                break;
+                return HLX_STATUS_OK;
         }
         case SUBR_STATE_DNS_LOOKUP:
         {
                 // Get lookup job
-                nresolver::lookup_job *l_job = static_cast<nresolver::lookup_job *>(m_lookup_job);
+                nresolver::job *l_job = static_cast<nresolver::job *>(m_lookup_job);
                 if(l_job)
                 {
                         l_job->m_cb = NULL;
@@ -1419,33 +1436,27 @@ int32_t subr::cancel(void)
                         m_error_cb(*(this), NULL, HTTP_STATUS_GATEWAY_TIMEOUT, get_resp_status_str(HTTP_STATUS_GATEWAY_TIMEOUT));
                         // TODO Check status...
                 }
-                if(!get_detach_resp())
-                {
-                        delete this;
-                        return HLX_STATUS_OK;
-                }
-                break;
+                return HLX_STATUS_OK;
         }
         case SUBR_STATE_ACTIVE:
         {
-                if(m_hconn &&
-                   m_hconn->m_t_hlx &&
-                   m_hconn->m_nconn)
+                if(m_ups_srvr_session &&
+                   m_ups_srvr_session->m_t_srvr &&
+                   m_ups_srvr_session->m_nconn)
                 {
-                        //NDBG_PRINT("%sCANCEL%s: nconn: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_hconn->m_nconn);
-                        if(m_hconn->m_hmsg)
+                        //NDBG_PRINT("%sCANCEL%s: nconn: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_clnt->m_nconn);
+                        if(m_ups_srvr_session->m_resp)
                         {
-                                resp *l_resp = static_cast<resp *>(m_hconn->m_hmsg);
-                                l_resp->set_status(HTTP_STATUS_GATEWAY_TIMEOUT);
+                                m_ups_srvr_session->m_resp->set_status(HTTP_STATUS_GATEWAY_TIMEOUT);
                         }
-                        m_hconn->m_nconn->set_status(CONN_STATUS_CANCELLED);
+                        m_ups_srvr_session->m_nconn->set_status(CONN_STATUS_CANCELLED);
                         int32_t l_status;
-                        l_status = m_hconn->subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
+                        l_status = m_ups_srvr_session->subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
                         if(l_status != HLX_STATUS_OK)
                         {
                                 // TODO Check error;
                         }
-                        return m_hconn->m_t_hlx->cleanup_conn(m_hconn, m_hconn->m_nconn);
+                        return m_ups_srvr_session->m_t_srvr->cleanup_conn(m_ups_srvr_session, m_ups_srvr_session->m_nconn);
                 }
                 else
                 {
@@ -1534,11 +1545,11 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         // -------------------------------------------
         if (!l_specd_ua)
         {
-                if(!a_subr.m_t_hlx->get_hlx())
+                if(!a_subr.m_t_srvr->get_srvr())
                 {
                         return HLX_STATUS_ERROR;
                 }
-                const std::string &l_ua = a_subr.m_t_hlx->get_hlx()->get_server_name();
+                const std::string &l_ua = a_subr.m_t_srvr->get_srvr()->get_server_name();
                 nbq_write_header(ao_q, "User-Agent", strlen("User-Agent"),
                                 l_ua.c_str(), l_ua.length());
         }

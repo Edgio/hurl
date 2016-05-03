@@ -28,9 +28,11 @@
 #include "nresolver.h"
 #include "ndebug.h"
 #include "nlookup.h"
+#include "evr.h"
 #include "hlx/host_info.h"
 #include "hlx/time_util.h"
 #include "hlx/status.h"
+#include "hlx/trace.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
@@ -40,6 +42,9 @@
 #include <netdb.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
 
 // for inet_pton
 #include <arpa/inet.h>
@@ -122,7 +127,7 @@ int32_t nresolver::init(bool a_use_cache,
 #ifdef ASYNC_DNS_WITH_UDNS
         if (dns_init(NULL, 0) < 0)
         {
-                NDBG_PRINT("Error unable to initialize dns library\n");
+                TRC_ERROR("unable to initialize dns library\n");
                 return HLX_STATUS_ERROR;
         }
 #endif
@@ -147,41 +152,43 @@ void nresolver::add_resolver_host(const std::string a_server)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t nresolver::destroy_async(void* a_ctx,
-                                 int &a_fd,
-                                 lookup_job_q_t &ao_lookup_job_q,
-                                 lookup_job_pq_t &ao_lookup_job_pq)
+int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
 {
-#ifdef ASYNC_DNS_WITH_UDNS
-        if(a_fd > 0)
+        if(!a_adns_ctx)
         {
-                close(a_fd);
-                a_fd = -1;
+                TRC_ERROR("a_adns_ctx == NULL\n");
+                return HLX_STATUS_ERROR;
         }
-        dns_ctx *l_ctx = static_cast<dns_ctx *>(a_ctx);
+#ifdef ASYNC_DNS_WITH_UDNS
+        if(a_adns_ctx->m_fd > 0)
+        {
+                close(a_adns_ctx->m_fd);
+                a_adns_ctx->m_fd = -1;
+        }
+        dns_ctx *l_ctx = static_cast<dns_ctx *>(a_adns_ctx->m_udns_ctx);
         if(l_ctx)
         {
                 dns_free(l_ctx);
                 l_ctx = NULL;
         }
 #endif
-        while(ao_lookup_job_pq.size())
+        while(a_adns_ctx->m_job_pq.size())
         {
-                lookup_job *l_j = ao_lookup_job_pq.top();
+                job *l_j = a_adns_ctx->m_job_pq.top();
                 if(l_j)
                 {
                         delete l_j;
                 }
-                ao_lookup_job_pq.pop();
+                a_adns_ctx->m_job_pq.pop();
         }
-        while(ao_lookup_job_q.size())
+        while(a_adns_ctx->m_job_q.size())
         {
-                lookup_job *l_j = ao_lookup_job_q.front();
+                job *l_j = a_adns_ctx->m_job_q.front();
                 if(l_j)
                 {
                         delete l_j;
                 }
-                ao_lookup_job_q.pop();
+                a_adns_ctx->m_job_q.pop();
         }
         return HLX_STATUS_OK;
 }
@@ -193,7 +200,7 @@ int32_t nresolver::destroy_async(void* a_ctx,
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
+nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_cb a_cb)
 {
         int32_t l_status;
         if(!m_is_initd)
@@ -201,70 +208,105 @@ int32_t nresolver::init_async(void** ao_ctx, int &ao_fd)
                 l_status = init();
                 if(l_status != HLX_STATUS_OK)
                 {
-                        return HLX_STATUS_ERROR;
+                        return NULL;
                 }
         }
+        adns_ctx* l_adns_ctx = new adns_ctx();
+        l_adns_ctx->m_ctx = this;
+        l_adns_ctx->m_cb = a_cb;
+        l_adns_ctx->m_evr_loop = a_evr_loop;
 #ifdef ASYNC_DNS_WITH_UDNS
         pthread_mutex_lock(&m_cache_mutex);
-        dns_ctx *l_ctx = NULL;
-        l_ctx = dns_new(NULL);
-        if(!l_ctx)
+        l_adns_ctx->m_udns_ctx = dns_new(NULL);
+        if(!l_adns_ctx->m_udns_ctx)
         {
-                NDBG_PRINT("Error performing dns_new\n");
+                TRC_ERROR("performing dns_new\n");
+                delete l_adns_ctx;
                 pthread_mutex_unlock(&m_cache_mutex);
-                return HLX_STATUS_ERROR;
+                return NULL;
         }
-        l_status = dns_init(l_ctx, 0);
+        l_status = dns_init(l_adns_ctx->m_udns_ctx, 0);
         if(l_status < 0)
         {
-                NDBG_PRINT("Error performing dns_init\n");
+                TRC_ERROR("performing dns_init\n");
+                delete l_adns_ctx;
                 pthread_mutex_unlock(&m_cache_mutex);
-                return HLX_STATUS_ERROR;
+                return NULL;
         }
 
         // Specified Name servers
         if(!m_resolver_host_list.empty())
         {
                 // reset nameserver list
-                l_status = dns_add_serv(l_ctx, NULL);
+                l_status = dns_add_serv(l_adns_ctx->m_udns_ctx, NULL);
                 if(l_status < 0)
                 {
-                        NDBG_PRINT("Error performing dns_add_serv\n");
-                        return HLX_STATUS_ERROR;
+                        TRC_ERROR("performing dns_add_serv\n");
+                        delete l_adns_ctx;
+                        return NULL;
                 }
                 for(resolver_host_list_t::iterator i_s = m_resolver_host_list.begin();
                     i_s != m_resolver_host_list.end();
                     ++i_s)
                 {
-                        l_status = dns_add_serv(l_ctx, i_s->c_str());
+                        l_status = dns_add_serv(l_adns_ctx->m_udns_ctx, i_s->c_str());
                         if(l_status < 0)
                         {
-                                NDBG_PRINT("Error performing dns_add_serv\n");
-                                return HLX_STATUS_ERROR;
+                                TRC_ERROR("performing dns_add_serv\n");
+                                delete l_adns_ctx;
+                                return NULL;
                         }
                 }
         }
 
-
         // set dns options
         // Note: PORT MUST be set before setting up m_sock
         // TODO make configurable
-        dns_set_opt(l_ctx, DNS_OPT_TIMEOUT, m_timeout_s);
-        dns_set_opt(l_ctx, DNS_OPT_NTRIES,  m_retries);
-        dns_set_opt(l_ctx, DNS_OPT_PORT,    m_port);
+        dns_set_opt(l_adns_ctx->m_udns_ctx, DNS_OPT_TIMEOUT, m_timeout_s);
+        dns_set_opt(l_adns_ctx->m_udns_ctx, DNS_OPT_NTRIES,  m_retries);
+        dns_set_opt(l_adns_ctx->m_udns_ctx, DNS_OPT_PORT,    m_port);
 
-        ao_fd = dns_open(l_ctx);
-        if (ao_fd < 0)
+        int l_fd;
+        l_fd = dns_open(l_adns_ctx->m_udns_ctx);
+        if (l_fd < 0)
         {
-                NDBG_PRINT("Error performing dns_open\n");
+                TRC_ERROR("performing dns_open\n");
+                delete l_adns_ctx;
                 pthread_mutex_unlock(&m_cache_mutex);
-                return HLX_STATUS_ERROR;
+                return NULL;
         }
 
-        *ao_ctx = l_ctx;
+        // Set non-blocking
+        l_status = fcntl(l_fd, F_SETFL, O_NONBLOCK | O_RDWR);
+        if (l_status == -1)
+        {
+                TRC_ERROR("fcntl(FD_CLOEXEC) failed: %s\n", strerror(errno));
+                delete l_adns_ctx;
+                // TODO udns cleanup???
+                pthread_mutex_unlock(&m_cache_mutex);
+                return NULL;
+        }
+
+        // evr fd setup
+        l_adns_ctx->m_evr_fd.m_data = l_adns_ctx;
+        l_adns_ctx->m_evr_fd.m_magic = EVR_EVENT_FD_MAGIC;
+        l_adns_ctx->m_evr_fd.m_read_cb = evr_fd_readable_cb;
+        l_adns_ctx->m_evr_fd.m_write_cb = evr_fd_writeable_cb;
+        l_adns_ctx->m_evr_fd.m_error_cb = NULL;
+        l_status = a_evr_loop->add_fd(l_fd,
+                                      EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                      &l_adns_ctx->m_evr_fd);
+        if (l_status != HLX_STATUS_OK)
+        {
+                TRC_ERROR("add_fd failed\n");
+                delete l_adns_ctx;
+                // TODO udns cleanup???
+                pthread_mutex_unlock(&m_cache_mutex);
+                return NULL;
+        }
         pthread_mutex_unlock(&m_cache_mutex);
 #endif
-        return HLX_STATUS_OK;
+        return l_adns_ctx;
 }
 #endif
 
@@ -420,7 +462,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                           struct dns_rr_a4 *a_result,
                           void *a_data)
 {
-        lookup_job *l_job = static_cast<lookup_job *>(a_data);
+        job *l_job = static_cast<job *>(a_data);
         //NDBG_PRINT("l_job: %p\n", l_job);
         if(!l_job)
         {
@@ -467,11 +509,11 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 return;
         }
         l_job->m_complete = true;
-        //NDBG_PRINT("%sokay host%s: %s, size: %d -ip: %s\n",
-        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-        //           a_result->dnsa4_qname,
-        //           a_result->dnsa4_nrr,
-        //           s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
+        NDBG_PRINT("%sokay host%s: %s, size: %d -ip: %s\n",
+                   ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
+                   a_result->dnsa4_qname,
+                   a_result->dnsa4_nrr,
+                   s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
 
         // Create host_info_t
         host_info *l_host_info = NULL;
@@ -548,20 +590,16 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t nresolver::lookup_async(void* a_ctx,
+int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                                 const std::string &a_host,
                                 uint16_t a_port,
-                                resolved_cb a_cb,
                                 void *a_data,
-                                uint64_t &a_active,
-                                lookup_job_q_t &ao_lookup_job_q,
-                                lookup_job_pq_t &ao_lookup_job_pq,
                                 void **ao_job_handle)
 {
-        //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_host: %s a_ctx: %p\n",
+        //NDBG_PRINT("%sLOOKUP_ASYNC%s: a_host: %s a_adns_ctx: %p\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
         //           a_host.c_str(),
-        //           a_ctx);
+        //           a_adns_ctx);
         int32_t l_status;
         if(!m_is_initd)
         {
@@ -571,21 +609,24 @@ int32_t nresolver::lookup_async(void* a_ctx,
                         return HLX_STATUS_ERROR;
                 }
         }
+        if(!a_adns_ctx)
+        {
+                TRC_ERROR("a_adns_ctx == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
 #ifdef ASYNC_DNS_WITH_UDNS
-        // TODO create lookup job...
-        dns_ctx *l_ctx = static_cast<dns_ctx *>(a_ctx);
+        dns_ctx *l_ctx = a_adns_ctx->m_udns_ctx;
         if(!l_ctx)
         {
                 return HLX_STATUS_ERROR;
         }
-
         if(!a_host.empty())
         {
                 //NDBG_PRINT("l_ctx: %p\n", l_ctx);
-                lookup_job *l_job = new lookup_job();
+                job *l_job = new job();
                 l_job->m_host = a_host;
                 l_job->m_port = a_port;
-                l_job->m_cb = a_cb;
+                l_job->m_cb = a_adns_ctx->m_cb;
                 l_job->m_nresolver = this;
                 l_job->m_data = a_data;
                 if(ao_job_handle)
@@ -595,30 +636,29 @@ int32_t nresolver::lookup_async(void* a_ctx,
                 //NDBG_PRINT("%sADD    LOOKUP%s: HOST: %s\n",
                 //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
                 //           l_job->m_host.c_str());
-                ao_lookup_job_q.push(l_job);
+                a_adns_ctx->m_job_q.push(l_job);
         }
 
-        a_active = dns_active(l_ctx);
-        uint32_t l_submit = m_max_parallel - a_active;
+        int32_t l_active = dns_active(l_ctx);
+        uint32_t l_submit = m_max_parallel - l_active;
         //NDBG_PRINT("a_active: %lu\n", a_active);
-        while((l_submit) && !(ao_lookup_job_q.empty()))
+        while((l_submit) && !(a_adns_ctx->m_job_q.empty()))
         {
                 //NDBG_PRINT("l_submit: %u\n", l_submit);
-                lookup_job *l_job = ao_lookup_job_q.front();
-                ao_lookup_job_q.pop();
+                job *l_job = a_adns_ctx->m_job_q.front();
+                a_adns_ctx->m_job_q.pop();
                 //NDBG_PRINT("%sSUBMIT LOOKUP%s: HOST: %s\n",
                 //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                 //           l_job->m_host.c_str());
                 l_job->m_dns_query = dns_submit_a4(l_ctx, l_job->m_host.c_str(), 0, dns_a4_cb, l_job);
                 if (!l_job->m_dns_query)
                 {
-                        NDBG_PRINT("Error performing dns_submit_a4.  Last status: %d\n",
-                                   dns_status(NULL));
+                        TRC_ERROR("performing dns_submit_a4.  Last status: %d\n", dns_status(NULL));
                         return HLX_STATUS_ERROR;
                 }
                 l_job->m_dns_ctx = l_ctx;
                 l_job->m_start_time = get_time_s();
-                ao_lookup_job_pq.push(l_job);
+                a_adns_ctx->m_job_pq.push(l_job);
                 //NDBG_PRINT("%sSTATUS%s job: %s status: %d. Reason: %s\n",
                 //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
                 //                l_job->m_host.c_str(),
@@ -639,22 +679,35 @@ int32_t nresolver::lookup_async(void* a_ctx,
         l_now = time(NULL);
         const int l_delay = dns_timeouts(l_ctx, 1, l_now);
         (void) l_delay;
-
 #endif
         // Check for expires
         uint32_t l_expire_s = m_timeout_s*m_retries*2;
         uint64_t l_now_s = get_time_s();
-        while(!ao_lookup_job_pq.size() && (ao_lookup_job_pq.top()->m_start_time + l_expire_s) < l_now_s)
+        while(!a_adns_ctx->m_job_pq.size() && (a_adns_ctx->m_job_pq.top()->m_start_time + l_expire_s) < l_now_s)
         {
-                lookup_job *l_j = ao_lookup_job_pq.top();
+                job *l_j = a_adns_ctx->m_job_pq.top();
                 if(l_j)
                 {
                         delete l_j;
                 }
-                ao_lookup_job_pq.pop();
+                a_adns_ctx->m_job_pq.pop();
         }
         // Get active number
-        a_active = dns_active(l_ctx);
+        l_active = dns_active(l_ctx);
+
+        // Add timer to handle timeouts
+        if(l_active && !a_adns_ctx->m_timer_obj)
+        {
+                evr_loop *l_el = a_adns_ctx->m_evr_loop;
+                if(l_el)
+                {
+                        l_el->add_timer(1000,                        // Timeout ms
+                                        evr_fd_timeout_cb,           // timeout cb
+                                        NULL,                        // ctx * (unused)
+                                        a_adns_ctx,                  // data *
+                                        &(a_adns_ctx->m_timer_obj)); // timer obj
+                }
+        }
         return HLX_STATUS_OK;
 }
 #endif
@@ -665,16 +718,128 @@ int32_t nresolver::lookup_async(void* a_ctx,
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t nresolver::handle_io(void* a_ctx)
+int32_t nresolver::get_active(adns_ctx* a_adns_ctx)
 {
-#ifdef ASYNC_DNS_WITH_UDNS
-        dns_ctx *l_ctx = static_cast<dns_ctx *>(a_ctx);
-        if(!l_ctx)
+        if(!a_adns_ctx)
         {
+                TRC_ERROR("a_adns_ctx == NULL\n");
+                return 0;
+        }
+#ifdef ASYNC_DNS_WITH_UDNS
+        if(!(a_adns_ctx->m_udns_ctx))
+        {
+                TRC_ERROR("a_adns_ctx->m_udns_ctx == NULL\n");
+                return 0;
+        }
+        int32_t l_active = dns_active(a_adns_ctx->m_udns_ctx);
+        if(l_active < 0)
+        {
+                TRC_ERROR("l_active[%d] < 0\n", l_active);
+                return 0;
+        }
+        return l_active;
+#else
+        return 0;
+#endif
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+int32_t nresolver::evr_fd_writeable_cb(void *a_data)
+{
+        TRC_ERROR("writeable cb for adns resolver");
+        return HLX_STATUS_OK;
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+int32_t nresolver::evr_fd_readable_cb(void *a_data)
+{
+        //NDBG_PRINT("%sREADABLE%s\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        adns_ctx *l_adns_ctx = static_cast<adns_ctx *>(a_data);
+        if(!l_adns_ctx)
+        {
+                TRC_ERROR("a_ctx == NULL\n");
                 return HLX_STATUS_ERROR;
         }
-        dns_ioevent(l_ctx, 0);
+#ifdef ASYNC_DNS_WITH_UDNS
+        if(!l_adns_ctx->m_udns_ctx)
+        {
+                // TODO REMOVE
+                TRC_ERROR("l_adns_ctx->m_udns_ctx == NULL.\n");
+                return HLX_STATUS_ERROR;
+        }
+        dns_ioevent(l_adns_ctx->m_udns_ctx, 0);
 #endif
+        if(l_adns_ctx->m_ctx)
+        {
+                // Try dequeue any q'd dns req's
+                std::string l_unused;
+                int32_t l_s;
+                void *l_job;
+                l_s = l_adns_ctx->m_ctx->lookup_async(l_adns_ctx,l_unused,0,l_adns_ctx,&l_job);
+                if(l_s != HLX_STATUS_OK)
+                {
+                        TRC_ERROR("lookup_async.\n");
+                        return HLX_STATUS_ERROR;
+                }
+        }
+        return HLX_STATUS_OK;
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+int32_t nresolver::evr_fd_error_cb(void *a_data)
+{
+        TRC_ERROR("evr_fd_error_cb\n");
+        return HLX_STATUS_OK;
+}
+#endif
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+#ifdef ASYNC_DNS_SUPPORT
+int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
+{
+        //NDBG_PRINT("%sTIMEOUT%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
+        // timeout cb
+        adns_ctx *l_adns_ctx = static_cast<adns_ctx *>(a_data);
+        if(!l_adns_ctx)
+        {
+                TRC_ERROR("a_ctx == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
+        if(l_adns_ctx->m_ctx)
+        {
+                // Try dequeue any q'd dns req's
+                l_adns_ctx->m_timer_obj = NULL;
+                std::string l_unused;
+                int32_t l_s;
+                void *l_job;
+                l_s = l_adns_ctx->m_ctx->lookup_async(l_adns_ctx,l_unused,0,l_adns_ctx,&l_job);
+                if(l_s != HLX_STATUS_OK)
+                {
+                        return HLX_STATUS_ERROR;
+                }
+        }
         return HLX_STATUS_OK;
 }
 #endif

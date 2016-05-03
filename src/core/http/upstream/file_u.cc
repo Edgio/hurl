@@ -2,7 +2,7 @@
 //: Copyright (C) 2014 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    file.cc
+//: \file:    file_u.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    11/29/2015
@@ -24,10 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "file.h"
 #include "nbq.h"
 #include "ndebug.h"
 #include "hlx/status.h"
+#include "hlx/file_u.h"
 #include <unistd.h>
 #include <errno.h>
 #include <sys/stat.h>
@@ -40,11 +40,11 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-filesender::filesender():
-                m_fd(-1),
-                m_size(0),
-                m_read(0),
-                m_state(IDLE)
+file_u::file_u():
+        m_fd(-1),
+        m_size(0),
+        m_read(0),
+        m_state(IDLE)
 {
 }
 
@@ -53,7 +53,7 @@ filesender::filesender():
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-filesender::~filesender()
+file_u::~file_u()
 {
         if(m_fd > 0)
         {
@@ -67,7 +67,7 @@ filesender::~filesender()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t filesender::fsinit(const char *a_filename)
+int32_t file_u::fsinit(const char *a_filename)
 {
         // ---------------------------------------
         // Check is a file
@@ -111,7 +111,7 @@ int32_t filesender::fsinit(const char *a_filename)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-ssize_t filesender::fsread(char *ao_dst, size_t a_len)
+ssize_t file_u::ups_read(char *ao_dst, size_t a_len)
 {
         // Get one chunk of the file from disk
         ssize_t l_read = 0;
@@ -142,7 +142,7 @@ ssize_t filesender::fsread(char *ao_dst, size_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-ssize_t filesender::fsread(nbq &ao_q, size_t a_len)
+ssize_t file_u::ups_read(nbq &ao_q, size_t a_len)
 {
         if(m_fd < 0)
         {
@@ -170,6 +170,22 @@ ssize_t filesender::fsread(nbq &ao_q, size_t a_len)
                 }
         }
         return l_read;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Cancel and cleanup
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t file_u::ups_cancel(void)
+{
+        if(m_fd > 0)
+        {
+                close(m_fd);
+                m_state = DONE;
+                m_fd = -1;
+        }
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
