@@ -458,7 +458,7 @@ const host_info &subr::get_host_info(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-t_srvr *subr::get_t_hlx(void) const
+t_srvr *subr::get_t_srvr(void) const
 {
         return m_t_srvr;
 }
@@ -862,9 +862,9 @@ void subr::set_host_info(const host_info &a_host_info)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void subr::set_t_hlx(t_srvr *a_t_hlx)
+void subr::set_t_srvr(t_srvr *a_t_srvr)
 {
-        m_t_srvr = a_t_hlx;
+        m_t_srvr = a_t_srvr;
 }
 
 //: ----------------------------------------------------------------------------

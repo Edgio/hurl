@@ -100,16 +100,16 @@ phurl_u::~phurl_u(void)
                 {
                         if(m_clnt_session && m_clnt_session->m_t_srvr)
                         {
-                                t_srvr *l_t_hlx = m_clnt_session->m_t_srvr;
+                                t_srvr *l_t_srvr = m_clnt_session->m_t_srvr;
                                 resp *l_resp = (*i_resp)->m_resp;
                                 if(l_resp)
                                 {
                                         if(l_resp->get_q())
                                         {
-                                                l_t_hlx->release_nbq(l_resp->get_q());
+                                                l_t_srvr->release_nbq(l_resp->get_q());
                                                 l_resp->set_q(NULL);
                                         }
-                                        l_t_hlx->release_resp((*i_resp)->m_resp);
+                                        l_t_srvr->release_resp((*i_resp)->m_resp);
                                         (*i_resp)->m_resp = NULL;
                                 }
                         }

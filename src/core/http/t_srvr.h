@@ -66,7 +66,7 @@ class nbq;
 
 //: ----------------------------------------------------------------------------
 //: Virtual Server conf
-//: TODO Allow many t_hlx_conf's
+//: TODO Allow many t_srvr conf's
 //: one per listener
 //: ----------------------------------------------------------------------------
 typedef struct t_conf

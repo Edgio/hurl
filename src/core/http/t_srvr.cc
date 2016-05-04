@@ -296,7 +296,7 @@ int32_t t_srvr::add_lsnr(lsnr &a_lsnr)
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::subr_add(subr &a_subr)
 {
-        a_subr.set_t_hlx(this);
+        a_subr.set_t_srvr(this);
         //NDBG_PRINT("Adding subreq.\n");
         if(m_stopped)
         {
@@ -672,20 +672,20 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
                 return HLX_STATUS_ERROR;
         }
         l_subr->set_lookup_job(NULL);
-        t_srvr *l_t_hlx = l_subr->get_t_hlx();
-        if(!l_t_hlx)
+        t_srvr *l_t_srvr = l_subr->get_t_srvr();
+        if(!l_t_srvr)
         {
                 // TODO Cleanup subr???
-                TRC_ERROR("l_t_hlx == NULL\n");
+                TRC_ERROR("l_t_srvr == NULL\n");
                 return HLX_STATUS_ERROR;
         }
         // TODO DEBUG???
-        //l_t_hlx->m_stat.m_subr_pending_resolv_map.erase(l_subr->get_label());
+        //l_t_srvr->m_stat.m_subr_pending_resolv_map.erase(l_subr->get_label());
         if(!a_host_info)
         {
                 //NDBG_PRINT("a_host_info == NULL --HOST: %s\n", l_subr->get_host().c_str());
                 //NDBG_PRINT("l_host_info null\n");
-                ++(l_t_hlx->m_stat.m_total_errors);
+                ++(l_t_srvr->m_stat.m_total_errors);
                 l_subr->bump_num_requested();
                 l_subr->bump_num_completed();
                 subr::error_cb_t l_error_cb = l_subr->get_error_cb();
@@ -702,15 +702,15 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
         }
         //NDBG_PRINT("l_subr: %p -HOST: %s\n", l_subr, l_subr->get_host().c_str());
         l_subr->set_host_info(*a_host_info);
-        ++(l_t_hlx->m_stat.m_dns_resolved);
+        ++(l_t_srvr->m_stat.m_dns_resolved);
         // Special handling for DUPE'd subr's
         if(l_subr->get_kind() == subr::SUBR_KIND_DUPE)
         {
-                //l_t_hlx->m_subr_list.push_back(l_subr);
-                l_t_hlx->subr_enqueue(*l_subr);
-                l_subr->set_i_q(--(l_t_hlx->m_subr_list.end()));
+                //l_t_srvr->m_subr_list.push_back(l_subr);
+                l_t_srvr->subr_enqueue(*l_subr);
+                l_subr->set_i_q(--(l_t_srvr->m_subr_list.end()));
         }
-        l_t_hlx->subr_add(*l_subr);
+        l_t_srvr->subr_add(*l_subr);
         return HLX_STATUS_OK;
 }
 #endif
@@ -729,7 +729,7 @@ int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
         }
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_hlx = static_cast<t_srvr *>(l_nconn->get_ctx());
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         lsnr *l_lsnr = static_cast<lsnr *>(l_nconn->get_data());
         //NDBG_PRINT("%sREADABLE%s LABEL: %s LSNR: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
         //                l_nconn->get_label().c_str(), l_lsnr);
@@ -756,7 +756,7 @@ int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
 
         // Get new connected client conn
         nconn *l_new_nconn = NULL;
-        l_new_nconn = l_t_hlx->get_new_client_conn(l_nconn->get_scheme(), l_lsnr);
+        l_new_nconn = l_t_srvr->get_new_client_conn(l_nconn->get_scheme(), l_lsnr);
         if(!l_new_nconn)
         {
                 //NDBG_PRINT("Error performing get_new_client_conn");
@@ -783,7 +783,7 @@ int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
         if(l_status != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error: performing run_state_machine\n");
-                l_t_hlx->cleanup_conn(l_clnt_session, l_new_nconn);
+                l_t_srvr->cleanup_conn(l_clnt_session, l_new_nconn);
                 // TODO Check return
                 return HLX_STATUS_ERROR;
         }

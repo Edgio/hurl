@@ -123,7 +123,7 @@ public:
         ups_srvr_session *get_ups_srvr_session(void);
         clnt_session *get_clnt_session(void) const;
         const host_info &get_host_info(void) const;
-        t_srvr *get_t_hlx(void) const;
+        t_srvr *get_t_srvr(void) const;
         uint64_t get_start_time_ms(void) const;
         uint64_t get_end_time_ms(void) const;
         void * get_lookup_job(void);
@@ -160,7 +160,7 @@ public:
         void set_ups_srvr_session(ups_srvr_session *a_ups_srvr_session);
         void set_clnt_session(clnt_session *a_clnt_session);
         void set_host_info(const host_info &a_host_info);
-        void set_t_hlx(t_srvr *a_t_hlx);
+        void set_t_srvr(t_srvr *a_t_srvr);
         void set_start_time_ms(uint64_t a_val);
         void set_end_time_ms(uint64_t a_val);
         void set_lookup_job(void *a_data);

@@ -69,7 +69,7 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
         }
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_hlx = static_cast<t_srvr *>(l_nconn->get_ctx());
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
         //NDBG_PRINT("%sREADABLE%s LABEL: %s CLNT: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
         //                l_nconn->get_label().c_str(), l_ups_srvr_session);
@@ -78,11 +78,11 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
         if(l_ups_srvr_session &&
            l_ups_srvr_session->m_timer_obj)
         {
-                l_t_hlx->cancel_timer(l_ups_srvr_session->m_timer_obj);
+                l_t_srvr->cancel_timer(l_ups_srvr_session->m_timer_obj);
                 l_ups_srvr_session->m_timer_obj = NULL;
         }
         // Get timeout ms
-        uint32_t l_timeout_ms = l_t_hlx->get_timeout_ms();
+        uint32_t l_timeout_ms = l_t_srvr->get_timeout_ms();
         if(l_ups_srvr_session &&
            l_ups_srvr_session->m_subr)
         {
@@ -105,8 +105,8 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 }
                 else
                 {
-                        l_in_q = l_t_hlx->m_orphan_in_q;
-                        l_out_q = l_t_hlx->m_orphan_out_q;
+                        l_in_q = l_t_srvr->m_orphan_in_q;
+                        l_out_q = l_t_srvr->m_orphan_out_q;
                 }
                 l_s = l_nconn->nc_run_state_machine(l_mode, l_in_q, l_out_q);
                 //NDBG_PRINT("%sREADABLE%s l_s:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
@@ -114,11 +114,11 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 {
                         if(l_mode == nconn::NC_MODE_READ)
                         {
-                                l_t_hlx->m_stat.m_total_bytes_read += l_s;
+                                l_t_srvr->m_stat.m_total_bytes_read += l_s;
                         }
                         else if(l_mode == nconn::NC_MODE_WRITE)
                         {
-                                l_t_hlx->m_stat.m_total_bytes_written += l_s;
+                                l_t_srvr->m_stat.m_total_bytes_written += l_s;
                         }
                 }
 
@@ -149,11 +149,11 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                         //NDBG_PRINT("Add idle\n");
                         if(l_ups_srvr_session)
                         {
-                                l_t_hlx->m_ups_srvr_session_pool.release(l_ups_srvr_session);
+                                l_t_srvr->m_ups_srvr_session_pool.release(l_ups_srvr_session);
                                 l_ups_srvr_session = NULL;
                         }
                         l_nconn->set_data(NULL);
-                        l_s = l_t_hlx->m_nconn_proxy_pool.add_idle(l_nconn);
+                        l_s = l_t_srvr->m_nconn_proxy_pool.add_idle(l_nconn);
                         if(l_s != HLX_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error: performing add_idle l_s: %d\n", l_s);
@@ -164,15 +164,15 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 case nconn::NC_STATUS_EOF:
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        ++(l_t_hlx->m_stat.m_total_errors);
-                        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        ++(l_t_srvr->m_stat.m_total_errors);
+                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
@@ -181,19 +181,19 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 if(!l_ups_srvr_session)
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
 
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
-                (l_t_hlx->is_running()));
+                (l_t_srvr->is_running()));
 done:
         // Add idle timeout
         if(l_ups_srvr_session &&
            !l_ups_srvr_session->m_timer_obj)
         {
-                l_t_hlx->add_timer(l_timeout_ms,
+                l_t_srvr->add_timer(l_timeout_ms,
                                    evr_fd_timeout_cb,
                                    l_nconn,
                                    (void **)(&(l_ups_srvr_session->m_timer_obj)));
@@ -217,7 +217,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
         }
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_hlx = static_cast<t_srvr *>(l_nconn->get_ctx());
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
         //NDBG_PRINT("%sWRITEABLE%s LABEL: %s CLNT: %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
         //                l_nconn->get_label().c_str(), l_ups_srvr_session);
@@ -225,11 +225,11 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
         if(l_ups_srvr_session &&
            l_ups_srvr_session->m_timer_obj)
         {
-                l_t_hlx->cancel_timer(l_ups_srvr_session->m_timer_obj);
+                l_t_srvr->cancel_timer(l_ups_srvr_session->m_timer_obj);
                 l_ups_srvr_session->m_timer_obj = NULL;
         }
         // Get timeout ms
-        uint32_t l_timeout_ms = l_t_hlx->get_timeout_ms();
+        uint32_t l_timeout_ms = l_t_srvr->get_timeout_ms();
         if(l_ups_srvr_session &&
            l_ups_srvr_session->m_subr)
         {
@@ -244,8 +244,8 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
         }
         else
         {
-                l_in_q = l_t_hlx->m_orphan_in_q;
-                l_out_q = l_t_hlx->m_orphan_out_q;
+                l_in_q = l_t_srvr->m_orphan_in_q;
+                l_out_q = l_t_srvr->m_orphan_out_q;
         }
         int32_t l_s = HLX_STATUS_OK;
         do {
@@ -255,7 +255,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 //NDBG_PRINT("%sWRITEABLE%s l_s =  %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_s);
                 if(l_s > 0)
                 {
-                        l_t_hlx->m_stat.m_total_bytes_written += l_s;
+                        l_t_srvr->m_stat.m_total_bytes_written += l_s;
                 }
                 if(l_ups_srvr_session)
                 {
@@ -281,15 +281,15 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 case nconn::NC_STATUS_EOF:
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        ++(l_t_hlx->m_stat.m_total_errors);
-                        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        ++(l_t_srvr->m_stat.m_total_errors);
+                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
@@ -298,19 +298,19 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 if(!l_ups_srvr_session)
                 {
                         //NDBG_PRINT("CLEANUP.\n");
-                        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
 
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
-                 (l_t_hlx->is_running()));
+                 (l_t_srvr->is_running()));
 done:
         // Add idle timeout
         if(l_ups_srvr_session &&
            !l_ups_srvr_session->m_timer_obj)
         {
-                l_t_hlx->add_timer(l_timeout_ms,
+                l_t_srvr->add_timer(l_timeout_ms,
                                    evr_fd_timeout_cb,
                                    l_nconn,
                                    (void **)(&(l_ups_srvr_session->m_timer_obj)));
@@ -330,13 +330,13 @@ int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(a_data);
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_hlx = static_cast<t_srvr *>(l_nconn->get_ctx());
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
         //if(l_nconn->is_free())
         //{
         //        return HLX_STATUS_OK;
         //}
-        ++l_t_hlx->m_stat.m_total_errors;
+        ++l_t_srvr->m_stat.m_total_errors;
         if(l_ups_srvr_session)
         {
                 int32_t l_hstatus;
@@ -347,7 +347,7 @@ int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
                 }
         }
         int32_t l_s;
-        l_s = l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+        l_s = l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
         if(l_s != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
@@ -366,14 +366,14 @@ int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
         CHECK_FOR_NULL_ERROR(a_data);
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_hlx = static_cast<t_srvr *>(l_nconn->get_ctx());
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
         TRC_ERROR("connection timeout -host: %s\n", l_nconn->get_label().c_str());
         if(l_nconn->is_free())
         {
                 return HLX_STATUS_OK;
         }
-        ++(l_t_hlx->m_stat.m_total_errors);
+        ++(l_t_srvr->m_stat.m_total_errors);
         if(l_ups_srvr_session)
         {
                 int32_t l_hstatus;
@@ -383,7 +383,7 @@ int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
                         // TODO???
                 }
         }
-        l_t_hlx->cleanup_conn(l_ups_srvr_session, l_nconn);
+        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
         // TODO Check return
         return HLX_STATUS_OK;
 }
