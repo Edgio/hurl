@@ -509,11 +509,11 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 return;
         }
         l_job->m_complete = true;
-        NDBG_PRINT("%sokay host%s: %s, size: %d -ip: %s\n",
-                   ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-                   a_result->dnsa4_qname,
-                   a_result->dnsa4_nrr,
-                   s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
+        //NDBG_PRINT("%sokay host%s: %s, size: %d -ip: %s\n",
+        //           ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
+        //           a_result->dnsa4_qname,
+        //           a_result->dnsa4_nrr,
+        //           s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
 
         // Create host_info_t
         host_info *l_host_info = NULL;

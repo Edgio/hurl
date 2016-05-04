@@ -595,6 +595,7 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
         l_nconn->set_read_cb(http_parse);
         l_nconn->set_read_cb_data(l_rqst);
         l_clnt_session->m_rqst = l_rqst;
+        l_clnt_session->m_resp_done_cb = m_t_conf->m_resp_done_cb;
         if(!get_from_pool_if_null(l_clnt_session->m_in_q, m_nbq_pool))
         {
                 l_clnt_session->m_in_q->reset_write();

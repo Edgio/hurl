@@ -555,8 +555,7 @@ int32_t clnt_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a_con
                                 m_ups = NULL;
                         }
                 }
-
-                //NDBG_PRINT("LABEL[%s] l_status: %d\n", l_nconn->get_label().c_str(), l_status);
+                //NDBG_PRINT("LABEL[%s] a_conn_status: %d\n", m_nconn->get_label().c_str(), a_conn_status);
                 switch(a_conn_status)
                 {
                 case nconn::NC_STATUS_ERROR:
@@ -577,10 +576,14 @@ int32_t clnt_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a_con
                         {
                                 m_access_info.m_bytes_out += a_conn_status;
                         }
+                        //NDBG_PRINT("m_nconn->is_accepting(): %d\n", m_nconn->is_accepting());
+                        //NDBG_PRINT("m_out_q:                 %p\n", m_out_q);
+                        //NDBG_PRINT("m_out_q->read_avail():   %lu\n", m_out_q->read_avail());
                         if(!m_nconn->is_accepting() &&
                             (m_out_q && !m_out_q->read_avail()))
                         {
                                 m_access_info.m_total_time_ms = get_time_ms() - m_access_info.m_start_time_ms;
+                                //NDBG_PRINT("m_resp_done_cb:          %p\n", m_resp_done_cb);
                                 if(m_resp_done_cb)
                                 {
                                         int32_t l_s;
