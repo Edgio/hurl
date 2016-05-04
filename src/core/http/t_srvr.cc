@@ -814,6 +814,8 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 {
                         return HLX_STATUS_AGAIN;
                 }
+                // TODO -reenable limits
+#if 0
                 // Check if we've exceeded max parallel
                 // If we maxed out active connections for this label
                 // -try again later...
@@ -832,7 +834,7 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         }
                         return HLX_STATUS_OK;
                 }
-
+#endif
                 nresolver *l_nresolver = m_t_conf->m_srvr->get_nresolver();
                 if(!l_nresolver)
                 {
