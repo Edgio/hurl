@@ -198,11 +198,7 @@ endif()
 # ASAN
 # ------------------------------------------------------------------------------
 if (BUILD_ASAN)
-  if (BUILD_UBUNTU)
-    find_ubuntu_package(LIBASAN "" libasan.so.0 "" libasan0)
-  else()
-    set(LIBRARIES ${LIBRARIES} asan)
-  endif()
+  set(LIBRARIES ${LIBRARIES} asan)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
   set(DEBUG_MODE ON)
 endif()
