@@ -175,11 +175,13 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
 //: ----------------------------------------------------------------------------
 t_srvr::~t_srvr()
 {
-        //if(m_evr_loop)
-        //{
-        //        delete m_evr_loop;
-        //        m_evr_loop = NULL;
-        //}
+        m_nconn_pool.evict_all_idle();
+        m_nconn_proxy_pool.evict_all_idle();
+        if(m_evr_loop)
+        {
+                delete m_evr_loop;
+                m_evr_loop = NULL;
+        }
         for(listening_nconn_list_t::iterator i_conn = m_listening_nconn_list.begin();
                         i_conn != m_listening_nconn_list.end();
                         ++i_conn)
@@ -693,10 +695,7 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
                 {
                         l_error_cb(*l_subr, NULL, HTTP_STATUS_BAD_GATEWAY, "address lookup failure");
                         // TODO check status
-                }
-                if(!l_subr->get_detach_resp())
-                {
-                        delete l_subr;
+                        return HLX_STATUS_OK;
                 }
                 return HLX_STATUS_OK;
         }
@@ -828,9 +827,8 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                                            NULL,
                                            HTTP_STATUS_SERVICE_NOT_AVAILABLE,
                                            get_resp_status_str(HTTP_STATUS_SERVICE_NOT_AVAILABLE));
-                                // TODO check status
+                                return HLX_STATUS_OK;
                         }
-                        if(a_subr.get_error_cb());
                         return HLX_STATUS_OK;
                 }
 

@@ -60,11 +60,21 @@ nconn_pool::nconn_pool(uint32_t a_id,
 //: ----------------------------------------------------------------------------
 nconn_pool::~nconn_pool(void)
 {
+        evict_all_idle();
+        // TODO kill active connections...
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void nconn_pool::evict_all_idle(void)
+{
         while(m_idle_conn_ncache.size())
         {
                 m_idle_conn_ncache.evict();
         }
-        // TODO kill active connections...
 }
 
 //: ----------------------------------------------------------------------------

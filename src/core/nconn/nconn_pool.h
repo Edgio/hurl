@@ -59,6 +59,7 @@ public:
                    uint64_t a_max_active_size,
                    uint64_t a_max_idle_size);
         ~nconn_pool();
+        void evict_all_idle(void);
         nconn * get_new_active(const std::string &a_label, scheme_t a_scheme);
         uint64_t get_active_size(void);
         uint64_t get_active_available(void);

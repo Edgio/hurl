@@ -501,7 +501,7 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                         //NDBG_PRINT("m_resp:             %p\n", m_resp);
                         //NDBG_PRINT("m_resp->m_complete: %d\n", m_resp->m_complete);
                         // Handle completion
-                        if((m_nconn->is_done()) ||
+                        if((m_nconn && m_nconn->is_done()) ||
                            (m_resp &&
                             m_resp->m_complete))
                         {
@@ -513,12 +513,12 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                                         if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                                 }
                                 // Get request time
-                                if(m_nconn->get_collect_stats_flag())
+                                if(m_nconn && m_nconn->get_collect_stats_flag())
                                 {
                                         m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));
                                 }
 
-                                if(m_resp)
+                                if(m_nconn && m_resp)
                                 {
                                         m_t_srvr->add_stat_to_agg(m_nconn->get_stats(), m_resp->get_status());
                                 }
@@ -528,7 +528,11 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                                 {
                                         l_hmsg_keep_alive = m_resp->m_supports_keep_alives;
                                 }
-                                bool l_nconn_can_reuse = m_nconn->can_reuse();
+                                bool l_nconn_can_reuse = false;
+                                if(m_nconn)
+                                {
+                                        l_nconn_can_reuse = m_nconn->can_reuse();
+                                }
                                 bool l_keepalive = m_subr->get_keepalive();
                                 bool l_detach_resp = m_subr->get_detach_resp();
                                 bool l_complete = subr_complete();

@@ -248,12 +248,12 @@ string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACK
 # Optional flags
 # ------------------------------------------------------------------------------
 if (DEBUG_MODE)
-  add_definitions(-O0 -ggdb)
+  add_definitions(-O0 -g3)
 else()
   add_definitions(-O2)
 endif()
 if (BUILD_SYMBOLS)
-  add_definitions(-ggdb)
+  add_definitions(-g3)
 endif()
 
 # ------------------------------------------------------------------------------
