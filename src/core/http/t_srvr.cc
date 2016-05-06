@@ -236,6 +236,31 @@ int32_t t_srvr::init(void)
         // Create loop
         m_evr_loop = new evr_loop(m_t_conf->m_evr_loop_type,
                                   512); // TODO Need to make epoll vector resizeable...
+        if(!m_evr_loop)
+        {
+                TRC_ERROR("m_evr_loop == NULL");
+                return HLX_STATUS_ERROR;
+        }
+
+        // TODO check !NULL
+#ifdef ASYNC_DNS_SUPPORT
+        if(!m_adns_ctx)
+        {
+                nresolver *l_nresolver = m_t_conf->m_srvr->get_nresolver();
+                if(!l_nresolver)
+                {
+                        TRC_ERROR("l_nresolver == NULL\n");
+                        return HLX_STATUS_ERROR;
+                }
+                m_adns_ctx = l_nresolver->get_new_adns_ctx(m_evr_loop, adns_resolved_cb);
+                if(!m_adns_ctx)
+                {
+                        TRC_ERROR("performing get_new_adns_ctx\n");
+                        return HLX_STATUS_ERROR;
+                }
+        }
+#endif
+
         m_is_initd = true;
         return HLX_STATUS_OK;
 }
