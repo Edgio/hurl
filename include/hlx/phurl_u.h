@@ -105,15 +105,15 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        phurl_u(uint32_t a_timeout_ms=10000, float a_completion_ratio=100.0);
+        phurl_u(clnt_session &a_clnt_session,
+                uint32_t a_timeout_ms=10000,
+                float a_completion_ratio=100.0);
         ~phurl_u(void);
 
         // -------------------------------------------------
         // upstream methods
         // -------------------------------------------------
-        ssize_t ups_read(char *ao_dst, size_t a_len);
-        ssize_t ups_read(nbq &ao_q, size_t a_len);
-        bool ups_done(void);
+        ssize_t ups_read(size_t a_len);
         int32_t ups_cancel(void);
         uint32_t get_type(void) { return S_UPS_TYPE_PHURL;}
 
@@ -130,14 +130,12 @@ public:
         subr_uid_map_t m_pending_subr_uid_map;
         hlx_resp_list_t m_resp_list;
         phurl_h *m_phurl_h;
-        clnt_session *m_clnt_session;
         void *m_data;
         void *m_timer;
         uint64_t m_size;
         uint32_t m_timeout_ms;
         float m_completion_ratio;
         bool m_delete;
-        bool m_done;
         create_resp_cb_t m_create_resp_cb;
 
 private:

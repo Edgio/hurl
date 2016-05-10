@@ -97,7 +97,6 @@ public:
         clnt_session(void);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
-        int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
         void clear(void);
 private:
         // -------------------------------------------------

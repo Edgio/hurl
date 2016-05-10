@@ -33,23 +33,52 @@ namespace ns_hlx {
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
 class nbq;
+class clnt_session;
 
 //: ----------------------------------------------------------------------------
 //: base class for all upstream objects
 //: ----------------------------------------------------------------------------
 class base_u
 {
-
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
+        base_u(clnt_session &a_clnt_session):
+                m_clnt_session(a_clnt_session),
+                m_state(UPS_STATE_IDLE)
+        {}
         virtual ~base_u() {};
-        virtual ssize_t ups_read(char *ao_dst, size_t a_len) = 0;
-        virtual ssize_t ups_read(nbq &ao_q, size_t a_len) = 0;
-        virtual bool ups_done(void) = 0;
+        virtual ssize_t ups_read(size_t a_len) = 0;
         virtual int32_t ups_cancel(void) = 0;
         virtual uint32_t get_type(void) = 0;
+        bool ups_done(void) {return m_state == UPS_STATE_DONE;}
+        clnt_session &get_clnt_session(void) {return m_clnt_session;}
+
+protected:
+        // -------------------------------------------------
+        // Types
+        // -------------------------------------------------
+        typedef enum
+        {
+                UPS_STATE_IDLE,
+                UPS_STATE_SENDING,
+                UPS_STATE_DONE
+        } state_t;
+
+        // -------------------------------------------------
+        // protected members
+        // -------------------------------------------------
+        clnt_session &m_clnt_session;
+        state_t m_state;
+
+private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        // Disallow copy/assign
+        base_u& operator=(const base_u &);
+        base_u(const base_u &);
 };
 
 } //namespace ns_hlx {

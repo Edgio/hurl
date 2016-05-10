@@ -27,6 +27,7 @@
 #include "nbq.h"
 #include "string_util.h"
 #include "ndebug.h"
+#include "t_srvr.h"
 #include "clnt_session.h"
 #include "mime_types.h"
 #include "hlx/time_util.h"
@@ -36,6 +37,7 @@
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
 #include "hlx/status.h"
+#include "hlx/trace.h"
 #include <string.h>
 
 namespace ns_hlx {
@@ -78,7 +80,7 @@ h_resp_t file_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pm
         {
                 return H_RESP_CLIENT_ERROR;
         }
-        //NDBG_PRINT("l_path: %s\n",l_path.c_str());
+        TRC_VERBOSE("l_path: %s\n",l_path.c_str());
         return get_file(a_clnt_session, a_rqst, l_path);
 }
 
@@ -126,18 +128,27 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
 {
         if(!a_clnt_session.m_out_q)
         {
-                // TODO 5xx's for errors?
-                return send_not_found(a_clnt_session, a_rqst.m_supports_keep_alives);
+                if(!a_clnt_session.m_t_srvr)
+                {
+                        TRC_ERROR("a_clnt_session.m_t_srvr == NULL\n");
+                        return send_internal_server_error(a_clnt_session, a_rqst.m_supports_keep_alives);
+                }
+                a_clnt_session.m_out_q = a_clnt_session.m_t_srvr->get_nbq();
+                if(!a_clnt_session.m_out_q)
+                {
+                        TRC_ERROR("a_clnt_session.m_out_q\n");
+                        return send_internal_server_error(a_clnt_session, a_rqst.m_supports_keep_alives);
+                }
         }
 
         // Make relative...
-        file_u *l_fs = new file_u();
+        file_u *l_fs = new file_u(a_clnt_session);
         int32_t l_s;
         l_s = l_fs->fsinit(a_path.c_str());
         if(l_s != HLX_STATUS_OK)
         {
                 delete l_fs;
-                // TODO 5xx's for errors?
+                // TODO -use status code to determine is actual 404
                 return send_not_found(a_clnt_session, a_rqst.m_supports_keep_alives);
         }
 
@@ -147,12 +158,15 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
         // ---------------------------------------
         // Write headers
         // ---------------------------------------
-        if(!get_srvr(a_clnt_session))
+        srvr *l_srvr = get_srvr(a_clnt_session);
+        if(!l_srvr)
         {
+                TRC_ERROR("fsinit(%s) failed\n", a_path.c_str());
+                return send_internal_server_error(a_clnt_session, a_rqst.m_supports_keep_alives);
                 return H_RESP_SERVER_ERROR;
         }
         nbq_write_status(l_q, HTTP_STATUS_OK);
-        nbq_write_header(l_q, "Server", get_srvr(a_clnt_session)->get_server_name().c_str());
+        nbq_write_header(l_q, "Server", l_srvr->get_server_name().c_str());
         nbq_write_header(l_q, "Date", get_date_str());
 
         // Get extension
@@ -189,10 +203,11 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
         {
                 l_read = l_fs->fssize();
         }
-        l_fs->ups_read(l_q, l_read);
+        l_fs->ups_read(l_read);
         l_s = queue_resp(a_clnt_session);
         if(l_s != HLX_STATUS_OK)
         {
+                TRC_ERROR("queue_resp failed\n");
                 return H_RESP_SERVER_ERROR;
         }
         return H_RESP_DONE;

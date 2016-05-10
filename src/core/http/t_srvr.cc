@@ -151,9 +151,9 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
         m_listening_nconn_list(),
         m_subr_list(),
         m_subr_list_size(0),
+        m_nbq_pool(),
         m_resp_pool(),
         m_rqst_pool(),
-        m_nbq_pool(),
 #ifdef ASYNC_DNS_SUPPORT
         m_adns_ctx(NULL),
 #endif
@@ -375,7 +375,7 @@ int32_t t_srvr::queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_sessio
                 l_new = get_from_pool_if_null(a_clnt_session.m_out_q, m_nbq_pool);
                 if(!l_new)
                 {
-
+                        a_clnt_session.m_out_q->reset_write();
                 }
         }
 
@@ -625,10 +625,7 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
         {
                 l_clnt_session->m_in_q->reset_write();
         }
-        if(!get_from_pool_if_null(l_clnt_session->m_out_q, m_nbq_pool))
-        {
-                l_clnt_session->m_out_q->reset_write();
-        }
+        l_clnt_session->m_out_q = NULL;
         l_clnt_session->m_rqst->set_q(l_clnt_session->m_in_q);
         ++m_stat.m_cln_conn_started;
         return l_nconn;
@@ -1248,9 +1245,9 @@ int32_t t_srvr::cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn)
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn)
 {
-        //NDBG_PRINT("%sCLEANUP%s: a_clnt_session: %p\n",
+        //NDBG_PRINT("%sCLEANUP%s: a_ups_srvr_session: %p\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_clnt_session);
+        //           a_ups_srvr_session);
         //NDBG_PRINT_BT();
         if(a_ups_srvr_session)
         {
@@ -1268,7 +1265,10 @@ int32_t t_srvr::cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_ncon
                 }
                 if(a_ups_srvr_session->m_in_q)
                 {
-                        m_nbq_pool.release(a_ups_srvr_session->m_in_q);
+                        if(!a_ups_srvr_session->m_in_q_detached)
+                        {
+                                m_nbq_pool.release(a_ups_srvr_session->m_in_q);
+                        }
                         a_ups_srvr_session->m_in_q = NULL;
                 }
                 if(a_ups_srvr_session->m_out_q)
@@ -1517,6 +1517,30 @@ ups_srvr_session * t_srvr::get_ups_srvr(lsnr *a_lsnr)
         l_ups_srvr_session->m_timer_obj = NULL;
         return l_ups_srvr_session;
 }
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nbq *t_srvr::get_nbq(void)
+{
+        nbq *l_nbq = NULL;
+        bool l_new = false;
+        l_nbq = m_nbq_pool.get_free();
+        if(!l_nbq)
+        {
+                l_nbq = new nbq(4096);
+                m_nbq_pool.add(l_nbq);
+                l_new = true;
+        }
+        if(!l_new)
+        {
+                l_nbq->reset_write();
+        }
+        return l_nbq;
+}
+
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

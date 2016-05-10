@@ -54,16 +54,13 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        proxy_u();
+        proxy_u(clnt_session &a_clnt_session, subr &a_subr);
         ~proxy_u();
-        void set_subr(subr *a_subr);
 
         // -------------------------------------------------
         // upstream methods
         // -------------------------------------------------
-        ssize_t ups_read(char *ao_dst, size_t a_len);
-        ssize_t ups_read(nbq &ao_q, size_t a_len);
-        bool ups_done(void);
+        ssize_t ups_read(size_t a_len);
         int32_t ups_cancel(void);
         uint32_t get_type(void) { return S_UPS_TYPE_PROXY;}
 
@@ -75,8 +72,6 @@ public:
                                   nconn *a_nconn,
                                   http_status_t a_status,
                                   const char *a_error_str);
-
-
 private:
         // -------------------------------------------------
         // Private methods
@@ -88,7 +83,7 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        subr *m_subr;
+        subr &m_subr;
 };
 
 } //namespace ns_hlx {

@@ -32,6 +32,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
     ../../include
     ../../ext
     ../core/
+    ../core/evr
+    ../core/nconn
 )
 
 #add_definitions(-std=c++0x)

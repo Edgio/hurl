@@ -168,6 +168,7 @@ public:
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
         srvr *get_srvr(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_srvr;}
+        nbq *get_nbq(void);
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
         int32_t queue_output(clnt_session &a_clnt_session);
@@ -278,9 +279,9 @@ private:
         uint64_t m_subr_list_size;
 
         // Pools
+        nbq_pool_t m_nbq_pool;
         resp_pool_t m_resp_pool;
         rqst_pool_t m_rqst_pool;
-        nbq_pool_t m_nbq_pool;
 
 #ifdef ASYNC_DNS_SUPPORT
         nresolver::adns_ctx *m_adns_ctx;

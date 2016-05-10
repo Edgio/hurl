@@ -346,7 +346,7 @@ int32_t nconn::nc_write(nbq *a_out_q)
 
         if(!a_out_q->read_avail())
         {
-                //NDBG_PRINT("Error l_write_size == %lu\n", a_out_q->read_avail());
+                TRC_ERROR("Error a_out_q->read_avail() == 0\n");
                 return NC_STATUS_OK;
         }
         //NDBG_PRINT("%sTRY_WRITE%s: l_write_size: %lu\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_out_q->read_avail());

@@ -24,15 +24,15 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/proxy_u.h"
-#include "hlx/subr.h"
-#include "hlx/status.h"
-#include "hlx/trace.h"
 #include "ndebug.h"
 #include "clnt_session.h"
 #include "ups_srvr_session.h"
 #include "nbq.h"
 #include "t_srvr.h"
+#include "hlx/proxy_u.h"
+#include "hlx/subr.h"
+#include "hlx/status.h"
+#include "hlx/trace.h"
 
 namespace ns_hlx {
 
@@ -41,9 +41,12 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-proxy_u::proxy_u(void):
-                m_subr(NULL)
+proxy_u::proxy_u(clnt_session &a_clnt_session,
+                 subr &a_subr):
+        base_u(a_clnt_session),
+        m_subr(a_subr)
 {
+        //NDBG_PRINT("%sCONSTRUCT%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
 }
 
 //: ----------------------------------------------------------------------------
@@ -53,11 +56,8 @@ proxy_u::proxy_u(void):
 //: ----------------------------------------------------------------------------
 proxy_u::~proxy_u(void)
 {
-        if(m_subr)
-        {
-                delete m_subr;
-                m_subr = NULL;
-        }
+        //NDBG_PRINT("%sDELETE%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+        delete &m_subr;
 }
 
 //: ----------------------------------------------------------------------------
@@ -65,84 +65,44 @@ proxy_u::~proxy_u(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void proxy_u::set_subr(subr *a_subr)
-{
-        m_subr = a_subr;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-ssize_t proxy_u::ups_read(char *ao_dst, size_t a_len)
-{
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-ssize_t proxy_u::ups_read(nbq &ao_q, size_t a_len)
+ssize_t proxy_u::ups_read(size_t a_len)
 {
         //NDBG_PRINT("a_len: %ld\n", a_len);
         //NDBG_PRINT_BT();
+        if(ups_done())
+        {
+                return HLX_STATUS_OK;
+        }
+        m_state = UPS_STATE_SENDING;
         if(a_len <= 0)
         {
                 return HLX_STATUS_OK;
         }
-        if(!m_subr)
-        {
-                TRC_ERROR("m_subr == NULL\n");
-                return HLX_STATUS_ERROR;
-        }
-        // Create resp
-        clnt_session *l_clnt_session = m_subr->get_clnt_session();
-        if(!l_clnt_session)
-        {
-                TRC_ERROR("requester ups_srvr_session == NULL\n");
-                return HLX_STATUS_ERROR;
-        }
-        nbq *l_out_q = l_clnt_session->m_out_q;
-        if(!l_out_q)
-        {
-                TRC_ERROR("requester l_clnt_session out_q == NULL\n");
-                return HLX_STATUS_ERROR;
-        }
-        ups_srvr_session *l_ups_srvr_session = m_subr->get_ups_srvr_session();
+        ups_srvr_session *l_ups_srvr_session = m_subr.get_ups_srvr_session();
         if(!l_ups_srvr_session || !l_ups_srvr_session->m_in_q)
         {
                 TRC_ERROR("requester ups_srvr_session or m_in_q == NULL\n");
                 return HLX_STATUS_ERROR;
         }
-        //NDBG_PRINT("m_in_q->b_read_avail() = %d\n", m_in_q->b_read_avail());
-        int64_t l_wrote;
-        l_wrote = l_clnt_session->m_out_q->write_q(*(l_ups_srvr_session->m_in_q));
-        if(l_wrote > 0)
+        if(!m_clnt_session.m_out_q)
         {
-                l_clnt_session->m_t_srvr->queue_output(*l_clnt_session);
+                m_clnt_session.m_out_q = l_ups_srvr_session->m_in_q;
+                l_ups_srvr_session->m_in_q_detached = true;
         }
-        else
+        //NDBG_PRINT("l_ups_srvr_session->m_in_q->b_read_avail() = %d\n", l_ups_srvr_session->m_in_q->b_read_avail());
+        //NDBG_PRINT("m_clnt_session.m_out_q->b_read_avail()     = %d\n", m_clnt_session.m_out_q->b_read_avail());
+        if(l_ups_srvr_session->m_resp->m_complete)
         {
-                //NDBG_PRINT("Error writing to ups_srvr_session out_q\n");
+                m_state = UPS_STATE_DONE;
         }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool proxy_u::ups_done(void)
-{
-        if(m_subr)
+        int32_t l_s;
+        l_s = m_clnt_session.m_t_srvr->queue_output(m_clnt_session);
+        if(l_s != HLX_STATUS_OK)
         {
-                return false;
+                TRC_ERROR("performing queue_output\n");
+                return HLX_STATUS_ERROR;
         }
-        return true;
+        return a_len;
 }
 
 //: ----------------------------------------------------------------------------
@@ -152,17 +112,19 @@ bool proxy_u::ups_done(void)
 //: ----------------------------------------------------------------------------
 int32_t proxy_u::ups_cancel(void)
 {
-        //NDBG_PRINT("%sUPS_CANCEL%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
-        if(m_subr)
+        if(ups_done())
         {
-                // cancel subrequest
-                m_subr->set_error_cb(NULL);
-                int32_t l_s;
-                l_s = m_subr->cancel();
-                if(l_s != HLX_STATUS_OK)
-                {
-                        TRC_ERROR("performing subr cancel.\n");
-                }
+                return HLX_STATUS_OK;
+        }
+        m_state = UPS_STATE_DONE;
+        //NDBG_PRINT("%sUPS_CANCEL%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+        // cancel subrequest
+        m_subr.set_error_cb(NULL);
+        int32_t l_s;
+        l_s = m_subr.cancel();
+        if(l_s != HLX_STATUS_OK)
+        {
+                TRC_ERROR("performing subr cancel.\n");
         }
         return HLX_STATUS_OK;
 }
@@ -174,16 +136,14 @@ int32_t proxy_u::ups_cancel(void)
 //: ----------------------------------------------------------------------------
 int32_t proxy_u::s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp)
 {
-        clnt_session *l_clnt_session = a_subr.get_clnt_session();
-        if(!l_clnt_session)
+        //NDBG_PRINT("%ss_completion_cb%s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
+        clnt_session *l_cs = a_subr.get_clnt_session();
+        if(!l_cs)
         {
                 return HLX_STATUS_ERROR;
         }
-        if(l_clnt_session->m_ups)
-        {
-                delete l_clnt_session->m_ups;
-                l_clnt_session->m_ups = NULL;
-        }
+        // access info
+        l_cs->m_access_info.m_resp_status = (http_status_t)a_resp.get_status();
         return HLX_STATUS_OK;
 }
 
@@ -197,21 +157,22 @@ int32_t proxy_u::s_error_cb(subr &a_subr,
                             http_status_t a_status,
                             const char *a_error_str)
 {
+        //NDBG_PRINT("%ss_error_cb%s\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF);
         if(!a_subr.get_clnt_session())
         {
                 return HLX_STATUS_ERROR;
         }
-        clnt_session *l_clnt_session = a_subr.get_clnt_session();
-        if(!l_clnt_session)
+        clnt_session *l_cs = a_subr.get_clnt_session();
+        if(!l_cs)
         {
                 return HLX_STATUS_ERROR;
         }
-        if(l_clnt_session->m_ups)
+        if(l_cs->m_ups)
         {
-                delete l_clnt_session->m_ups;
-                l_clnt_session->m_ups = NULL;
+                delete l_cs->m_ups;
+                l_cs->m_ups = NULL;
         }
-        rqst_h::send_json_resp_err(*l_clnt_session,
+        rqst_h::send_json_resp_err(*l_cs,
                                    false,
                                    // TODO use supports keep-alives from client request
                                    a_status);

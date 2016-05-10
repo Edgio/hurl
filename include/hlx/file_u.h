@@ -52,7 +52,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        file_u();
+        file_u(clnt_session &a_clnt_session);
         ~file_u();
         int fsinit(const char *a_filename);
         size_t fssize(void) { return m_size;}
@@ -60,22 +60,10 @@ public:
         // -------------------------------------------------
         // upstream methods
         // -------------------------------------------------
-        ssize_t ups_read(char *ao_dst, size_t a_len);
-        ssize_t ups_read(nbq &ao_q, size_t a_len);
-        bool ups_done(void) {return (m_state == DONE);}
+        ssize_t ups_read(size_t a_len);
         int32_t ups_cancel(void);
         uint32_t get_type(void) { return S_UPS_TYPE_FILE;}
 private:
-        // -------------------------------------------------
-        // Private types
-        // -------------------------------------------------
-        typedef enum
-        {
-                IDLE,
-                SENDING,
-                DONE
-        } state_t;
-
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
@@ -89,7 +77,6 @@ private:
         int m_fd;
         size_t m_size;
         size_t m_read;
-        state_t m_state;
 };
 
 //: ----------------------------------------------------------------------------

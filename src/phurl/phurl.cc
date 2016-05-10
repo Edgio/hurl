@@ -32,6 +32,7 @@
 #include "hlx/stat.h"
 #include "hlx/trace.h"
 
+#include "http/clnt_session.h"
 #include "support/tls_util.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -644,7 +645,8 @@ int command_exec(settings_struct_t &a_settings, bool a_send_stop)
                         //printf("%s.%s.%d: PUSHING: host: %s\n", __FILE__,__FUNCTION__,__LINE__,i_h->m_host.c_str());
                         l_host_list.push_back(*i_h);
                 }
-                ns_hlx::phurl_u *l_phr = new ns_hlx::phurl_u();
+                ns_hlx::clnt_session *l_cs = new ns_hlx::clnt_session();
+                ns_hlx::phurl_u *l_phr = new ns_hlx::phurl_u(*l_cs);
                 l_phr->m_delete = false;
                 l_phr->m_data = &a_settings;
                 a_settings.m_phr_list.push_back(l_phr);

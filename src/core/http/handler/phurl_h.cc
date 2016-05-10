@@ -119,14 +119,13 @@ h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
                              const url_pmap_t &a_url_pmap)
 {
         // Create request state if not already made
-        phurl_u *l_phr = new phurl_u();
+        phurl_u *l_phr = new phurl_u(a_clnt_session);
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
                 subr &l_subr = create_subr(a_clnt_session, m_subr_template);
 
                 const char *l_body_data = a_rqst.get_body_data();
                 uint64_t l_body_data_len = a_rqst.get_body_len();
-
                 // subr setup
                 //l_subr.init_with_url(l_url);
                 l_subr.set_keepalive(true);
@@ -151,13 +150,10 @@ h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
                         return H_RESP_SERVER_ERROR;
                 }
         }
-
         l_phr->m_phurl_h = this;
-        l_phr->m_clnt_session = &a_clnt_session;
         l_phr->m_size = l_phr->m_pending_subr_uid_map.size();
         l_phr->m_timeout_ms = 10000;
         l_phr->m_completion_ratio = 100.0;
-
         if(l_phr->m_timeout_ms)
         {
                 // TODO set timeout
@@ -233,7 +229,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_u *a_phr)
         {
                 return HLX_STATUS_ERROR;
         }
-        if(a_phr->m_done)
+        if(a_phr->ups_done())
         {
                 return HLX_STATUS_OK;
         }
@@ -265,7 +261,6 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_u *a_phr)
 //: ----------------------------------------------------------------------------
 int32_t phurl_h::s_create_resp(phurl_u *a_phr)
 {
-        // Get body of resp
         char l_buf[2048];
         l_buf[0] = '\0';
         for(hlx_resp_list_t::iterator i_resp = a_phr->m_resp_list.begin();
@@ -278,24 +273,13 @@ int32_t phurl_h::s_create_resp(phurl_u *a_phr)
                 free(l_status_buf);
         }
         uint64_t l_len = strnlen(l_buf, 2048);
-
-        // Create length string
         char l_len_str[64];
         sprintf(l_len_str, "%" PRIu64 "", l_len);
-
-        if(!a_phr->m_clnt_session)
-        {
-                return HLX_STATUS_ERROR;
-        }
-
-        // Create resp
-        api_resp &l_api_resp = create_api_resp(*(a_phr->m_clnt_session));
+        api_resp &l_api_resp = create_api_resp(a_phr->get_clnt_session());
         l_api_resp.set_status(HTTP_STATUS_OK);
         l_api_resp.set_header("Content-Length", l_len_str);
         l_api_resp.set_body_data(l_buf, l_len);
-
-        // Queue
-        queue_api_resp(*(a_phr->m_clnt_session), l_api_resp);
+        queue_api_resp(a_phr->get_clnt_session(), l_api_resp);
         return HLX_STATUS_OK;
 }
 

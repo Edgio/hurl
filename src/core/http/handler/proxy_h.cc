@@ -107,8 +107,7 @@ h_resp_t proxy_h::get_proxy(clnt_session &a_clnt_session,
         l_subr.set_body_data(l_body_data, l_body_data_len);
         l_subr.set_clnt_session(&a_clnt_session);
 
-        proxy_u *l_px = new proxy_u();
-        l_px->set_subr(&l_subr);
+        proxy_u *l_px = new proxy_u(a_clnt_session, l_subr);
         l_subr.set_ups(l_px);
         a_clnt_session.m_ups = l_px;
         int32_t l_s;

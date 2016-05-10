@@ -25,10 +25,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/phurl_u.h"
-
 #include "clnt_session.h"
 #include "t_srvr.h"
+#include "hlx/phurl_u.h"
 #include "hlx/phurl_h.h"
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
@@ -71,18 +70,19 @@ hlx_resp::~hlx_resp()
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-phurl_u::phurl_u(uint32_t a_timeout_ms, float a_completion_ratio):
+phurl_u::phurl_u(clnt_session &a_clnt_session,
+                 uint32_t a_timeout_ms,
+                 float a_completion_ratio):
+        base_u(a_clnt_session),
         m_pending_subr_uid_map(),
         m_resp_list(),
         m_phurl_h(NULL),
-        m_clnt_session(NULL),
         m_data(NULL),
         m_timer(NULL),
         m_size(0),
         m_timeout_ms(a_timeout_ms),
         m_completion_ratio(a_completion_ratio),
         m_delete(true),
-        m_done(false),
         m_create_resp_cb(phurl_h::s_create_resp)
 {
 }
@@ -98,20 +98,18 @@ phurl_u::~phurl_u(void)
         {
                 if(*i_resp)
                 {
-                        if(m_clnt_session && m_clnt_session->m_t_srvr)
+                        t_srvr *l_t_srvr = m_clnt_session.m_t_srvr;
+                        resp *l_resp = (*i_resp)->m_resp;
+                        if(l_t_srvr &&
+                           l_resp)
                         {
-                                t_srvr *l_t_srvr = m_clnt_session->m_t_srvr;
-                                resp *l_resp = (*i_resp)->m_resp;
-                                if(l_resp)
+                                if(l_resp->get_q())
                                 {
-                                        if(l_resp->get_q())
-                                        {
-                                                l_t_srvr->release_nbq(l_resp->get_q());
-                                                l_resp->set_q(NULL);
-                                        }
-                                        l_t_srvr->release_resp((*i_resp)->m_resp);
-                                        (*i_resp)->m_resp = NULL;
+                                        m_clnt_session.m_t_srvr->release_nbq(l_resp->get_q());
+                                        l_resp->set_q(NULL);
                                 }
+                                l_t_srvr->release_resp((*i_resp)->m_resp);
+                                (*i_resp)->m_resp = NULL;
                         }
                         delete *i_resp;
                         *i_resp = NULL;
@@ -124,29 +122,9 @@ phurl_u::~phurl_u(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-ssize_t phurl_u::ups_read(char *ao_dst, size_t a_len)
+ssize_t phurl_u::ups_read(size_t a_len)
 {
         return 0;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-ssize_t phurl_u::ups_read(nbq &ao_q, size_t a_len)
-{
-        return 0;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool phurl_u::ups_done(void)
-{
-        return m_done;
 }
 
 //: ----------------------------------------------------------------------------
@@ -156,11 +134,11 @@ bool phurl_u::ups_done(void)
 //: ----------------------------------------------------------------------------
 int32_t phurl_u::ups_cancel(void)
 {
-        if(m_done)
+        if(ups_done())
         {
                 return HLX_STATUS_OK;
         }
-        m_done = true;
+        m_state = UPS_STATE_DONE;
         // ---------------------------------------
         // Cancel pending...
         // ---------------------------------------

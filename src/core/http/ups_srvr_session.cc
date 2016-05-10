@@ -402,6 +402,7 @@ ups_srvr_session::ups_srvr_session(void):
         m_rqst_resp_logging_color(false),
         m_in_q(NULL),
         m_out_q(NULL),
+        m_in_q_detached(false),
         m_subr(NULL),
         m_idx(0)
 {}
@@ -484,27 +485,27 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                 }
                 default:
                 {
-                        if((a_conn_status > 0) &&
-                           m_subr->get_ups() &&
-                           m_subr->get_clnt_session() &&
-                           m_subr->get_clnt_session()->m_out_q)
+                        if(m_subr->get_ups())
                         {
-                                int32_t l_s;
-                                l_s = m_subr->get_ups()->ups_read(*(m_subr->get_clnt_session()->m_out_q), a_conn_status);
-                                if(l_s != HLX_STATUS_OK)
+                                ssize_t l_s;
+                                l_s = m_subr->get_ups()->ups_read(a_conn_status);
+                                if(l_s < 0)
                                 {
-                                        TRC_ERROR("performing ups_read.\n");
+                                        TRC_ERROR("performing ups_read -a_conn_status: %d\n", a_conn_status);
                                 }
                         }
-
+                        // TODO REMOVE
+                        //if(m_nconn)
                         //NDBG_PRINT("m_nconn->is_done(): %d\n", m_nconn->is_done());
                         //NDBG_PRINT("m_resp:             %p\n", m_resp);
+                        //if(m_resp)
                         //NDBG_PRINT("m_resp->m_complete: %d\n", m_resp->m_complete);
                         // Handle completion
                         if((m_nconn && m_nconn->is_done()) ||
                            (m_resp &&
                             m_resp->m_complete))
                         {
+                                //NDBG_PRINT("completion...\n");
                                 // Display...
                                 if(m_rqst_resp_logging && m_resp)
                                 {

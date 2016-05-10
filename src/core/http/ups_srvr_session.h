@@ -59,6 +59,7 @@ public:
         bool m_rqst_resp_logging_color;
         nbq *m_in_q;
         nbq *m_out_q;
+        bool m_in_q_detached;
         subr *m_subr;
         uint64_t m_idx;
 
