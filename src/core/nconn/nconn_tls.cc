@@ -581,7 +581,7 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
-
+        errno = 0;
         l_status = ::SSL_read(m_tls, a_buf, a_buf_len);
         //NDBG_PRINT("%sHOST%s: %s tls[%p] READ: %ld bytes. Reason: %s\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
@@ -590,7 +590,7 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
         //                l_status,
         //                strerror(errno));
         //if(l_status > 0) mem_display((const uint8_t *)a_buf, l_status);
-        if(l_status < 0)
+        if(l_status <= 0)
         {
                 int l_tls_error = ::SSL_get_error(m_tls, l_status);
                 //NDBG_PRINT("%sSSL_READ%s[%3d] l_bytes_read: %d error: %d\n",
@@ -599,10 +599,33 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
                 //                l_tls_error);
                 if(l_tls_error == SSL_ERROR_WANT_READ)
                 {
+                        if(m_evr_loop)
+                        {
+                                if (0 != m_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_RD_HUP|
+                                                            EVR_FILE_ATTR_MASK_READ|
+                                                            EVR_FILE_ATTR_MASK_ET,
+                                                            &m_evr_fd))
+                                {
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                        return NC_STATUS_ERROR;
+                                }
+                        }
                         return NC_STATUS_AGAIN;
                 }
                 else if(l_tls_error == SSL_ERROR_WANT_WRITE)
                 {
+                        if(m_evr_loop)
+                        {
+                                if (0 != m_evr_loop->mod_fd(m_fd,
+                                                            EVR_FILE_ATTR_MASK_WRITE|
+                                                            EVR_FILE_ATTR_MASK_ET,
+                                                            &m_evr_fd))
+                                {
+                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
+                                        return NC_STATUS_ERROR;
+                                }
+                        }
                         return NC_STATUS_AGAIN;
                 }
         }
@@ -645,6 +668,7 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
 int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
+        errno = 0;
         l_status = ::SSL_write(m_tls, a_buf, a_buf_len);
         //NDBG_PRINT("%sHOST%s: %s tls[%p] WRITE: %d bytes. Reason: %s\n",
         //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
@@ -667,7 +691,6 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                                 if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_RD_HUP|
                                                             EVR_FILE_ATTR_MASK_READ|
-                                                            EVR_FILE_ATTR_MASK_WRITE|
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
@@ -682,8 +705,6 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                         if(m_evr_loop)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_RD_HUP|
-                                                            EVR_FILE_ATTR_MASK_READ|
                                                             EVR_FILE_ATTR_MASK_WRITE|
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
@@ -711,29 +732,17 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
 int32_t nconn_tls::ncsetup()
 {
         int32_t l_status;
-        //NDBG_PRINT("m_tls_ctx: %p\n", m_tls_ctx);
         l_status = nconn_tcp::ncsetup();
         if(l_status != NC_STATUS_OK)
         {
                 return NC_STATUS_ERROR;
         }
-
-        //NDBG_PRINT("m_tls_ctx: %p\n", m_tls_ctx);
-
         l_status = init();
         if(l_status != NC_STATUS_OK)
         {
                 return NC_STATUS_ERROR;
         }
-
-        // TODO Stats???
-        //if(m_collect_stats_flag)
-        //{
-        //        m_connect_start_time_us = get_time_us();
-        //}
-
         m_tls_state = TLS_STATE_CONNECTING;
-
         return NC_STATUS_OK;
 }
 

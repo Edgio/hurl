@@ -1182,13 +1182,8 @@ void *t_srvr::t_run(void *a_nothing)
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn)
 {
-        //NDBG_PRINT("%sCLEANUP%s: a_clnt_session: %p\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_clnt_session);
-        //NDBG_PRINT_BT();
         if(a_clnt_session)
         {
-                // Cancel last timer
                 if(a_clnt_session->m_timer_obj)
                 {
                         m_evr_loop->cancel_timer(a_clnt_session->m_timer_obj);
@@ -1213,18 +1208,8 @@ int32_t t_srvr::cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn)
                 a_clnt_session->clear();
                 m_clnt_session_pool.release(a_clnt_session);
         }
-        //NDBG_PRINT("%sCLEANUP%s: a_nconn: %p\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_clnt_session);
-        // Connection
         if(a_nconn)
         {
-                //NDBG_PRINT("%sADDING_BACK%s: %u a_nconn: %p type: %d\n",
-                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
-                //           (uint32_t)a_nconn->get_idx(), a_nconn, a_type);
-                //NDBG_PRINT_BT();
-                // Add back to free list
-                // Get pool id
                 uint32_t l_id = a_nconn->get_pool_id();
                 if(l_id == S_POOL_ID_CLIENT)
                 {
@@ -1248,10 +1233,6 @@ int32_t t_srvr::cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn)
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn)
 {
-        //NDBG_PRINT("%sCLEANUP%s: a_ups_srvr_session: %p\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_ups_srvr_session);
-        //NDBG_PRINT_BT();
         if(a_ups_srvr_session)
         {
                 // Cancel last timer
@@ -1282,18 +1263,8 @@ int32_t t_srvr::cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_ncon
                 a_ups_srvr_session->clear();
                 m_ups_srvr_session_pool.release(a_ups_srvr_session);
         }
-        //NDBG_PRINT("%sCLEANUP%s: a_nconn: %p\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_clnt_session);
-        // Connection
         if(a_nconn)
         {
-                //NDBG_PRINT("%sADDING_BACK%s: %u a_nconn: %p type: %d\n",
-                //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
-                //           (uint32_t)a_nconn->get_idx(), a_nconn, a_type);
-                //NDBG_PRINT_BT();
-                // Add back to free list
-                // Get pool id
                 uint32_t l_id = a_nconn->get_pool_id();
                 if(l_id == S_POOL_ID_UPS_PROXY)
                 {
@@ -1508,14 +1479,7 @@ int32_t t_srvr::config_ups_server_conn(nconn &a_nconn)
 ups_srvr_session * t_srvr::get_ups_srvr(lsnr *a_lsnr)
 {
         ups_srvr_session *l_ups_srvr_session = NULL;
-        if(!get_from_pool_if_null(l_ups_srvr_session, m_ups_srvr_session_pool))
-        {
-                //NDBG_PRINT("REUSED!!!\n");
-                //l_clnt_session->m_resp.clear();
-                //l_clnt_session->m_rqst.clear();
-        }
-
-        //NDBG_PRINT("Adding http_data: %p.\n", l_clnt_session);
+        get_from_pool_if_null(l_ups_srvr_session, m_ups_srvr_session_pool);
         l_ups_srvr_session->m_t_srvr = this;
         l_ups_srvr_session->m_timer_obj = NULL;
         return l_ups_srvr_session;
@@ -1579,9 +1543,6 @@ void t_srvr::add_stat_to_agg(const conn_stat_t &a_conn_stat, uint16_t a_status_c
         update_stat(m_stat.m_ups_stat_us_connect, a_conn_stat.m_tt_connect_us);
         update_stat(m_stat.m_ups_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
         update_stat(m_stat.m_ups_stat_us_end_to_end, a_conn_stat.m_tt_completion_us);
-        // Status code
-        //NDBG_PRINT("%sSTATUS_CODE%s: %d\n",
-        //           ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_req_stat.m_status_code);
         ++m_stat.m_ups_status_code_count_map[a_status_code];
 }
 

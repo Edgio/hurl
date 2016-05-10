@@ -62,7 +62,6 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
 {
-        //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_data);
         if(!a_data)
         {
                 return HLX_STATUS_OK;
@@ -71,10 +70,6 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        //NDBG_PRINT("%sREADABLE%s LABEL: %s CLNT: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-        //                l_nconn->get_label().c_str(), l_ups_srvr_session);
-        // Server -incoming client connections
-        // Cancel last timer
         if(l_ups_srvr_session &&
            l_ups_srvr_session->m_timer_obj)
         {
@@ -91,42 +86,28 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
         int32_t l_s = HLX_STATUS_OK;
         do {
                 // Flipping modes to support TLS connections
-                nconn::mode_t l_mode = nconn::NC_MODE_READ;
                 nbq *l_in_q = NULL;
                 nbq *l_out_q = NULL;
                 if(l_ups_srvr_session)
                 {
                         l_in_q = l_ups_srvr_session->m_in_q;
                         l_out_q = l_ups_srvr_session->m_out_q;
-                        if(l_out_q && l_out_q->read_avail())
-                        {
-                                l_mode = nconn::NC_MODE_WRITE;
-                        }
                 }
                 else
                 {
                         l_in_q = l_t_srvr->m_orphan_in_q;
                         l_out_q = l_t_srvr->m_orphan_out_q;
                 }
-                l_s = l_nconn->nc_run_state_machine(l_mode, l_in_q, l_out_q);
-                //NDBG_PRINT("%sREADABLE%s l_s:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
+                l_s = l_nconn->nc_run_state_machine(nconn::NC_MODE_READ, l_in_q, l_out_q);
                 if(l_s > 0)
                 {
-                        if(l_mode == nconn::NC_MODE_READ)
-                        {
-                                l_t_srvr->m_stat.m_total_bytes_read += l_s;
-                        }
-                        else if(l_mode == nconn::NC_MODE_WRITE)
-                        {
-                                l_t_srvr->m_stat.m_total_bytes_written += l_s;
-                        }
+                        l_t_srvr->m_stat.m_total_bytes_read += l_s;
                 }
 
                 if(l_ups_srvr_session)
                 {
                         int32_t l_hstatus;
-                        l_hstatus = l_ups_srvr_session->run_state_machine(l_mode, l_s);
-                        //NDBG_PRINT("%sREADABLE%s l_hstatus: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_hstatus);
+                        l_hstatus = l_ups_srvr_session->run_state_machine(nconn::NC_MODE_READ, l_s);
                         if(l_hstatus != HLX_STATUS_OK)
                         {
                                 // Modified connection status
@@ -146,7 +127,6 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 case nconn::NC_STATUS_IDLE:
                 {
                         int32_t l_s;
-                        //NDBG_PRINT("Add idle\n");
                         if(l_ups_srvr_session)
                         {
                                 l_t_srvr->m_ups_srvr_session_pool.release(l_ups_srvr_session);
@@ -156,36 +136,30 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                         l_s = l_t_srvr->m_nconn_proxy_pool.add_idle(l_nconn);
                         if(l_s != HLX_STATUS_OK)
                         {
-                                //NDBG_PRINT("Error: performing add_idle l_s: %d\n", l_s);
                                 return HLX_STATUS_ERROR;
                         }
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        //NDBG_PRINT("CLEANUP.\n");
                         l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
-                        //NDBG_PRINT("CLEANUP.\n");
                         ++(l_t_srvr->m_stat.m_total_errors);
                         l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
                 }
-
                 if(!l_ups_srvr_session)
                 {
-                        //NDBG_PRINT("CLEANUP.\n");
                         l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
-
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
                 (l_t_srvr->is_running()));
 done:
@@ -209,7 +183,6 @@ done:
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
 {
-        //NDBG_PRINT("%sWRITEABLE%s %p\n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, a_data);
         if(!a_data)
         {
                 //NDBG_PRINT("a_data == NULL\n");
@@ -249,10 +222,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
         }
         int32_t l_s = HLX_STATUS_OK;
         do {
-                //NDBG_PRINT("%sWRITEABLE%s <--RUN_STATE_MACHINE--> out_q_sz  = %lu\n",
-                //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_ups_srvr_session->m_out_q->read_avail());
                 l_s = l_nconn->nc_run_state_machine(nconn::NC_MODE_WRITE, l_in_q, l_out_q);
-                //NDBG_PRINT("%sWRITEABLE%s l_s =  %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_s);
                 if(l_s > 0)
                 {
                         l_t_srvr->m_stat.m_total_bytes_written += l_s;
@@ -261,7 +231,6 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 {
                         int32_t l_hstatus;
                         l_hstatus = l_ups_srvr_session->run_state_machine(nconn::NC_MODE_WRITE, l_s);
-                        //NDBG_PRINT("%sWRITEABLE%s l_hstatus = %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_hstatus);
                         if(l_hstatus != HLX_STATUS_OK)
                         {
                                 // Modified connection status
@@ -280,14 +249,12 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        //NDBG_PRINT("CLEANUP.\n");
                         l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
-                        //NDBG_PRINT("CLEANUP.\n");
                         ++(l_t_srvr->m_stat.m_total_errors);
                         l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
@@ -297,7 +264,6 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
 
                 if(!l_ups_srvr_session)
                 {
-                        //NDBG_PRINT("CLEANUP.\n");
                         l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
@@ -326,16 +292,11 @@ done:
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
 {
-        //NDBG_PRINT("%sERROR%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        //if(l_nconn->is_free())
-        //{
-        //        return HLX_STATUS_OK;
-        //}
         ++l_t_srvr->m_stat.m_total_errors;
         if(l_ups_srvr_session)
         {
@@ -362,13 +323,11 @@ int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
 {
-        //NDBG_PRINT("%sTIMEOUT%s %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        TRC_ERROR("connection timeout -host: %s\n", l_nconn->get_label().c_str());
         if(l_nconn->is_free())
         {
                 return HLX_STATUS_OK;
@@ -432,12 +391,10 @@ void ups_srvr_session::clear(void)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status)
 {
-        //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN_MODE[%d] CONN_STATUS[%d]\n",
-        //                ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_conn_mode, a_conn_status);
         if(!m_subr)
         {
-                //NDBG_PRINT("Error no subrequest associated with upstream ups_srvr_session mode: %d status: %d\n",
-                //                a_conn_mode, a_conn_status);
+                TRC_ERROR("no subrequest associated with upstream ups_srvr_session mode: %d status: %d\n",
+                                a_conn_mode, a_conn_status);
                 return nconn::NC_STATUS_ERROR;
         }
 
@@ -448,7 +405,6 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
         // -----------------------------------------------------------
         case nconn::NC_MODE_READ:
         {
-                //NDBG_PRINT("LABEL[%s] l_s: %d\n", m_nconn->get_label().c_str(), a_conn_status);
                 switch(a_conn_status)
                 {
                 case nconn::NC_STATUS_EOF:
@@ -456,7 +412,6 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                         // Connect only && done --early exit...
                         if(m_subr->get_connect_only())
                         {
-                                //NDBG_PRINT("LABEL[%s] l_s: %d\n", l_nconn->get_label().c_str(), l_s);
                                 if(m_resp)
                                 {
                                         m_resp->set_status(HTTP_STATUS_OK);
@@ -465,7 +420,6 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                         }
                         m_subr->bump_num_completed();
                         subr_complete();
-                        //NDBG_PRINT("Cleanup EOF\n");
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
@@ -478,35 +432,26 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                         l_s = subr_error(HTTP_STATUS_BAD_GATEWAY);
                         if(l_s != HLX_STATUS_OK)
                         {
-                                //NDBG_PRINT("Error: subr_error.\n");
                                 return HLX_STATUS_ERROR;
                         }
                         return HLX_STATUS_OK;
                 }
                 default:
                 {
-                        if(m_subr->get_ups())
+                        if(m_subr->get_ups() && (a_conn_status > 0))
                         {
                                 ssize_t l_s;
-                                l_s = m_subr->get_ups()->ups_read(a_conn_status);
+                                l_s = m_subr->get_ups()->ups_read((size_t)a_conn_status);
                                 if(l_s < 0)
                                 {
-                                        TRC_ERROR("performing ups_read -a_conn_status: %d\n", a_conn_status);
+                                        TRC_ERROR("performing ups_read -a_conn_status: %d l_s: %ld\n", a_conn_status, l_s);
                                 }
                         }
-                        // TODO REMOVE
-                        //if(m_nconn)
-                        //NDBG_PRINT("m_nconn->is_done(): %d\n", m_nconn->is_done());
-                        //NDBG_PRINT("m_resp:             %p\n", m_resp);
-                        //if(m_resp)
-                        //NDBG_PRINT("m_resp->m_complete: %d\n", m_resp->m_complete);
                         // Handle completion
                         if((m_nconn && m_nconn->is_done()) ||
                            (m_resp &&
                             m_resp->m_complete))
                         {
-                                //NDBG_PRINT("completion...\n");
-                                // Display...
                                 if(m_rqst_resp_logging && m_resp)
                                 {
                                         if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
@@ -537,23 +482,13 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                                 bool l_keepalive = m_subr->get_keepalive();
                                 bool l_detach_resp = m_subr->get_detach_resp();
                                 bool l_complete = subr_complete();
-                                //NDBG_PRINT("l_hmsg_keep_alive:     %d\n", l_hmsg_keep_alive);
-                                //NDBG_PRINT("l_keepalive:           %d\n", l_keepalive);
-                                //NDBG_PRINT("l_complete:            %d\n", l_complete);
-                                //NDBG_PRINT("m_nconn->can_reuse():  %d\n", l_nconn_can_reuse);
                                 if(l_complete ||
                                    !l_nconn_can_reuse ||
                                    !l_keepalive ||
                                    !l_hmsg_keep_alive)
                                 {
-                                        //NDBG_PRINT("Cleanup: subr done l_complete: %d l_nconn->can_reuse(): %d m_subr->get_keepalive(): %d.\n",
-                                        //                l_complete, l_nconn_can_reuse,
-                                        //                l_keepalive);
-                                        //NDBG_PRINT("EOF\n");
                                         return nconn::NC_STATUS_EOF;
                                 }
-                                //NDBG_PRINT("IDLE\n");
-
                                 // Give back rqst + in q
                                 if(m_out_q)
                                 {
@@ -569,7 +504,6 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                                 }
                                 return nconn::NC_STATUS_IDLE;
                         }
-                        //NDBG_PRINT("Error: nc_run_state_machine.\n");
                         return HLX_STATUS_OK;
                 }
                 }
@@ -579,7 +513,6 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
         // -----------------------------------------------------------
         case nconn::NC_MODE_WRITE:
         {
-                //NDBG_PRINT("LABEL[%s] l_s: %d\n", l_nconn->get_label().c_str(), l_s);
                 switch(a_conn_status)
                 {
                 case nconn::NC_STATUS_ERROR:
@@ -603,7 +536,6 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                         bool l_complete = subr_complete();
                         if(l_complete)
                         {
-                                //NDBG_PRINT("Cleanup subr complete\n");
                                 return HLX_STATUS_OK;
                         }
                         //NDBG_PRINT("Cleanup EOF\n");
@@ -672,7 +604,6 @@ bool ups_srvr_session::subr_complete(void)
 {
         if(!m_resp || !m_subr || !m_nconn)
         {
-                //NDBG_PRINT("COMPLETE\n");
                 return true;
         }
         bool l_complete = false;
@@ -692,7 +623,6 @@ bool ups_srvr_session::subr_complete(void)
         // Connect only
         if(l_connect_only)
         {
-                //NDBG_PRINT("COMPLETE\n");
                 l_complete = true;
         }
         if(l_detach_resp)

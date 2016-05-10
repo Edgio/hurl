@@ -67,8 +67,8 @@ proxy_u::~proxy_u(void)
 //: ----------------------------------------------------------------------------
 ssize_t proxy_u::ups_read(size_t a_len)
 {
-        //NDBG_PRINT("a_len: %ld\n", a_len);
-        //NDBG_PRINT_BT();
+        NDBG_PRINT("a_len: %ld\n", a_len);
+        NDBG_PRINT_BT();
         if(ups_done())
         {
                 return HLX_STATUS_OK;
@@ -76,6 +76,7 @@ ssize_t proxy_u::ups_read(size_t a_len)
         m_state = UPS_STATE_SENDING;
         if(a_len <= 0)
         {
+                NDBG_PRINT("a_len: %ld\n", a_len);
                 return HLX_STATUS_OK;
         }
         ups_srvr_session *l_ups_srvr_session = m_subr.get_ups_srvr_session();
