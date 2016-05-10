@@ -159,7 +159,8 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
 #endif
         m_is_initd(false),
         m_stat_copy(),
-        m_stat_copy_mutex()
+        m_stat_copy_mutex(),
+        m_clnt_session_writeable_data(NULL)
 {
         pthread_mutex_init(&m_stat_copy_mutex, NULL);
 
@@ -388,11 +389,7 @@ int32_t t_srvr::queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_sessio
         {
                 return HLX_STATUS_ERROR;
         }
-        l_s = clnt_session::evr_fd_writeable_cb(a_clnt_session.m_nconn);
-        if(l_s != HLX_STATUS_OK)
-        {
-                return HLX_STATUS_ERROR;
-        }
+        m_clnt_session_writeable_data = a_clnt_session.m_nconn;
         return HLX_STATUS_OK;
 }
 
@@ -403,12 +400,7 @@ int32_t t_srvr::queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_sessio
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::queue_output(clnt_session &a_clnt_session)
 {
-        int32_t l_s;
-        l_s = clnt_session::evr_fd_writeable_cb(a_clnt_session.m_nconn);
-        if(l_s != HLX_STATUS_OK)
-        {
-                return HLX_STATUS_ERROR;
-        }
+        m_clnt_session_writeable_data = a_clnt_session.m_nconn;
         return HLX_STATUS_OK;
 }
 
@@ -1115,9 +1107,9 @@ int32_t t_srvr::subr_try_deq(void)
 //: ----------------------------------------------------------------------------
 void *t_srvr::t_run(void *a_nothing)
 {
-        int32_t l_status;
-        l_status = init();
-        if(l_status != HLX_STATUS_OK)
+        int32_t l_s;
+        l_s = init();
+        if(l_s != HLX_STATUS_OK)
         {
                 NDBG_PRINT("Error performing init.\n");
                 return NULL;
@@ -1153,15 +1145,26 @@ void *t_srvr::t_run(void *a_nothing)
         {
                 //NDBG_PRINT("Running.\n");
                 ++m_stat.m_total_run;
-                l_status = m_evr_loop->run();
-                if(l_status != HLX_STATUS_OK)
+                l_s = m_evr_loop->run();
+                if(l_s != HLX_STATUS_OK)
                 {
                         // TODO log run failure???
 
                 }
+
+                if(m_clnt_session_writeable_data)
+                {
+                        l_s = clnt_session::evr_fd_writeable_cb(m_clnt_session_writeable_data);
+                        if(l_s != HLX_STATUS_OK)
+                        {
+                                // TODO log failure
+                        }
+                        m_clnt_session_writeable_data = NULL;
+                }
+
                 // Subrequests
-                l_status = subr_try_deq();
-                if(l_status != HLX_STATUS_OK)
+                l_s = subr_try_deq();
+                if(l_s != HLX_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing subr_try_deq.\n");
                         //return NULL;

@@ -293,6 +293,10 @@ private:
         // Stat (internal)
         t_stat_t m_stat_copy;
         pthread_mutex_t m_stat_copy_mutex;
+
+        // Write after read upstream
+        void *m_clnt_session_writeable_data;
+
 };
 
 } //namespace ns_hlx {

@@ -98,10 +98,10 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                 {
                         l_in_q = l_cs->m_in_q;
                         l_out_q = l_cs->m_out_q;
-                        if(l_out_q && l_out_q->read_avail())
-                        {
-                                l_mode = nconn::NC_MODE_WRITE;
-                        }
+                        //if(l_out_q && l_out_q->read_avail())
+                        //{
+                        //        l_mode = nconn::NC_MODE_WRITE;
+                        //}
                 }
                 else
                 {

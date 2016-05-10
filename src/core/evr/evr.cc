@@ -139,7 +139,11 @@ int32_t evr_loop::run(void)
                         if(l_timer->m_state != EVR_TIMER_CANCELLED)
                         {
                                 //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer_event,l_now_ms);
-                                l_timer->m_timer_cb(l_timer->m_ctx, l_timer->m_data);
+                                int32_t l_s;
+                                l_s = l_timer->m_timer_cb(l_timer->m_ctx, l_timer->m_data);
+                                delete l_timer;
+                                l_timer = NULL;
+                                return l_s;
                         }
                         //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer_event);
                         delete l_timer;
@@ -151,7 +155,6 @@ int32_t evr_loop::run(void)
         // Wait for events
         // -------------------------------------------
         int l_num_events = 0;
-
         //NDBG_PRINT("%sWAIT4_CONNECTIONS%s: l_time_diff_ms = %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_time_diff_ms);
         l_num_events = m_evr->wait(m_events, m_max_events, l_time_diff_ms);
         //NDBG_PRINT("%sSTART_CONNECTIONS%s: l_num_events = %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_num_events);
