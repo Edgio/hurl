@@ -460,6 +460,10 @@ int32_t broadcast_h::s_error_cb(ns_hlx::subr &a_subr,
         l_resp->m_error_str = a_error_str;
         settings_struct_t *l_s = static_cast<settings_struct_t *>(l_phr->m_data);
         if(l_s) pthread_mutex_lock(&(l_s->m_mutex));
+        if(!a_nconn && a_status == ns_hlx::HTTP_STATUS_BAD_GATEWAY)
+        {
+                ++(l_s->m_summary_info.m_error_addr);
+        }
         if(a_nconn)
         {
                 ns_hlx::conn_status_t l_conn_status = ns_hlx::nconn_get_status(*a_nconn);
