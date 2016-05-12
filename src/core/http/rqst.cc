@@ -45,6 +45,7 @@ rqst::rqst(void):
         hmsg(),
         m_p_url(),
         m_method(HTTP_GET),
+        m_expect(false),
         m_url_parsed(false),
         m_url(),
         m_url_path(),
@@ -75,6 +76,7 @@ void rqst::clear(void)
         hmsg::clear();
         m_p_url.clear();
         m_method = HTTP_GET;
+        m_expect = false;
         m_url.clear();
         m_url_path.clear();
         m_url_query.clear();

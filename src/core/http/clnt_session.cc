@@ -102,14 +102,28 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                         l_out_q = l_t_srvr->m_orphan_out_q;
                 }
                 l_status = l_nconn->nc_run_state_machine(nconn::NC_MODE_READ, l_in_q, l_out_q);
+                //NDBG_PRINT("READABLE: l_status: %d\n",l_status);
                 if(l_status > 0)
                 {
                         l_t_srvr->m_stat.m_total_bytes_read += l_status;
                 }
-
                 if(l_cs && l_status >= 0)
                 {
                         l_cs->m_access_info.m_bytes_in += l_status;
+                        // -------------------------------------------
+                        // send expect response -if signalled
+                        // -------------------------------------------
+                        if(l_cs->m_rqst && l_cs->m_rqst->m_expect)
+                        {
+                                nbq l_nbq(64);
+                                const char l_exp_reply[] = "HTTP/1.1 100 Continue\r\n\r\n";
+                                l_nbq.write(l_exp_reply, sizeof(l_exp_reply));
+                                l_nconn->nc_write(&l_nbq);
+                                l_cs->m_rqst->m_expect = false;
+                        }
+                        // -------------------------------------------
+                        // connection done or rqst complete
+                        // -------------------------------------------
                         if((l_cs->m_nconn->is_done()) ||
                            (l_cs->m_rqst &&
                             l_cs->m_rqst->m_complete))
@@ -149,25 +163,10 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                 }
                 switch(l_status)
                 {
-                case nconn::NC_STATUS_BREAK:
+                case nconn::NC_STATUS_ERROR:
                 {
-                        goto done;
-                }
-                case nconn::NC_STATUS_IDLE:
-                {
-                        int32_t l_status;
-                        if(l_cs)
-                        {
-                                l_t_srvr->m_clnt_session_pool.release(l_cs);
-                                l_cs = NULL;
-                        }
-                        l_nconn->set_data(NULL);
-                        l_status = l_t_srvr->m_nconn_pool.add_idle(l_nconn);
-                        if(l_status != HLX_STATUS_OK)
-                        {
-                                return HLX_STATUS_ERROR;
-                        }
-                        return HLX_STATUS_OK;
+                        ++(l_t_srvr->m_stat.m_total_errors);
+                        // slide through
                 }
                 case nconn::NC_STATUS_EOF:
                 {
@@ -175,17 +174,6 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                         {
                                 l_cs->cancel_ups();
                         }
-                        l_t_srvr->cleanup_conn(l_cs, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_OK;
-                }
-                case nconn::NC_STATUS_ERROR:
-                {
-                        if(l_cs)
-                        {
-                                l_cs->cancel_ups();
-                        }
-                        ++(l_t_srvr->m_stat.m_total_errors);
                         l_t_srvr->cleanup_conn(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
@@ -197,10 +185,9 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
-
         } while((l_status != nconn::NC_STATUS_AGAIN) &&
                 (l_t_srvr->is_running()));
-done:
+
         // Add idle timeout
         if(l_cs &&
            !l_cs->m_timer_obj)
@@ -270,9 +257,9 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
         }
         int32_t l_status = HLX_STATUS_OK;
         do {
-                // -----------------------------------------------------
+                // ---------------------------------------------------
                 // Special handling for files
-                // -----------------------------------------------------
+                // ---------------------------------------------------
                 if(l_cs->m_ups &&
                    !l_cs->m_ups->ups_done() &&
                    (l_cs->m_ups->get_type() == file_u::S_UPS_TYPE_FILE) &&
@@ -295,9 +282,9 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                                 // TODO check for error...
                         }
                         l_cs->m_access_info.m_bytes_out += l_status;
-                        // -----------------------------------------------------
+                        // -------------------------------------------
                         // Modify status depending on state
-                        // -----------------------------------------------------
+                        // -------------------------------------------
                         if(l_cs->m_out_q && !l_cs->m_out_q->read_avail())
                         {
                                 if(l_cs->m_ups && l_cs->m_ups->ups_done())
@@ -315,12 +302,6 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                                                 }
                                         }
                                         l_cs->m_out_q->reset_write();
-                                        if((l_cs->m_rqst != NULL) &&
-                                           (l_cs->m_rqst->m_supports_keep_alives))
-                                        {
-                                                l_status = nconn::NC_STATUS_BREAK;
-                                        }
-                                        l_status = nconn::NC_STATUS_EOF;
                                 }
                         }
                 }
@@ -510,7 +491,6 @@ int32_t clnt_session::handle_req(void)
         {
                 return HLX_STATUS_ERROR;
         }
-
         // -------------------------------------------------
         // access info
         // TODO -this is a lil clunky...

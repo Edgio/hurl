@@ -16,7 +16,14 @@ class http_handler(BaseHTTPRequestHandler):
         time.sleep(2.0)
         self.send_response(200)
         self.send_header('Content-type','text/html')
-        self.send_header('Content-length',3*len('monkeys are crazy!\n'))
+        self.send_header('Content-length',len('monkeys are crazy!\n'))
+        self.end_headers()
+        self.wfile.write('monkeys are crazy!\n')
+    #Handler for the GET requests
+    def do_POST(self):
+        self.send_response(200)
+        self.send_header('Content-type','text/html')
+        self.send_header('Content-length',len('monkeys are crazy!\n'))
         self.end_headers()
         self.wfile.write('monkeys are crazy!\n')
 try:

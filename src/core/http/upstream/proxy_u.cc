@@ -71,7 +71,6 @@ ssize_t proxy_u::ups_read(size_t a_len)
         {
                 return HLX_STATUS_OK;
         }
-        m_state = UPS_STATE_SENDING;
         if(a_len <= 0)
         {
                 return HLX_STATUS_OK;
@@ -82,10 +81,28 @@ ssize_t proxy_u::ups_read(size_t a_len)
                 TRC_ERROR("requester ups_srvr_session or m_in_q == NULL\n");
                 return HLX_STATUS_ERROR;
         }
-        if(!m_clnt_session.m_out_q)
+        if(m_state == UPS_STATE_IDLE)
         {
+                // first time
+                if(m_clnt_session.m_out_q)
+                {
+                        // Return to pool
+                        if(!m_clnt_session.m_t_srvr)
+                        {
+                                TRC_ERROR("m_clnt_session.m_t_srvr == NULL\n");
+                                return HLX_STATUS_ERROR;
+                        }
+                        m_clnt_session.m_t_srvr->release_nbq(m_clnt_session.m_out_q);
+                        m_clnt_session.m_out_q = NULL;
+                }
                 m_clnt_session.m_out_q = l_ups_srvr_session->m_in_q;
                 l_ups_srvr_session->m_in_q_detached = true;
+        }
+        m_state = UPS_STATE_SENDING;
+        if(!m_clnt_session.m_out_q)
+        {
+                TRC_ERROR("m_clnt_session.m_out_q == NULL\n");
+                return HLX_STATUS_ERROR;
         }
         //NDBG_PRINT("l_ups_srvr_session->m_in_q->b_read_avail() = %d\n", l_ups_srvr_session->m_in_q->b_read_avail());
         //NDBG_PRINT("m_clnt_session.m_out_q->b_read_avail()     = %d\n", m_clnt_session.m_out_q->b_read_avail());

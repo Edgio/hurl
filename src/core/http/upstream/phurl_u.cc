@@ -32,6 +32,7 @@
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
 #include "hlx/status.h"
+#include "hlx/trace.h"
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <string.h>
@@ -124,6 +125,22 @@ phurl_u::~phurl_u(void)
 //: ----------------------------------------------------------------------------
 ssize_t phurl_u::ups_read(size_t a_len)
 {
+        if(m_state == UPS_STATE_IDLE)
+        {
+                // first time
+                if(m_clnt_session.m_out_q)
+                {
+                        // Return to pool
+                        if(!m_clnt_session.m_t_srvr)
+                        {
+                                TRC_ERROR("m_clnt_session.m_t_srvr == NULL\n");
+                                return HLX_STATUS_ERROR;
+                        }
+                        m_clnt_session.m_t_srvr->release_nbq(m_clnt_session.m_out_q);
+                        m_clnt_session.m_out_q = NULL;
+                }
+        }
+        m_state = UPS_STATE_SENDING;
         return 0;
 }
 

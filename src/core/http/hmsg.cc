@@ -103,7 +103,7 @@ void hmsg::clear(void)
         m_http_minor = 0;
         m_complete = false;
         m_supports_keep_alives = false;
-
+        m_save = false;
         if(m_headers)
         {
                 delete m_headers;

@@ -116,7 +116,6 @@ public:
         ssize_t ups_read(size_t a_len);
         int32_t ups_cancel(void);
         uint32_t get_type(void) { return S_UPS_TYPE_PHURL;}
-
         float get_done_ratio(void);
 
         // -------------------------------------------------

@@ -672,7 +672,11 @@ int32_t nconn_tcp::nccleanup()
         // Shut down connection
         //NDBG_PRINT("CLOSE[%d] %s--CONN--%s last_state: %d\n", m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_tcp_state);
         //NDBG_PRINT_BT();
-        if(m_evr_loop)
+        if(m_evr_loop
+#if defined(__linux__)
+           && (m_evr_loop->get_loop_type() != EVR_LOOP_EPOLL)
+#endif
+          )
         {
                 m_evr_loop->del_fd(m_fd);
         }

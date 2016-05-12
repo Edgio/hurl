@@ -154,6 +154,20 @@ int hp_on_header_field(http_parser* a_parser, const char *a_at, size_t a_length)
                 l_cr.m_off = CALC_OFFSET(l_hmsg, a_at);
                 l_cr.m_len = a_length;
                 l_hmsg->m_p_h_list_key.push_back(l_cr);
+
+                // -----------------------------------------
+                // signalling for expect headers
+                // -----------------------------------------
+                if(l_hmsg->get_type() == hmsg::TYPE_RQST)
+                {
+                        rqst *l_rqst = static_cast<rqst *>(l_hmsg);
+                        const char l_exp[] = "Expect";
+                        uint32_t l_len = ((sizeof(l_exp)>a_length)?a_length:sizeof(l_exp));
+                        if(strncasecmp(l_exp, a_at, l_len) == 0)
+                        {
+                                l_rqst->m_expect = true;
+                        }
+                }
         }
         return 0;
 }

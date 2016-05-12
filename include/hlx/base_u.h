@@ -71,7 +71,6 @@ protected:
         // -------------------------------------------------
         clnt_session &m_clnt_session;
         state_t m_state;
-
 private:
         // -------------------------------------------------
         // Private methods
