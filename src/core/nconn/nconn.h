@@ -202,6 +202,7 @@ public:
         int32_t nc_set_listening(int32_t a_val);
         int32_t nc_set_listening_nb(int32_t a_val);
         int32_t nc_set_accepting(int a_fd);
+        int32_t nc_set_connected(void);
         int32_t nc_cleanup();
 
         // -------------------------------------------------
@@ -227,6 +228,7 @@ protected:
         virtual int32_t ncset_listening(int32_t a_val) = 0;
         virtual int32_t ncset_listening_nb(int32_t a_val) = 0;
         virtual int32_t ncset_accepting(int a_fd) = 0;
+        virtual int32_t ncset_connected(void) = 0;
 
         // -------------------------------------------------
         // Protected members

@@ -70,6 +70,7 @@ default_rqst_h clnt_session::s_default_rqst_h;
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_readable_cb(void *a_data)
 {
+        //NDBG_PRINT("%sREADABLE%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
         if(!a_data)
         {
                 return HLX_STATUS_OK;
@@ -142,18 +143,15 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                                         // Modified connection status
                                         l_status = nconn::NC_STATUS_ERROR;
                                 }
-                                else
+                                if(l_cs->m_rqst)
                                 {
-                                        if(l_cs->m_rqst)
-                                        {
-                                                bool l_ka = l_cs->m_rqst->m_supports_keep_alives;
-                                                l_cs->m_rqst->clear();
-                                                l_cs->m_rqst->m_supports_keep_alives = l_ka;
-                                        }
-                                        if(l_cs->m_in_q)
-                                        {
-                                                l_cs->m_in_q->reset_write();
-                                        }
+                                        bool l_ka = l_cs->m_rqst->m_supports_keep_alives;
+                                        l_cs->m_rqst->init(true);
+                                        l_cs->m_rqst->m_supports_keep_alives = l_ka;
+                                }
+                                if(l_cs->m_in_q)
+                                {
+                                        l_cs->m_in_q->reset_write();
                                 }
                         }
                 }
@@ -174,14 +172,14 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                         {
                                 l_cs->cancel_ups();
                         }
-                        l_t_srvr->cleanup_conn(l_cs, l_nconn);
+                        l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
                 }
                 if(!l_cs)
                 {
-                        l_t_srvr->cleanup_conn(l_cs, l_nconn);
+                        l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
@@ -208,6 +206,7 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
 {
+        //NDBG_PRINT("%sWRITEABLE%s\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF);
         if(!a_data)
         {
                 return HLX_STATUS_OK;
@@ -260,14 +259,16 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                 // ---------------------------------------------------
                 // Special handling for files
                 // ---------------------------------------------------
-                if(l_cs->m_ups &&
+                if(l_cs &&
+                   l_cs->m_ups &&
                    !l_cs->m_ups->ups_done() &&
                    (l_cs->m_ups->get_type() == file_u::S_UPS_TYPE_FILE) &&
-                   !(l_cs->m_out_q->read_avail()))
+                   (l_cs->m_out_q && !(l_cs->m_out_q->read_avail())))
                 {
                         l_cs->m_ups->ups_read(32768);
                 }
                 l_status = l_nconn->nc_run_state_machine(nconn::NC_MODE_WRITE, l_in_q, l_out_q);
+                //NDBG_PRINT("WRITEABLE: l_status: %d\n",l_status);
                 if(l_status > 0)
                 {
                         l_t_srvr->m_stat.m_total_bytes_written += l_status;
@@ -302,6 +303,14 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                                                 }
                                         }
                                         l_cs->m_out_q->reset_write();
+                                        if((l_cs->m_rqst != NULL) &&
+                                           (l_cs->m_rqst->m_supports_keep_alives))
+                                        {
+                                                l_cs->m_nconn->nc_set_connected();
+                                                // TODO -check status
+                                                l_status = nconn::NC_STATUS_BREAK;
+                                        }
+                                        l_status = nconn::NC_STATUS_EOF;
                                 }
                         }
                 }
@@ -325,7 +334,7 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                         {
                                 l_cs->cancel_ups();
                         }
-                        l_t_srvr->cleanup_conn(l_cs, l_nconn);
+                        l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
@@ -336,14 +345,14 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                                 l_cs->cancel_ups();
                         }
                         ++(l_t_srvr->m_stat.m_total_errors);
-                        l_t_srvr->cleanup_conn(l_cs, l_nconn);
+                        l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
                 }
                 if(!l_cs)
                 {
-                        l_t_srvr->cleanup_conn(l_cs, l_nconn);
+                        l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
@@ -381,7 +390,7 @@ int32_t clnt_session::evr_fd_error_cb(void *a_data)
                 l_cs->cancel_ups();
         }
         int32_t l_s;
-        l_s = l_t_srvr->cleanup_conn(l_cs, l_nconn);
+        l_s = l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
         if(l_s != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
@@ -412,7 +421,7 @@ int32_t clnt_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
                 l_cs->m_t_srvr->bump_num_cln_idle_killed();
                 l_cs->cancel_ups();
         }
-        l_t_srvr->cleanup_conn(l_cs, l_nconn);
+        l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
         // TODO Check return
         return HLX_STATUS_OK;
 }

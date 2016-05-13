@@ -50,6 +50,7 @@ public:
         void set_status(http_status_t a_code);
 
         void clear(void);
+        void init(bool a_save);
 
         // Debug
         void show();

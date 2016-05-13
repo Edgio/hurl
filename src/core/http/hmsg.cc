@@ -60,6 +60,7 @@ hmsg::hmsg(void):
 {
         m_http_parser_settings = (http_parser_settings *)calloc(1, sizeof(http_parser_settings));
         m_http_parser = (http_parser *)calloc(1, sizeof(http_parser));
+        init(false);
 }
 
 //: ----------------------------------------------------------------------------
@@ -94,7 +95,7 @@ hmsg::~hmsg(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hmsg::clear(void)
+void hmsg::init(bool a_save)
 {
         m_p_h_list_key.clear();
         m_p_h_list_val.clear();
@@ -103,7 +104,7 @@ void hmsg::clear(void)
         m_http_minor = 0;
         m_complete = false;
         m_supports_keep_alives = false;
-        m_save = false;
+        m_save = a_save;
         if(m_headers)
         {
                 delete m_headers;

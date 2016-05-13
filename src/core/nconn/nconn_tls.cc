@@ -577,6 +577,22 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t nconn_tls::ncset_connected(void)
+{
+        int32_t l_status;
+        l_status = nconn_tcp::ncset_connected();
+        if(l_status != NC_STATUS_OK)
+        {
+                return NC_STATUS_ERROR;
+        }
+        return NC_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;

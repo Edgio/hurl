@@ -80,7 +80,7 @@ public:
         // Setters
         void set_q(nbq *a_q);
 
-        virtual void clear(void);
+        virtual void init(bool a_save);
 
         // Debug
         virtual void show() = 0;

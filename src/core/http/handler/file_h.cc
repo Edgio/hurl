@@ -204,12 +204,6 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
                 l_read = l_fs->fssize();
         }
         l_fs->ups_read(l_read);
-        l_s = queue_resp(a_clnt_session);
-        if(l_s != HLX_STATUS_OK)
-        {
-                TRC_ERROR("queue_resp failed\n");
-                return H_RESP_SERVER_ERROR;
-        }
         return H_RESP_DONE;
 }
 

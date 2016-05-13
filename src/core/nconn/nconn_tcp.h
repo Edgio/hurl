@@ -76,6 +76,7 @@ protected:
         int32_t ncset_listening(int32_t a_val);
         int32_t ncset_listening_nb(int32_t a_val);
         int32_t ncset_accepting(int a_fd);
+        int32_t ncset_connected(void);
         int32_t ncsetup();
         int32_t ncread(char *a_buf, uint32_t a_buf_len);
         int32_t ncwrite(char *a_buf, uint32_t a_buf_len);

@@ -177,8 +177,8 @@ public:
         int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
         int32_t cancel_timer(void *a_timer);
         void signal(void);
-        int32_t cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn);
-        int32_t cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn);
+        int32_t cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_nconn);
+        int32_t cleanup_srvr_session(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn);
         void release_resp(resp *a_resp);
         void release_nbq(nbq *a_nbq);
 
@@ -244,10 +244,6 @@ private:
 
         // Get new client connection
         nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
-        int32_t config_clnt_conn(nconn &a_nconn);
-        int32_t config_ups_server_conn(nconn &a_nconn);
-        int32_t config_resp(resp &a_resp, bool a_save, void *a_data);
-
         clnt_session * get_clnt(lsnr *a_lsnr);
         ups_srvr_session * get_ups_srvr(lsnr *a_lsnr);
 

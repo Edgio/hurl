@@ -142,21 +142,21 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         ++(l_t_srvr->m_stat.m_total_errors);
-                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
                 }
                 if(!l_ups_srvr_session)
                 {
-                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
@@ -249,14 +249,14 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
                         ++(l_t_srvr->m_stat.m_total_errors);
-                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
                 }
@@ -264,7 +264,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
 
                 if(!l_ups_srvr_session)
                 {
-                        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_OK;
                 }
@@ -308,7 +308,7 @@ int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
                 }
         }
         int32_t l_s;
-        l_s = l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+        l_s = l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
         if(l_s != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
@@ -342,7 +342,7 @@ int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
                         // TODO???
                 }
         }
-        l_t_srvr->cleanup_conn(l_ups_srvr_session, l_nconn);
+        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
         // TODO Check return
         return HLX_STATUS_OK;
 }

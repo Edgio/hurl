@@ -112,7 +112,7 @@ state_top:
                         //NDBG_PRINT("Still connecting...\n");
                         return NC_STATUS_AGAIN;
                 }
-                //NDBG_PRINT("%sConnected%s: label: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
+                NDBG_PRINT("%sConnected%s: label: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
                 // Returning client fd
                 // If OK -change state to connected???
                 m_nc_state = NC_STATE_CONNECTED;
@@ -475,6 +475,24 @@ int32_t nconn::nc_set_accepting(int a_fd)
         }
 
         m_nc_state = NC_STATE_ACCEPTING;
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn::nc_set_connected(void)
+{
+        int32_t l_status;
+        l_status = ncset_connected();
+        if(l_status != NC_STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+
+        m_nc_state = NC_STATE_CONNECTED;
         return HLX_STATUS_OK;
 }
 

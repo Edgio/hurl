@@ -49,6 +49,7 @@ public:
         ~rqst();
 
         void clear(void);
+        void init(bool a_save);
 
         const std::string &get_url();
         const std::string &get_url_path();

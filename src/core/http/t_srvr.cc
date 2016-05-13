@@ -59,13 +59,37 @@
                 }\
         } while(0);
 
+#define T_SRVR_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
+        do { \
+                int _status = 0; \
+                _status = _conn.set_opt((_opt), (_buf), (_len)); \
+                if (_status != nconn::NC_STATUS_OK) { \
+                        TRC_ERROR("set_opt %d.  Status: %d.\n", \
+                                   _opt, _status); \
+                        delete &_conn;\
+                        return HLX_STATUS_ERROR;\
+                } \
+        } while(0)
+
+#define T_CLNT_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
+        do { \
+                int _status = 0; \
+                _status = _conn.set_opt((_opt), (_buf), (_len)); \
+                if (_status != nconn::NC_STATUS_OK) { \
+                        TRC_ERROR("set_opt %d.  Status: %d.\n", \
+                                   _opt, _status); \
+                        return NULL;\
+                } \
+        } while(0)
+
 #define T_HLX_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
         do { \
                 int _status = 0; \
                 _status = _conn.set_opt((_opt), (_buf), (_len)); \
                 if (_status != nconn::NC_STATUS_OK) { \
-                        NDBG_PRINT("HLX_STATUS_ERROR: set_opt %d.  Status: %d.\n", \
+                        TRC_ERROR("set_opt %d.  Status: %d.\n", \
                                    _opt, _status); \
+                        m_nconn_proxy_pool.release(&_conn); \
                         return HLX_STATUS_ERROR;\
                 } \
         } while(0)
@@ -289,17 +313,25 @@ int32_t t_srvr::add_lsnr(lsnr &a_lsnr)
         l_nconn->setup_evr_fd(evr_fd_readable_lsnr_cb,
                               NULL,
                               NULL);
-        l_status = config_clnt_conn(*l_nconn);
-        if(l_status != HLX_STATUS_OK)
+
+        T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_RECV_BUF_SIZE,NULL,m_t_conf->m_sock_opt_recv_buf_size);
+        T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_SEND_BUF_SIZE,NULL,m_t_conf->m_sock_opt_send_buf_size);
+        T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_NO_DELAY,NULL,m_t_conf->m_sock_opt_no_delay);
+        if(l_nconn->get_scheme() == SCHEME_TLS)
         {
-                if(l_nconn)
+                T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CIPHER_STR,m_t_conf->m_tls_server_ctx_cipher_list.c_str(),m_t_conf->m_tls_server_ctx_cipher_list.length());
+                T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CTX,m_t_conf->m_tls_server_ctx,sizeof(m_t_conf->m_tls_server_ctx));
+                if(!m_t_conf->m_tls_server_ctx_crt.empty())
                 {
-                        delete l_nconn;
-                        l_nconn = NULL;
+                        T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_TLS_CRT,m_t_conf->m_tls_server_ctx_crt.c_str(),m_t_conf->m_tls_server_ctx_crt.length());
                 }
-                //NDBG_PRINT("Error: performing config_clnt_conn\n");
-                return HLX_STATUS_ERROR;
+                if(!m_t_conf->m_tls_server_ctx_key.empty())
+                {
+                        T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_TLS_KEY,m_t_conf->m_tls_server_ctx_key.c_str(),m_t_conf->m_tls_server_ctx_key.length());
+                }
+                T_SRVR_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_OPTIONS,&(m_t_conf->m_tls_server_ctx_options),sizeof(m_t_conf->m_tls_server_ctx_options));
         }
+
         l_nconn->set_data(&a_lsnr);
         l_nconn->set_evr_loop(m_evr_loop);
         l_status = l_nconn->nc_set_listening(a_lsnr.get_fd());
@@ -418,10 +450,8 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         //                a_subr.get_label().c_str(),
         //                &a_nconn);
         resp *l_resp = a_ups_srvr_session.m_resp;
-        if(!get_from_pool_if_null(l_resp, m_resp_pool))
-        {
-                l_resp->clear();
-        }
+        get_from_pool_if_null(l_resp, m_resp_pool);
+        l_resp->init(a_subr.get_save());
         l_resp->m_http_parser->data = l_resp;
         a_nconn.set_read_cb(http_parse);
         a_nconn.set_read_cb_data(l_resp);
@@ -429,8 +459,6 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         a_ups_srvr_session.m_resp->m_expect_resp_body_flag = a_subr.get_expect_resp_body_flag();
         a_ups_srvr_session.m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
         a_ups_srvr_session.m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
-        config_resp(*l_resp, a_subr.get_save(), l_resp);
-        // TODO Check status
 
         // Create request
         if(!a_subr.get_connect_only())
@@ -515,7 +543,7 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         if(l_status == nconn::NC_STATUS_ERROR)
         {
                 //NDBG_PRINT("Error: Performing nc_run_state_machine. l_status: %d\n", l_status);
-                cleanup_conn(&a_ups_srvr_session, a_ups_srvr_session.m_nconn);
+                cleanup_srvr_session(&a_ups_srvr_session, a_ups_srvr_session.m_nconn);
                 // TODO Check return
                 return HLX_STATUS_OK;
         }
@@ -544,35 +572,33 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
         l_nconn = m_nconn_pool.get_new_active("CLIENT", a_scheme);
         if(!l_nconn)
         {
-                //NDBG_PRINT("Error: performing m_nconn_pool.get\n");
+                TRC_ERROR("performing m_nconn_pool.get\n");
                 return NULL;
         }
-        //NDBG_PRINT("%sGET_NEW%s: %u a_nconn: %p\n",
-        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
-        //           (uint32_t)l_nconn->get_idx(), l_nconn);
-        // Config
+        // ---------------------------------------
+        // connection setup
+        // ---------------------------------------
         l_nconn->set_ctx(this);
         l_nconn->set_num_reqs_per_conn(m_t_conf->m_num_reqs_per_conn);
         l_nconn->set_collect_stats(m_t_conf->m_collect_stats);
         l_nconn->set_connect_only(false);
+        l_nconn->set_evr_loop(m_evr_loop);
         l_nconn->setup_evr_fd(clnt_session::evr_fd_readable_cb,
                               clnt_session::evr_fd_writeable_cb,
                               clnt_session::evr_fd_error_cb);
-        int32_t l_status;
-        l_status = config_clnt_conn(*l_nconn);
-        if(l_status != HLX_STATUS_OK)
-        {
-                //NDBG_PRINT("Error: performing config_clnt_conn\n");
-                return NULL;
-        }
+        T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_RECV_BUF_SIZE,NULL,m_t_conf->m_sock_opt_recv_buf_size);
+        T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_SEND_BUF_SIZE,NULL,m_t_conf->m_sock_opt_send_buf_size);
+        T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_NO_DELAY,NULL,m_t_conf->m_sock_opt_no_delay);
+
+        // ---------------------------------------
+        // clnt session setup
+        // ---------------------------------------
         clnt_session *l_clnt_session = static_cast<clnt_session *>(l_nconn->get_data());
         if(!l_clnt_session)
         {
                 if(!get_from_pool_if_null(l_clnt_session, m_clnt_session_pool))
                 {
                         //NDBG_PRINT("REUSED!!!\n");
-                        //l_clnt_session->m_resp.clear();
-                        //l_clnt_session->m_rqst.clear();
                 }
 
                 //NDBG_PRINT("Adding http_data: %p.\n", l_clnt_session);
@@ -582,43 +608,27 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
                 l_clnt_session->m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
                 l_clnt_session->m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
         }
-        l_nconn->set_data(l_clnt_session);
-        l_nconn->set_evr_loop(m_evr_loop);
-        l_clnt_session->m_nconn = l_nconn;
-        rqst *l_rqst = l_clnt_session->m_rqst;
-        if(!get_from_pool_if_null(l_rqst, m_rqst_pool))
-        {
-                l_rqst->clear();
-        }
-        //NDBG_PRINT("CONFIGURE: a_rqst.m_http_parser_settings: %p\n", l_rqst->m_http_parser_settings);
-        //NDBG_PRINT("CONFIGURE: a_rqst.m_http_parser:          %p\n", l_rqst->m_http_parser);
-        l_rqst->m_save = true;
-        l_rqst->m_http_parser_settings->on_status = hp_on_status;
-        l_rqst->m_http_parser_settings->on_message_complete = hp_on_message_complete;
-        if(l_rqst->m_save)
-        {
-                l_rqst->m_http_parser_settings->on_message_begin = hp_on_message_begin;
-                l_rqst->m_http_parser_settings->on_url = hp_on_url;
-                l_rqst->m_http_parser_settings->on_header_field = hp_on_header_field;
-                l_rqst->m_http_parser_settings->on_header_value = hp_on_header_value;
-                l_rqst->m_http_parser_settings->on_headers_complete = hp_on_headers_complete;
-                l_rqst->m_http_parser_settings->on_body = hp_on_body;
-        }
-        http_parser_init(l_rqst->m_http_parser, HTTP_REQUEST);
-        //NDBG_PRINT("CONFIGURE: a_rqst.m_http_parser: state    %d\n", l_rqst->m_http_parser->state);
-        //NDBG_PRINT("CONFIGURE: a_rqst.m_http_parser_settings: %p\n", l_rqst->m_http_parser_settings);
-        //NDBG_PRINT("CONFIGURE: a_rqst.m_http_parser:          %p\n", l_rqst->m_http_parser);
-        l_rqst->m_http_parser->data = l_rqst;
-        l_nconn->set_read_cb(http_parse);
-        l_nconn->set_read_cb_data(l_rqst);
-        l_clnt_session->m_rqst = l_rqst;
         l_clnt_session->m_resp_done_cb = m_t_conf->m_resp_done_cb;
         if(!get_from_pool_if_null(l_clnt_session->m_in_q, m_nbq_pool))
         {
                 l_clnt_session->m_in_q->reset_write();
         }
         l_clnt_session->m_out_q = NULL;
+        l_clnt_session->m_nconn = l_nconn;
+        l_nconn->set_data(l_clnt_session);
+
+        // ---------------------------------------
+        // rqst setup
+        // ---------------------------------------
+        if(!get_from_pool_if_null(l_clnt_session->m_rqst, m_rqst_pool))
+        {
+                l_clnt_session->m_rqst->init(true);
+        }
+        l_nconn->set_read_cb(http_parse);
+        l_nconn->set_read_cb_data(l_clnt_session->m_rqst);
         l_clnt_session->m_rqst->set_q(l_clnt_session->m_in_q);
+
+        // stats
         ++m_stat.m_cln_conn_started;
         return l_nconn;
 }
@@ -797,7 +807,7 @@ int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
         if(l_status != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error: performing run_state_machine\n");
-                l_t_srvr->cleanup_conn(l_clnt_session, l_new_nconn);
+                l_t_srvr->cleanup_clnt_session(l_clnt_session, l_new_nconn);
                 // TODO Check return
                 return HLX_STATUS_ERROR;
         }
@@ -923,16 +933,15 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         }
 #endif
                 }
-                // Get new connection
+                // -----------------------------------------
+                // connection setup
+                // -----------------------------------------
                 l_nconn = m_nconn_proxy_pool.get_new_active(a_subr.get_label(), a_subr.get_scheme());
                 if(!l_nconn)
                 {
                         //NDBG_PRINT("Returning NULL\n");
                         return HLX_STATUS_AGAIN;
                 }
-                ++m_stat.m_ups_conn_started;
-                m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
-
                 l_nconn->set_ctx(this);
                 l_nconn->set_num_reqs_per_conn(m_t_conf->m_num_reqs_per_conn);
                 l_nconn->set_collect_stats(m_t_conf->m_collect_stats);
@@ -940,19 +949,22 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 l_nconn->setup_evr_fd(ups_srvr_session::evr_fd_readable_cb,
                                       ups_srvr_session::evr_fd_writeable_cb,
                                       ups_srvr_session::evr_fd_error_cb);
-
-                // Configure connection
-                l_status = config_ups_server_conn(*l_nconn);
-                if(l_status != HLX_STATUS_OK)
+                T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_RECV_BUF_SIZE,NULL,m_t_conf->m_sock_opt_recv_buf_size);
+                T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_SEND_BUF_SIZE,NULL,m_t_conf->m_sock_opt_send_buf_size);
+                T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_NO_DELAY,NULL,m_t_conf->m_sock_opt_no_delay);
+                if(l_nconn->get_scheme() == SCHEME_TLS)
                 {
-                        m_nconn_proxy_pool.release(l_nconn);
-                        //NDBG_PRINT("Error performing release\n");
-                        return HLX_STATUS_ERROR;
+                        T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CIPHER_STR,m_t_conf->m_tls_client_ctx_cipher_list.c_str(),m_t_conf->m_tls_client_ctx_cipher_list.length());
+                        T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CTX,m_t_conf->m_tls_client_ctx,sizeof(m_t_conf->m_tls_client_ctx));
                 }
                 l_nconn->set_host_info(l_host_info);
                 a_subr.set_host_info(l_host_info);
                 // Reset stats
                 l_nconn->reset_stats();
+
+                ++m_stat.m_ups_conn_started;
+                m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
+
         }
         // If we grabbed an idle connection spoof the connect time
         // for stats
@@ -965,47 +977,24 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         l_nconn->set_connect_start_time_us(get_time_us());
                 }
         }
-
-        //NDBG_PRINT("%sSTARTING CONNECTION%s: HOST: %s\n",
-        //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_subr.get_host().c_str());
-        // Configure connection for subr
-        // Set ssl options
         if(l_nconn->get_scheme() == SCHEME_TLS)
         {
                 bool l_val;
                 l_val = a_subr.get_tls_verify();
-                T_HLX_SET_NCONN_OPT((*l_nconn),
-                                    nconn_tls::OPT_TLS_VERIFY,
-                                    &(l_val),
-                                    sizeof(bool));
+                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY, &(l_val), sizeof(bool));
                 l_val = a_subr.get_tls_self_ok();
-                T_HLX_SET_NCONN_OPT((*l_nconn),
-                                    nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED,
-                                    &(l_val),
-                                    sizeof(bool));
+                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED, &(l_val), sizeof(bool));
                 l_val = a_subr.get_tls_no_host_check();
-                T_HLX_SET_NCONN_OPT((*l_nconn),
-                                    nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK,
-                                    &(l_val),
-                                    sizeof(bool));
+                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK, &(l_val), sizeof(bool));
                 l_val = a_subr.get_tls_sni();
-                T_HLX_SET_NCONN_OPT((*l_nconn),
-                                    nconn_tls::OPT_TLS_SNI,
-                                    &(l_val),
-                                    sizeof(bool));
+                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_SNI, &(l_val), sizeof(bool));
                 if(!a_subr.get_hostname().empty())
                 {
-                        T_HLX_SET_NCONN_OPT((*l_nconn),
-                                            nconn_tls::OPT_TLS_HOSTNAME,
-                                            a_subr.get_hostname().c_str(),
-                                            a_subr.get_hostname().length());
+                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_HOSTNAME, a_subr.get_hostname().c_str(), a_subr.get_hostname().length());
                 }
                 else
                 {
-                        T_HLX_SET_NCONN_OPT((*l_nconn),
-                                            nconn_tls::OPT_TLS_HOSTNAME,
-                                            a_subr.get_host().c_str(),
-                                            a_subr.get_host().length());
+                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_HOSTNAME, a_subr.get_host().c_str(), a_subr.get_host().length());
                 }
         }
 
@@ -1013,8 +1002,6 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         if(!get_from_pool_if_null(l_ups_srvr_session, m_ups_srvr_session_pool))
         {
                 //NDBG_PRINT("REUSED!!!\n");
-                //l_clnt_session->m_resp.clear();
-                //l_clnt_session->m_rqst.clear();
         }
 
         //NDBG_PRINT("Adding http_data: %p.\n", l_clnt_session);
@@ -1180,7 +1167,7 @@ void *t_srvr::t_run(void *a_nothing)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn)
+int32_t t_srvr::cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_nconn)
 {
         if(a_clnt_session)
         {
@@ -1231,7 +1218,7 @@ int32_t t_srvr::cleanup_conn(clnt_session *a_clnt_session, nconn *a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::cleanup_conn(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn)
+int32_t t_srvr::cleanup_srvr_session(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn)
 {
         if(a_ups_srvr_session)
         {
@@ -1380,102 +1367,6 @@ int32_t t_srvr::get_stat(t_stat_t &ao_stat)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::config_clnt_conn(nconn &a_nconn)
-{
-        // -------------------------------------------
-        // Set options
-        // -------------------------------------------
-        // Set generic options
-        T_HLX_SET_NCONN_OPT((a_nconn),
-                            nconn_tcp::OPT_TCP_RECV_BUF_SIZE,
-                            NULL,
-                            m_t_conf->m_sock_opt_recv_buf_size);
-        T_HLX_SET_NCONN_OPT((a_nconn),
-                            nconn_tcp::OPT_TCP_SEND_BUF_SIZE,
-                            NULL,
-                            m_t_conf->m_sock_opt_send_buf_size);
-        T_HLX_SET_NCONN_OPT((a_nconn),
-                            nconn_tcp::OPT_TCP_NO_DELAY,
-                            NULL,
-                            m_t_conf->m_sock_opt_no_delay);
-
-        // Set ssl options
-        if(a_nconn.get_scheme() == SCHEME_TLS)
-        {
-                T_HLX_SET_NCONN_OPT(a_nconn,
-                                    nconn_tls::OPT_TLS_CIPHER_STR,
-                                    m_t_conf->m_tls_server_ctx_cipher_list.c_str(),
-                                    m_t_conf->m_tls_server_ctx_cipher_list.length());
-                T_HLX_SET_NCONN_OPT(a_nconn,
-                                    nconn_tls::OPT_TLS_CTX,
-                                    m_t_conf->m_tls_server_ctx,
-                                    sizeof(m_t_conf->m_tls_server_ctx));
-                if(!m_t_conf->m_tls_server_ctx_crt.empty())
-                {
-                        T_HLX_SET_NCONN_OPT(a_nconn,
-                                            nconn_tls::OPT_TLS_TLS_CRT,
-                                            m_t_conf->m_tls_server_ctx_crt.c_str(),
-                                            m_t_conf->m_tls_server_ctx_crt.length());
-                }
-                if(!m_t_conf->m_tls_server_ctx_key.empty())
-                {
-                        T_HLX_SET_NCONN_OPT(a_nconn,
-                                            nconn_tls::OPT_TLS_TLS_KEY,
-                                            m_t_conf->m_tls_server_ctx_key.c_str(),
-                                            m_t_conf->m_tls_server_ctx_key.length());
-                }
-                //T_HLX_SET_NCONN_OPT(a_nconn,
-                //                    nconn_tls::OPT_TLS_OPTIONS,
-                //                    &(m_t_conf->m_tls_server_ctx_options),
-                //                    sizeof(m_t_conf->m_tls_server_ctx_options));
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t t_srvr::config_ups_server_conn(nconn &a_nconn)
-{
-        // -------------------------------------------
-        // Set options
-        // -------------------------------------------
-        // Set generic options
-        T_HLX_SET_NCONN_OPT((a_nconn),
-                            nconn_tcp::OPT_TCP_RECV_BUF_SIZE,
-                            NULL,
-                            m_t_conf->m_sock_opt_recv_buf_size);
-        T_HLX_SET_NCONN_OPT((a_nconn),
-                            nconn_tcp::OPT_TCP_SEND_BUF_SIZE,
-                            NULL,
-                            m_t_conf->m_sock_opt_send_buf_size);
-        T_HLX_SET_NCONN_OPT((a_nconn),
-                            nconn_tcp::OPT_TCP_NO_DELAY,
-                            NULL,
-                            m_t_conf->m_sock_opt_no_delay);
-
-        // Set ssl options
-        if(a_nconn.get_scheme() == SCHEME_TLS)
-        {
-                T_HLX_SET_NCONN_OPT(a_nconn,
-                                    nconn_tls::OPT_TLS_CIPHER_STR,
-                                    m_t_conf->m_tls_client_ctx_cipher_list.c_str(),
-                                    m_t_conf->m_tls_client_ctx_cipher_list.length());
-                T_HLX_SET_NCONN_OPT(a_nconn,
-                                    nconn_tls::OPT_TLS_CTX,
-                                    m_t_conf->m_tls_client_ctx,
-                                    sizeof(m_t_conf->m_tls_client_ctx));
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 ups_srvr_session * t_srvr::get_ups_srvr(lsnr *a_lsnr)
 {
         ups_srvr_session *l_ups_srvr_session = NULL;
@@ -1506,31 +1397,6 @@ nbq *t_srvr::get_nbq(void)
                 l_nbq->reset_write();
         }
         return l_nbq;
-}
-
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t t_srvr::config_resp(resp &a_resp, bool a_save, void *a_data)
-{
-        a_resp.m_save = a_save;
-        a_resp.m_http_parser_settings->on_status = hp_on_status;
-        a_resp.m_http_parser_settings->on_message_complete = hp_on_message_complete;
-        if(a_resp.m_save)
-        {
-                a_resp.m_http_parser_settings->on_message_begin = hp_on_message_begin;
-                a_resp.m_http_parser_settings->on_url = hp_on_url;
-                a_resp.m_http_parser_settings->on_header_field = hp_on_header_field;
-                a_resp.m_http_parser_settings->on_header_value = hp_on_header_value;
-                a_resp.m_http_parser_settings->on_headers_complete = hp_on_headers_complete;
-                a_resp.m_http_parser_settings->on_body = hp_on_body;
-        }
-        a_resp.m_http_parser->data = a_data;
-        http_parser_init(a_resp.m_http_parser, HTTP_RESPONSE);
-        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

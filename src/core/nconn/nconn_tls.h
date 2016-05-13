@@ -126,6 +126,7 @@ protected:
         int32_t ncset_listening(int32_t a_val);
         int32_t ncset_listening_nb(int32_t a_val);
         int32_t ncset_accepting(int a_fd);
+        int32_t ncset_connected(void);
 
 private:
         // ---------------------------------------

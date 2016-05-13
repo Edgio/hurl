@@ -1456,7 +1456,7 @@ int32_t subr::cancel(void)
                         {
                                 // TODO Check error;
                         }
-                        return m_ups_srvr_session->m_t_srvr->cleanup_conn(m_ups_srvr_session, m_ups_srvr_session->m_nconn);
+                        return m_ups_srvr_session->m_t_srvr->cleanup_srvr_session(m_ups_srvr_session, m_ups_srvr_session->m_nconn);
                 }
                 else
                 {

@@ -213,26 +213,6 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
 {
         m_fd = a_fd;
         m_tcp_state = TCP_STATE_ACCEPTING;
-
-        // TODO Hack...
-        // -------------------------------------------
-        // Socket options
-        // -------------------------------------------
-        if(m_sock_opt_send_buf_size)
-        {
-                SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_SNDBUF, m_sock_opt_send_buf_size);
-        }
-
-        if(m_sock_opt_recv_buf_size)
-        {
-                SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_RCVBUF, m_sock_opt_recv_buf_size);
-        }
-
-        if(m_sock_opt_no_delay)
-        {
-                SET_SOCK_OPT(m_fd, SOL_TCP, TCP_NODELAY, 1);
-        }
-
         // Using accept4 -TODO portable???
 #if 0
         // -------------------------------------------
@@ -268,7 +248,26 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
                         return NC_STATUS_ERROR;
                 }
         }
+        return NC_STATUS_OK;
+}
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t nconn_tcp::ncset_connected(void)
+{
+        if(m_evr_loop)
+        {
+                if (0 != m_evr_loop->mod_fd(m_fd,
+                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            &m_evr_fd))
+                {
+                        TRC_ERROR("Couldn't add socket fd\n");
+                        return NC_STATUS_ERROR;
+                }
+        }
         return NC_STATUS_OK;
 }
 

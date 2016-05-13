@@ -27,6 +27,7 @@
 #include "nbq.h"
 #include "ndebug.h"
 #include "clnt_session.h"
+#include "t_srvr.h"
 #include "hlx/status.h"
 #include "hlx/trace.h"
 #include "hlx/file_u.h"
@@ -75,32 +76,39 @@ int32_t file_u::fsinit(const char *a_filename)
         // Check is a file
         // TODO
         // ---------------------------------------
-        struct stat l_stat;
-        int32_t l_status = HLX_STATUS_OK;
-        l_status = stat(a_filename, &l_stat);
-        if(l_status != 0)
-        {
-                TRC_ERROR("performing stat on file: %s.  Reason: %s\n", a_filename, strerror(errno));
-                return HLX_STATUS_ERROR;
-        }
-
-        // Check if is regular file
-        if(!(l_stat.st_mode & S_IFREG))
-        {
-                TRC_ERROR("opening file: %s.  Reason: is NOT a regular file\n", a_filename);
-                return HLX_STATUS_ERROR;
-        }
-
-        // Set size
-        m_size = l_stat.st_size;
-
+        int32_t l_s = HLX_STATUS_OK;
         // Open the file
-        m_fd = open(a_filename, O_RDONLY);
+        m_fd = open(a_filename, O_RDONLY|O_NONBLOCK);
         if (m_fd < 0)
         {
                 TRC_ERROR("performing open on file: %s.  Reason: %s\n", a_filename, strerror(errno));
                 return HLX_STATUS_ERROR;
         }
+        struct stat l_stat;
+        l_s = fstat(m_fd, &l_stat);
+        if(l_s != 0)
+        {
+                TRC_ERROR("performing stat on file: %s.  Reason: %s\n", a_filename, strerror(errno));
+                if(m_fd > 0)
+                {
+                        close(m_fd);
+                        m_fd = -1;
+                }
+                return HLX_STATUS_ERROR;
+        }
+        // Check if is regular file
+        if(!(l_stat.st_mode & S_IFREG))
+        {
+                TRC_ERROR("opening file: %s.  Reason: is NOT a regular file\n", a_filename);
+                if(m_fd > 0)
+                {
+                        close(m_fd);
+                        m_fd = -1;
+                }
+                return HLX_STATUS_ERROR;
+        }
+        // Set size
+        m_size = l_stat.st_size;
 
         // Start sending it
         m_read = 0;
@@ -152,6 +160,7 @@ ssize_t file_u::ups_read(size_t a_len)
         {
                 return 0;
         }
+        m_state = UPS_STATE_SENDING;
         if(!(m_clnt_session.m_out_q))
         {
                 TRC_ERROR("m_clnt_session->m_out_q == NULL\n");
@@ -177,6 +186,13 @@ ssize_t file_u::ups_read(size_t a_len)
                         m_state = UPS_STATE_DONE;
                         return 0;
                 }
+        }
+        int32_t l_s;
+        l_s = m_clnt_session.m_t_srvr->queue_output(m_clnt_session);
+        if(l_s != HLX_STATUS_OK)
+        {
+                TRC_ERROR("performing queue_output\n");
+                return HLX_STATUS_ERROR;
         }
         return l_read;
 }
