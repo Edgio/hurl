@@ -188,8 +188,8 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
 {
         pthread_mutex_init(&m_stat_copy_mutex, NULL);
 
-        m_orphan_in_q = new nbq(4096);
-        m_orphan_out_q = new nbq(4096);
+        m_orphan_in_q = get_nbq();
+        m_orphan_out_q = get_nbq();
 
 }
 
@@ -234,16 +234,6 @@ t_srvr::~t_srvr()
         }
 #endif
         pthread_mutex_destroy(&m_stat_copy_mutex);
-        if(m_orphan_in_q)
-        {
-                delete m_orphan_in_q;
-                m_orphan_in_q = NULL;
-        }
-        if(m_orphan_out_q)
-        {
-                delete m_orphan_out_q;
-                m_orphan_out_q = NULL;
-        }
 }
 
 //: ----------------------------------------------------------------------------
