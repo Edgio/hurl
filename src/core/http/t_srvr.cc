@@ -589,6 +589,20 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
         T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_RECV_BUF_SIZE,NULL,m_t_conf->m_sock_opt_recv_buf_size);
         T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_SEND_BUF_SIZE,NULL,m_t_conf->m_sock_opt_send_buf_size);
         T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_NO_DELAY,NULL,m_t_conf->m_sock_opt_no_delay);
+        if(l_nconn->get_scheme() == SCHEME_TLS)
+        {
+                T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CIPHER_STR,m_t_conf->m_tls_server_ctx_cipher_list.c_str(),m_t_conf->m_tls_server_ctx_cipher_list.length());
+                T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CTX,m_t_conf->m_tls_server_ctx,sizeof(m_t_conf->m_tls_server_ctx));
+                if(!m_t_conf->m_tls_server_ctx_crt.empty())
+                {
+                        T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_TLS_CRT,m_t_conf->m_tls_server_ctx_crt.c_str(),m_t_conf->m_tls_server_ctx_crt.length());
+                }
+                if(!m_t_conf->m_tls_server_ctx_key.empty())
+                {
+                        T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_TLS_KEY,m_t_conf->m_tls_server_ctx_key.c_str(),m_t_conf->m_tls_server_ctx_key.length());
+                }
+                T_CLNT_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_OPTIONS,&(m_t_conf->m_tls_server_ctx_options),sizeof(m_t_conf->m_tls_server_ctx_options));
+        }
 
         // ---------------------------------------
         // clnt session setup

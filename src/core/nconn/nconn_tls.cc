@@ -59,13 +59,17 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 int32_t nconn_tls::init(void)
 {
-
-        //NDBG_PRINT("INIT'ing: m_tls_ctx: %p\n", m_tls_ctx);
-
-        // Create TLS Context
+        if(!m_tls_ctx)
+        {
+                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: ctx == NULL\n", m_label.c_str());
+                return NC_STATUS_ERROR;
+        }
         m_tls = ::SSL_new(m_tls_ctx);
-        // TODO Check for NULL
-
+        if(!m_tls_ctx)
+        {
+                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: tls_ctx == NULL\n", m_label.c_str());
+                return NC_STATUS_ERROR;
+        }
         ::SSL_set_fd(m_tls, m_fd);
         // TODO Check for Errors
 
