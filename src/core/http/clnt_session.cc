@@ -847,8 +847,9 @@ int32_t cancel_timer(void *a_t_srvr, void *a_timer)
 //: ----------------------------------------------------------------------------
 srvr *get_srvr(clnt_session &a_clnt_session)
 {
-        if(!a_clnt_session.m_t_srvr || !a_clnt_session.m_t_srvr->get_srvr())
+        if(!a_clnt_session.m_t_srvr)
         {
+                TRC_ERROR("a_clnt_session.m_t_srvr == NULL\n");
                 return NULL;
         }
         return a_clnt_session.m_t_srvr->get_srvr();

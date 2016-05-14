@@ -167,7 +167,7 @@ public:
         void stop(void);
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
-        srvr *get_srvr(void) { if(!m_t_conf) return NULL;  return m_t_conf->m_srvr;}
+        srvr *get_srvr(void);
         nbq *get_nbq(void);
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);

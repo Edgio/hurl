@@ -604,14 +604,12 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
                 {
                         //NDBG_PRINT("REUSED!!!\n");
                 }
-
-                //NDBG_PRINT("Adding http_data: %p.\n", l_clnt_session);
-                l_clnt_session->m_t_srvr = this;
-                l_clnt_session->m_lsnr = a_lsnr;
-                l_clnt_session->m_timer_obj = NULL;
-                l_clnt_session->m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
-                l_clnt_session->m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
         }
+        l_clnt_session->m_t_srvr = this;
+        l_clnt_session->m_lsnr = a_lsnr;
+        l_clnt_session->m_timer_obj = NULL;
+        l_clnt_session->m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
+        l_clnt_session->m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
         l_clnt_session->m_resp_done_cb = m_t_conf->m_resp_done_cb;
         if(!get_from_pool_if_null(l_clnt_session->m_in_q, m_nbq_pool))
         {
@@ -1378,6 +1376,21 @@ ups_srvr_session * t_srvr::get_ups_srvr(lsnr *a_lsnr)
         l_ups_srvr_session->m_t_srvr = this;
         l_ups_srvr_session->m_timer_obj = NULL;
         return l_ups_srvr_session;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+srvr *t_srvr::get_srvr(void)
+{
+        if(!m_t_conf)
+        {
+                TRC_ERROR("m_t_conf = NULL");
+                return NULL;
+        }
+        return m_t_conf->m_srvr;
 }
 
 //: ----------------------------------------------------------------------------
