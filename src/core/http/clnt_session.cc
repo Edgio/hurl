@@ -324,8 +324,11 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                                                 // TODO -check status
                                                 l_status = nconn::NC_STATUS_BREAK;
                                         }
-                                        l_status = nconn::NC_STATUS_EOF;
-                                        goto check_conn_status;
+                                        else
+                                        {
+                                                l_status = nconn::NC_STATUS_EOF;
+                                                goto check_conn_status;
+                                        }
                                 }
                         }
                 }
