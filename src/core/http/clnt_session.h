@@ -106,7 +106,7 @@ private:
         clnt_session& operator=(const clnt_session &);
         clnt_session(const clnt_session &);
         int32_t handle_req(void);
-        void cancel_ups();
+        void cancel_ups(void);
 };
 
 } // ns_hlx

@@ -46,7 +46,8 @@ public:
         // -------------------------------------------------
         base_u(clnt_session &a_clnt_session):
                 m_clnt_session(a_clnt_session),
-                m_state(UPS_STATE_IDLE)
+                m_state(UPS_STATE_IDLE),
+                m_shutdown(false)
         {}
         virtual ~base_u() {};
         virtual ssize_t ups_read(size_t a_len) = 0;
@@ -55,6 +56,9 @@ public:
         bool ups_done(void) {return m_state == UPS_STATE_DONE;}
         clnt_session &get_clnt_session(void) {return m_clnt_session;}
 
+        // Signal upstream was shutdown
+        void set_shutdown(void) {m_shutdown = true;}
+        bool get_shutdown(void) {return m_shutdown;}
 protected:
         // -------------------------------------------------
         // Types
@@ -71,6 +75,7 @@ protected:
         // -------------------------------------------------
         clnt_session &m_clnt_session;
         state_t m_state;
+        bool m_shutdown;
 private:
         // -------------------------------------------------
         // Private methods

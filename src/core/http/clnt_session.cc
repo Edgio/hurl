@@ -262,6 +262,7 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                 l_in_q = l_t_srvr->m_orphan_in_q;
                 l_out_q = l_t_srvr->m_orphan_out_q;
         }
+        bool l_shutdown = false;
         int32_t l_status = HLX_STATUS_OK;
         do {
                 // ---------------------------------------------------
@@ -304,6 +305,7 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                         {
                                 if(l_cs->m_ups && l_cs->m_ups->ups_done())
                                 {
+                                        l_shutdown = l_cs->m_ups->get_shutdown();
                                         delete l_cs->m_ups;
                                         l_cs->m_ups = NULL;
                                         l_cs->m_access_info.m_total_time_ms = get_time_ms() - l_cs->m_access_info.m_start_time_ms;
@@ -333,6 +335,10 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                         }
                 }
 check_conn_status:
+                if(l_shutdown)
+                {
+                        l_status = nconn::NC_STATUS_EOF;
+                }
                 if(l_nconn->is_free())
                 {
                         return HLX_STATUS_OK;
@@ -495,7 +501,7 @@ void clnt_session::clear(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void clnt_session::cancel_ups()
+void clnt_session::cancel_ups(void)
 {
         if(m_ups)
         {
