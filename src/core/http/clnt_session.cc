@@ -570,9 +570,9 @@ void clnt_session::log_status(uint16_t a_status)
         uint16_t l_status = m_access_info.m_resp_status;
         if((l_status >= 100) && (l_status < 200)) {/* TODO log 1xx's? */}
         else if((l_status >= 200) && (l_status < 300)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
-        else if((l_status >= 300) && (l_status < 400)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
-        else if((l_status >= 400) && (l_status < 500)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
-        else if((l_status >= 500) && (l_status < 600)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
+        else if((l_status >= 300) && (l_status < 400)){++m_t_srvr->m_stat.m_clnt_resp_status_3xx;}
+        else if((l_status >= 400) && (l_status < 500)){++m_t_srvr->m_stat.m_clnt_resp_status_4xx;}
+        else if((l_status >= 500) && (l_status < 600)){++m_t_srvr->m_stat.m_clnt_resp_status_5xx;}
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO

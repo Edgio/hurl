@@ -178,8 +178,6 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
 
         l_writer.EndObject();
 
-        NDBG_PRINT("l_strbuf.GetSize(): %lu\n", l_strbuf.GetSize());
-
         api_resp &l_api_resp = create_api_resp(a_clnt_session);
         l_api_resp.add_std_headers(HTTP_STATUS_OK,
                                    "application/json",
