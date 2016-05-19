@@ -45,11 +45,11 @@ public:
         // -----------------------------------
         // Connection info
         // -----------------------------------
-        struct sockaddr_storage m_conn_cln_sa;
-        socklen_t m_conn_cln_sa_len;
+        struct sockaddr_storage m_conn_clnt_sa;
+        socklen_t m_conn_clnt_sa_len;
 
-        struct sockaddr_storage m_conn_srv_sa;
-        socklen_t m_conn_srv_sa_len;
+        struct sockaddr_storage m_conn_upsv_sa;
+        socklen_t m_conn_upsv_sa_len;
 
         // -----------------------------------
         // Request info

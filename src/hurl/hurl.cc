@@ -34,6 +34,7 @@
 #include "hlx/trace.h"
 #include "hlx/status.h"
 #include "tinymt64.h"
+#include "http/t_srvr.h"
 
 #include <string.h>
 
@@ -166,13 +167,11 @@ typedef struct settings_struct
         bool m_quiet;
         bool m_show_response_codes;
         bool m_show_per_interval;
+        uint32_t m_interval_ms;
         uint32_t m_num_parallel;
         ns_hlx::srvr *m_srvr;
         uint64_t m_start_time_ms;
-        uint64_t m_last_display_time_ms;
-        ns_hlx::t_stat_t *m_last_stat;
         int32_t m_run_time_ms;
-        uint32_t m_last_responses_count[10];
 
         // ---------------------------------
         // Defaults...
@@ -183,25 +182,16 @@ typedef struct settings_struct
                 m_quiet(false),
                 m_show_response_codes(false),
                 m_show_per_interval(false),
+                m_interval_ms(500),
                 m_num_parallel(1),
                 m_srvr(NULL),
                 m_start_time_ms(),
-                m_last_display_time_ms(),
-                m_last_stat(NULL),
-                m_run_time_ms(-1),
-                m_last_responses_count()
+                m_run_time_ms(-1)
         {
-                m_last_stat = new ns_hlx::t_stat_struct();
-                for(uint32_t i = 0; i < 10; ++i) {m_last_responses_count[i] = 0;}
         }
 
         ~settings_struct()
         {
-                if(m_last_stat)
-                {
-                        delete m_last_stat;
-                        m_last_stat = NULL;
-                }
         }
 private:
         // Disallow copy/assign
@@ -359,7 +349,6 @@ void command_exec(settings_struct_t &a_settings)
 
                         switch (l_cmd)
                         {
-
                         // -------------------------------------------
                         // Display
                         // -------------------------------------------
@@ -382,7 +371,7 @@ void command_exec(settings_struct_t &a_settings)
                 }
 
                 // TODO add define...
-                usleep(500000);
+                usleep(a_settings.m_interval_ms*1000);
 
                 // Check for done
                 if(a_settings.m_run_time_ms != -1)
@@ -395,7 +384,11 @@ void command_exec(settings_struct_t &a_settings)
                                 l_sent_stop = true;
                         }
                 }
-
+                if (!l_srvr->is_running())
+                {
+                        g_test_finished = true;
+                        break;
+                }
                 if(!a_settings.m_quiet && !a_settings.m_verbose)
                 {
                         if(a_settings.m_show_response_codes)
@@ -403,6 +396,11 @@ void command_exec(settings_struct_t &a_settings)
                                 if(l_first_time)
                                 {
                                         display_responses_line_desc(a_settings);
+                                        ns_hlx::t_stat_cntr_t l_total;
+                                        ns_hlx::t_stat_calc_t l_total_calc;
+                                        ns_hlx::t_stat_cntr_list_t l_thread;
+                                        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+                                        usleep(a_settings.m_interval_ms*1000+100);
                                         l_first_time = false;
                                 }
                                 display_responses_line(a_settings);
@@ -412,17 +410,16 @@ void command_exec(settings_struct_t &a_settings)
                                 if(l_first_time)
                                 {
                                         display_results_line_desc(a_settings);
+                                        ns_hlx::t_stat_cntr_t l_total;
+                                        ns_hlx::t_stat_calc_t l_total_calc;
+                                        ns_hlx::t_stat_cntr_list_t l_thread;
+                                        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+                                        usleep(a_settings.m_interval_ms*1000+100);
                                         l_first_time = false;
                                 }
                                 display_results_line(a_settings);
                         }
                 }
-
-                if (!l_srvr->is_running())
-                {
-                        g_test_finished = true;
-                }
-
         }
 
         // Send stop -if unsent
@@ -1008,6 +1005,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -L, --responses_per  Display http(s) response codes per interval instead of request statistics\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Stat Options:\n");
+        fprintf(a_stream, "  -U, --update         Update output every N ms. Default 500ms.\n");
         fprintf(a_stream, "  -P, --data_port      Start HTTP Stats Daemon on port.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Results Options:\n");
@@ -1059,12 +1057,12 @@ int main(int argc, char** argv)
 
         // hlx settings
         l_srvr->set_collect_stats(true);
+        l_srvr->set_count_response_status(true);
         l_srvr->set_dns_use_ai_cache(true);
         l_srvr->set_dns_use_sync(true);
         l_srvr->set_num_threads(l_max_threads);
         l_srvr->set_num_parallel(l_start_parallel);
         l_srvr->set_num_reqs_per_conn(-1);
-        l_srvr->set_update_stats_ms(500);
 
         // -------------------------------------------------
         // Subrequest settings
@@ -1136,6 +1134,7 @@ int main(int argc, char** argv)
                 { "http_load",      0, 0, 'Y' },
                 { "http_load_line", 0, 0, 'Z' },
                 { "output",         1, 0, 'o' },
+                { "update",         1, 0, 'U' },
                 { "data_port",      1, 0, 'P' },
 #ifdef ENABLE_PROFILER
                 { "gprofile",       1, 0, 'G' },
@@ -1178,9 +1177,9 @@ int main(int argc, char** argv)
         }
 
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:G:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:U:G:";
 #else
-        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:";
+        char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:U:";
 #endif
 
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
@@ -1580,6 +1579,21 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
+                // Update interval
+                // ---------------------------------------
+                case 'U':
+                {
+                        int l_interval_ms = atoi(optarg);
+                        if (l_interval_ms < 1)
+                        {
+                                printf("Error: Update interval must be > 0 ms\n");
+                                //print_usage(stdout, -1);
+                                return -1;
+                        }
+                        l_settings.m_interval_ms = l_interval_ms;
+                        break;
+                }
+                // ---------------------------------------
                 // What???
                 // ---------------------------------------
                 case '?':
@@ -1707,6 +1721,12 @@ int main(int argc, char** argv)
                                 l_max_threads, l_start_parallel, l_max_reqs_per_conn);
                 }
         }
+
+        // -------------------------------------------
+        //
+        // -------------------------------------------
+        l_srvr->set_update_stats_ms(l_settings.m_interval_ms);
+
         // -------------------------------------------
         // Setup to run -but don't start
         // -------------------------------------------
@@ -1770,7 +1790,6 @@ int main(int argc, char** argv)
 
         uint64_t l_start_time_ms = ns_hlx::get_time_ms();
         l_settings.m_start_time_ms = l_start_time_ms;
-        l_settings.m_last_display_time_ms = l_start_time_ms;
 
         // -------------------------------------------
         // Run command exec
@@ -2004,109 +2023,94 @@ void display_responses_line_desc(settings_struct &a_settings)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+static void get_status_codes(settings_struct &a_settings,
+                             ns_hlx::status_code_count_map_t &ao_map)
+{
+        ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = a_settings.m_srvr->get_t_srvr_list();
+        for(ns_hlx::srvr::t_srvr_list_t::iterator i_t = l_t_srvr_list.begin(); i_t != l_t_srvr_list.end(); ++i_t)
+        {
+                ns_hlx::status_code_count_map_t i_m;
+                (*i_t)->get_ups_status_code_count_map(i_m);
+                for(ns_hlx::status_code_count_map_t::iterator i_c = i_m.begin(); i_c != i_m.end(); ++i_c)
+                {
+                        ao_map[i_c->first] += i_c->second;
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void display_responses_line(settings_struct &a_settings)
 {
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
-
-        uint64_t l_cur_time_ms = hurl_get_time_ms();
-        double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
-                              ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = hurl_get_time_ms();
-        *(a_settings.m_last_stat) = l_total;
-
-        // Aggregate over status code map
-        ns_hlx::status_code_count_map_t m_status_code_count_map;
-
-        uint32_t l_responses[10] = {0};
-        for(ns_hlx::status_code_count_map_t::iterator i_code = l_total.m_ups_status_code_count_map.begin();
-            i_code != l_total.m_ups_status_code_count_map.end();
-            ++i_code)
-        {
-                if(i_code->first >= 200 && i_code->first <= 299)
-                {
-                        l_responses[2] += i_code->second;
-                }
-                else if(i_code->first >= 300 && i_code->first <= 399)
-                {
-                        l_responses[3] += i_code->second;
-                }
-                else if(i_code->first >= 400 && i_code->first <= 499)
-                {
-                        l_responses[4] += i_code->second;
-                }
-                else if(i_code->first >= 500 && i_code->first <= 599)
-                {
-                        l_responses[5] += i_code->second;
-                }
-        }
-
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
         if(a_settings.m_show_per_interval)
         {
-
-                // Calculate rates
-                double l_rate[10] = {0.0};
-                uint32_t l_totals = 0;
-
-                for(uint32_t i = 2; i <= 5; ++i)
-                {
-                        l_totals += l_responses[i] - a_settings.m_last_responses_count[i];
-                }
-
-                for(uint32_t i = 2; i <= 5; ++i)
-                {
-                        if(l_totals)
-                        {
-                                l_rate[i] = (100.0*((double)(l_responses[i] - a_settings.m_last_responses_count[i]))) / ((double)(l_totals));
-                        }
-                        else
-                        {
-                                l_rate[i] = 0.0;
-                        }
-                }
-
                 if(a_settings.m_color)
                 {
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
                                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
-                                                l_reqs_per_s,
-                                                l_total.m_ups_reqs,
-                                                l_total.m_total_errors,
-                                                ANSI_COLOR_FG_GREEN, l_rate[2], ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_CYAN, l_rate[3], ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_MAGENTA, l_rate[4], ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_RED, l_rate[5], ANSI_COLOR_OFF);
+                                                l_total_calc.m_upsv_req_s,
+                                                l_total.m_upsv_reqs,
+                                                l_total.m_upsv_errors,
+                                                ANSI_COLOR_FG_GREEN, l_total_calc.m_upsv_resp_status_2xx_pcnt, ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_CYAN, l_total_calc.m_upsv_resp_status_3xx_pcnt, ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_MAGENTA, l_total_calc.m_upsv_resp_status_4xx_pcnt, ANSI_COLOR_OFF,
+                                                ANSI_COLOR_FG_RED, l_total_calc.m_upsv_resp_status_5xx_pcnt, ANSI_COLOR_OFF);
                 }
                 else
                 {
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
-                                        l_reqs_per_s,
-                                        l_total.m_ups_reqs,
-                                        l_total.m_total_errors,
-                                        l_rate[2],
-                                        l_rate[3],
-                                        l_rate[4],
-                                        l_rate[5]);
+                                        l_total_calc.m_upsv_req_s,
+                                        l_total.m_upsv_reqs,
+                                        l_total.m_upsv_errors,
+                                        l_total_calc.m_upsv_resp_status_2xx_pcnt,
+                                        l_total_calc.m_upsv_resp_status_3xx_pcnt,
+                                        l_total_calc.m_upsv_resp_status_4xx_pcnt,
+                                        l_total_calc.m_upsv_resp_status_5xx_pcnt);
                 }
-
-                // Update last
-                a_settings.m_last_responses_count[2] = l_responses[2];
-                a_settings.m_last_responses_count[3] = l_responses[3];
-                a_settings.m_last_responses_count[4] = l_responses[4];
-                a_settings.m_last_responses_count[5] = l_responses[5];
         }
         else
         {
+                // Aggregate over status code map
+                uint32_t l_responses[10] = {0};
+                ns_hlx::status_code_count_map_t l_status_code_count_map;
+                get_status_codes(a_settings, l_status_code_count_map);
+                for(ns_hlx::status_code_count_map_t::iterator i_code = l_status_code_count_map.begin();
+                    i_code != l_status_code_count_map.end();
+                    ++i_code)
+                {
+                        if(i_code->first >= 200 && i_code->first <= 299)
+                        {
+                                l_responses[2] += i_code->second;
+                        }
+                        else if(i_code->first >= 300 && i_code->first <= 399)
+                        {
+                                l_responses[3] += i_code->second;
+                        }
+                        else if(i_code->first >= 400 && i_code->first <= 499)
+                        {
+                                l_responses[4] += i_code->second;
+                        }
+                        else if(i_code->first >= 500 && i_code->first <= 599)
+                        {
+                                l_responses[5] += i_code->second;
+                        }
+                }
                 if(a_settings.m_color)
                 {
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
                                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
-                                                l_reqs_per_s,
-                                                l_total.m_ups_reqs,
-                                                l_total.m_total_errors,
+                                                l_total_calc.m_upsv_req_s,
+                                                l_total.m_upsv_reqs,
+                                                l_total.m_upsv_errors,
                                                 ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_MAGENTA, l_responses[4], ANSI_COLOR_OFF,
@@ -2116,9 +2120,9 @@ void display_responses_line(settings_struct &a_settings)
                 {
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
-                                        l_reqs_per_s,
-                                        l_total.m_ups_reqs,
-                                        l_total.m_total_errors,
+                                        l_total_calc.m_upsv_req_s,
+                                        l_total.m_upsv_reqs,
+                                        l_total.m_upsv_errors,
                                         l_responses[2],
                                         l_responses[3],
                                         l_responses[4],
@@ -2170,41 +2174,34 @@ void display_results_line_desc(settings_struct &a_settings)
 void display_results_line(settings_struct &a_settings)
 {
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
-
-        uint64_t l_cur_time_ms = hurl_get_time_ms();
-        double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
-                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        double l_kb_per_s = ((double)(l_total.m_total_bytes_read - a_settings.m_last_stat->m_total_bytes_read)*1000.0/1024) /
-                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = hurl_get_time_ms();
-        *a_settings.m_last_stat = l_total;
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
         if(a_settings.m_color)
         {
                         printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
-                                        ANSI_COLOR_FG_GREEN, l_total.m_ups_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLUE, l_total.m_ups_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_MAGENTA, l_total.m_ups_idle_killed, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_RED, l_total.m_total_errors, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_YELLOW, ((double)(l_total.m_total_bytes_read))/(1024.0), ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_GREEN, l_total.m_upsv_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_BLUE, l_total.m_upsv_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_MAGENTA, l_total.m_upsv_idle_killed, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_RED, l_total.m_upsv_errors, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_YELLOW, l_total_calc.m_upsv_bytes_read_s/1024.0, ANSI_COLOR_OFF,
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
-                                        l_reqs_per_s,
-                                        l_kb_per_s/1024.0
+                                        l_total_calc.m_upsv_req_s,
+                                        l_total_calc.m_upsv_bytes_read_s/(1024.0*1024.0)
                                         );
         }
         else
         {
                 printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
-                                l_total.m_ups_reqs,
-                                l_total.m_ups_reqs,
-                                l_total.m_ups_idle_killed,
-                                l_total.m_total_errors,
-                                ((double)(l_total.m_total_bytes_read))/(1024.0),
+                                l_total.m_upsv_reqs,
+                                l_total.m_upsv_reqs,
+                                l_total.m_upsv_idle_killed,
+                                l_total.m_upsv_errors,
+                                ((double)(l_total.m_upsv_bytes_read))/(1024.0),
                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0),
-                                l_reqs_per_s,
-                                l_kb_per_s/1024.0
+                                l_total_calc.m_upsv_req_s,
+                                l_total_calc.m_upsv_bytes_read_s/(1024.0*1024.0)
                                 );
         }
 }
@@ -2230,15 +2227,16 @@ void get_results(settings_struct &a_settings,
                  std::string &ao_results)
 {
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
 
         std::string l_tag;
         char l_buf[1024];
         // TODO Fix elapse and max parallel
         l_tag = "ALL";
-        uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
+        uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
         if(a_settings.m_color)
         {
         STR_PRINT("| %sRESULTS%s:             %s%s%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_YELLOW, l_tag.c_str(), ANSI_COLOR_OFF);
@@ -2247,12 +2245,12 @@ void get_results(settings_struct &a_settings,
         {
         STR_PRINT("| RESULTS:             %s\n", l_tag.c_str());
         }
-        STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_ups_reqs);
+        STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_upsv_reqs);
         STR_PRINT("| max parallel:        %u\n", a_settings.m_num_parallel);
         STR_PRINT("| bytes:               %e\n", (double)(l_total_bytes));
         STR_PRINT("| seconds:             %f\n", a_elapsed_time);
-        STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
-        STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_ups_reqs)/(a_elapsed_time));
+        STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_upsv_reqs));
+        STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_upsv_reqs)/(a_elapsed_time));
         STR_PRINT("| bytes/sec:           %e\n", ((double)l_total_bytes)/a_elapsed_time);
         // TODO Fix stdev/var calcs
 #if 0
@@ -2276,9 +2274,9 @@ void get_results(settings_struct &a_settings,
                stat.min()/1000.0);\
         } while(0)
 #endif
-        SHOW_XSTAT_LINE("ms/connect:", l_total.m_ups_stat_us_connect);
-        SHOW_XSTAT_LINE("ms/1st-response:", l_total.m_ups_stat_us_first_response);
-        SHOW_XSTAT_LINE("ms/end2end:", l_total.m_ups_stat_us_end_to_end);
+        SHOW_XSTAT_LINE("ms/connect:", l_total.m_upsv_stat_us_connect);
+        SHOW_XSTAT_LINE("ms/1st-response:", l_total.m_upsv_stat_us_first_response);
+        SHOW_XSTAT_LINE("ms/end2end:", l_total.m_upsv_stat_us_end_to_end);
 
         if(a_settings.m_color)
         {
@@ -2288,8 +2286,10 @@ void get_results(settings_struct &a_settings,
         {
         STR_PRINT("| HTTP response codes: \n");
         }
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
-            i_status_code != l_total.m_ups_status_code_count_map.end();
+        ns_hlx::status_code_count_map_t l_status_code_count_map;
+        get_status_codes(a_settings, l_status_code_count_map);
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+            i_status_code != l_status_code_count_map.end();
             ++i_status_code)
         {
                 if(a_settings.m_color)
@@ -2314,9 +2314,10 @@ void get_results_http_load(settings_struct &a_settings,
                            bool a_one_line_flag)
 {
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
 
         std::string l_tag;
         // Separator
@@ -2326,16 +2327,16 @@ void get_results_http_load(settings_struct &a_settings,
         // TODO Fix elapse and max parallel
         l_tag = "State";
         char l_buf[1024];
-        uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
+        uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
         STR_PRINT("%s: ", l_tag.c_str());
-        STR_PRINT("%" PRIu64 " fetches, ", l_total.m_ups_reqs);
+        STR_PRINT("%" PRIu64 " fetches, ", l_total.m_upsv_reqs);
         STR_PRINT("%u max parallel, ", a_settings.m_num_parallel);
         STR_PRINT("%e bytes, ", (double)(l_total_bytes));
         STR_PRINT("in %f seconds, ", a_elapsed_time);
         STR_PRINT("%s", l_sep.c_str());
-        STR_PRINT("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
+        STR_PRINT("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)l_total.m_upsv_reqs));
         STR_PRINT("%s", l_sep.c_str());
-        STR_PRINT("%f fetches/sec, %e bytes/sec", ((double)l_total.m_ups_reqs)/(a_elapsed_time), ((double)l_total_bytes)/a_elapsed_time);
+        STR_PRINT("%f fetches/sec, %e bytes/sec", ((double)l_total.m_upsv_reqs)/(a_elapsed_time), ((double)l_total_bytes)/a_elapsed_time);
         STR_PRINT("%s", l_sep.c_str());
 #define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
         STR_PRINT("%s %.6f mean, %.6f max, %.6f min, %.6f stdev",\
@@ -2345,17 +2346,19 @@ void get_results_http_load(settings_struct &a_settings,
                stat.min()/1000.0,                             \
                stat.stdev()/1000.0);                          \
         printf("%s", l_sep.c_str())
-        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", l_total.m_ups_stat_us_connect);
-        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", l_total.m_ups_stat_us_first_response);
-        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", l_total.m_ups_stat_us_end_to_end);
+        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", l_total.m_upsv_stat_us_connect);
+        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", l_total.m_upsv_stat_us_first_response);
+        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", l_total.m_upsv_stat_us_end_to_end);
         STR_PRINT("HTTP response codes: ");
         if(l_sep == "\n")
         {
         STR_PRINT("%s", l_sep.c_str());
         }
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
-                        i_status_code != l_total.m_ups_status_code_count_map.end();
-                ++i_status_code)
+        ns_hlx::status_code_count_map_t l_status_code_count_map;
+        get_status_codes(a_settings, l_status_code_count_map);
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+            i_status_code != l_status_code_count_map.end();
+            ++i_status_code)
         {
         STR_PRINT("code %d -- %u, ", i_status_code->first, i_status_code->second);
         }
@@ -2371,45 +2374,48 @@ void get_results_json(settings_struct &a_settings,
                       std::string &ao_results)
 {
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
 
-        uint64_t l_total_bytes = l_total.m_total_bytes_read + l_total.m_total_bytes_written;
+        uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
         rapidjson::Document l_body;
         l_body.SetObject();
         rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
 #define ADD_MEMBER(_l, _v) \
         l_body.AddMember(_l, _v, l_alloc)
 
-        ADD_MEMBER("fetches", l_total.m_ups_reqs);
+        ADD_MEMBER("fetches", l_total.m_upsv_reqs);
         ADD_MEMBER("max-parallel", a_settings.m_num_parallel);
         ADD_MEMBER("bytes", (double)(l_total_bytes));
         ADD_MEMBER("seconds", a_elapsed_time);
-        ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_ups_reqs));
-        ADD_MEMBER("fetches-per-sec", ((double)l_total.m_ups_reqs)/(a_elapsed_time));
+        ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_upsv_reqs));
+        ADD_MEMBER("fetches-per-sec", ((double)l_total.m_upsv_reqs)/(a_elapsed_time));
         ADD_MEMBER("bytes-per-sec", ((double)l_total_bytes)/a_elapsed_time);
 
         // TODO Fix stdev/var calcs
         // Stats
-        ADD_MEMBER("connect-ms-mean", l_total.m_ups_stat_us_connect.mean()/1000.0);
-        ADD_MEMBER("connect-ms-max", l_total.m_ups_stat_us_connect.max()/1000.0);
-        ADD_MEMBER("connect-ms-min", l_total.m_ups_stat_us_connect.min()/1000.0);
+        ADD_MEMBER("connect-ms-mean", l_total.m_upsv_stat_us_connect.mean()/1000.0);
+        ADD_MEMBER("connect-ms-max", l_total.m_upsv_stat_us_connect.max()/1000.0);
+        ADD_MEMBER("connect-ms-min", l_total.m_upsv_stat_us_connect.min()/1000.0);
 
-        ADD_MEMBER("1st-resp-ms-mean", l_total.m_ups_stat_us_first_response.mean()/1000.0);
-        ADD_MEMBER("1st-resp-ms-max", l_total.m_ups_stat_us_first_response.max()/1000.0);
-        ADD_MEMBER("1st-resp-ms-min", l_total.m_ups_stat_us_first_response.min()/1000.0);
+        ADD_MEMBER("1st-resp-ms-mean", l_total.m_upsv_stat_us_first_response.mean()/1000.0);
+        ADD_MEMBER("1st-resp-ms-max", l_total.m_upsv_stat_us_first_response.max()/1000.0);
+        ADD_MEMBER("1st-resp-ms-min", l_total.m_upsv_stat_us_first_response.min()/1000.0);
 
-        ADD_MEMBER("end2end-ms-mean", l_total.m_ups_stat_us_end_to_end.mean()/1000.0);
-        ADD_MEMBER("end2end-ms-max", l_total.m_ups_stat_us_end_to_end.max()/1000.0);
-        ADD_MEMBER("end2end-ms-min", l_total.m_ups_stat_us_end_to_end.min()/1000.0);
+        ADD_MEMBER("end2end-ms-mean", l_total.m_upsv_stat_us_end_to_end.mean()/1000.0);
+        ADD_MEMBER("end2end-ms-max", l_total.m_upsv_stat_us_end_to_end.max()/1000.0);
+        ADD_MEMBER("end2end-ms-min", l_total.m_upsv_stat_us_end_to_end.min()/1000.0);
 
-        if(l_total.m_ups_status_code_count_map.size())
+        ns_hlx::status_code_count_map_t l_status_code_count_map;
+        get_status_codes(a_settings, l_status_code_count_map);
+        if(l_status_code_count_map.size())
         {
         rapidjson::Value l_obj;
         l_obj.SetObject();
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_total.m_ups_status_code_count_map.begin();
-            i_status_code != l_total.m_ups_status_code_count_map.end();
+        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+            i_status_code != l_status_code_count_map.end();
             ++i_status_code)
         {
                 char l_buf[16]; snprintf(l_buf,16,"%3d",i_status_code->first);

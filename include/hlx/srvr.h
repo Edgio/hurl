@@ -96,6 +96,7 @@ public:
         void set_num_reqs_per_conn(int32_t a_num_reqs_per_conn);
         void set_start_time_ms(uint64_t a_start_time_ms);
         void set_collect_stats(bool a_val);
+        void set_count_response_status(bool a_val);
         void set_update_stats_ms(uint32_t a_update_ms);
         void set_timeout_ms(uint32_t a_val);
         void set_resp_done_cb(resp_done_cb_t a_cb);
@@ -134,7 +135,7 @@ public:
         bool is_running(void);
 
         // Stats
-        void get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list);
+        void get_stat(t_stat_cntr_t &ao_stat, t_stat_calc_t &ao_calc_stat, t_stat_cntr_list_t &ao_stat_list);
         void display_stat(void);
 
         // TLS config
@@ -193,8 +194,9 @@ private:
         pthread_mutex_t m_stat_mutex;
         uint32_t m_stat_update_ms;
         uint64_t m_stat_last_time_ms;
-        t_stat_list_t m_stat_list_cache;
-        t_stat_t m_stat_cache;
+        t_stat_cntr_list_t m_stat_list_cache;
+        t_stat_cntr_t m_stat_cache;
+        t_stat_calc_t m_stat_calc_cache;
 };
 
 //: ----------------------------------------------------------------------------

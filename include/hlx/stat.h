@@ -77,14 +77,14 @@ typedef struct xstat_struct
 } xstat_t;
 
 //: ----------------------------------------------------------------------------
-//: All Stat Aggregation..
+//: counter stats
 //: ----------------------------------------------------------------------------
-typedef struct t_stat_struct
+typedef struct t_stat_cntr_struct
 {
         // Stats
-        xstat_t m_ups_stat_us_connect;
-        xstat_t m_ups_stat_us_first_response;
-        xstat_t m_ups_stat_us_end_to_end;
+        xstat_t m_upsv_stat_us_connect;
+        xstat_t m_upsv_stat_us_first_response;
+        xstat_t m_upsv_stat_us_end_to_end;
 
         // Dns stats
         uint64_t m_dns_resolve_req;
@@ -93,23 +93,41 @@ typedef struct t_stat_struct
         uint64_t m_dns_resolve_ev;
 
         // Upstream stats
-        uint64_t m_ups_conn_started;
-        uint64_t m_ups_conn_completed;
-        uint64_t m_ups_reqs;
-        uint64_t m_ups_idle_killed;
-        uint64_t m_ups_subr_queued;
+        uint64_t m_upsv_conn_started;
+        uint64_t m_upsv_conn_completed;
+        uint64_t m_upsv_reqs;
+        uint64_t m_upsv_idle_killed;
+        uint64_t m_upsv_subr_queued;
 
-        // Status Codes...
-        status_code_count_map_t m_ups_status_code_count_map;
+        // Upstream resp
+        uint64_t m_upsv_resp;
+        uint64_t m_upsv_resp_status_2xx;
+        uint64_t m_upsv_resp_status_3xx;
+        uint64_t m_upsv_resp_status_4xx;
+        uint64_t m_upsv_resp_status_5xx;
 
-        // TODO DEBUG???
-        //subr_pending_resolv_map_t m_subr_pending_resolv_map;
+        // clnt counts
+        uint64_t m_upsv_errors;
+        uint64_t m_upsv_bytes_read;
+        uint64_t m_upsv_bytes_written;
 
         // Server stats
-        uint64_t m_cln_conn_started;
-        uint64_t m_cln_conn_completed;
-        uint64_t m_cln_reqs;
-        uint64_t m_cln_idle_killed;
+        uint64_t m_clnt_conn_started;
+        uint64_t m_clnt_conn_completed;
+        uint64_t m_clnt_reqs;
+        uint64_t m_clnt_idle_killed;
+
+        // Response stats
+        uint64_t m_clnt_resp;
+        uint64_t m_clnt_resp_status_2xx;
+        uint64_t m_clnt_resp_status_3xx;
+        uint64_t m_clnt_resp_status_4xx;
+        uint64_t m_clnt_resp_status_5xx;
+
+        // clnt counts
+        uint64_t m_clnt_errors;
+        uint64_t m_clnt_bytes_read;
+        uint64_t m_clnt_bytes_written;
 
         // Pool stats
         uint64_t m_pool_conn_active;
@@ -127,37 +145,44 @@ typedef struct t_stat_struct
 
         // Totals
         uint64_t m_total_run;
-        uint64_t m_total_errors;
-        uint64_t m_total_bytes_read;
-        uint64_t m_total_bytes_written;
 
-        // Resources
-#ifdef __linux__
-        uint64_t m_rsc_cpu_usr_ms;
-        uint64_t m_rsc_cpu_sys_ms;
-        uint64_t m_rsc_mem_rss_kb;
-#endif
+        t_stat_cntr_struct():
+                m_upsv_stat_us_connect(),
+                m_upsv_stat_us_first_response(),
+                m_upsv_stat_us_end_to_end(),
 
-        t_stat_struct():
-                m_ups_stat_us_connect(),
-                m_ups_stat_us_first_response(),
-                m_ups_stat_us_end_to_end(),
                 m_dns_resolve_req(0),
                 m_dns_resolve_active(0),
                 m_dns_resolved(0),
                 m_dns_resolve_ev(0),
-                m_ups_conn_started(0),
-                m_ups_conn_completed(0),
-                m_ups_reqs(0),
-                m_ups_idle_killed(0),
-                m_ups_subr_queued(0),
-                m_ups_status_code_count_map(),
-                // TODO DEBUG???
-                //m_subr_pending_resolv_map(),
-                m_cln_conn_started(0),
-                m_cln_conn_completed(0),
-                m_cln_reqs(0),
-                m_cln_idle_killed(0),
+
+                m_upsv_conn_started(0),
+                m_upsv_conn_completed(0),
+                m_upsv_reqs(0),
+                m_upsv_idle_killed(0),
+                m_upsv_subr_queued(0),
+                m_upsv_resp(0),
+                m_upsv_resp_status_2xx(0),
+                m_upsv_resp_status_3xx(0),
+                m_upsv_resp_status_4xx(0),
+                m_upsv_resp_status_5xx(0),
+                m_upsv_errors(0),
+                m_upsv_bytes_read(0),
+                m_upsv_bytes_written(0),
+
+                m_clnt_conn_started(0),
+                m_clnt_conn_completed(0),
+                m_clnt_reqs(0),
+                m_clnt_idle_killed(0),
+                m_clnt_resp(0),
+                m_clnt_resp_status_2xx(0),
+                m_clnt_resp_status_3xx(0),
+                m_clnt_resp_status_4xx(0),
+                m_clnt_resp_status_5xx(0),
+                m_clnt_errors(0),
+                m_clnt_bytes_read(0),
+                m_clnt_bytes_written(0),
+
                 m_pool_conn_active(0),
                 m_pool_conn_idle(0),
                 m_pool_proxy_conn_active(0),
@@ -170,39 +195,48 @@ typedef struct t_stat_struct
                 m_pool_rqst_used(0),
                 m_pool_nbq_free(0),
                 m_pool_nbq_used(0),
-                m_total_run(0),
-                m_total_errors(0),
-                m_total_bytes_read(0),
-                m_total_bytes_written(0)
-#ifdef __linux__
-                ,
-                m_rsc_cpu_usr_ms(0),
-                m_rsc_cpu_sys_ms(0),
-                m_rsc_mem_rss_kb(0)
-#endif
+
+                m_total_run(0)
         {}
         void clear()
         {
-                m_ups_stat_us_connect.clear();
-                m_ups_stat_us_connect.clear();
-                m_ups_stat_us_first_response.clear();
-                m_ups_stat_us_end_to_end.clear();
+                m_upsv_stat_us_connect.clear();
+                m_upsv_stat_us_connect.clear();
+                m_upsv_stat_us_first_response.clear();
+                m_upsv_stat_us_end_to_end.clear();
+
                 m_dns_resolve_req = 0;
                 m_dns_resolve_active = 0;
                 m_dns_resolved = 0;
                 m_dns_resolve_ev = 0;
-                m_ups_conn_started = 0;
-                m_ups_conn_completed = 0;
-                m_ups_reqs = 0;
-                m_ups_idle_killed = 0;
-                m_ups_subr_queued = 0;
-                m_ups_status_code_count_map.clear();
-                // TODO DEBUG???
-                //m_subr_pending_resolv_map.clear();
-                m_cln_conn_started = 0;
-                m_cln_conn_completed = 0;
-                m_cln_reqs = 0;
-                m_cln_idle_killed = 0;
+
+                m_upsv_conn_started = 0;
+                m_upsv_conn_completed = 0;
+                m_upsv_reqs = 0;
+                m_upsv_idle_killed = 0;
+                m_upsv_subr_queued = 0;
+                m_upsv_resp = 0;
+                m_upsv_resp_status_2xx = 0;
+                m_upsv_resp_status_3xx = 0;
+                m_upsv_resp_status_4xx = 0;
+                m_upsv_resp_status_5xx = 0;
+                m_upsv_errors = 0;
+                m_upsv_bytes_read = 0;
+                m_upsv_bytes_written = 0;
+
+                m_clnt_conn_started = 0;
+                m_clnt_conn_completed = 0;
+                m_clnt_reqs = 0;
+                m_clnt_idle_killed = 0;
+                m_clnt_resp = 0;
+                m_clnt_resp_status_2xx = 0;
+                m_clnt_resp_status_3xx = 0;
+                m_clnt_resp_status_4xx = 0;
+                m_clnt_resp_status_5xx = 0;
+                m_clnt_errors = 0;
+                m_clnt_bytes_read = 0;
+                m_clnt_bytes_written = 0;
+
                 m_pool_conn_active = 0;
                 m_pool_conn_idle = 0;
                 m_pool_proxy_conn_active = 0;
@@ -215,19 +249,83 @@ typedef struct t_stat_struct
                 m_pool_rqst_used = 0;
                 m_pool_nbq_free = 0;
                 m_pool_nbq_used = 0;
-                m_total_run = 0;
-                m_total_errors = 0;
-                m_total_bytes_read = 0;
-                m_total_bytes_written = 0;
-#ifdef __linux__
-                m_rsc_cpu_usr_ms = 0;
-                m_rsc_cpu_sys_ms = 0;
-                m_rsc_mem_rss_kb = 0;
-#endif
-        }
-} t_stat_t;
 
-typedef std::list <t_stat_t> t_stat_list_t;
+                m_total_run = 0;
+        }
+} t_stat_cntr_t;
+typedef std::list <t_stat_cntr_t> t_stat_cntr_list_t;
+
+//: ----------------------------------------------------------------------------
+//: calculated stats
+//: ----------------------------------------------------------------------------
+typedef struct t_stat_calc_struct
+{
+        // clnt
+        uint64_t m_clnt_req_delta;
+        uint64_t m_clnt_resp_delta;
+        float m_clnt_req_s;
+        float m_clnt_bytes_read_s;
+        float m_clnt_bytes_write_s;
+        float m_clnt_resp_status_2xx_pcnt;
+        float m_clnt_resp_status_3xx_pcnt;
+        float m_clnt_resp_status_4xx_pcnt;
+        float m_clnt_resp_status_5xx_pcnt;
+
+        // ups
+        uint64_t m_upsv_req_delta;
+        uint64_t m_upsv_resp_delta;
+        float m_upsv_req_s;
+        float m_upsv_bytes_read_s;
+        float m_upsv_bytes_write_s;
+        float m_upsv_resp_status_2xx_pcnt;
+        float m_upsv_resp_status_3xx_pcnt;
+        float m_upsv_resp_status_4xx_pcnt;
+        float m_upsv_resp_status_5xx_pcnt;
+
+        t_stat_calc_struct():
+                m_clnt_req_delta(0),
+                m_clnt_resp_delta(0),
+                m_clnt_req_s(0.0),
+                m_clnt_bytes_read_s(0.0),
+                m_clnt_bytes_write_s(0.0),
+                m_clnt_resp_status_2xx_pcnt(0.0),
+                m_clnt_resp_status_3xx_pcnt(0.0),
+                m_clnt_resp_status_4xx_pcnt(0.0),
+                m_clnt_resp_status_5xx_pcnt(0.0),
+
+                m_upsv_req_delta(0),
+                m_upsv_resp_delta(0),
+                m_upsv_req_s(0.0),
+                m_upsv_bytes_read_s(0.0),
+                m_upsv_bytes_write_s(0.0),
+                m_upsv_resp_status_2xx_pcnt(0.0),
+                m_upsv_resp_status_3xx_pcnt(0.0),
+                m_upsv_resp_status_4xx_pcnt(0.0),
+                m_upsv_resp_status_5xx_pcnt(0.0)
+        {}
+        void clear()
+        {
+                m_clnt_req_delta = 0;
+                m_clnt_resp_delta = 0;
+                m_clnt_req_s = 0.0;
+                m_clnt_bytes_read_s = 0.0;
+                m_clnt_bytes_write_s = 0.0;
+                m_clnt_resp_status_2xx_pcnt = 0.0;
+                m_clnt_resp_status_3xx_pcnt = 0.0;
+                m_clnt_resp_status_4xx_pcnt = 0.0;
+                m_clnt_resp_status_5xx_pcnt = 0.0;
+
+                m_upsv_req_delta = 0;
+                m_upsv_resp_delta = 0;
+                m_upsv_req_s = 0.0;
+                m_upsv_bytes_read_s = 0.0;
+                m_upsv_bytes_write_s = 0.0;
+                m_upsv_resp_status_2xx_pcnt = 0.0;
+                m_upsv_resp_status_3xx_pcnt = 0.0;
+                m_upsv_resp_status_4xx_pcnt = 0.0;
+                m_upsv_resp_status_5xx_pcnt = 0.0;
+        }
+} t_stat_calc_t;
 
 //: ----------------------------------------------------------------------------
 //: Prototypes
@@ -236,9 +334,6 @@ void update_stat(xstat_t &ao_stat, double a_val);
 void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat);
 void clear_stat(xstat_t &ao_stat);
 void show_stat(const xstat_t &ao_stat);
-#ifdef __linux__
-int32_t get_rusage(t_stat_t &ao_stat);
-#endif
 } //namespace ns_hlx {
 
 #endif

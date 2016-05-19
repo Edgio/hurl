@@ -89,6 +89,8 @@ private:
         ups_srvr_session& operator=(const ups_srvr_session &);
         ups_srvr_session(const ups_srvr_session &);
         bool subr_complete(void);
+        void subr_log_status(uint16_t a_status = 0);
+
 };
 
 } // ns_hlx

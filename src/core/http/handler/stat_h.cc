@@ -62,7 +62,9 @@ stat_h::~stat_h(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-h_resp_t stat_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap)
+h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
+                        rqst &a_rqst,
+                        const url_pmap_t &a_url_pmap)
 {
         // Get verbose
         int32_t l_verbose = 0;
@@ -87,9 +89,10 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pm
         // -------------------------------------------------
         // Create body...
         // -------------------------------------------------
-        t_stat_list_t l_threads_stat;
-        t_stat_t l_stat;
-        l_srvr->get_stat(l_stat, l_threads_stat);
+        t_stat_cntr_list_t l_threads_stat;
+        t_stat_cntr_t l_stat;
+        t_stat_calc_t l_stat_calc;
+        l_srvr->get_stat(l_stat, l_stat_calc, l_threads_stat);
 
         rapidjson::Document l_body;
         l_body.SetObject(); // Define doc as object -rather than array
@@ -102,15 +105,34 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pm
         ADD_MEMBER(dns_resolve_active);
         ADD_MEMBER(dns_resolved);
         ADD_MEMBER(dns_resolve_ev);
-        ADD_MEMBER(ups_conn_started);
-        ADD_MEMBER(ups_conn_completed);
-        ADD_MEMBER(ups_reqs);
-        ADD_MEMBER(ups_idle_killed);
-        ADD_MEMBER(ups_subr_queued);
-        ADD_MEMBER(cln_conn_started);
-        ADD_MEMBER(cln_conn_completed);
-        ADD_MEMBER(cln_reqs);
-        ADD_MEMBER(cln_idle_killed);
+
+        ADD_MEMBER(upsv_conn_started);
+        ADD_MEMBER(upsv_conn_completed);
+        ADD_MEMBER(upsv_reqs);
+        ADD_MEMBER(upsv_idle_killed);
+        ADD_MEMBER(upsv_subr_queued);
+        ADD_MEMBER(upsv_resp);
+        ADD_MEMBER(upsv_resp_status_2xx);
+        ADD_MEMBER(upsv_resp_status_3xx);
+        ADD_MEMBER(upsv_resp_status_4xx);
+        ADD_MEMBER(upsv_resp_status_5xx);
+        ADD_MEMBER(upsv_errors);
+        ADD_MEMBER(upsv_bytes_read);
+        ADD_MEMBER(upsv_bytes_written);
+
+        ADD_MEMBER(clnt_conn_started);
+        ADD_MEMBER(clnt_conn_completed);
+        ADD_MEMBER(clnt_reqs);
+        ADD_MEMBER(clnt_idle_killed);
+        ADD_MEMBER(clnt_resp);
+        ADD_MEMBER(clnt_resp_status_2xx);
+        ADD_MEMBER(clnt_resp_status_3xx);
+        ADD_MEMBER(clnt_resp_status_4xx);
+        ADD_MEMBER(clnt_resp_status_5xx);
+        ADD_MEMBER(clnt_errors);
+        ADD_MEMBER(clnt_bytes_read);
+        ADD_MEMBER(clnt_bytes_written);
+
         ADD_MEMBER(pool_conn_active);
         ADD_MEMBER(pool_conn_idle);
         ADD_MEMBER(pool_proxy_conn_active);
@@ -123,23 +145,33 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pm
         ADD_MEMBER(pool_rqst_used);
         ADD_MEMBER(pool_nbq_free);
         ADD_MEMBER(pool_nbq_used);
+
         ADD_MEMBER(total_run);
-        ADD_MEMBER(total_errors);
-        ADD_MEMBER(total_bytes_read);
-        ADD_MEMBER(total_bytes_written);
-#ifdef __linux__
-        ADD_MEMBER(rsc_cpu_usr_ms);
-        ADD_MEMBER(rsc_cpu_sys_ms);
-        ADD_MEMBER(rsc_mem_rss_kb);
-#endif
+
+#define ADD_MEMBER_CALC(_m) \
+        l_body.AddMember(#_m, l_stat_calc.m_##_m, l_alloc)
+
+        ADD_MEMBER_CALC(clnt_req_s);
+        ADD_MEMBER_CALC(clnt_bytes_read_s);
+        ADD_MEMBER_CALC(clnt_bytes_write_s);
+        ADD_MEMBER_CALC(clnt_resp_status_2xx_pcnt);
+        ADD_MEMBER_CALC(clnt_resp_status_3xx_pcnt);
+        ADD_MEMBER_CALC(clnt_resp_status_4xx_pcnt);
+        ADD_MEMBER_CALC(clnt_resp_status_5xx_pcnt);
+
+        ADD_MEMBER_CALC(upsv_req_s);
+        ADD_MEMBER_CALC(upsv_bytes_read_s);
+        ADD_MEMBER_CALC(upsv_bytes_write_s);
+        ADD_MEMBER_CALC(upsv_resp_status_2xx_pcnt);
+        ADD_MEMBER_CALC(upsv_resp_status_3xx_pcnt);
+        ADD_MEMBER_CALC(upsv_resp_status_4xx_pcnt);
+        ADD_MEMBER_CALC(upsv_resp_status_5xx_pcnt);
 
         //xstat_t m_stat_us_connect;
         //xstat_t m_stat_us_first_response;
         //xstat_t m_stat_us_end_to_end;
 
-        // TODO DEBUG???
-        //subr_pending_resolv_map_t m_subr_pending_resolv_map;
-        //status_code_count_map_t m_status_code_count_map;
+        // TODO Verbose mode with proxy connection info -hostnames...
 
         rapidjson::StringBuffer l_strbuf;
         rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);

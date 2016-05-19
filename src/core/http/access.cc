@@ -33,10 +33,10 @@ namespace ns_hlx {
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 access_info::access_info(void):
-        m_conn_cln_sa(),
-        m_conn_cln_sa_len(0),
-        m_conn_srv_sa(),
-        m_conn_srv_sa_len(0),
+        m_conn_clnt_sa(),
+        m_conn_clnt_sa_len(0),
+        m_conn_upsv_sa(),
+        m_conn_upsv_sa_len(0),
         m_rqst_host(),
         m_rqst_scheme(),
         m_rqst_method(""),

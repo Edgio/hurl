@@ -2000,17 +2000,18 @@ void display_status_line(settings_struct_t &a_settings)
         // Get results from clients
         // -------------------------------------------------
         // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
 
-        uint32_t l_num_done = l_total.m_ups_reqs;
+        uint32_t l_num_done = l_total.m_upsv_reqs;
         uint32_t l_num_resolve_active = l_total.m_dns_resolve_active;
         uint32_t l_num_resolve_req = l_total.m_dns_resolve_req;
         uint32_t l_num_resolved = l_total.m_dns_resolved;
-        uint32_t l_num_get = l_total.m_ups_conn_started;
+        uint32_t l_num_get = l_total.m_upsv_conn_started;
         uint32_t l_num_rx = a_settings.m_total_reqs;
-        uint32_t l_num_error = l_total.m_total_errors;
+        uint32_t l_num_error = l_total.m_upsv_errors;
         if(a_settings.m_color)
         {
                 printf("Done: %s%8u%s Reqd: %s%8u%s Rslvd: %s%8u%s Rslv_Actv: %s%8u%s Rslv_Req %s%8u%s Total: %s%8u%s Error: %s%8u%s\n",

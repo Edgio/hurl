@@ -75,7 +75,8 @@ srvr::srvr(void):
         m_stat_update_ms(S_STAT_UPDATE_MS_DEFAULT),
         m_stat_last_time_ms(0),
         m_stat_list_cache(),
-        m_stat_cache()
+        m_stat_cache(),
+        m_stat_calc_cache()
 {
         m_t_conf = new t_conf();
 
@@ -146,44 +147,44 @@ srvr::~srvr()
 //: \return:  NA
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
+static void aggregate_stat(t_stat_cntr_t &ao_total, const t_stat_cntr_t &a_stat)
 {
-        add_stat(ao_total.m_ups_stat_us_connect , a_stat.m_ups_stat_us_connect);
-        add_stat(ao_total.m_ups_stat_us_first_response , a_stat.m_ups_stat_us_first_response);
-        add_stat(ao_total.m_ups_stat_us_end_to_end , a_stat.m_ups_stat_us_end_to_end);
+        add_stat(ao_total.m_upsv_stat_us_connect , a_stat.m_upsv_stat_us_connect);
+        add_stat(ao_total.m_upsv_stat_us_first_response , a_stat.m_upsv_stat_us_first_response);
+        add_stat(ao_total.m_upsv_stat_us_end_to_end , a_stat.m_upsv_stat_us_end_to_end);
 
         ao_total.m_dns_resolve_req += a_stat.m_dns_resolve_req;
         ao_total.m_dns_resolve_active += a_stat.m_dns_resolve_active;
         ao_total.m_dns_resolved += a_stat.m_dns_resolved;
         ao_total.m_dns_resolve_ev += a_stat.m_dns_resolve_ev;
 
-        ao_total.m_ups_conn_started += a_stat.m_ups_conn_started;
-        ao_total.m_ups_conn_completed += a_stat.m_ups_conn_completed;
-        ao_total.m_ups_reqs += a_stat.m_ups_reqs;
-        ao_total.m_ups_idle_killed += a_stat.m_ups_idle_killed;
-        ao_total.m_ups_subr_queued += a_stat.m_ups_subr_queued;
+        ao_total.m_upsv_conn_started += a_stat.m_upsv_conn_started;
+        ao_total.m_upsv_conn_completed += a_stat.m_upsv_conn_completed;
+        ao_total.m_upsv_reqs += a_stat.m_upsv_reqs;
+        ao_total.m_upsv_idle_killed += a_stat.m_upsv_idle_killed;
+        ao_total.m_upsv_subr_queued += a_stat.m_upsv_subr_queued;
+        ao_total.m_upsv_resp += a_stat.m_upsv_resp;
+        ao_total.m_upsv_resp_status_2xx += a_stat.m_upsv_resp_status_2xx;
+        ao_total.m_upsv_resp_status_3xx += a_stat.m_upsv_resp_status_3xx;
+        ao_total.m_upsv_resp_status_4xx += a_stat.m_upsv_resp_status_4xx;
+        ao_total.m_upsv_resp_status_5xx += a_stat.m_upsv_resp_status_5xx;
+        ao_total.m_upsv_errors += a_stat.m_upsv_errors;
+        ao_total.m_upsv_bytes_read += a_stat.m_upsv_bytes_read;
+        ao_total.m_upsv_bytes_written += a_stat.m_upsv_bytes_written;
 
-        for(status_code_count_map_t::const_iterator i_code =
-                        a_stat.m_ups_status_code_count_map.begin();
-                        i_code != a_stat.m_ups_status_code_count_map.end();
-                        ++i_code)
-        {
-                status_code_count_map_t::iterator i_code2;
-                i_code2 = ao_total.m_ups_status_code_count_map.find(i_code->first);
-                if(i_code2 == ao_total.m_ups_status_code_count_map.end())
-                {
-                        ao_total.m_ups_status_code_count_map[i_code->first] = i_code->second;
-                }
-                else
-                {
-                        i_code2->second += i_code->second;
-                }
-        }
+        ao_total.m_clnt_conn_started += a_stat.m_clnt_conn_started;
+        ao_total.m_clnt_conn_completed += a_stat.m_clnt_conn_completed;
+        ao_total.m_clnt_reqs += a_stat.m_clnt_reqs;
+        ao_total.m_clnt_idle_killed += a_stat.m_clnt_idle_killed;
+        ao_total.m_clnt_resp += a_stat.m_clnt_resp;
+        ao_total.m_clnt_resp_status_2xx += a_stat.m_clnt_resp_status_2xx;
+        ao_total.m_clnt_resp_status_3xx += a_stat.m_clnt_resp_status_3xx;
+        ao_total.m_clnt_resp_status_4xx += a_stat.m_clnt_resp_status_4xx;
+        ao_total.m_clnt_resp_status_5xx += a_stat.m_clnt_resp_status_5xx;
+        ao_total.m_clnt_errors += a_stat.m_clnt_errors;
+        ao_total.m_clnt_bytes_read += a_stat.m_clnt_bytes_read;
+        ao_total.m_clnt_bytes_written += a_stat.m_clnt_bytes_written;
 
-        ao_total.m_cln_conn_started += a_stat.m_cln_conn_started;
-        ao_total.m_cln_conn_completed += a_stat.m_cln_conn_completed;
-        ao_total.m_cln_reqs += a_stat.m_cln_reqs;
-        ao_total.m_cln_idle_killed += a_stat.m_cln_idle_killed;
         ao_total.m_pool_conn_active += a_stat.m_pool_conn_active;
         ao_total.m_pool_conn_idle += a_stat.m_pool_conn_idle;
         ao_total.m_pool_proxy_conn_active += a_stat.m_pool_proxy_conn_active;
@@ -196,10 +197,8 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
         ao_total.m_pool_rqst_used += a_stat.m_pool_rqst_used;
         ao_total.m_pool_nbq_free += a_stat.m_pool_nbq_free;
         ao_total.m_pool_nbq_used += a_stat.m_pool_nbq_used;
+
         ao_total.m_total_run += a_stat.m_total_run;
-        ao_total.m_total_errors += a_stat.m_total_errors;
-        ao_total.m_total_bytes_read += a_stat.m_total_bytes_read;
-        ao_total.m_total_bytes_written += a_stat.m_total_bytes_written;
 }
 
 //: ----------------------------------------------------------------------------
@@ -207,26 +206,39 @@ static void aggregate_stat(t_stat_t &ao_total, const t_stat_t &a_stat)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void srvr::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
+void srvr::get_stat(t_stat_cntr_t &ao_stat,
+                    t_stat_calc_t &ao_calc_stat,
+                    t_stat_cntr_list_t &ao_stat_list)
 {
         pthread_mutex_lock(&m_stat_mutex);
         // Check last time
-        // TODO
-        if((m_stat_last_time_ms + m_stat_update_ms) > get_time_ms())
+        uint64_t l_cur_time_ms = get_time_ms();
+        uint64_t l_delta_ms = l_cur_time_ms - m_stat_last_time_ms;
+        if(l_delta_ms < m_stat_update_ms)
         {
                 ao_stat = m_stat_cache;
+                ao_calc_stat = m_stat_calc_cache;
+                ao_stat_list = m_stat_list_cache;
                 pthread_mutex_unlock(&m_stat_mutex);
                 return;
         }
+
+        // -------------------------------------------------
+        // store last values -for calc'd stats
+        // -------------------------------------------------
+        t_stat_cntr_t l_last = m_stat_cache;
+
         m_stat_list_cache.clear();
         m_stat_cache.clear();
+        m_stat_calc_cache.clear();
+
         // Aggregate
         for(t_srvr_list_t::const_iterator i_client = m_t_srvr_list.begin();
            i_client != m_t_srvr_list.end();
            ++i_client)
         {
                 // Get stuff from client...
-                t_stat_t l_stat;
+                t_stat_cntr_t l_stat;
                 int32_t l_s;
                 l_s = (*i_client)->get_stat(l_stat);
                 if(l_s != HLX_STATUS_OK)
@@ -237,18 +249,41 @@ void srvr::get_stat(t_stat_t &ao_stat, t_stat_list_t &ao_stat_list)
                 m_stat_list_cache.emplace(m_stat_list_cache.begin(), l_stat);
                 aggregate_stat(m_stat_cache, l_stat);
         }
-#ifdef __linux__
-        // rusage
-        int32_t l_s;
-        l_s = get_rusage(m_stat_cache);
-        if(l_s != HLX_STATUS_OK)
-        {
-                // TODO ...
-        }
-#endif
+
+        // -------------------------------------------------
+        // calc'd stats
+        // -------------------------------------------------
+        m_stat_calc_cache.m_clnt_req_delta = m_stat_cache.m_clnt_reqs - l_last.m_clnt_reqs;
+        uint64_t l_delta_resp = m_stat_cache.m_clnt_resp - l_last.m_clnt_resp;
+        m_stat_calc_cache.m_clnt_resp_delta = l_delta_resp;
+        m_stat_calc_cache.m_clnt_resp_status_2xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_2xx - l_last.m_clnt_resp_status_2xx))/((float)l_delta_resp);
+        m_stat_calc_cache.m_clnt_resp_status_3xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_3xx - l_last.m_clnt_resp_status_3xx))/((float)l_delta_resp);
+        m_stat_calc_cache.m_clnt_resp_status_4xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_4xx - l_last.m_clnt_resp_status_4xx))/((float)l_delta_resp);
+        m_stat_calc_cache.m_clnt_resp_status_5xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_5xx - l_last.m_clnt_resp_status_5xx))/((float)l_delta_resp);
+
+        m_stat_calc_cache.m_clnt_req_s = ((float)m_stat_calc_cache.m_clnt_req_delta*1000)/((float)l_delta_ms);
+        m_stat_calc_cache.m_clnt_bytes_read_s = ((float)((m_stat_cache.m_clnt_bytes_read - l_last.m_clnt_bytes_read)*1000))/((float)l_delta_ms);
+        m_stat_calc_cache.m_clnt_bytes_write_s = ((float)((m_stat_cache.m_clnt_bytes_written - l_last.m_clnt_bytes_written)*1000))/((float)l_delta_ms);
+
+        m_stat_calc_cache.m_upsv_req_delta = m_stat_cache.m_upsv_reqs - l_last.m_upsv_reqs;
+        l_delta_resp = m_stat_cache.m_upsv_resp - l_last.m_upsv_resp;
+        m_stat_calc_cache.m_upsv_resp_delta = l_delta_resp;
+        m_stat_calc_cache.m_upsv_resp_status_2xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_2xx - l_last.m_upsv_resp_status_2xx))/((float)l_delta_resp);
+        m_stat_calc_cache.m_upsv_resp_status_3xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_3xx - l_last.m_upsv_resp_status_3xx))/((float)l_delta_resp);
+        m_stat_calc_cache.m_upsv_resp_status_4xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_4xx - l_last.m_upsv_resp_status_4xx))/((float)l_delta_resp);
+        m_stat_calc_cache.m_upsv_resp_status_5xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_5xx - l_last.m_upsv_resp_status_5xx))/((float)l_delta_resp);
+
+        m_stat_calc_cache.m_upsv_req_s = ((float)m_stat_calc_cache.m_upsv_req_delta*1000)/((float)l_delta_ms);
+        m_stat_calc_cache.m_upsv_bytes_read_s = ((float)((m_stat_cache.m_upsv_bytes_read - l_last.m_upsv_bytes_read)*1000))/((float)l_delta_ms);
+        m_stat_calc_cache.m_upsv_bytes_write_s = ((float)((m_stat_cache.m_upsv_bytes_written - l_last.m_upsv_bytes_written)*1000))/((float)l_delta_ms);
+
+        // -------------------------------------------------
+        // copy
+        // -------------------------------------------------
         ao_stat = m_stat_cache;
+        ao_calc_stat = m_stat_calc_cache;
         ao_stat_list = m_stat_list_cache;
-        m_stat_last_time_ms = get_time_ms();
+        m_stat_last_time_ms = l_cur_time_ms;
         pthread_mutex_unlock(&m_stat_mutex);
 }
 
@@ -270,7 +305,7 @@ void srvr::display_stat(void)
         {
                 // Get stuff from client...
                 // TODO
-                t_stat_t l_stat;
+                t_stat_cntr_t l_stat;
                 int32_t l_s;
                 l_s = (*i_client)->get_stat(l_stat);
                 if(l_s != HLX_STATUS_OK)
@@ -281,22 +316,35 @@ void srvr::display_stat(void)
                 NDBG_OUTPUT("+-----------------------------------------------------------\n");
                 NDBG_OUTPUT("| THREAD [%6d]\n", i_t);
                 NDBG_OUTPUT("+-----------------------------------------------------------\n");
-                //xstat_t m_stat_us_connect;
-                //xstat_t m_stat_us_first_response;
-                //xstat_t m_stat_us_end_to_end;
                 DISPLAY_DNS_STAT(m_dns_resolve_req);
                 DISPLAY_DNS_STAT(m_dns_resolve_active);
                 DISPLAY_DNS_STAT(m_dns_resolved);
                 DISPLAY_DNS_STAT(m_dns_resolve_ev);
-                DISPLAY_CLN_STAT(m_ups_conn_started);
-                DISPLAY_CLN_STAT(m_ups_conn_completed);
-                DISPLAY_CLN_STAT(m_ups_reqs);
-                DISPLAY_CLN_STAT(m_ups_idle_killed);
-                DISPLAY_CLN_STAT(m_ups_subr_queued);
-                DISPLAY_SRV_STAT(m_cln_conn_started);
-                DISPLAY_SRV_STAT(m_cln_conn_completed);
-                DISPLAY_SRV_STAT(m_cln_reqs);
-                DISPLAY_SRV_STAT(m_cln_idle_killed);
+                DISPLAY_CLN_STAT(m_upsv_conn_started);
+                DISPLAY_CLN_STAT(m_upsv_conn_completed);
+                DISPLAY_CLN_STAT(m_upsv_reqs);
+                DISPLAY_CLN_STAT(m_upsv_idle_killed);
+                DISPLAY_CLN_STAT(m_upsv_subr_queued);
+                DISPLAY_SRV_STAT(m_upsv_resp);
+                DISPLAY_SRV_STAT(m_upsv_resp_status_2xx);
+                DISPLAY_SRV_STAT(m_upsv_resp_status_3xx);
+                DISPLAY_SRV_STAT(m_upsv_resp_status_4xx);
+                DISPLAY_SRV_STAT(m_upsv_resp_status_5xx);
+                DISPLAY_SRV_STAT(m_upsv_errors);
+                DISPLAY_SRV_STAT(m_upsv_bytes_read);
+                DISPLAY_SRV_STAT(m_upsv_bytes_written);
+                DISPLAY_SRV_STAT(m_clnt_conn_started);
+                DISPLAY_SRV_STAT(m_clnt_conn_completed);
+                DISPLAY_SRV_STAT(m_clnt_reqs);
+                DISPLAY_SRV_STAT(m_clnt_idle_killed);
+                DISPLAY_SRV_STAT(m_clnt_resp);
+                DISPLAY_SRV_STAT(m_clnt_resp_status_2xx);
+                DISPLAY_SRV_STAT(m_clnt_resp_status_3xx);
+                DISPLAY_SRV_STAT(m_clnt_resp_status_4xx);
+                DISPLAY_SRV_STAT(m_clnt_resp_status_5xx);
+                DISPLAY_SRV_STAT(m_clnt_errors);
+                DISPLAY_SRV_STAT(m_clnt_bytes_read);
+                DISPLAY_SRV_STAT(m_clnt_bytes_written);
                 DISPLAY_SRV_STAT(m_pool_conn_active);
                 DISPLAY_SRV_STAT(m_pool_conn_idle);
                 DISPLAY_SRV_STAT(m_pool_proxy_conn_active);
@@ -310,17 +358,6 @@ void srvr::display_stat(void)
                 DISPLAY_SRV_STAT(m_pool_nbq_free);
                 DISPLAY_SRV_STAT(m_pool_nbq_used);
                 DISPLAY_GEN_STAT(m_total_run);
-                DISPLAY_GEN_STAT(m_total_errors);
-                DISPLAY_GEN_STAT(m_total_bytes_read);
-                DISPLAY_GEN_STAT(m_total_bytes_written);
-                //NDBG_OUTPUT("| %sPending resolve%s: \n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
-                //for(subr_pending_resolv_map_t::const_iterator i_r = l_stat.m_subr_pending_resolv_map.begin();
-                //    i_r != l_stat.m_subr_pending_resolv_map.end();
-                //    ++i_r)
-                //{
-                //        NDBG_OUTPUT("|     %s\n", i_r->first.c_str());
-                //}
-                //status_code_count_map_t m_status_code_count_map;
         }
 }
 
@@ -444,6 +481,16 @@ void srvr::set_start_time_ms(uint64_t a_start_time_ms)
 void srvr::set_collect_stats(bool a_val)
 {
         m_t_conf->m_collect_stats = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void srvr::set_count_response_status(bool a_val)
+{
+        m_t_conf->m_count_response_status = a_val;
 }
 
 //: ----------------------------------------------------------------------------

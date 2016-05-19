@@ -78,6 +78,7 @@ typedef struct t_conf
         uint32_t m_timeout_ms;
         int32_t m_num_reqs_per_conn;
         bool m_collect_stats;
+        bool m_count_response_status;
         uint32_t m_update_stats_ms;
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
@@ -119,6 +120,7 @@ typedef struct t_conf
                 m_timeout_ms(10000),
                 m_num_reqs_per_conn(-1),
                 m_collect_stats(false),
+                m_count_response_status(false),
                 m_update_stats_ms(0),
                 m_sock_opt_recv_buf_size(0),
                 m_sock_opt_send_buf_size(0),
@@ -182,13 +184,14 @@ public:
         void release_resp(resp *a_resp);
         void release_nbq(nbq *a_nbq);
 
-        int32_t get_stat(t_stat_t &ao_stat);
+        int32_t get_stat(t_stat_cntr_t &ao_stat);
+        int32_t get_ups_status_code_count_map(status_code_count_map_t &ao_ups_status_code_count_map);
 
         // TODO Consider removal...
         // Stats helpers
-        void bump_num_cln_reqs(void) { ++m_stat.m_cln_reqs;}
-        void bump_num_cln_idle_killed(void) { ++m_stat.m_cln_idle_killed;}
-        void bump_num_ups_idle_killed(void) { ++m_stat.m_ups_idle_killed;}
+        void bump_num_clnt_reqs(void) { ++m_stat.m_clnt_reqs;}
+        void bump_num_clnt_idle_killed(void) { ++m_stat.m_clnt_idle_killed;}
+        void bump_num_upsv_idle_killed(void) { ++m_stat.m_upsv_idle_killed;}
 
         // TODO Move to lsnr readable...
         static int32_t evr_fd_readable_lsnr_cb(void *a_data);
@@ -205,7 +208,8 @@ public:
         nbq *m_orphan_out_q;
 
         // TODO hide -or prefer getters
-        t_stat_t m_stat;
+        t_stat_cntr_t m_stat;
+        status_code_count_map_t m_upsv_status_code_count_map;
 
         // TODO hide -or prefer getters
         nconn_pool m_nconn_pool;
@@ -287,12 +291,12 @@ private:
         bool m_is_initd;
 
         // Stat (internal)
-        t_stat_t m_stat_copy;
+        t_stat_cntr_t m_stat_copy;
+        status_code_count_map_t m_upsv_status_code_count_map_copy;
         pthread_mutex_t m_stat_copy_mutex;
 
         // Write after read upstream
         void *m_clnt_session_writeable_data;
-
 };
 
 } //namespace ns_hlx {

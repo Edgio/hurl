@@ -64,13 +64,13 @@ static int32_t s_resp_done_cb(ns_hlx::clnt_session &a_clnt_session)
         const ns_hlx::access_info &l_ai = ns_hlx::get_access_info(a_clnt_session);
         char l_cln_addr_str[INET6_ADDRSTRLEN];
         l_cln_addr_str[0] = '\0';
-        if(l_ai.m_conn_cln_sa_len == sizeof(sockaddr_in))
+        if(l_ai.m_conn_clnt_sa_len == sizeof(sockaddr_in))
         {
                 // a thousand apologies for this monstrosity :(
                 errno = 0;
                 const char *l_s;
                 l_s = inet_ntop(AF_INET,
-                                &(((sockaddr_in *)(&l_ai.m_conn_cln_sa))->sin_addr),
+                                &(((sockaddr_in *)(&l_ai.m_conn_clnt_sa))->sin_addr),
                                 l_cln_addr_str,
                                 INET_ADDRSTRLEN);
                 if(!l_s)
@@ -78,13 +78,13 @@ static int32_t s_resp_done_cb(ns_hlx::clnt_session &a_clnt_session)
                         printf("Error performing inet_ntop.\n");
                 }
         }
-        else if(l_ai.m_conn_cln_sa_len == sizeof(sockaddr_in6))
+        else if(l_ai.m_conn_clnt_sa_len == sizeof(sockaddr_in6))
         {
                 // a thousand apologies for this monstrosity :(
                 errno = 0;
                 const char *l_s;
                 l_s = inet_ntop(AF_INET6,
-                                &(((sockaddr_in6 *)(&l_ai.m_conn_cln_sa))->sin6_addr),
+                                &(((sockaddr_in6 *)(&l_ai.m_conn_clnt_sa))->sin6_addr),
                                 l_cln_addr_str,
                                 INET6_ADDRSTRLEN);
                 if(!l_s)

@@ -102,7 +102,7 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 l_s = l_nconn->nc_run_state_machine(nconn::NC_MODE_READ, l_in_q, l_out_q);
                 if(l_s > 0)
                 {
-                        l_t_srvr->m_stat.m_total_bytes_read += l_s;
+                        l_t_srvr->m_stat.m_upsv_bytes_read += l_s;
                 }
 
                 if(l_ups_srvr_session)
@@ -149,7 +149,7 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
-                        ++(l_t_srvr->m_stat.m_total_errors);
+                        ++(l_t_srvr->m_stat.m_upsv_errors);
                         l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
@@ -226,7 +226,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 l_s = l_nconn->nc_run_state_machine(nconn::NC_MODE_WRITE, l_in_q, l_out_q);
                 if(l_s > 0)
                 {
-                        l_t_srvr->m_stat.m_total_bytes_written += l_s;
+                        l_t_srvr->m_stat.m_upsv_bytes_written += l_s;
                 }
                 if(l_ups_srvr_session)
                 {
@@ -256,7 +256,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
-                        ++(l_t_srvr->m_stat.m_total_errors);
+                        ++(l_t_srvr->m_stat.m_upsv_errors);
                         l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
@@ -298,7 +298,7 @@ int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        ++l_t_srvr->m_stat.m_total_errors;
+        ++l_t_srvr->m_stat.m_upsv_errors;
         if(l_ups_srvr_session)
         {
                 int32_t l_hstatus;
@@ -333,7 +333,7 @@ int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
         {
                 return HLX_STATUS_OK;
         }
-        ++(l_t_srvr->m_stat.m_total_errors);
+        ++(l_t_srvr->m_stat.m_upsv_errors);
         if(l_ups_srvr_session)
         {
                 int32_t l_hstatus;
@@ -450,7 +450,7 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
                 {
                         m_subr->get_ups()->set_shutdown();
                 }
-                m_t_srvr->bump_num_ups_idle_killed();
+                m_t_srvr->bump_num_upsv_idle_killed();
                 int32_t l_s;
                 l_s = subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
                 if(l_s != HLX_STATUS_OK)
@@ -576,8 +576,41 @@ int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void ups_srvr_session::subr_log_status(uint16_t a_status)
+{
+        if(!m_t_srvr)
+        {
+                return;
+        }
+        ++(m_t_srvr->m_stat.m_upsv_resp);
+        uint16_t l_status;
+        if(m_resp)
+        {
+                l_status = m_resp->get_status();
+        }
+        else if(a_status)
+        {
+                l_status = a_status;
+        }
+        else
+        {
+                l_status = HTTP_STATUS_INTERNAL_SERVER_ERROR;
+        }
+        if((l_status >= 100) && (l_status < 200)) {/* TODO log 1xx's? */}
+        else if((l_status >= 200) && (l_status < 300)){++m_t_srvr->m_stat.m_upsv_resp_status_2xx;}
+        else if((l_status >= 300) && (l_status < 400)){++m_t_srvr->m_stat.m_upsv_resp_status_3xx;}
+        else if((l_status >= 400) && (l_status < 500)){++m_t_srvr->m_stat.m_upsv_resp_status_4xx;}
+        else if((l_status >= 500) && (l_status < 600)){++m_t_srvr->m_stat.m_upsv_resp_status_5xx;}
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 bool ups_srvr_session::subr_complete(void)
 {
+        subr_log_status(0);
         if(!m_resp || !m_subr || !m_nconn)
         {
                 return true;
@@ -617,6 +650,7 @@ bool ups_srvr_session::subr_complete(void)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::subr_error(http_status_t a_status)
 {
+        subr_log_status(a_status);
         if(!m_subr)
         {
                 return HLX_STATUS_ERROR;

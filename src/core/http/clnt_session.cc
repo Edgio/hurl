@@ -106,7 +106,7 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                 //NDBG_PRINT("%sREADABLE%s l_status:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_status);
                 if(l_status > 0)
                 {
-                        l_t_srvr->m_stat.m_total_bytes_read += l_status;
+                        l_t_srvr->m_stat.m_clnt_bytes_read += l_status;
                 }
                 if((l_status != nconn::NC_STATUS_EOF) &&
                    (l_status != nconn::NC_STATUS_ERROR) &&
@@ -143,7 +143,7 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
                                 }
                                 if(l_cs->m_t_srvr)
                                 {
-                                        l_cs->m_t_srvr->bump_num_cln_reqs();
+                                        l_cs->m_t_srvr->bump_num_clnt_reqs();
                                 }
                                 if(l_cs->handle_req() != HLX_STATUS_OK)
                                 {
@@ -172,7 +172,7 @@ check_conn_status:
                 {
                 case nconn::NC_STATUS_ERROR:
                 {
-                        ++(l_t_srvr->m_stat.m_total_errors);
+                        ++(l_t_srvr->m_stat.m_clnt_errors);
                         // slide through
                 }
                 case nconn::NC_STATUS_EOF:
@@ -280,7 +280,7 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                 //NDBG_PRINT("%sWRITEABLE%s l_status =  %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, l_status);
                 if(l_status > 0)
                 {
-                        l_t_srvr->m_stat.m_total_bytes_written += l_status;
+                        l_t_srvr->m_stat.m_clnt_bytes_written += l_status;
                 }
                 if((l_status != nconn::NC_STATUS_EOF) &&
                    (l_status != nconn::NC_STATUS_ERROR) &&
@@ -317,6 +317,8 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                                                 {
                                                         // TODO Do nothing???
                                                 }
+                                                // TODO only resp done cb for clnt's with ups?
+                                                l_cs->log_status(0);
                                         }
                                         l_cs->m_out_q->reset_write();
                                         if((l_cs->m_rqst != NULL) &&
@@ -369,7 +371,7 @@ check_conn_status:
                         {
                                 l_cs->cancel_ups();
                         }
-                        ++(l_t_srvr->m_stat.m_total_errors);
+                        ++(l_t_srvr->m_stat.m_clnt_errors);
                         l_t_srvr->cleanup_clnt_session(l_cs, l_nconn);
                         // TODO Check return
                         return HLX_STATUS_ERROR;
@@ -410,7 +412,7 @@ int32_t clnt_session::evr_fd_error_cb(void *a_data)
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         clnt_session *l_cs = static_cast<clnt_session *>(l_nconn->get_data());
-        ++l_t_srvr->m_stat.m_total_errors;
+        ++l_t_srvr->m_stat.m_clnt_errors;
         if(l_cs)
         {
                 l_cs->cancel_ups();
@@ -442,12 +444,12 @@ int32_t clnt_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
         {
                 return HLX_STATUS_OK;
         }
-        ++(l_t_srvr->m_stat.m_total_errors);
+        ++(l_t_srvr->m_stat.m_clnt_errors);
         if(l_cs)
         {
                 if(l_cs->m_t_srvr)
                 {
-                        l_cs->m_t_srvr->bump_num_cln_idle_killed();
+                        l_cs->m_t_srvr->bump_num_clnt_idle_killed();
                 }
                 l_cs->cancel_ups();
         }
@@ -519,6 +521,26 @@ void clnt_session::cancel_ups(void)
         }
 }
 
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void clnt_session::log_status(uint16_t a_status)
+{
+        if(!m_t_srvr)
+        {
+                return;
+        }
+        ++m_t_srvr->m_stat.m_clnt_resp;
+        uint16_t l_status = m_access_info.m_resp_status;
+        if((l_status >= 100) && (l_status < 200)) {/* TODO log 1xx's? */}
+        else if((l_status >= 200) && (l_status < 300)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
+        else if((l_status >= 300) && (l_status < 400)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
+        else if((l_status >= 400) && (l_status < 500)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
+        else if((l_status >= 500) && (l_status < 600)){++m_t_srvr->m_stat.m_clnt_resp_status_2xx;}
+}
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

@@ -163,6 +163,7 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
         m_orphan_in_q(NULL),
         m_orphan_out_q(NULL),
         m_stat(),
+        m_upsv_status_code_count_map(),
         m_nconn_pool(S_POOL_ID_CLIENT, 512,1000000),
         m_nconn_proxy_pool(S_POOL_ID_UPS_PROXY, a_t_conf->m_num_parallel,4096),
         m_clnt_session_pool(),
@@ -183,6 +184,7 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
 #endif
         m_is_initd(false),
         m_stat_copy(),
+        m_upsv_status_code_count_map_copy(),
         m_stat_copy_mutex(),
         m_clnt_session_writeable_data(NULL)
 {
@@ -506,7 +508,7 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
                         if(a_ups_srvr_session.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 }
         }
-        ++m_stat.m_ups_reqs;
+        ++m_stat.m_upsv_reqs;
         // Set start time
         if(a_subr.get_kind() != subr::SUBR_KIND_DUPE)
         {
@@ -521,7 +523,6 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
                 //NDBG_PRINT("Error: Performing add_timer\n");
                 return HLX_STATUS_ERROR;
         }
-
         //NDBG_PRINT("g_client_req_num: %d\n", ++g_client_req_num);
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
@@ -539,7 +540,7 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         }
         else if(l_status > 0)
         {
-                m_stat.m_total_bytes_written += l_status;
+                m_stat.m_upsv_bytes_written += l_status;
         }
 
         // Get request time
@@ -631,7 +632,7 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
         l_clnt_session->m_rqst->set_q(l_clnt_session->m_in_q);
 
         // stats
-        ++m_stat.m_cln_conn_started;
+        ++m_stat.m_clnt_conn_started;
         return l_nconn;
 }
 
@@ -714,7 +715,7 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
         {
                 //NDBG_PRINT("a_host_info == NULL --HOST: %s\n", l_subr->get_host().c_str());
                 //NDBG_PRINT("l_host_info null\n");
-                ++(l_t_srvr->m_stat.m_total_errors);
+                ++(l_t_srvr->m_stat.m_upsv_errors);
                 l_subr->bump_num_requested();
                 l_subr->bump_num_completed();
                 subr::error_cb_t l_error_cb = l_subr->get_error_cb();
@@ -794,10 +795,10 @@ int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
         // Set access info
         // TODO move to clnt_session???
         // ---------------------------------------
-        l_nconn->get_remote_sa(l_clnt_session->m_access_info.m_conn_cln_sa,
-                               l_clnt_session->m_access_info.m_conn_cln_sa_len);
-        l_lsnr->get_sa(l_clnt_session->m_access_info.m_conn_srv_sa,
-                       l_clnt_session->m_access_info.m_conn_srv_sa_len);
+        l_nconn->get_remote_sa(l_clnt_session->m_access_info.m_conn_clnt_sa,
+                               l_clnt_session->m_access_info.m_conn_clnt_sa_len);
+        l_lsnr->get_sa(l_clnt_session->m_access_info.m_conn_upsv_sa,
+                       l_clnt_session->m_access_info.m_conn_upsv_sa_len);
         l_clnt_session->m_access_info.m_start_time_ms = get_time_ms();
         l_clnt_session->m_access_info.m_total_time_ms = 0;
         l_clnt_session->m_access_info.m_bytes_in = 0;
@@ -916,7 +917,7 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         if(l_status != HLX_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error: performing lookup_sync\n");
-                                ++m_stat.m_total_errors;
+                                ++m_stat.m_upsv_errors;
                                 a_subr.bump_num_requested();
                                 a_subr.bump_num_completed();
                                 subr::error_cb_t l_error_cb = a_subr.get_error_cb();
@@ -964,7 +965,7 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 // Reset stats
                 l_nconn->reset_stats();
 
-                ++m_stat.m_ups_conn_started;
+                ++m_stat.m_upsv_conn_started;
                 m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
 
         }
@@ -1021,7 +1022,6 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
 
         // Assign clnt_session
         a_subr.set_ups_srvr_session(l_ups_srvr_session);
-
         l_status = subr_start(a_subr, *l_ups_srvr_session, *l_nconn);
         if(l_status != HLX_STATUS_OK)
         {
@@ -1202,7 +1202,7 @@ int32_t t_srvr::cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_ncon
                 uint32_t l_id = a_nconn->get_pool_id();
                 if(l_id == S_POOL_ID_CLIENT)
                 {
-                        ++m_stat.m_cln_conn_completed;
+                        ++m_stat.m_clnt_conn_completed;
                         if(HLX_STATUS_OK != m_nconn_pool.release(a_nconn))
                         {
                                 return HLX_STATUS_ERROR;
@@ -1257,7 +1257,7 @@ int32_t t_srvr::cleanup_srvr_session(ups_srvr_session *a_ups_srvr_session, nconn
                 uint32_t l_id = a_nconn->get_pool_id();
                 if(l_id == S_POOL_ID_UPS_PROXY)
                 {
-                        ++m_stat.m_ups_conn_completed;
+                        ++m_stat.m_upsv_conn_completed;
                         if(HLX_STATUS_OK != m_nconn_proxy_pool.release(a_nconn))
                         {
                                 return HLX_STATUS_ERROR;
@@ -1334,7 +1334,7 @@ void t_srvr::stat_update(void)
                 m_stat_copy.m_dns_resolve_active = m_t_conf->m_srvr->get_nresolver()->get_active(m_adns_ctx);
         }
 #endif
-        m_stat_copy.m_ups_subr_queued = m_subr_list_size;
+        m_stat_copy.m_upsv_subr_queued = m_subr_list_size;
         m_stat_copy.m_pool_conn_active = m_nconn_pool.get_active_size();
         m_stat_copy.m_pool_conn_idle = m_nconn_pool.get_idle_size();
         m_stat_copy.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
@@ -1347,6 +1347,10 @@ void t_srvr::stat_update(void)
         m_stat_copy.m_pool_rqst_used = m_rqst_pool.used_size();
         m_stat_copy.m_pool_nbq_free = m_nbq_pool.free_size();
         m_stat_copy.m_pool_nbq_used = m_nbq_pool.used_size();
+        if(m_t_conf->m_count_response_status)
+        {
+                m_upsv_status_code_count_map_copy = m_upsv_status_code_count_map;
+        }
         pthread_mutex_unlock(&m_stat_copy_mutex);
 
 }
@@ -1356,12 +1360,27 @@ void t_srvr::stat_update(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::get_stat(t_stat_t &ao_stat)
+int32_t t_srvr::get_stat(t_stat_cntr_t &ao_stat)
 {
         pthread_mutex_lock(&m_stat_copy_mutex);
         ao_stat = m_stat_copy;
         pthread_mutex_unlock(&m_stat_copy_mutex);
         return HLX_STATUS_OK;
+}
+
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t t_srvr::get_ups_status_code_count_map(status_code_count_map_t &ao_ups_status_code_count_map)
+{
+        pthread_mutex_lock(&m_stat_copy_mutex);
+        ao_ups_status_code_count_map = m_upsv_status_code_count_map_copy;
+        pthread_mutex_unlock(&m_stat_copy_mutex);
+        return HLX_STATUS_OK;
+
 }
 
 //: ----------------------------------------------------------------------------
@@ -1423,10 +1442,13 @@ nbq *t_srvr::get_nbq(void)
 //: ----------------------------------------------------------------------------
 void t_srvr::add_stat_to_agg(const conn_stat_t &a_conn_stat, uint16_t a_status_code)
 {
-        update_stat(m_stat.m_ups_stat_us_connect, a_conn_stat.m_tt_connect_us);
-        update_stat(m_stat.m_ups_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
-        update_stat(m_stat.m_ups_stat_us_end_to_end, a_conn_stat.m_tt_completion_us);
-        ++m_stat.m_ups_status_code_count_map[a_status_code];
+        update_stat(m_stat.m_upsv_stat_us_connect, a_conn_stat.m_tt_connect_us);
+        update_stat(m_stat.m_upsv_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
+        update_stat(m_stat.m_upsv_stat_us_end_to_end, a_conn_stat.m_tt_completion_us);
+        if(m_t_conf->m_count_response_status)
+        {
+                ++m_upsv_status_code_count_map[a_status_code];
+        }
 }
 
 //: ----------------------------------------------------------------------------

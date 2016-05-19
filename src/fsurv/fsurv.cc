@@ -94,9 +94,7 @@ typedef struct settings_struct
         bool m_color;
         bool m_show_stats;
         ns_hlx::srvr *m_srvr;
-        ns_hlx::t_stat_t *m_last_stat;
         uint64_t m_start_time_ms;
-        uint64_t m_last_display_time_ms;
         int32_t m_run_time_ms;
 
         // ---------------------------------
@@ -107,20 +105,12 @@ typedef struct settings_struct
                 m_color(false),
                 m_show_stats(false),
                 m_srvr(NULL),
-                m_last_stat(NULL),
                 m_start_time_ms(),
-                m_last_display_time_ms(),
                 m_run_time_ms(-1)
         {
-                m_last_stat = new ns_hlx::t_stat_struct();
         }
         ~settings_struct()
         {
-                if(m_last_stat)
-                {
-                        delete m_last_stat;
-                        m_last_stat = NULL;
-                }
         }
 private:
         // Disallow copy/assign
@@ -822,47 +812,37 @@ void display_results_line_desc(settings_struct &a_settings)
 //: ----------------------------------------------------------------------------
 void display_results_line(settings_struct &a_settings)
 {
-        // Get stats
-        ns_hlx::t_stat_t l_total;
-        ns_hlx::t_stat_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_thread);
-
-        uint64_t l_cur_time_ms = fsurv_get_time_ms();
-        double l_reqs_per_s = ((double)(l_total.m_ups_reqs - a_settings.m_last_stat->m_ups_reqs)*1000.0) /
-                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        double l_kb_read_per_s = ((double)(l_total.m_total_bytes_read - a_settings.m_last_stat->m_total_bytes_read)*1000.0/1024) /
-                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        double l_kb_written_per_s = ((double)(l_total.m_total_bytes_written - a_settings.m_last_stat->m_total_bytes_written)*1000.0/1024) /
-                        ((double)(l_cur_time_ms - a_settings.m_last_display_time_ms));
-        a_settings.m_last_display_time_ms = fsurv_get_time_ms();
-        *a_settings.m_last_stat = l_total;
+        ns_hlx::t_stat_cntr_t l_total;
+        ns_hlx::t_stat_calc_t l_total_calc;
+        ns_hlx::t_stat_cntr_list_t l_thread;
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
 
         if(a_settings.m_color)
         {
                 printf("| %s%9" PRIu64 "%s / %s%9" PRIu64 "%s / %s%9" PRIi64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %s%12.2f%s |  %10.2f | %10.2fs |\n",
-                        ANSI_COLOR_FG_WHITE, l_total.m_pool_proxy_conn_active, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_GREEN, l_total.m_ups_conn_started, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_BLUE, l_total.m_ups_conn_completed, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_BLACK, l_total.m_ups_reqs, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_MAGENTA, l_total.m_ups_idle_killed, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_RED, l_total.m_total_errors, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_YELLOW, l_kb_read_per_s, ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_CYAN, l_kb_written_per_s, ANSI_COLOR_OFF,
-                        l_reqs_per_s,
+                        ANSI_COLOR_FG_WHITE, l_total.m_pool_conn_active, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_GREEN, l_total.m_clnt_conn_started, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLUE, l_total.m_clnt_conn_completed, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLACK, l_total.m_clnt_reqs, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_MAGENTA, l_total.m_clnt_idle_killed, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_RED, l_total.m_clnt_errors, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_YELLOW, l_total_calc.m_clnt_bytes_read_s/1024.0, ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_CYAN, l_total_calc.m_clnt_bytes_write_s/1024.0, ANSI_COLOR_OFF,
+                        l_total_calc.m_clnt_req_s,
                         ((double)(fsurv_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0);
         }
         else
         {
                 printf("| %9" PRIu64 " / %9" PRIu64 " / %9" PRIi64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %12.2f |  %10.2f | %10.2fs |\n",
-                        l_total.m_pool_proxy_conn_active,
-                        l_total.m_ups_conn_started,
-                        l_total.m_ups_conn_completed,
-                        l_total.m_ups_reqs,
-                        l_total.m_ups_idle_killed,
-                        l_total.m_total_errors,
-                        l_kb_read_per_s,
-                        l_kb_written_per_s,
-                        l_reqs_per_s,
+                        l_total.m_pool_conn_active,
+                        l_total.m_clnt_conn_started,
+                        l_total.m_clnt_conn_completed,
+                        l_total.m_clnt_reqs,
+                        l_total.m_clnt_idle_killed,
+                        l_total.m_clnt_errors,
+                        l_total_calc.m_clnt_bytes_read_s/1024.0,
+                        l_total_calc.m_clnt_bytes_write_s/1024.0,
+                        l_total_calc.m_clnt_req_s,
                         ((double)(fsurv_get_delta_time_ms(a_settings.m_start_time_ms)) / 1000.0));
 
         }
