@@ -94,12 +94,14 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
         t_stat_calc_t l_stat_calc;
         l_srvr->get_stat(l_stat, l_stat_calc, l_threads_stat);
 
-        rapidjson::Document l_body;
-        l_body.SetObject(); // Define doc as object -rather than array
-        rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
+        rapidjson::StringBuffer l_strbuf;
+        rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
+        l_writer.StartObject();
 
-#define ADD_MEMBER(_m) \
-        l_body.AddMember(#_m, l_stat.m_##_m, l_alloc)
+#define ADD_MEMBER(_m) do {\
+                l_writer.Key(#_m);\
+                l_writer.Uint64(l_stat.m_##_m);\
+        } while(0)
 
         ADD_MEMBER(dns_resolve_req);
         ADD_MEMBER(dns_resolve_active);
@@ -148,8 +150,10 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
 
         ADD_MEMBER(total_run);
 
-#define ADD_MEMBER_CALC(_m) \
-        l_body.AddMember(#_m, l_stat_calc.m_##_m, l_alloc)
+#define ADD_MEMBER_CALC(_m) do {\
+                l_writer.Key(#_m);\
+                l_writer.Double(l_stat_calc.m_##_m);\
+        } while(0)
 
         ADD_MEMBER_CALC(clnt_req_s);
         ADD_MEMBER_CALC(clnt_bytes_read_s);
@@ -158,7 +162,6 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
         ADD_MEMBER_CALC(clnt_resp_status_3xx_pcnt);
         ADD_MEMBER_CALC(clnt_resp_status_4xx_pcnt);
         ADD_MEMBER_CALC(clnt_resp_status_5xx_pcnt);
-
         ADD_MEMBER_CALC(upsv_req_s);
         ADD_MEMBER_CALC(upsv_bytes_read_s);
         ADD_MEMBER_CALC(upsv_bytes_write_s);
@@ -173,9 +176,9 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
 
         // TODO Verbose mode with proxy connection info -hostnames...
 
-        rapidjson::StringBuffer l_strbuf;
-        rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
-        l_body.Accept(l_writer);
+        l_writer.EndObject();
+
+        NDBG_PRINT("l_strbuf.GetSize(): %lu\n", l_strbuf.GetSize());
 
         api_resp &l_api_resp = create_api_resp(a_clnt_session);
         l_api_resp.add_std_headers(HTTP_STATUS_OK,

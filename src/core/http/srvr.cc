@@ -256,27 +256,35 @@ void srvr::get_stat(t_stat_cntr_t &ao_stat,
         m_stat_calc_cache.m_clnt_req_delta = m_stat_cache.m_clnt_reqs - l_last.m_clnt_reqs;
         uint64_t l_delta_resp = m_stat_cache.m_clnt_resp - l_last.m_clnt_resp;
         m_stat_calc_cache.m_clnt_resp_delta = l_delta_resp;
-        m_stat_calc_cache.m_clnt_resp_status_2xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_2xx - l_last.m_clnt_resp_status_2xx))/((float)l_delta_resp);
-        m_stat_calc_cache.m_clnt_resp_status_3xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_3xx - l_last.m_clnt_resp_status_3xx))/((float)l_delta_resp);
-        m_stat_calc_cache.m_clnt_resp_status_4xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_4xx - l_last.m_clnt_resp_status_4xx))/((float)l_delta_resp);
-        m_stat_calc_cache.m_clnt_resp_status_5xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_5xx - l_last.m_clnt_resp_status_5xx))/((float)l_delta_resp);
-
-        m_stat_calc_cache.m_clnt_req_s = ((float)m_stat_calc_cache.m_clnt_req_delta*1000)/((float)l_delta_ms);
-        m_stat_calc_cache.m_clnt_bytes_read_s = ((float)((m_stat_cache.m_clnt_bytes_read - l_last.m_clnt_bytes_read)*1000))/((float)l_delta_ms);
-        m_stat_calc_cache.m_clnt_bytes_write_s = ((float)((m_stat_cache.m_clnt_bytes_written - l_last.m_clnt_bytes_written)*1000))/((float)l_delta_ms);
-
+        if(l_delta_resp > 0)
+        {
+                m_stat_calc_cache.m_clnt_resp_status_2xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_2xx - l_last.m_clnt_resp_status_2xx))/((float)l_delta_resp);
+                m_stat_calc_cache.m_clnt_resp_status_3xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_3xx - l_last.m_clnt_resp_status_3xx))/((float)l_delta_resp);
+                m_stat_calc_cache.m_clnt_resp_status_4xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_4xx - l_last.m_clnt_resp_status_4xx))/((float)l_delta_resp);
+                m_stat_calc_cache.m_clnt_resp_status_5xx_pcnt = 100.0*((float)(m_stat_cache.m_clnt_resp_status_5xx - l_last.m_clnt_resp_status_5xx))/((float)l_delta_resp);
+        }
+        if(l_delta_ms > 0)
+        {
+                m_stat_calc_cache.m_clnt_req_s = ((float)m_stat_calc_cache.m_clnt_req_delta*1000)/((float)l_delta_ms);
+                m_stat_calc_cache.m_clnt_bytes_read_s = ((float)((m_stat_cache.m_clnt_bytes_read - l_last.m_clnt_bytes_read)*1000))/((float)l_delta_ms);
+                m_stat_calc_cache.m_clnt_bytes_write_s = ((float)((m_stat_cache.m_clnt_bytes_written - l_last.m_clnt_bytes_written)*1000))/((float)l_delta_ms);
+        }
         m_stat_calc_cache.m_upsv_req_delta = m_stat_cache.m_upsv_reqs - l_last.m_upsv_reqs;
         l_delta_resp = m_stat_cache.m_upsv_resp - l_last.m_upsv_resp;
         m_stat_calc_cache.m_upsv_resp_delta = l_delta_resp;
-        m_stat_calc_cache.m_upsv_resp_status_2xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_2xx - l_last.m_upsv_resp_status_2xx))/((float)l_delta_resp);
-        m_stat_calc_cache.m_upsv_resp_status_3xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_3xx - l_last.m_upsv_resp_status_3xx))/((float)l_delta_resp);
-        m_stat_calc_cache.m_upsv_resp_status_4xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_4xx - l_last.m_upsv_resp_status_4xx))/((float)l_delta_resp);
-        m_stat_calc_cache.m_upsv_resp_status_5xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_5xx - l_last.m_upsv_resp_status_5xx))/((float)l_delta_resp);
-
-        m_stat_calc_cache.m_upsv_req_s = ((float)m_stat_calc_cache.m_upsv_req_delta*1000)/((float)l_delta_ms);
-        m_stat_calc_cache.m_upsv_bytes_read_s = ((float)((m_stat_cache.m_upsv_bytes_read - l_last.m_upsv_bytes_read)*1000))/((float)l_delta_ms);
-        m_stat_calc_cache.m_upsv_bytes_write_s = ((float)((m_stat_cache.m_upsv_bytes_written - l_last.m_upsv_bytes_written)*1000))/((float)l_delta_ms);
-
+        if(l_delta_resp > 0)
+        {
+                m_stat_calc_cache.m_upsv_resp_status_2xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_2xx - l_last.m_upsv_resp_status_2xx))/((float)l_delta_resp);
+                m_stat_calc_cache.m_upsv_resp_status_3xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_3xx - l_last.m_upsv_resp_status_3xx))/((float)l_delta_resp);
+                m_stat_calc_cache.m_upsv_resp_status_4xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_4xx - l_last.m_upsv_resp_status_4xx))/((float)l_delta_resp);
+                m_stat_calc_cache.m_upsv_resp_status_5xx_pcnt = 100.0*((float)(m_stat_cache.m_upsv_resp_status_5xx - l_last.m_upsv_resp_status_5xx))/((float)l_delta_resp);
+        }
+        if(l_delta_ms > 0)
+        {
+                m_stat_calc_cache.m_upsv_req_s = ((float)m_stat_calc_cache.m_upsv_req_delta*1000)/((float)l_delta_ms);
+                m_stat_calc_cache.m_upsv_bytes_read_s = ((float)((m_stat_cache.m_upsv_bytes_read - l_last.m_upsv_bytes_read)*1000))/((float)l_delta_ms);
+                m_stat_calc_cache.m_upsv_bytes_write_s = ((float)((m_stat_cache.m_upsv_bytes_written - l_last.m_upsv_bytes_written)*1000))/((float)l_delta_ms);
+        }
         // -------------------------------------------------
         // copy
         // -------------------------------------------------
