@@ -303,11 +303,44 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
                         // -------------------------------------------
                         if(l_cs->m_out_q && !l_cs->m_out_q->read_avail())
                         {
-                                if(l_cs->m_ups && l_cs->m_ups->ups_done())
+                                if(l_cs->m_ups)
                                 {
-                                        l_shutdown = l_cs->m_ups->get_shutdown();
-                                        delete l_cs->m_ups;
-                                        l_cs->m_ups = NULL;
+                                        if(l_cs->m_ups->ups_done())
+                                        {
+                                                l_shutdown = l_cs->m_ups->get_shutdown();
+                                                delete l_cs->m_ups;
+                                                l_cs->m_ups = NULL;
+                                                // TODO Make function???
+                                                l_cs->m_access_info.m_total_time_ms = get_time_ms() - l_cs->m_access_info.m_start_time_ms;
+                                                if(l_cs->m_resp_done_cb)
+                                                {
+                                                        int32_t l_s;
+                                                        l_s = l_cs->m_resp_done_cb(*l_cs);
+                                                        if(l_s != 0)
+                                                        {
+                                                                // TODO Do nothing???
+                                                        }
+                                                        // TODO only resp done cb for clnt's with ups?
+                                                        l_cs->log_status(0);
+                                                }
+                                                l_cs->m_out_q->reset_write();
+                                                if((l_cs->m_rqst != NULL) &&
+                                                   (l_cs->m_rqst->m_supports_keep_alives))
+                                                {
+                                                        l_cs->m_nconn->nc_set_connected();
+                                                        // TODO -check status
+                                                        l_status = nconn::NC_STATUS_BREAK;
+                                                }
+                                                else
+                                                {
+                                                        l_status = nconn::NC_STATUS_EOF;
+                                                        goto check_conn_status;
+                                                }
+                                        }
+                                }
+                                else if(!l_nconn->is_accepting())
+                                {
+                                        // TODO Make function???
                                         l_cs->m_access_info.m_total_time_ms = get_time_ms() - l_cs->m_access_info.m_start_time_ms;
                                         if(l_cs->m_resp_done_cb)
                                         {
