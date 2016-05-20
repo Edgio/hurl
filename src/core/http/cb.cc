@@ -155,17 +155,17 @@ int hp_on_header_field(http_parser* a_parser, const char *a_at, size_t a_length)
                 l_cr.m_len = a_length;
                 l_hmsg->m_p_h_list_key.push_back(l_cr);
 
-                // -----------------------------------------
                 // signalling for expect headers
-                // -----------------------------------------
                 if(l_hmsg->get_type() == hmsg::TYPE_RQST)
                 {
-                        rqst *l_rqst = static_cast<rqst *>(l_hmsg);
                         const char l_exp[] = "Expect";
-                        uint32_t l_len = ((sizeof(l_exp)>a_length)?a_length:sizeof(l_exp));
-                        if(strncasecmp(l_exp, a_at, l_len) == 0)
+                        if((a_length == (sizeof(l_exp)-1)) && (a_at[0] == 'E'))
                         {
-                                l_rqst->m_expect = true;
+                                if(strncasecmp(l_exp, a_at, a_length) == 0)
+                                {
+                                        rqst *l_rqst = static_cast<rqst *>(l_hmsg);
+                                        l_rqst->m_expect = true;
+                                }
                         }
                 }
         }
