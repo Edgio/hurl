@@ -55,299 +55,6 @@
 
 namespace ns_hlx {
 
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
-{
-        if(!a_data)
-        {
-                return HLX_STATUS_OK;
-        }
-        nconn* l_nconn = static_cast<nconn*>(a_data);
-        CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
-        ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        if(l_ups_srvr_session &&
-           l_ups_srvr_session->m_timer_obj)
-        {
-                l_t_srvr->cancel_timer(l_ups_srvr_session->m_timer_obj);
-                l_ups_srvr_session->m_timer_obj = NULL;
-        }
-        // Get timeout ms
-        uint32_t l_timeout_ms = l_t_srvr->get_timeout_ms();
-        if(l_ups_srvr_session &&
-           l_ups_srvr_session->m_subr)
-        {
-                l_timeout_ms = l_ups_srvr_session->m_subr->get_timeout_ms();
-        }
-        int32_t l_s = HLX_STATUS_OK;
-        do {
-                // Flipping modes to support TLS connections
-                nbq *l_in_q = NULL;
-                nbq *l_out_q = NULL;
-                if(l_ups_srvr_session)
-                {
-                        l_in_q = l_ups_srvr_session->m_in_q;
-                        l_out_q = l_ups_srvr_session->m_out_q;
-                }
-                else
-                {
-                        l_in_q = l_t_srvr->m_orphan_in_q;
-                        l_out_q = l_t_srvr->m_orphan_out_q;
-                }
-                l_s = l_nconn->nc_run_state_machine(nconn::NC_MODE_READ, l_in_q, l_out_q);
-                if(l_s > 0)
-                {
-                        l_t_srvr->m_stat.m_upsv_bytes_read += l_s;
-                }
-
-                if(l_ups_srvr_session)
-                {
-                        int32_t l_hstatus;
-                        l_hstatus = l_ups_srvr_session->run_state_machine(nconn::NC_MODE_READ, l_s);
-                        if(l_hstatus != HLX_STATUS_OK)
-                        {
-                                // Modified connection status
-                                l_s = l_hstatus;
-                        }
-                }
-                if(l_nconn->is_free())
-                {
-                        return HLX_STATUS_OK;
-                }
-                switch(l_s)
-                {
-                case nconn::NC_STATUS_BREAK:
-                {
-                        goto done;
-                }
-                case nconn::NC_STATUS_IDLE:
-                {
-                        int32_t l_s;
-                        if(l_ups_srvr_session)
-                        {
-                                l_t_srvr->m_ups_srvr_session_pool.release(l_ups_srvr_session);
-                                l_ups_srvr_session = NULL;
-                        }
-                        l_nconn->set_data(NULL);
-                        l_s = l_t_srvr->m_nconn_proxy_pool.add_idle(l_nconn);
-                        if(l_s != HLX_STATUS_OK)
-                        {
-                                return HLX_STATUS_ERROR;
-                        }
-                        return HLX_STATUS_OK;
-                }
-                case nconn::NC_STATUS_EOF:
-                {
-                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_OK;
-                }
-                case nconn::NC_STATUS_ERROR:
-                {
-                        ++(l_t_srvr->m_stat.m_upsv_errors);
-                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_ERROR;
-                }
-                }
-                if(!l_ups_srvr_session)
-                {
-                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_OK;
-                }
-        } while((l_s != nconn::NC_STATUS_AGAIN) &&
-                (l_t_srvr->is_running()));
-done:
-        // Add idle timeout
-        if(l_ups_srvr_session &&
-           !l_ups_srvr_session->m_timer_obj)
-        {
-                l_t_srvr->add_timer(l_timeout_ms,
-                                   evr_fd_timeout_cb,
-                                   l_nconn,
-                                   (void **)(&(l_ups_srvr_session->m_timer_obj)));
-                // TODO Check status
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
-{
-        if(!a_data)
-        {
-                //NDBG_PRINT("a_data == NULL\n");
-                return HLX_STATUS_OK;
-        }
-        nconn* l_nconn = static_cast<nconn*>(a_data);
-        CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
-        ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        //NDBG_PRINT("%sWRITEABLE%s LABEL: %s CLNT: %p\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
-        //                l_nconn->get_label().c_str(), l_ups_srvr_session);
-        // Cancel last timer
-        if(l_ups_srvr_session &&
-           l_ups_srvr_session->m_timer_obj)
-        {
-                l_t_srvr->cancel_timer(l_ups_srvr_session->m_timer_obj);
-                l_ups_srvr_session->m_timer_obj = NULL;
-        }
-        // Get timeout ms
-        uint32_t l_timeout_ms = l_t_srvr->get_timeout_ms();
-        if(l_ups_srvr_session &&
-           l_ups_srvr_session->m_subr)
-        {
-                l_timeout_ms = l_ups_srvr_session->m_subr->get_timeout_ms();
-        }
-        nbq *l_in_q = NULL;
-        nbq *l_out_q = NULL;
-        if(l_ups_srvr_session)
-        {
-                l_in_q = l_ups_srvr_session->m_in_q;
-                l_out_q = l_ups_srvr_session->m_out_q;
-        }
-        else
-        {
-                l_in_q = l_t_srvr->m_orphan_in_q;
-                l_out_q = l_t_srvr->m_orphan_out_q;
-        }
-        int32_t l_s = HLX_STATUS_OK;
-        do {
-                l_s = l_nconn->nc_run_state_machine(nconn::NC_MODE_WRITE, l_in_q, l_out_q);
-                if(l_s > 0)
-                {
-                        l_t_srvr->m_stat.m_upsv_bytes_written += l_s;
-                }
-                if(l_ups_srvr_session)
-                {
-                        int32_t l_hstatus;
-                        l_hstatus = l_ups_srvr_session->run_state_machine(nconn::NC_MODE_WRITE, l_s);
-                        if(l_hstatus != HLX_STATUS_OK)
-                        {
-                                // Modified connection status
-                                l_s = l_hstatus;
-                        }
-                }
-                if(l_nconn->is_free())
-                {
-                        return HLX_STATUS_OK;
-                }
-                switch(l_s)
-                {
-                case nconn::NC_STATUS_BREAK:
-                {
-                        goto done;
-                }
-                case nconn::NC_STATUS_EOF:
-                {
-                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_OK;
-                }
-                case nconn::NC_STATUS_ERROR:
-                {
-                        ++(l_t_srvr->m_stat.m_upsv_errors);
-                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_ERROR;
-                }
-                }
-
-                if(!l_ups_srvr_session)
-                {
-                        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-                        // TODO Check return
-                        return HLX_STATUS_OK;
-                }
-
-        } while((l_s != nconn::NC_STATUS_AGAIN) &&
-                 (l_t_srvr->is_running()));
-done:
-        // Add idle timeout
-        if(l_ups_srvr_session &&
-           !l_ups_srvr_session->m_timer_obj)
-        {
-                l_t_srvr->add_timer(l_timeout_ms,
-                                   evr_fd_timeout_cb,
-                                   l_nconn,
-                                   (void **)(&(l_ups_srvr_session->m_timer_obj)));
-                // TODO Check status
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
-{
-        CHECK_FOR_NULL_ERROR(a_data);
-        nconn* l_nconn = static_cast<nconn*>(a_data);
-        CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
-        ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        ++l_t_srvr->m_stat.m_upsv_errors;
-        if(l_ups_srvr_session)
-        {
-                int32_t l_hstatus;
-                l_hstatus = l_ups_srvr_session->run_state_machine(nconn::NC_MODE_ERROR, 0);
-                if(l_hstatus != HLX_STATUS_OK)
-                {
-                        // TODO???
-                }
-        }
-        int32_t l_s;
-        l_s = l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-        if(l_s != HLX_STATUS_OK)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
-{
-        CHECK_FOR_NULL_ERROR(a_data);
-        nconn* l_nconn = static_cast<nconn*>(a_data);
-        CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
-        ups_srvr_session *l_ups_srvr_session = static_cast<ups_srvr_session *>(l_nconn->get_data());
-        if(l_nconn->is_free())
-        {
-                return HLX_STATUS_OK;
-        }
-        ++(l_t_srvr->m_stat.m_upsv_errors);
-        if(l_ups_srvr_session)
-        {
-                int32_t l_hstatus;
-                l_hstatus = l_ups_srvr_session->run_state_machine(nconn::NC_MODE_TIMEOUT, 0);
-                if(l_hstatus != HLX_STATUS_OK)
-                {
-                        // TODO???
-                }
-        }
-        l_t_srvr->cleanup_srvr_session(l_ups_srvr_session, l_nconn);
-        // TODO Check return
-        return HLX_STATUS_OK;
-}
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -390,180 +97,408 @@ void ups_srvr_session::clear(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status)
+int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
 {
-        if(!m_subr)
-        {
-                TRC_ERROR("no subrequest associated with upstream ups_srvr_session mode: %d status: %d\n",
-                                a_conn_mode, a_conn_status);
-                return nconn::NC_STATUS_ERROR;
-        }
-        // -------------------------------------------------
-        // Handle errors/closures
-        // -------------------------------------------------
-        if(a_conn_status == nconn::NC_STATUS_EOF)
-        {
-                // Connect only && done --early exit...
-                if(m_subr->get_ups() && (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                {
-                        m_subr->get_ups()->set_shutdown();
-                }
-                if(m_subr->get_connect_only())
-                {
-                        if(m_resp)
-                        {
-                                m_resp->set_status(HTTP_STATUS_OK);
-                        }
-                        m_t_srvr->add_stat_to_agg(m_nconn->get_stats(), HTTP_STATUS_OK);
-                }
-                m_subr->bump_num_completed();
-                subr_complete();
-                return HLX_STATUS_OK;
-        }
-        // -----------------------------------------------------------
-        // TODO
-        // -----------------------------------------------------------
-        else if(a_conn_status == nconn::NC_STATUS_ERROR)
-        {
-                if(m_subr->get_ups() && (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                {
-                        m_subr->get_ups()->set_shutdown();
-                }
-                if(m_resp)
-                {
-                        m_resp->set_status(HTTP_STATUS_BAD_GATEWAY);
-                }
-                int32_t l_s;
-                l_s = subr_error(HTTP_STATUS_BAD_GATEWAY);
-                if(l_s != HLX_STATUS_OK)
-                {
-                        return HLX_STATUS_ERROR;
-                }
-                return HLX_STATUS_OK;
-        }
-        // -----------------------------------------------------------
-        // Connection Timeout
-        // -----------------------------------------------------------
-        else if(a_conn_mode == nconn::NC_MODE_TIMEOUT)
-        {
-                if(m_subr->get_ups() && (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                {
-                        m_subr->get_ups()->set_shutdown();
-                }
-                m_t_srvr->bump_num_upsv_idle_killed();
-                int32_t l_s;
-                l_s = subr_error(HTTP_STATUS_GATEWAY_TIMEOUT);
-                if(l_s != HLX_STATUS_OK)
-                {
-                        return HLX_STATUS_ERROR;
-                }
-                return HLX_STATUS_OK;
-        }
-        // -----------------------------------------------------------
-        // Connection Error
-        // -----------------------------------------------------------
-        else if(a_conn_mode == nconn::NC_MODE_ERROR)
-        {
-                if(m_subr->get_ups() && (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                {
-                        m_subr->get_ups()->set_shutdown();
-                }
-                int32_t l_s;
-                l_s = subr_error(HTTP_STATUS_BAD_GATEWAY);
-                if(l_s != HLX_STATUS_OK)
-                {
-                        return HLX_STATUS_ERROR;
-                }
-                return HLX_STATUS_OK;
-        }
-        // -----------------------------------------------------------
-        // Readable
-        // -----------------------------------------------------------
-        if(a_conn_mode == nconn::NC_MODE_READ)
-        {
-                if(m_subr->get_ups() && (a_conn_status > 0))
-                {
-                        ssize_t l_s;
-                        l_s = m_subr->get_ups()->ups_read((size_t)a_conn_status);
-                        if(l_s < 0)
-                        {
-                                TRC_ERROR("performing ups_read -a_conn_status: %d l_s: %ld\n", a_conn_status, l_s);
-                        }
-                }
-                // Handle completion
-                if((m_nconn && m_nconn->is_done()) ||
-                   (m_resp &&
-                    m_resp->m_complete))
-                {
-                        if(m_rqst_resp_logging && m_resp)
-                        {
-                                if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
-                                m_resp->show();
-                                if(m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
-                        }
-                        // Get request time
-                        if(m_nconn && m_nconn->get_collect_stats_flag())
-                        {
-                                m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));
-                        }
+        return run_state_machine(a_data, nconn::NC_MODE_READ);
+}
 
-                        if(m_nconn && m_resp)
-                        {
-                                m_t_srvr->add_stat_to_agg(m_nconn->get_stats(), m_resp->get_status());
-                        }
-                        m_subr->bump_num_completed();
-                        bool l_hmsg_keep_alive = false;
-                        if(m_resp)
-                        {
-                                l_hmsg_keep_alive = m_resp->m_supports_keep_alives;
-                        }
-                        bool l_nconn_can_reuse = false;
-                        if(m_nconn)
-                        {
-                                l_nconn_can_reuse = m_nconn->can_reuse();
-                        }
-                        bool l_keepalive = m_subr->get_keepalive();
-                        bool l_detach_resp = m_subr->get_detach_resp();
-                        bool l_complete = subr_complete();
-                        if(l_complete ||
-                           !l_nconn_can_reuse ||
-                           !l_keepalive ||
-                           !l_hmsg_keep_alive)
-                        {
-                                if(m_subr->get_ups() && (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                                {
-                                        m_subr->get_ups()->set_shutdown();
-                                }
-                                return nconn::NC_STATUS_EOF;
-                        }
-                        // Give back rqst + in q
-                        if(m_out_q)
-                        {
-                                m_t_srvr->release_nbq(m_out_q);
-                                m_out_q = NULL;
-                        }
-                        if(!l_detach_resp)
-                        {
-                                m_t_srvr->release_resp(m_resp);
-                                m_resp = NULL;
-                                m_t_srvr->release_nbq(m_in_q);
-                                m_in_q = NULL;
-                        }
-                        return nconn::NC_STATUS_IDLE;
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
+{
+        return run_state_machine(a_data, nconn::NC_MODE_WRITE);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
+{
+        return run_state_machine(a_data, nconn::NC_MODE_ERROR);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
+{
+        return run_state_machine(a_data, nconn::NC_MODE_TIMEOUT);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void ups_srvr_session::cancel_last_timer(void)
+{
+        if(m_timer_obj && m_t_srvr)
+        {
+                m_t_srvr->cancel_timer(m_timer_obj);
+                m_timer_obj = NULL;
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t ups_srvr_session::teardown(t_srvr *a_t_srvr,
+                                   ups_srvr_session *a_uss,
+                                   nconn *a_nconn,
+                                   http_status_t a_status)
+{
+        if(a_uss)
+        {
+                if(a_uss->m_subr &&
+                   a_uss->m_subr->get_ups() &&
+                  (a_uss->m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
+                {
+                        a_uss->m_subr->get_ups()->set_shutdown();
                 }
+                if(a_status != HTTP_STATUS_OK)
+                {
+                        if(a_uss->m_resp)
+                        {
+                                a_uss->m_resp->set_status(a_status);
+                        }
+                        int32_t l_s;
+                        l_s = a_uss->subr_error(a_status);
+                        if(l_s != HLX_STATUS_OK)
+                        {
+                                TRC_ERROR("performing subr_error\n");
+                        }
+                }
+        }
+        if(a_t_srvr)
+        {
+                int32_t l_s;
+                l_s = a_t_srvr->cleanup_srvr_session(a_uss, a_nconn);
+                if(l_s != HLX_STATUS_OK)
+                {
+                        return HLX_STATUS_ERROR;
+                }
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
+{
+        //CHECK_FOR_NULL_ERROR(a_data);
+        // TODO -return OK for a_data == NULL
+        if(!a_data)
+        {
                 return HLX_STATUS_OK;
         }
-        // -----------------------------------------------------------
-        // Writeable
-        // -----------------------------------------------------------
-        else if(a_conn_status == nconn::NC_STATUS_OK)
+        nconn* l_nconn = static_cast<nconn*>(a_data);
+        CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
+        ups_srvr_session *l_uss = static_cast<ups_srvr_session *>(l_nconn->get_data());
+
+        // -------------------------------------------------
+        // Skip timeouts for free connections
+        // -------------------------------------------------
+        if((a_conn_mode == nconn::NC_MODE_TIMEOUT) &&
+           (l_nconn->is_free()))
         {
-                return nconn::NC_STATUS_BREAK;
                 return HLX_STATUS_OK;
+        }
+        // -------------------------------------------------
+        // ERROR
+        // -------------------------------------------------
+        if(a_conn_mode == nconn::NC_MODE_ERROR)
+        {
+                if(l_uss)
+                {
+                        l_uss->cancel_last_timer();
+                }
+                if(l_t_srvr)
+                {
+                        ++l_t_srvr->m_stat.m_upsv_errors;
+                }
+                return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_BAD_GATEWAY);
+        }
+        // -------------------------------------------------
+        // TIMEOUT
+        // -------------------------------------------------
+        if(a_conn_mode == nconn::NC_MODE_TIMEOUT)
+        {
+                if(l_t_srvr)
+                {
+                        ++(l_t_srvr->m_stat.m_upsv_errors);
+                        ++(l_t_srvr->m_stat.m_upsv_idle_killed);
+                }
+                return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_GATEWAY_TIMEOUT);
+        }
+
+        // -------------------------------------------------
+        // TODO unknown conn mode???
+        // -------------------------------------------------
+        if((a_conn_mode != nconn::NC_MODE_READ) &&
+           (a_conn_mode != nconn::NC_MODE_WRITE))
+        {
+                TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
+                return HLX_STATUS_ERROR;
+        }
+        if(l_uss)
+        {
+                l_uss->cancel_last_timer();
+        }
+        // Get timeout ms
+        uint32_t l_timeout_ms = l_t_srvr->get_timeout_ms();
+        if(l_uss &&
+           l_uss->m_subr)
+        {
+                l_timeout_ms = l_uss->m_subr->get_timeout_ms();
+        }
+        // -------------------------------------------------
+        // in/out q's
+        // -------------------------------------------------
+        nbq *l_in_q = NULL;
+        nbq *l_out_q = NULL;
+        if(l_uss)
+        {
+                l_in_q = l_uss->m_in_q;
+                l_out_q = l_uss->m_out_q;
         }
         else
         {
-                // Error???
+                l_in_q = l_t_srvr->m_orphan_in_q;
+                l_out_q = l_t_srvr->m_orphan_out_q;
+        }
+
+        // -----------------------------------------------------------
+        // conn loop
+        // -----------------------------------------------------------
+        int32_t l_s = HLX_STATUS_OK;
+        do {
+                l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_out_q);
+                if(l_s > 0)
+                {
+                        if(a_conn_mode == nconn::NC_MODE_READ)
+                        {
+                                if(l_t_srvr)
+                                {
+                                        l_t_srvr->m_stat.m_upsv_bytes_read += l_s;
+                                }
+                        }
+                        else if(a_conn_mode == nconn::NC_MODE_WRITE)
+                        {
+                                if(l_t_srvr)
+                                {
+                                        l_t_srvr->m_stat.m_upsv_bytes_written += l_s;
+                                }
+                        }
+                }
+                if(!l_uss ||
+                   !l_uss->m_subr ||
+                   (l_s == nconn::NC_STATUS_EOF) ||
+                   (l_s == nconn::NC_STATUS_ERROR) ||
+                   l_nconn->is_done())
+                {
+                        goto check_conn_status;
+                }
+                // ---------------------------------------------------
+                // READABLE
+                // ---------------------------------------------------
+                if(a_conn_mode == nconn::NC_MODE_READ)
+                {
+                        if(l_uss->m_subr->get_ups() && (l_s > 0))
+                        {
+                                ssize_t l_size;
+                                l_size = l_uss->m_subr->get_ups()->ups_read((size_t)l_s);
+                                if(l_size < 0)
+                                {
+                                        TRC_ERROR("performing ups_read -a_conn_status: %d l_size: %ld\n", l_s, l_size);
+                                }
+                        }
+                        // -------------------------------------------
+                        // Handle completion
+                        // -------------------------------------------
+                        if(l_uss->m_resp &&
+                           l_uss->m_resp->m_complete)
+                        {
+                                if(l_uss->m_rqst_resp_logging && l_uss->m_resp)
+                                {
+                                        if(l_uss->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
+                                        l_uss->m_resp->show();
+                                        if(l_uss->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+                                }
+                                // Get request time
+                                if(l_nconn->get_collect_stats_flag())
+                                {
+                                        l_nconn->set_stat_tt_completion_us(get_delta_time_us(l_nconn->get_connect_start_time_us()));
+                                }
+                                if(l_uss->m_resp && l_t_srvr)
+                                {
+                                        l_t_srvr->add_stat_to_agg(l_nconn->get_stats(), l_uss->m_resp->get_status());
+                                }
+                                l_uss->m_subr->bump_num_completed();
+                                bool l_hmsg_keep_alive = false;
+                                if(l_uss->m_resp)
+                                {
+                                        l_hmsg_keep_alive = l_uss->m_resp->m_supports_keep_alives;
+                                }
+                                bool l_nconn_can_reuse = l_nconn->can_reuse();
+                                bool l_keepalive = l_uss->m_subr->get_keepalive();
+                                bool l_detach_resp = l_uss->m_subr->get_detach_resp();
+                                bool l_complete = l_uss->subr_complete();
+                                if(l_complete ||
+                                   !l_nconn_can_reuse ||
+                                   !l_keepalive ||
+                                   !l_hmsg_keep_alive)
+                                {
+                                        if(l_uss->m_subr->get_ups() &&
+                                           (l_uss->m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
+                                        {
+                                                l_uss->m_subr->get_ups()->set_shutdown();
+                                        }
+                                        l_s = nconn::NC_STATUS_EOF;
+                                        goto check_conn_status;
+                                }
+                                // Give back rqst + in q
+                                if(l_t_srvr)
+                                {
+                                        if(l_uss->m_out_q)
+                                        {
+                                                l_t_srvr->release_nbq(l_uss->m_out_q);
+                                                l_uss->m_out_q = NULL;
+                                        }
+                                        if(!l_detach_resp)
+                                        {
+                                                if(l_uss->m_resp)
+                                                {
+                                                        l_t_srvr->release_resp(l_uss->m_resp);
+                                                        l_uss->m_resp = NULL;
+                                                }
+                                                if(l_uss->m_in_q)
+                                                {
+                                                        l_t_srvr->release_nbq(l_uss->m_in_q);
+                                                        l_uss->m_in_q = NULL;
+                                                }
+                                        }
+                                }
+
+                                // Modify state
+                                l_s = nconn::NC_STATUS_IDLE;
+                                goto check_conn_status;
+                        }
+                }
+                // ---------------------------------------------------
+                // WRITEABLE
+                // ---------------------------------------------------
+                // TODO
+
+                // ---------------------------------------------------
+                // STATUS_OK
+                // ---------------------------------------------------
+                else if(l_s == nconn::NC_STATUS_OK)
+                {
+                        l_s = nconn::NC_STATUS_BREAK;
+                        goto check_conn_status;
+                }
+check_conn_status:
+                if(l_nconn->is_free())
+                {
+                        return HLX_STATUS_OK;
+                }
+                else if(l_nconn->is_done())
+                {
+                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
+                }
+                if(!l_uss)
+                {
+                        TRC_ERROR("no ups_srvr_session associated with nconn mode: %d\n", a_conn_mode);
+                        return teardown(l_t_srvr, NULL, l_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                }
+                if(!l_uss->m_subr)
+                {
+                        TRC_ERROR("no subrequest associated with upstream ups_srvr_session mode: %d\n", a_conn_mode);
+                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                }
+                switch(l_s)
+                {
+                case nconn::NC_STATUS_BREAK:
+                {
+                        goto done;
+                }
+                case nconn::NC_STATUS_IDLE:
+                {
+                        if(l_uss && l_t_srvr)
+                        {
+                                l_t_srvr->m_ups_srvr_session_pool.release(l_uss);
+                                l_uss = NULL;
+                        }
+                        l_nconn->set_data(NULL);
+                        if(l_t_srvr)
+                        {
+                                int32_t l_status;
+                                l_status = l_t_srvr->m_nconn_proxy_pool.add_idle(l_nconn);
+                                if(l_status != HLX_STATUS_OK)
+                                {
+                                        TRC_ERROR("performing m_nconn_proxy_pool.add_idle(%p)\n", l_nconn);
+                                        return HLX_STATUS_ERROR;
+                                }
+                        }
+                        return HLX_STATUS_OK;
+                }
+                case nconn::NC_STATUS_EOF:
+                {
+                        // Connect only && done --early exit...
+                        if(l_uss->m_subr->get_connect_only())
+                        {
+                                if(l_uss->m_resp)
+                                {
+                                        l_uss->m_resp->set_status(HTTP_STATUS_OK);
+                                }
+                                if(l_t_srvr)
+                                {
+                                        l_t_srvr->add_stat_to_agg(l_nconn->get_stats(), HTTP_STATUS_OK);
+                                }
+                        }
+                        if(l_uss->m_subr->get_ups() &&
+                           (l_uss->m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
+                        {
+                                l_uss->m_subr->get_ups()->set_shutdown();
+                        }
+                        l_uss->m_subr->bump_num_completed();
+                        l_uss->subr_complete();
+                        return HLX_STATUS_OK;
+                }
+                case nconn::NC_STATUS_ERROR:
+                {
+                        if(l_t_srvr)
+                        {
+                                ++(l_t_srvr->m_stat.m_upsv_errors);
+                        }
+                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_BAD_GATEWAY);
+                }
+                }
+        } while((l_s != nconn::NC_STATUS_AGAIN) &&
+                (l_t_srvr->is_running()));
+done:
+        // Add idle timeout
+        if(l_uss &&
+           !l_uss->m_timer_obj)
+        {
+                l_t_srvr->add_timer(l_timeout_ms,
+                                   evr_fd_timeout_cb,
+                                   l_nconn,
+                                   (void **)(&(l_uss->m_timer_obj)));
+                // TODO Check status
         }
         return HLX_STATUS_OK;
 }

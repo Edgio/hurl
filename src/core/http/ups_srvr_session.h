@@ -77,7 +77,6 @@ public:
         ups_srvr_session(void);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
-        int32_t run_state_machine(nconn::mode_t a_conn_mode, int32_t a_conn_status);
         void clear(void);
         int32_t subr_error(http_status_t a_status);
 
@@ -90,7 +89,16 @@ private:
         ups_srvr_session(const ups_srvr_session &);
         bool subr_complete(void);
         void subr_log_status(uint16_t a_status = 0);
+        void cancel_last_timer(void);
 
+        // -------------------------------------------------
+        // Private Static (class) methods
+        // -------------------------------------------------
+        static int32_t run_state_machine(void *a_data, nconn::mode_t a_conn_mode);
+        static int32_t teardown(t_srvr *a_t_srvr,
+                                ups_srvr_session *a_uss,
+                                nconn *a_nconn,
+                                http_status_t a_status);
 };
 
 } // ns_hlx
