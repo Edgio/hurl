@@ -197,6 +197,7 @@ int32_t ups_srvr_session::teardown(t_srvr *a_t_srvr,
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
 {
+        //NDBG_PRINT("RUN a_conn_mode: %d a_data: %p\n", a_conn_mode, a_data);
         //CHECK_FOR_NULL_ERROR(a_data);
         // TODO -return OK for a_data == NULL
         if(!a_data)
@@ -286,6 +287,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
         int32_t l_s = HLX_STATUS_OK;
         do {
                 l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_out_q);
+                //NDBG_PRINT("l_nconn->nc_run_state_machine(%d): status: %d\n", a_conn_mode, l_s);
                 if(l_s > 0)
                 {
                         if(a_conn_mode == nconn::NC_MODE_READ)
@@ -361,11 +363,6 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                                    !l_keepalive ||
                                    !l_hmsg_keep_alive)
                                 {
-                                        if(l_uss->m_subr->get_ups() &&
-                                           (l_uss->m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                                        {
-                                                l_uss->m_subr->get_ups()->set_shutdown();
-                                        }
                                         l_s = nconn::NC_STATUS_EOF;
                                         goto check_conn_status;
                                 }
@@ -469,14 +466,9 @@ check_conn_status:
                                         l_t_srvr->add_stat_to_agg(l_nconn->get_stats(), HTTP_STATUS_OK);
                                 }
                         }
-                        if(l_uss->m_subr->get_ups() &&
-                           (l_uss->m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
-                        {
-                                l_uss->m_subr->get_ups()->set_shutdown();
-                        }
                         l_uss->m_subr->bump_num_completed();
                         l_uss->subr_complete();
-                        return HLX_STATUS_OK;
+                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
