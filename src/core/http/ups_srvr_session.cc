@@ -421,11 +421,6 @@ check_conn_status:
                         TRC_ERROR("no ups_srvr_session associated with nconn mode: %d\n", a_conn_mode);
                         return teardown(l_t_srvr, NULL, l_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
                 }
-                if(!l_uss->m_subr)
-                {
-                        TRC_ERROR("no subrequest associated with upstream ups_srvr_session mode: %d\n", a_conn_mode);
-                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
-                }
                 switch(l_s)
                 {
                 case nconn::NC_STATUS_BREAK:
@@ -455,7 +450,8 @@ check_conn_status:
                 case nconn::NC_STATUS_EOF:
                 {
                         // Connect only && done --early exit...
-                        if(l_uss->m_subr->get_connect_only())
+                        if(l_uss->m_subr &&
+                           l_uss->m_subr->get_connect_only())
                         {
                                 if(l_uss->m_resp)
                                 {
@@ -466,8 +462,11 @@ check_conn_status:
                                         l_t_srvr->add_stat_to_agg(l_nconn->get_stats(), HTTP_STATUS_OK);
                                 }
                         }
-                        l_uss->m_subr->bump_num_completed();
-                        l_uss->subr_complete();
+                        if(l_uss->m_subr)
+                        {
+                                l_uss->m_subr->bump_num_completed();
+                                l_uss->subr_complete();
+                        }
                         return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
                 }
                 case nconn::NC_STATUS_ERROR:
