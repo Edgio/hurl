@@ -32,6 +32,7 @@
 #include "hlx/resp.h"
 #include "hlx/status.h"
 #include "http_parser/http_parser.h"
+#include <stdlib.h>
 #include <string.h>
 #include "t_srvr.h"
 

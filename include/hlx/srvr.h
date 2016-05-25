@@ -30,6 +30,7 @@
 #include <stdint.h>
 #include <string>
 #include <list>
+#include <pthread.h>
 
 //: ----------------------------------------------------------------------------
 //: HLX Includes
