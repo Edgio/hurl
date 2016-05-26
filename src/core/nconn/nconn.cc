@@ -503,7 +503,11 @@ int32_t nconn::nc_set_connected(void)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_cleanup()
 {
-        //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_nc_state, this);
+        //NDBG_PRINT("%s--CONN--%s[%s] last_state: %d this: %p\n",
+        //                ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //                m_label.c_str(),
+        //                m_nc_state,
+        //                this);
         //NDBG_PRINT_BT();
         int32_t l_status;
         l_status = nccleanup();

@@ -284,6 +284,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
         // -----------------------------------------------------------
         // conn loop
         // -----------------------------------------------------------
+        bool l_idle = false;
         int32_t l_s = HLX_STATUS_OK;
         do {
                 l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_out_q);
@@ -388,10 +389,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                                                 }
                                         }
                                 }
-
-                                // Modify state
-                                l_s = nconn::NC_STATUS_IDLE;
-                                goto check_conn_status;
+                                l_idle = true;
                         }
                 }
                 // ---------------------------------------------------
@@ -427,26 +425,6 @@ check_conn_status:
                 {
                         goto done;
                 }
-                case nconn::NC_STATUS_IDLE:
-                {
-                        if(l_uss && l_t_srvr)
-                        {
-                                l_t_srvr->m_ups_srvr_session_pool.release(l_uss);
-                                l_uss = NULL;
-                        }
-                        l_nconn->set_data(NULL);
-                        if(l_t_srvr)
-                        {
-                                int32_t l_status;
-                                l_status = l_t_srvr->m_nconn_proxy_pool.add_idle(l_nconn);
-                                if(l_status != HLX_STATUS_OK)
-                                {
-                                        TRC_ERROR("performing m_nconn_proxy_pool.add_idle(%p)\n", l_nconn);
-                                        return HLX_STATUS_ERROR;
-                                }
-                        }
-                        return HLX_STATUS_OK;
-                }
                 case nconn::NC_STATUS_EOF:
                 {
                         // Connect only && done --early exit...
@@ -477,9 +455,37 @@ check_conn_status:
                         }
                         return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_BAD_GATEWAY);
                 }
+                default:
+                {
+                        break;
+                }
                 }
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
                 (l_t_srvr->is_running()));
+
+        if((l_s == nconn::NC_STATUS_AGAIN) &&
+           l_idle)
+        {
+                if(l_uss && l_t_srvr)
+                {
+                        l_t_srvr->m_ups_srvr_session_pool.release(l_uss);
+                        l_uss = NULL;
+                }
+                l_nconn->set_data(NULL);
+                if(l_t_srvr)
+                {
+                        int32_t l_status;
+                        l_status = l_t_srvr->m_nconn_proxy_pool.add_idle(l_nconn);
+                        if(l_status != HLX_STATUS_OK)
+                        {
+                                TRC_ERROR("performing m_nconn_proxy_pool.add_idle(%p)\n", l_nconn);
+                                return HLX_STATUS_ERROR;
+                        }
+                }
+                return HLX_STATUS_OK;
+        }
+
+
 done:
         // Add idle timeout
         if(l_uss &&
