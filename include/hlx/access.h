@@ -84,6 +84,7 @@ public:
         // -------------------------------------------------
         access_info(void);
         ~access_info(void);
+        void clear(void);
 private:
         // -------------------------------------------------
         // Private methods
