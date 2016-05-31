@@ -36,16 +36,29 @@
 //: ----------------------------------------------------------------------------
 // TODO -open file if NULL???
 #ifndef TRC_PRINT
-#define TRC_PRINT(level, ...) \
+#define TRC_PRINT(_level, ...) \
         do { \
         if(ns_hlx::g_trc_log_file)\
         {\
-        if(ns_hlx::g_trc_log_level >= level) { \
+        if(ns_hlx::g_trc_log_level >= _level) { \
         fprintf(ns_hlx::g_trc_log_file, "%.3f %s %s:%s.%d: ", \
                         ((double)ns_hlx::get_time_ms())/1000.0, \
-                        trc_log_level_str(level), \
+                        trc_log_level_str(_level), \
                         __FILE__, __FUNCTION__, __LINE__); \
         fprintf(ns_hlx::g_trc_log_file, __VA_ARGS__); \
+        fflush(ns_hlx::g_trc_log_file); \
+        } \
+        } \
+        } while(0)
+#endif
+
+#ifndef TRC_MEM
+#define TRC_MEM(_level, _buf, _len) \
+        do { \
+        if(ns_hlx::g_trc_log_file)\
+        {\
+        if(ns_hlx::g_trc_log_level >= _level) { \
+        ns_hlx::trc_mem_display(ns_hlx::g_trc_log_file, _buf, _len);\
         fflush(ns_hlx::g_trc_log_file); \
         } \
         } \
@@ -116,6 +129,11 @@ int32_t trc_out_file_close(void);
 extern trc_log_level_t g_trc_log_level;
 extern FILE* g_trc_log_file;
 extern FILE* g_trc_out_file;
+
+//: ----------------------------------------------------------------------------
+//: Utilities
+//: ----------------------------------------------------------------------------
+void trc_mem_display(FILE *a_file, const uint8_t *a_mem_buf, uint32_t a_length);
 
 } // namespace ns_hlx {
 
