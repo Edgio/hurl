@@ -43,7 +43,7 @@
         if(ns_hlx::g_trc_log_level >= _level) { \
         fprintf(ns_hlx::g_trc_log_file, "%.3f %s %s:%s.%d: ", \
                         ((double)ns_hlx::get_time_ms())/1000.0, \
-                        trc_log_level_str(_level), \
+                        ns_hlx::trc_log_level_str(_level), \
                         __FILE__, __FUNCTION__, __LINE__); \
         fprintf(ns_hlx::g_trc_log_file, __VA_ARGS__); \
         fflush(ns_hlx::g_trc_log_file); \
