@@ -80,6 +80,12 @@
 #ifndef TRC_VERBOSE
 #define TRC_VERBOSE(...)  TRC_PRINT(ns_hlx::TRC_LOG_LEVEL_VERBOSE, __VA_ARGS__)
 #endif
+#ifndef TRC_ALL
+#define TRC_ALL(...)  TRC_PRINT(ns_hlx::TRC_LOG_LEVEL_ALL, __VA_ARGS__)
+#endif
+#ifndef TRC_ALL_MEM
+#define TRC_ALL_MEM(_buf,_len) TRC_MEM(ns_hlx::TRC_LOG_LEVEL_ALL, _buf, _len)
+#endif
 
 // TODO -open file if NULL???
 #ifndef TRC_OUTPUT
@@ -103,7 +109,8 @@ namespace ns_hlx {
         XX(1,  ERROR,       E)\
         XX(2,  WARN,        W)\
         XX(3,  DEBUG,       D)\
-        XX(4,  VERBOSE,     V)
+        XX(4,  VERBOSE,     V)\
+        XX(5,  ALL,         A)
 
 typedef enum trc_level_enum
 {

@@ -284,13 +284,12 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
         //l_status = read(m_fd, a_buf, a_buf_len);
         errno = 0;
         l_status = recvfrom(m_fd, a_buf, a_buf_len, 0, NULL, NULL);
-        //NDBG_PRINT("%sHOST%s: %s fd[%3d] READ: %ld bytes. Reason: %s\n",
-        //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
-        //                m_label.c_str(),
-        //                m_fd,
-        //                l_status,
-        //                ::strerror(errno));
-        //if(l_status > 0) mem_display((const uint8_t *)a_buf, l_status);
+        TRC_ALL("HOST[%s] fd[%3d] READ: %ld bytes. Reason: %s\n",
+                m_label.c_str(),
+                m_fd,
+                l_status,
+                ::strerror(errno));
+        if(l_status > 0) TRC_ALL_MEM((const uint8_t *)a_buf, l_status);
         if(l_status > 0)
         {
                 l_bytes_read += l_status;
@@ -332,9 +331,6 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
 int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
-        //NDBG_PRINT("%swrite%s: buf: %p fd: %d len: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF,
-        //                a_buf, m_fd, a_buf_len);
-        //mem_display((const uint8_t*)(a_buf), (uint32_t)(a_buf_len));
         // ---------------------------------------------------------------------
         // TODO see post: http://noahdesu.github.io/2014/01/16/port-sendmsg.html
         //      for info on porting MSG_NOSIGNAL to OSX
@@ -347,6 +343,13 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
 #else
         l_status = send(m_fd, a_buf, a_buf_len, MSG_NOSIGNAL);
 #endif
+        TRC_ALL("HOST[%s] fd[%3d] WRITE: %d bytes. Reason: %s\n",
+                m_label.c_str(),
+                m_fd,
+                l_status,
+                ::strerror(errno));
+        if(l_status > 0) TRC_ALL_MEM((const uint8_t*)(a_buf), (uint32_t)(l_status));
+
         //NDBG_PRINT("write: status: %d\n", l_status);
         if(l_status < 0)
         {

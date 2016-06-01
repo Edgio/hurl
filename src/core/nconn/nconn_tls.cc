@@ -603,13 +603,12 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
         int32_t l_bytes_read = 0;
         errno = 0;
         l_status = ::SSL_read(m_tls, a_buf, a_buf_len);
-        //NDBG_PRINT("%sHOST%s: %s tls[%p] READ: %ld bytes. Reason: %s\n",
-        //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
-        //                m_label.c_str(),
-        //                m_tls,
-        //                l_status,
-        //                strerror(errno));
-        //if(l_status > 0) mem_display((const uint8_t *)a_buf, l_status);
+        TRC_ALL("HOST[%s] tls[%p] READ: %ld bytes. Reason: %s\n",
+                 m_label.c_str(),
+                 m_tls,
+                 l_status,
+                 strerror(errno));
+        if(l_status > 0) TRC_ALL_MEM((const uint8_t *)a_buf, l_status);
         if(l_status <= 0)
         {
                 int l_tls_error = ::SSL_get_error(m_tls, l_status);
@@ -690,13 +689,12 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
         int l_status;
         errno = 0;
         l_status = ::SSL_write(m_tls, a_buf, a_buf_len);
-        //NDBG_PRINT("%sHOST%s: %s tls[%p] WRITE: %d bytes. Reason: %s\n",
-        //                ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
-        //                m_label.c_str(),
-        //                m_tls,
-        //                l_status,
-        //                strerror(errno));
-        //if(l_status > 0) mem_display((const uint8_t *)a_buf, a_buf_len);
+        TRC_ALL("HOST[%s] tls[%p] WRITE: %d bytes. Reason: %s\n",
+                 m_label.c_str(),
+                 m_tls,
+                 l_status,
+                 strerror(errno));
+        if(l_status > 0) TRC_ALL_MEM((const uint8_t *)a_buf, l_status);
         if(l_status < 0)
         {
                 int l_tls_error = ::SSL_get_error(m_tls, l_status);
