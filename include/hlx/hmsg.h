@@ -79,6 +79,7 @@ public:
 
         // Setters
         void set_q(nbq *a_q);
+        void reset_body_data(void);
 
         virtual void init(bool a_save);
 

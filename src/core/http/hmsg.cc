@@ -265,4 +265,15 @@ void hmsg::set_q(nbq *a_q)
         m_q = a_q;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void hmsg::reset_body_data(void)
+{
+       m_body = NULL;
+       m_body_len = 0;
+}
+
 } //namespace ns_hlx {
