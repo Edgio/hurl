@@ -243,6 +243,7 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                 {
                         TRC_ERROR("performing dns_add_serv\n");
                         delete l_adns_ctx;
+                        pthread_mutex_unlock(&m_cache_mutex);
                         return NULL;
                 }
                 for(resolver_host_list_t::iterator i_s = m_resolver_host_list.begin();
@@ -254,6 +255,7 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                         {
                                 TRC_ERROR("performing dns_add_serv\n");
                                 delete l_adns_ctx;
+                                pthread_mutex_unlock(&m_cache_mutex);
                                 return NULL;
                         }
                 }
