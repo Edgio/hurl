@@ -437,9 +437,9 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                                         {
                                                 // TODO Do nothing???
                                         }
-                                        l_cs->m_access_info.clear();
                                         // TODO only resp done cb for clnt's with ups?
                                         l_cs->log_status(0);
+                                        l_cs->m_access_info.clear();
                                 }
                                 l_cs->m_out_q->reset_write();
                                 if((l_cs->m_rqst != NULL) &&
