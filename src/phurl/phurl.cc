@@ -77,6 +77,9 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 
+// Get resource limits
+#include <sys/resource.h>
+
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
@@ -976,7 +979,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
-        fprintf(a_stream, "  -c, --color          Color\n");
+        fprintf(a_stream, "  -c, --no_color       Turn off colors\n");
         fprintf(a_stream, "  -q, --quiet          Suppress output\n");
         fprintf(a_stream, "  -s, --show_progress  Show progress\n");
         fprintf(a_stream, "  -m, --show_summary   Show summary output\n");
@@ -1018,6 +1021,12 @@ int main(int argc, char** argv)
         l_srvr->set_collect_stats(false);
         l_srvr->set_dns_use_ai_cache(true);
         l_srvr->set_update_stats_ms(500);
+
+        if(isatty(fileno(stdout)))
+        {
+                l_settings.m_color = true;
+                l_srvr->set_rqst_resp_logging_color(true);
+        }
 
         // -------------------------------------------------
         // Subrequest settings
@@ -1082,7 +1091,7 @@ int main(int argc, char** argv)
                 { "tls_ca_path",    1, 0, 'L' },
                 { "cli",            0, 0, 'I' },
                 { "verbose",        0, 0, 'v' },
-                { "color",          0, 0, 'c' },
+                { "no_color",       0, 0, 'c' },
                 { "quiet",          0, 0, 'q' },
                 { "show_progress",  0, 0, 's' },
                 { "show_summary",   0, 0, 'm' },
@@ -1106,6 +1115,8 @@ int main(int argc, char** argv)
         std::string l_ai_cache;
         std::string l_output_file = "";
         bool l_cli = false;
+        int l_max_threads = 1;
+        int l_num_parallel = 1;
 
         // Defaults
         output_type_t l_output_mode = OUTPUT_JSON;
@@ -1331,7 +1342,6 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'p':
                 {
-                        int l_num_parallel = 1;
                         //printf("arg: --parallel: %s\n", optarg);
                         //l_settings.m_start_type = START_PARALLEL;
                         l_num_parallel = atoi(optarg);
@@ -1349,7 +1359,6 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 't':
                 {
-                        int l_max_threads = 1;
                         //printf("arg: --threads: %s\n", l_argument.c_str());
                         l_max_threads = atoi(optarg);
                         if (l_max_threads < 0)
@@ -1502,8 +1511,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'c':
                 {
-                        l_settings.m_color = true;
-                        l_srvr->set_rqst_resp_logging_color(true);
+                        l_settings.m_color = false;
+                        l_srvr->set_rqst_resp_logging_color(false);
                         break;
                 }
                 // ---------------------------------------
@@ -1602,6 +1611,25 @@ int main(int argc, char** argv)
         if(!l_url.empty())
         {
                 l_subr->init_with_url(l_url);
+        }
+
+        // -------------------------------------------------
+        // Get resource limits
+        // -------------------------------------------------
+        int32_t l_s;
+        struct rlimit l_rlim;
+        errno = 0;
+        l_s = getrlimit(RLIMIT_NOFILE, &l_rlim);
+        if(l_s != 0)
+        {
+                fprintf(stdout, "Error performing getrlimit. Reason: %s\n", strerror(errno));
+                return HLX_STATUS_ERROR;
+        }
+        if(l_rlim.rlim_cur < (uint64_t)(l_max_threads*l_num_parallel))
+        {
+                fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%lu]\n",
+                                l_max_threads, l_num_parallel, l_rlim.rlim_cur);
+                return HLX_STATUS_ERROR;
         }
 
         // -------------------------------------------------

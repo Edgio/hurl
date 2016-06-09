@@ -82,6 +82,9 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+// Get resource limits
+#include <sys/resource.h>
+
 // Json output
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -999,7 +1002,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
-        fprintf(a_stream, "  -c, --color          Color\n");
+        fprintf(a_stream, "  -c, --no_color       Turn off colors\n");
         fprintf(a_stream, "  -q, --quiet          Suppress progress output\n");
         fprintf(a_stream, "  -C, --responses      Display http(s) response codes instead of request statistics\n");
         fprintf(a_stream, "  -L, --responses_per  Display http(s) response codes per interval instead of request statistics\n");
@@ -1037,7 +1040,7 @@ int main(int argc, char** argv)
 
         int l_max_threads = 1;
         // TODO Make default definitions
-        int l_start_parallel = 100;
+        int l_num_parallel = 100;
         int l_max_reqs_per_conn = 1;
         bool l_input_flag = false;
         bool l_wildcarding = true;
@@ -1061,8 +1064,14 @@ int main(int argc, char** argv)
         l_srvr->set_dns_use_ai_cache(true);
         l_srvr->set_dns_use_sync(true);
         l_srvr->set_num_threads(l_max_threads);
-        l_srvr->set_num_parallel(l_start_parallel);
+        l_srvr->set_num_parallel(l_num_parallel);
         l_srvr->set_num_reqs_per_conn(-1);
+
+        if(isatty(fileno(stdout)))
+        {
+                l_settings.m_color = true;
+                l_srvr->set_rqst_resp_logging_color(true);
+        }
 
         // -------------------------------------------------
         // Subrequest settings
@@ -1126,7 +1135,7 @@ int main(int argc, char** argv)
                 { "no_stats",       0, 0, 'x' },
                 { "addr_seq",       1, 0, 'r' },
                 { "verbose",        0, 0, 'v' },
-                { "color",          0, 0, 'c' },
+                { "no_color",       0, 0, 'c' },
                 { "quiet",          0, 0, 'q' },
                 { "responses",      0, 0, 'C' },
                 { "responses_per",  0, 0, 'L' },
@@ -1277,14 +1286,14 @@ int main(int argc, char** argv)
                 {
                         //NDBG_PRINT("arg: --parallel: %s\n", optarg);
                         //l_settings.m_start_type = START_PARALLEL;
-                        l_start_parallel = atoi(optarg);
-                        if (l_start_parallel < 1)
+                        l_num_parallel = atoi(optarg);
+                        if (l_num_parallel < 1)
                         {
                                 printf("Error parallel must be at least 1\n");
                                 return -1;
                         }
-                        l_srvr->set_num_parallel(l_start_parallel);
-                        l_settings.m_num_parallel = l_start_parallel;
+                        l_srvr->set_num_parallel(l_num_parallel);
+                        l_settings.m_num_parallel = l_num_parallel;
                         break;
                 }
                 // ---------------------------------------
@@ -1503,8 +1512,8 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'c':
                 {
-                        l_settings.m_color = true;
-                        l_srvr->set_rqst_resp_logging_color(true);
+                        l_settings.m_color = false;
+                        l_srvr->set_rqst_resp_logging_color(false);
                         break;
                 }
                 // ---------------------------------------
@@ -1633,6 +1642,25 @@ int main(int argc, char** argv)
                 print_usage(stdout, -1);
         }
 
+        // -------------------------------------------------
+        // Get resource limits
+        // -------------------------------------------------
+        int32_t l_s;
+        struct rlimit l_rlim;
+        errno = 0;
+        l_s = getrlimit(RLIMIT_NOFILE, &l_rlim);
+        if(l_s != 0)
+        {
+                fprintf(stdout, "Error performing getrlimit. Reason: %s\n", strerror(errno));
+                return HLX_STATUS_ERROR;
+        }
+        if(l_rlim.rlim_cur < (uint64_t)(l_max_threads*l_num_parallel))
+        {
+                fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%lu]\n",
+                                l_max_threads, l_num_parallel, l_rlim.rlim_cur);
+                return HLX_STATUS_ERROR;
+        }
+
         // -------------------------------------------
         // Sigint handler3
         // -------------------------------------------
@@ -1713,12 +1741,12 @@ int main(int argc, char** argv)
                 if(l_max_reqs_per_conn < 0)
                 {
                         fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite reqests per connection\n",
-                                l_max_threads, l_start_parallel);
+                                l_max_threads, l_num_parallel);
                 }
                 else
                 {
                         fprintf(stdout, "Running %d threads %d parallel connections per thread with %d reqests per connection\n",
-                                l_max_threads, l_start_parallel, l_max_reqs_per_conn);
+                                l_max_threads, l_num_parallel, l_max_reqs_per_conn);
                 }
         }
 

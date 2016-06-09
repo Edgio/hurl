@@ -38,41 +38,50 @@ hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 ```bash
 Usage: hurl [http[s]://]hostname[:port]/path [options]
 Options are:
-  -h, --help          Display this help and exit.
-  -V, --version       Display the version number and exit.
+  -h, --help           Display this help and exit.
+  -V, --version        Display the version number and exit.
   
 Input Options:
-  -w, --no_wildcards  Don't wildcard the url.
-  -M, --mode          Request mode -if multipath [random(default) | sequential].
-  -d, --data          HTTP body data -supports curl style @ file specifier
+  -w, --no_wildcards   Don't wildcard the url.
+  -M, --mode           Request mode -if multipath [random(default) | sequential].
+  -d, --data           HTTP body data -supports curl style @ file specifier
   
 Settings:
-  -y, --cipher        Cipher --see "openssl ciphers" for list.
-  -p, --parallel      Num parallel. Default: 100.
-  -f, --fetches       Num fetches.
-  -N, --num_calls     Number of requests per connection
-  -t, --threads       Number of parallel threads. Default: 1
-  -H, --header        Request headers -can add multiple ie -H<> -H<>...
-  -X, --verb          Request command -HTTP verb to use -GET/PUT/etc. Default GET
-  -l, --seconds       Run for <N> seconds .
-  -A, --rate          Max Request Rate.
-  -R, --recv_buffer   Socket receive buffer size.
-  -S, --send_buffer   Socket send buffer size.
-  -D, --no_delay      Socket TCP no-delay.
-  -T, --timeout       Timeout (seconds).
-  -x, --no_stats      Don't collect stats -faster.
-  -r, --addr_seq      Rotate through local addresses (number).
-
+  -y, --cipher         Cipher --see "openssl ciphers" for list.
+  -p, --parallel       Num parallel. Default: 100.
+  -f, --fetches        Num fetches.
+  -N, --num_calls      Number of requests per connection
+  -t, --threads        Number of parallel threads. Default: 1
+  -H, --header         Request headers -can add multiple ie -H<> -H<>...
+  -X, --verb           Request command -HTTP verb to use -GET/PUT/etc. Default GET
+  -l, --seconds        Run for <N> seconds .
+  -A, --rate           Max Request Rate.
+  -R, --recv_buffer    Socket receive buffer size.
+  -S, --send_buffer    Socket send buffer size.
+  -D, --no_delay       Socket TCP no-delay.
+  -T, --timeout        Timeout (seconds).
+  -x, --no_stats       Don't collect stats -faster.
+  -r, --addr_seq       Rotate through local addresses (number).
+  
 Print Options:
-  -v, --verbose       Verbose logging
-  -c, --color         Color
-  -q, --quiet         Suppress progress output
-  -C, --responses     Display http(s) response codes instead of request statistics
-  -L, --responses_per Display http(s) response codes per interval instead of request statistics
+  -v, --verbose        Verbose logging
+  -c, --no_color       Turn off colors
+  -q, --quiet          Suppress progress output
+  -C, --responses      Display http(s) response codes instead of request statistics
+  -L, --responses_per  Display http(s) response codes per interval instead of request statistics
   
 Stat Options:
-  -P, --data_port     Start HTTP Stats Daemon on port.
-  -Y, --http_load     Display in http load mode [MODE] -Legacy support
+  -U, --update         Update output every N ms. Default 500ms.
+  -P, --data_port      Start HTTP Stats Daemon on port.
+  
+Results Options:
+  -j, --json           Display results in json
+  -Y, --http_load      Display results in http load mode -Legacy support
+  -Z, --http_load_line Display results in http load mode on a single line -Legacy support
+  -o, --output         Output results to file <FILE> -default to stdout
+  
+Profile Options:
+  -G, --gprofile       Google profiler output file
   
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
@@ -96,7 +105,7 @@ Options are:
 URL Options -or without parameter
   -u, --url            URL -REQUIRED (unless running cli: see --cli option).
   -d, --data           HTTP body data -supports curl style @ file specifier
-
+  
 Hostname Input Options -also STDIN:
   -f, --host_file      Host name file.
   -J, --host_json      Host listing json format.
@@ -133,7 +142,7 @@ Command Line Client:
   
 Print Options:
   -v, --verbose        Verbose logging
-  -c, --color          Color
+  -c, --no_color       Turn off colors
   -q, --quiet          Suppress output
   -s, --show_progress  Show progress
   -m, --show_summary   Show summary output
@@ -143,7 +152,10 @@ Output Options: -defaults to line delimited
   -l, --line_delimited Output <HOST> <RESPONSE BODY> per line
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
-
+  
+Debug Options:
+  -G, --gprofile       Google profiler output file
+  
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```

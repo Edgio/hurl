@@ -80,6 +80,14 @@ public:
         void clear(void);
         int32_t subr_error(http_status_t a_status);
 
+        // -------------------------------------------------
+        // Public Static (class) methods
+        // -------------------------------------------------
+        static int32_t teardown(t_srvr *a_t_srvr,
+                                ups_srvr_session *a_uss,
+                                nconn *a_nconn,
+                                http_status_t a_status);
+
 private:
         // -------------------------------------------------
         // Private methods
@@ -95,10 +103,6 @@ private:
         // Private Static (class) methods
         // -------------------------------------------------
         static int32_t run_state_machine(void *a_data, nconn::mode_t a_conn_mode);
-        static int32_t teardown(t_srvr *a_t_srvr,
-                                ups_srvr_session *a_uss,
-                                nconn *a_nconn,
-                                http_status_t a_status);
 };
 
 } // ns_hlx

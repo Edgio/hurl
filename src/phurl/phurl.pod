@@ -84,7 +84,7 @@ B<-I>, B<--cli>            start interactive command line -URL not required.
 
 B<-v>, B<--verbose>        verbose logging
 
-B<-c>, B<--color>          color
+B<-c>, B<--no_color>       turn off colors
 
 B<-q>, B<--quiet>          Suppress output
 

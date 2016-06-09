@@ -67,7 +67,7 @@ B<-x>, B<--no_stats>      don't collect stats -faster.
 
 B<-v>, B<--verbose>       verbose logging
 
-B<-c>, B<--color>         color
+B<-c>, B<--no_color>      turn off colors
 
 B<-q>, B<--quiet>         suppress progress output
 

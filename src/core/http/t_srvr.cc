@@ -533,10 +533,8 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         a_nconn.bump_num_requested();
         if(l_status == nconn::NC_STATUS_ERROR)
         {
-                //NDBG_PRINT("Error: Performing nc_run_state_machine. l_status: %d\n", l_status);
-                cleanup_srvr_session(&a_ups_srvr_session, a_ups_srvr_session.m_nconn);
-                // TODO Check return
-                return HLX_STATUS_OK;
+                ++(m_stat.m_upsv_errors);
+                return ups_srvr_session::teardown(this, &a_ups_srvr_session, &a_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
         }
         else if(l_status > 0)
         {
