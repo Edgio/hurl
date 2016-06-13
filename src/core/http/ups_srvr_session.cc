@@ -244,7 +244,6 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                 }
                 return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_GATEWAY_TIMEOUT);
         }
-
         // -------------------------------------------------
         // TODO unknown conn mode???
         // -------------------------------------------------
@@ -280,7 +279,6 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                 l_in_q = l_t_srvr->m_orphan_in_q;
                 l_out_q = l_t_srvr->m_orphan_out_q;
         }
-
         // -----------------------------------------------------------
         // conn loop
         // -----------------------------------------------------------
@@ -393,11 +391,6 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                         }
                 }
                 // ---------------------------------------------------
-                // WRITEABLE
-                // ---------------------------------------------------
-                // TODO
-
-                // ---------------------------------------------------
                 // STATUS_OK
                 // ---------------------------------------------------
                 else if(l_s == nconn::NC_STATUS_OK)
@@ -409,10 +402,6 @@ check_conn_status:
                 if(l_nconn->is_free())
                 {
                         return HLX_STATUS_OK;
-                }
-                else if(l_nconn->is_done())
-                {
-                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
                 }
                 if(!l_uss)
                 {
@@ -459,6 +448,10 @@ check_conn_status:
                 {
                         break;
                 }
+                }
+                if(l_nconn->is_done())
+                {
+                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
                 }
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
                 (l_t_srvr->is_running()));
