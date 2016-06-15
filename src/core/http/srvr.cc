@@ -208,19 +208,23 @@ static void aggregate_stat(t_stat_cntr_t &ao_total, const t_stat_cntr_t &a_stat)
 //: ----------------------------------------------------------------------------
 void srvr::get_stat(t_stat_cntr_t &ao_stat,
                     t_stat_calc_t &ao_calc_stat,
-                    t_stat_cntr_list_t &ao_stat_list)
+                    t_stat_cntr_list_t &ao_stat_list,
+                    bool a_no_cache)
 {
         pthread_mutex_lock(&m_stat_mutex);
         // Check last time
         uint64_t l_cur_time_ms = get_time_ms();
         uint64_t l_delta_ms = l_cur_time_ms - m_stat_last_time_ms;
-        if(l_delta_ms < m_stat_update_ms)
+        if(!a_no_cache)
         {
-                ao_stat = m_stat_cache;
-                ao_calc_stat = m_stat_calc_cache;
-                ao_stat_list = m_stat_list_cache;
-                pthread_mutex_unlock(&m_stat_mutex);
-                return;
+                if(l_delta_ms < m_stat_update_ms)
+                {
+                        ao_stat = m_stat_cache;
+                        ao_calc_stat = m_stat_calc_cache;
+                        ao_stat_list = m_stat_list_cache;
+                        pthread_mutex_unlock(&m_stat_mutex);
+                        return;
+                }
         }
 
         // -------------------------------------------------

@@ -230,9 +230,9 @@ static bool g_cancelled = false;
 static settings_struct_t *g_settings = NULL;
 static uint64_t g_rate_delta_us = 0;
 static uint32_t g_num_threads = 1;
-static int32_t g_num_to_request = -1;
-static uint32_t g_num_requested = 0;
-static uint32_t g_num_completed = 0;
+static int64_t g_num_to_request = -1;
+static uint64_t g_num_requested = 0;
+static uint64_t g_num_completed = 0;
 
 // -----------------------------------------------
 // Path vector support
@@ -266,7 +266,6 @@ void sig_handler(int signo)
                 // Kill program
                 g_test_finished = true;
                 g_cancelled = true;
-                g_settings->m_srvr->stop();
         }
 }
 
@@ -331,15 +330,12 @@ void command_exec(settings_struct_t &a_settings)
 {
         int i = 0;
         char l_cmd = ' ';
-        bool l_sent_stop = false;
         ns_hlx::srvr *l_srvr = a_settings.m_srvr;
         bool l_first_time = true;
-
         nonblock(NB_ENABLE);
-
-        //: ------------------------------------
-        //:   Loop forever until user quits
-        //: ------------------------------------
+        // ---------------------------------------
+        // Loop forever until user quits
+        // ---------------------------------------
         while (!g_test_finished)
         {
                 //NDBG_PRINT("BOOP.\n");
@@ -364,12 +360,17 @@ void command_exec(settings_struct_t &a_settings)
                         // Quit
                         // -------------------------------------------
                         case 'q':
+                        {
                                 g_test_finished = true;
-                                l_srvr->stop();
-                                l_sent_stop = true;
                                 break;
+                        }
+                        // -------------------------------------------
+                        // default
+                        // -------------------------------------------
                         default:
+                        {
                                 break;
+                        }
                         }
                 }
 
@@ -383,8 +384,6 @@ void command_exec(settings_struct_t &a_settings)
                         if(l_time_delta_ms >= a_settings.m_run_time_ms)
                         {
                                 g_test_finished = true;
-                                l_srvr->stop();
-                                l_sent_stop = true;
                         }
                 }
                 if (!l_srvr->is_running())
@@ -402,8 +401,11 @@ void command_exec(settings_struct_t &a_settings)
                                         ns_hlx::t_stat_cntr_t l_total;
                                         ns_hlx::t_stat_calc_t l_total_calc;
                                         ns_hlx::t_stat_cntr_list_t l_thread;
-                                        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
-                                        usleep(a_settings.m_interval_ms*1000+100);
+                                        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
+                                        if(!g_test_finished)
+                                        {
+                                                usleep(a_settings.m_interval_ms*1000+100);
+                                        }
                                         l_first_time = false;
                                 }
                                 display_responses_line(a_settings);
@@ -416,20 +418,16 @@ void command_exec(settings_struct_t &a_settings)
                                         ns_hlx::t_stat_cntr_t l_total;
                                         ns_hlx::t_stat_calc_t l_total_calc;
                                         ns_hlx::t_stat_cntr_list_t l_thread;
-                                        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
-                                        usleep(a_settings.m_interval_ms*1000+100);
+                                        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
+                                        if(!g_test_finished)
+                                        {
+                                                usleep(a_settings.m_interval_ms*1000+100);
+                                        }
                                         l_first_time = false;
                                 }
                                 display_results_line(a_settings);
                         }
                 }
-        }
-
-        // Send stop -if unsent
-        if(!l_sent_stop)
-        {
-                l_srvr->stop();
-                l_sent_stop = true;
         }
         nonblock(NB_DISABLE);
 }
@@ -446,13 +444,11 @@ static int32_t s_completion_cb(ns_hlx::subr &a_subr,
         pthread_mutex_lock(&g_completion_mutex);
         ++g_num_completed;
         pthread_mutex_unlock(&g_completion_mutex);
-        if((g_num_to_request != -1) && (g_num_completed >= (uint32_t)g_num_to_request))
+        if((g_num_to_request != -1) && (g_num_completed >= (uint64_t)g_num_to_request))
         {
                 g_test_finished = true;
-                g_settings->m_srvr->stop();
                 return 0;
         }
-
         if(g_rate_delta_us && !g_test_finished)
         {
                 usleep(g_rate_delta_us*g_num_threads);
@@ -874,11 +870,16 @@ const std::string &get_path(void *a_rand)
 //: ----------------------------------------------------------------------------
 static int32_t s_create_request_cb(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
 {
-        if((g_num_to_request != -1) && (g_num_requested >= (uint32_t)g_num_to_request))
+        pthread_mutex_lock(&g_completion_mutex);
+        if(g_test_finished ||
+           ((g_num_to_request != -1) &&
+            (g_num_requested >= (uint32_t)g_num_to_request)))
         {
+                pthread_mutex_unlock(&g_completion_mutex);
                 return HLX_STATUS_ERROR;
         }
         ++g_num_requested;
+        pthread_mutex_unlock(&g_completion_mutex);
 
         // TODO grab from path...
         std::string l_path_ref = get_path(g_rand_ptr);
@@ -1066,6 +1067,7 @@ int main(int argc, char** argv)
         l_srvr->set_num_threads(l_max_threads);
         l_srvr->set_num_parallel(l_num_parallel);
         l_srvr->set_num_reqs_per_conn(-1);
+        l_srvr->set_update_stats_ms(l_settings.m_interval_ms);
 
         if(isatty(fileno(stdout)))
         {
@@ -1809,6 +1811,11 @@ int main(int argc, char** argv)
         }
         delete l_subr;
 
+        // -------------------------------------------
+        // Start
+        // -------------------------------------------
+        uint64_t l_start_time_ms = ns_hlx::get_time_ms();
+        l_settings.m_start_time_ms = l_start_time_ms;
         l_status = l_srvr->run();
         if(HLX_STATUS_OK != l_status)
         {
@@ -1816,22 +1823,23 @@ int main(int argc, char** argv)
                 return -1;
         }
 
-        uint64_t l_start_time_ms = ns_hlx::get_time_ms();
-        l_settings.m_start_time_ms = l_start_time_ms;
-
         // -------------------------------------------
         // Run command exec
         // -------------------------------------------
         command_exec(l_settings);
+        uint64_t l_end_time_ms = ns_hlx::get_time_ms() - l_start_time_ms;
 
-        // Wait for completion
+        // -------------------------------------------
+        // Stop
+        // -------------------------------------------
+        usleep(l_settings.m_interval_ms*1000+1000);
+        l_srvr->stop();
         l_srvr->wait_till_stopped();
 
 #ifdef ENABLE_PROFILER
         if (!l_gprof_file.empty())
                 ProfilerStop();
 #endif
-        uint64_t l_end_time_ms = ns_hlx::get_time_ms() - l_start_time_ms;
 
         std::string l_out_str;
         switch(l_results_scheme)
@@ -2077,7 +2085,7 @@ void display_responses_line(settings_struct &a_settings)
         ns_hlx::t_stat_cntr_t l_total;
         ns_hlx::t_stat_calc_t l_total_calc;
         ns_hlx::t_stat_cntr_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
         if(a_settings.m_show_per_interval)
         {
                 if(a_settings.m_color)
@@ -2085,7 +2093,7 @@ void display_responses_line(settings_struct &a_settings)
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
                                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                                 l_total_calc.m_upsv_req_s,
-                                                l_total.m_upsv_reqs,
+                                                l_total.m_upsv_resp,
                                                 l_total.m_upsv_errors,
                                                 ANSI_COLOR_FG_GREEN, l_total_calc.m_upsv_resp_status_2xx_pcnt, ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_total_calc.m_upsv_resp_status_3xx_pcnt, ANSI_COLOR_OFF,
@@ -2097,7 +2105,7 @@ void display_responses_line(settings_struct &a_settings)
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_total_calc.m_upsv_req_s,
-                                        l_total.m_upsv_reqs,
+                                        l_total.m_upsv_resp,
                                         l_total.m_upsv_errors,
                                         l_total_calc.m_upsv_resp_status_2xx_pcnt,
                                         l_total_calc.m_upsv_resp_status_3xx_pcnt,
@@ -2137,7 +2145,7 @@ void display_responses_line(settings_struct &a_settings)
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
                                                 ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                                 l_total_calc.m_upsv_req_s,
-                                                l_total.m_upsv_reqs,
+                                                l_total.m_upsv_resp,
                                                 l_total.m_upsv_errors,
                                                 ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
                                                 ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
@@ -2149,7 +2157,7 @@ void display_responses_line(settings_struct &a_settings)
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
                                         ((double)(hurl_get_delta_time_ms(a_settings.m_start_time_ms))) / 1000.0,
                                         l_total_calc.m_upsv_req_s,
-                                        l_total.m_upsv_reqs,
+                                        l_total.m_upsv_resp,
                                         l_total.m_upsv_errors,
                                         l_responses[2],
                                         l_responses[3],
@@ -2170,8 +2178,8 @@ void display_results_line_desc(settings_struct &a_settings)
         if(a_settings.m_color)
         {
         printf("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
-                        ANSI_COLOR_FG_GREEN, "Cmpltd", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_BLUE, "Total", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_GREEN, "Completed", ANSI_COLOR_OFF,
+                        ANSI_COLOR_FG_BLUE, "Requested", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_MAGENTA, "IdlKil", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_RED, "Errors", ANSI_COLOR_OFF,
                         ANSI_COLOR_FG_YELLOW, "kBytes Recvd", ANSI_COLOR_OFF,
@@ -2182,8 +2190,8 @@ void display_results_line_desc(settings_struct &a_settings)
         else
         {
                 printf("| %9s / %9s | %9s | %9s | %12s | %9s | %11s | %9s |\n",
-                                "Cmpltd",
-                                "Total",
+                                "Completed",
+                                "Requested",
                                 "IdlKil",
                                 "Errors",
                                 "kBytes Recvd",
@@ -2205,11 +2213,11 @@ void display_results_line(settings_struct &a_settings)
         ns_hlx::t_stat_cntr_t l_total;
         ns_hlx::t_stat_calc_t l_total_calc;
         ns_hlx::t_stat_cntr_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
         if(a_settings.m_color)
         {
                         printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
-                                        ANSI_COLOR_FG_GREEN, l_total.m_upsv_reqs, ANSI_COLOR_OFF,
+                                        ANSI_COLOR_FG_GREEN, l_total.m_upsv_resp, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_BLUE, l_total.m_upsv_reqs, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_MAGENTA, l_total.m_upsv_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_upsv_errors, ANSI_COLOR_OFF,
@@ -2222,7 +2230,7 @@ void display_results_line(settings_struct &a_settings)
         else
         {
                 printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
-                                l_total.m_upsv_reqs,
+                                l_total.m_upsv_resp,
                                 l_total.m_upsv_reqs,
                                 l_total.m_upsv_idle_killed,
                                 l_total.m_upsv_errors,
@@ -2258,7 +2266,7 @@ void get_results(settings_struct &a_settings,
         ns_hlx::t_stat_cntr_t l_total;
         ns_hlx::t_stat_calc_t l_total_calc;
         ns_hlx::t_stat_cntr_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
 
         std::string l_tag;
         char l_buf[1024];
@@ -2273,12 +2281,12 @@ void get_results(settings_struct &a_settings,
         {
         STR_PRINT("| RESULTS:             %s\n", l_tag.c_str());
         }
-        STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_upsv_reqs);
+        STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_upsv_resp);
         STR_PRINT("| max parallel:        %u\n", a_settings.m_num_parallel);
         STR_PRINT("| bytes:               %e\n", (double)(l_total_bytes));
         STR_PRINT("| seconds:             %f\n", a_elapsed_time);
-        STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_upsv_reqs));
-        STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_upsv_reqs)/(a_elapsed_time));
+        STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_upsv_resp));
+        STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_upsv_resp)/(a_elapsed_time));
         STR_PRINT("| bytes/sec:           %e\n", ((double)l_total_bytes)/a_elapsed_time);
         // TODO Fix stdev/var calcs
 #if 0
@@ -2345,7 +2353,7 @@ void get_results_http_load(settings_struct &a_settings,
         ns_hlx::t_stat_cntr_t l_total;
         ns_hlx::t_stat_calc_t l_total_calc;
         ns_hlx::t_stat_cntr_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
 
         std::string l_tag;
         // Separator
@@ -2357,14 +2365,14 @@ void get_results_http_load(settings_struct &a_settings,
         char l_buf[1024];
         uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
         STR_PRINT("%s: ", l_tag.c_str());
-        STR_PRINT("%" PRIu64 " fetches, ", l_total.m_upsv_reqs);
+        STR_PRINT("%" PRIu64 " fetches, ", l_total.m_upsv_resp);
         STR_PRINT("%u max parallel, ", a_settings.m_num_parallel);
         STR_PRINT("%e bytes, ", (double)(l_total_bytes));
         STR_PRINT("in %f seconds, ", a_elapsed_time);
         STR_PRINT("%s", l_sep.c_str());
-        STR_PRINT("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)l_total.m_upsv_reqs));
+        STR_PRINT("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)l_total.m_upsv_resp));
         STR_PRINT("%s", l_sep.c_str());
-        STR_PRINT("%f fetches/sec, %e bytes/sec", ((double)l_total.m_upsv_reqs)/(a_elapsed_time), ((double)l_total_bytes)/a_elapsed_time);
+        STR_PRINT("%f fetches/sec, %e bytes/sec", ((double)l_total.m_upsv_resp)/(a_elapsed_time), ((double)l_total_bytes)/a_elapsed_time);
         STR_PRINT("%s", l_sep.c_str());
 #define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
         STR_PRINT("%s %.6f mean, %.6f max, %.6f min, %.6f stdev",\
@@ -2405,7 +2413,7 @@ void get_results_json(settings_struct &a_settings,
         ns_hlx::t_stat_cntr_t l_total;
         ns_hlx::t_stat_calc_t l_total_calc;
         ns_hlx::t_stat_cntr_list_t l_thread;
-        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread);
+        a_settings.m_srvr->get_stat(l_total, l_total_calc, l_thread, true);
 
         uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
         rapidjson::Document l_body;
@@ -2414,12 +2422,12 @@ void get_results_json(settings_struct &a_settings,
 #define ADD_MEMBER(_l, _v) \
         l_body.AddMember(_l, _v, l_alloc)
 
-        ADD_MEMBER("fetches", l_total.m_upsv_reqs);
+        ADD_MEMBER("fetches", l_total.m_upsv_resp);
         ADD_MEMBER("max-parallel", a_settings.m_num_parallel);
         ADD_MEMBER("bytes", (double)(l_total_bytes));
         ADD_MEMBER("seconds", a_elapsed_time);
-        ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_upsv_reqs));
-        ADD_MEMBER("fetches-per-sec", ((double)l_total.m_upsv_reqs)/(a_elapsed_time));
+        ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_upsv_resp));
+        ADD_MEMBER("fetches-per-sec", ((double)l_total.m_upsv_resp)/(a_elapsed_time));
         ADD_MEMBER("bytes-per-sec", ((double)l_total_bytes)/a_elapsed_time);
 
         // TODO Fix stdev/var calcs

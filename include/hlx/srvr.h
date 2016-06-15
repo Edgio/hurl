@@ -136,7 +136,10 @@ public:
         bool is_running(void);
 
         // Stats
-        void get_stat(t_stat_cntr_t &ao_stat, t_stat_calc_t &ao_calc_stat, t_stat_cntr_list_t &ao_stat_list);
+        void get_stat(t_stat_cntr_t &ao_stat,
+                      t_stat_calc_t &ao_calc_stat,
+                      t_stat_cntr_list_t &ao_stat_list,
+                      bool a_no_cache=false);
         void display_stat(void);
 
         // TLS config
