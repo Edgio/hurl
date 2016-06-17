@@ -1658,8 +1658,8 @@ int main(int argc, char** argv)
         }
         if(l_rlim.rlim_cur < (uint64_t)(l_max_threads*l_num_parallel))
         {
-                fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%lu]\n",
-                                l_max_threads, l_num_parallel, l_rlim.rlim_cur);
+                fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%u]\n",
+                                l_max_threads, l_num_parallel, (uint32_t)l_rlim.rlim_cur);
                 return HLX_STATUS_ERROR;
         }
 
