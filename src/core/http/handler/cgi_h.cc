@@ -29,7 +29,6 @@
 #include "ndebug.h"
 #include "t_srvr.h"
 #include "clnt_session.h"
-#include "mime_types.h"
 #include "hlx/time_util.h"
 #include "hlx/cgi_h.h"
 #include "hlx/cgi_u.h"
