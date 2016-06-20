@@ -1,7 +1,7 @@
 //: ----------------------------------------------------------------------------
 //: fanout example:
 //: compile with:
-//:   g++ floodecho.cc -lhlxcore -lssl -lcrypto -lpthread -ludns -o floodecho
+//:   g++ floodecho.cc -lhlxcore -lssl -lcrypto -lpthread -o floodecho
 //: ----------------------------------------------------------------------------
 #include <hlx/srvr.h>
 #include <hlx/phurl_h.h>

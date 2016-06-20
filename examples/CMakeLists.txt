@@ -79,3 +79,11 @@ add_executable(files files.cc)
 add_dependencies(files hlxcore)
 SET_TARGET_PROPERTIES(files PROPERTIES OUTPUT_NAME "files")
 target_link_libraries(files ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+
+# ----------------------------------------------------------
+# cgi
+# ----------------------------------------------------------
+add_executable(cgi cgi.cc)
+add_dependencies(cgi hlxcore)
+SET_TARGET_PROPERTIES(cgi PROPERTIES OUTPUT_NAME "cgi")
+target_link_libraries(cgi ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})

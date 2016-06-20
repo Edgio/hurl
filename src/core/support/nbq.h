@@ -28,6 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include <stdint.h>
 #include <list>
+#include <unistd.h>
 
 namespace ns_hlx {
 
@@ -67,7 +68,7 @@ public:
 
         // Writing...
         int64_t write(const char *a_buf, uint64_t a_len);
-        int64_t write_fd(int a_fd, uint64_t a_len);
+        int64_t write_fd(int a_fd, uint64_t a_len, ssize_t &a_status);
         int64_t write_q(nbq &a_q);
 
         // Reading

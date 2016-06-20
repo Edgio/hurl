@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 
 namespace ns_hlx {
 
@@ -126,7 +127,7 @@ int64_t nbq::write(const char *a_buf, uint64_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int64_t nbq::write_fd(int a_fd, uint64_t a_len)
+int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
 {
         if(!a_len)
         {
@@ -148,18 +149,20 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len)
                 //NDBG_PRINT("l_left: %u\n", l_left);
                 uint32_t l_write_avail = b_write_avail();
                 uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
-                ssize_t l_status = ::read(a_fd, b_write_ptr(), l_write);
-                if(l_status < 0)
-                {
-                        return HLX_STATUS_ERROR;
-                }
-                if(l_status == 0)
+                errno = 0;
+                a_status = ::read(a_fd, b_write_ptr(), l_write);
+                if((a_status == 0) ||
+                   ((a_status < 0) && (errno == EAGAIN)))
                 {
                         break;
                 }
-                b_write_incr(l_status);
-                l_left -= l_status;
-                l_written += l_status;
+                else if(a_status < 0)
+                {
+                        return HLX_STATUS_ERROR;
+                }
+                b_write_incr(a_status);
+                l_left -= a_status;
+                l_written += a_status;
         }
         return l_written;
 }
@@ -180,8 +183,8 @@ int64_t nbq::write_q(nbq &a_q)
                         int32_t l_status = b_write_add_avail();
                         if(l_status <= 0)
                         {
-                                // TODO error...
-                                return -1;
+                                TRC_ERROR("b_write_add_avail()\n");
+                                return HLX_STATUS_ERROR;
                         }
                 }
                 //NDBG_PRINT("l_left: %u\n", l_left);
@@ -192,6 +195,7 @@ int64_t nbq::write_q(nbq &a_q)
                 ssize_t l_status = a_q.read(b_write_ptr(), l_write);
                 if(l_status < 0)
                 {
+                        TRC_ERROR("a_q.read()\n");
                         return HLX_STATUS_ERROR;
                 }
                 if(l_status == 0)

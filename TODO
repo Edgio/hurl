@@ -1,10 +1,8 @@
 0. hlx
   a. evr_kqueue + eventfd analog.
   b. fix stats stdev/var.
-  c. access logs???
-  d. rqst splitting (test with pipelined requests)
-  e. set separate timeouts resolve/connect/idle
-  f. error callback indicate error type
+  c. rqst splitting (test with pipelined requests)
+  d. set separate timeouts resolve/connect/idle
 
 1. hurl/phurl/fsurv
   a. if is interactive shell --> isatty(fileno(stdout)) -default to color

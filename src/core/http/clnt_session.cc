@@ -200,12 +200,12 @@ int32_t clnt_session::teardown(t_srvr *a_t_srvr, clnt_session *a_cs, nconn *a_nc
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
 {
+        //NDBG_PRINT("RUN a_conn_mode: %d a_data: %p\n", a_conn_mode, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
         nconn* l_nconn = static_cast<nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         clnt_session *l_cs = static_cast<clnt_session *>(l_nconn->get_data());
-
         // -------------------------------------------------
         // ERROR
         // -------------------------------------------------

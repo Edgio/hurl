@@ -474,7 +474,6 @@ int32_t nconn::nc_set_accepting(int a_fd)
         {
                 return HLX_STATUS_ERROR;
         }
-
         m_nc_state = NC_STATE_ACCEPTING;
         return HLX_STATUS_OK;
 }
@@ -492,7 +491,6 @@ int32_t nconn::nc_set_connected(void)
         {
                 return HLX_STATUS_ERROR;
         }
-
         m_nc_state = NC_STATE_CONNECTED;
         return HLX_STATUS_OK;
 }

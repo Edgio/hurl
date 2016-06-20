@@ -196,6 +196,8 @@ public:
         // TODO Move to lsnr readable...
         static int32_t evr_fd_readable_lsnr_cb(void *a_data);
 
+        evr_loop *get_evr_loop(void) {return m_evr_loop;}
+
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------

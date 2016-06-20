@@ -168,7 +168,8 @@ ssize_t file_u::ups_read(size_t a_len)
         }
         // Get one chunk of the file from disk
         ssize_t l_read = 0;
-        l_read = m_clnt_session.m_out_q->write_fd(m_fd, a_len);
+        ssize_t l_last;
+        l_read = m_clnt_session.m_out_q->write_fd(m_fd, a_len, l_last);
         if(l_read < 0)
         {
                 TRC_ERROR("performing read. Reason: %s\n", strerror(errno));

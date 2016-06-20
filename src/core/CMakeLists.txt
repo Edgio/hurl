@@ -122,6 +122,7 @@ SET(SRCS
     ./http/upstream/file_u.cc
     ./http/upstream/proxy_u.cc
     ./http/upstream/phurl_u.cc
+    ./http/upstream/cgi_u.cc
 
     ./http/handler/rqst_h.cc
     ./http/handler/default_rqst_h.cc
@@ -129,6 +130,7 @@ SET(SRCS
     ./http/handler/phurl_h.cc
     ./http/handler/stat_h.cc
     ./http/handler/proxy_h.cc
+    ./http/handler/cgi_h.cc
 )
 
 # ------------------------------------------------
