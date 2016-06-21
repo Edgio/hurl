@@ -442,7 +442,7 @@ int32_t cgi_u::cginit(const char *a_path, const query_map_t &a_query_map)
                 // -----------------------------------------
                 char *const l_argv[2] = { const_cast<char *>(a_path), 0 };
                 char **l_envp;
-                l_envp = (char **)malloc(sizeof(char *)*a_query_map.size()+1);
+                l_envp = (char **)malloc(sizeof(char *)*(a_query_map.size()+1));
                 uint32_t i_i = 0;
                 for(query_map_t::const_iterator i_q = a_query_map.begin();
                     i_q != a_query_map.end();
@@ -456,7 +456,7 @@ int32_t cgi_u::cginit(const char *a_path, const query_map_t &a_query_map)
                                 continue;
                         }
                 }
-                l_envp[i_i] = 0;
+                l_envp[a_query_map.size()] = NULL;
                 //TRC_PRINT("starting script.\n");
                 errno = 0;
                 l_s = execve(l_argv[0], l_argv, l_envp);
@@ -677,11 +677,13 @@ int32_t cgi_u::ups_cancel(void)
                 if(l_s != HLX_STATUS_OK)
                 {
                         TRC_ERROR("performing del_fd(%d)\n", m_fd);
-                        return HLX_STATUS_ERROR;
+                        //keep going
+                        goto kill_pid;
                 }
                 close(m_fd);
                 m_fd = -1;
         }
+kill_pid:
         if(m_pid > 0)
         {
                 int32_t l_s;
@@ -690,7 +692,8 @@ int32_t cgi_u::ups_cancel(void)
                 if(l_s != 0)
                 {
                         TRC_ERROR("performing kill(%d, SIGKILL)\n", m_pid);
-                        return HLX_STATUS_ERROR;
+                        //keep going
+                        goto cancel_timer;
                 }
                 pid_t l_pid;
                 l_pid = ::wait(0);
@@ -701,6 +704,19 @@ int32_t cgi_u::ups_cancel(void)
                 //NDBG_PRINT("KILL: m_pid: %d\n", m_pid);
                 //NDBG_PRINT("KILL: l_pid: %d\n", l_pid);
                 m_pid = -1;
+        }
+cancel_timer:
+        if(m_timer_obj)
+        {
+                int32_t l_s;
+                l_s = m_evr_loop->cancel_timer(m_timer_obj);
+                m_timer_obj = NULL;
+                if(l_s != HLX_STATUS_OK)
+                {
+                        TRC_ERROR("performing cancel_timer\n");
+                        //keep going
+                        //return HLX_STATUS_ERROR;
+                }
         }
         // ---------------------------------------
         // buffered
