@@ -59,7 +59,7 @@ B<-R>, B<--recv_buffer>   socket receive buffer size.
 
 B<-S>, B<--send_buffer>   socket send buffer size.
 
-B<-D>, B<--no_delay>      socket TCP no-delay.
+B<-D>, B<--no_delay>      disable socket TCP no-delay (on by default).
 
 B<-T>, B<--timeout>       timeout (seconds).
 

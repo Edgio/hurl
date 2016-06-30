@@ -169,31 +169,32 @@ ssize_t file_u::ups_read(size_t a_len)
         // Get one chunk of the file from disk
         ssize_t l_read = 0;
         ssize_t l_last;
-        l_read = m_clnt_session.m_out_q->write_fd(m_fd, a_len, l_last);
+        size_t l_len_read = (a_len > (m_size - m_read))?(m_size - m_read): a_len;
+        l_read = m_clnt_session.m_out_q->write_fd(m_fd, l_len_read, l_last);
         if(l_read < 0)
         {
                 TRC_ERROR("performing read. Reason: %s\n", strerror(errno));
                 return HLX_STATUS_ERROR;
         }
-        else if(l_read >= 0)
+
+        m_read += l_read;
+        //NDBG_PRINT("READ: B %9ld / %9lu / %9lu\n", l_len_read, m_read, m_size);
+        if ((((size_t)l_read) < a_len) || (m_read >= m_size))
         {
-                m_read += l_read;
-                //NDBG_PRINT("READ: B %9ld / %9lu / %9lu\n", a_len, m_read, m_size);
-                if ((size_t)l_read < a_len)
-                {
-                        // All done; close the file.
-                        close(m_fd);
-                        m_fd = -1;
-                        m_state = UPS_STATE_DONE;
-                        return 0;
-                }
+                // All done; close the file.
+                close(m_fd);
+                m_fd = -1;
+                m_state = UPS_STATE_DONE;
         }
-        int32_t l_s;
-        l_s = m_clnt_session.m_t_srvr->queue_output(m_clnt_session);
-        if(l_s != HLX_STATUS_OK)
+        if(l_read > 0)
         {
-                TRC_ERROR("performing queue_output\n");
-                return HLX_STATUS_ERROR;
+                int32_t l_s;
+                l_s = m_clnt_session.m_t_srvr->queue_output(m_clnt_session);
+                if(l_s != HLX_STATUS_OK)
+                {
+                        TRC_ERROR("performing queue_output\n");
+                        return HLX_STATUS_ERROR;
+                }
         }
         return l_read;
 }

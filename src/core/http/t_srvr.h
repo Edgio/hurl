@@ -198,6 +198,17 @@ public:
 
         evr_loop *get_evr_loop(void) {return m_evr_loop;}
 
+        void *dequeue_clnt_session_writeable(void)
+        {
+                void *l_retval = NULL;
+                if(m_clnt_session_writeable_data)
+                {
+                        l_retval = m_clnt_session_writeable_data;
+                        m_clnt_session_writeable_data = NULL;
+                }
+                return l_retval;
+        }
+
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------

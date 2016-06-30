@@ -58,7 +58,7 @@ Settings:
   -A, --rate           Max Request Rate.
   -R, --recv_buffer    Socket receive buffer size.
   -S, --send_buffer    Socket send buffer size.
-  -D, --no_delay       Socket TCP no-delay.
+  -D, --no_delay       Disable socket TCP no-delay (on by default).
   -T, --timeout        Timeout (seconds).
   -x, --no_stats       Don't collect stats -faster.
   -r, --addr_seq       Rotate through local addresses (number).

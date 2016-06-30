@@ -196,14 +196,22 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
                 nbq_write_header(l_q, "Connection", "close");
         }
         l_q.write("\r\n", strlen("\r\n"));
-
-        // Read up to 32k
-        uint32_t l_read = 32678;
+        // Read up to 4k
+        uint32_t l_read = 4096;
+        if(l_read - l_q.read_avail() > 0)
+        {
+                l_read = l_read - l_q.read_avail();
+        }
         if(l_fs->fssize() < l_read)
         {
                 l_read = l_fs->fssize();
         }
-        l_fs->ups_read(l_read);
+        ssize_t l_ups_read_s;
+        l_ups_read_s = l_fs->ups_read(l_read);
+        if(l_ups_read_s < 0)
+        {
+                TRC_ERROR("performing ups_read\n");
+        }
         return H_RESP_DONE;
 }
 

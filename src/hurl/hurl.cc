@@ -72,7 +72,8 @@
 
 // Profiler
 #ifdef ENABLE_PROFILER
-#include <google/profiler.h>
+#include <gperftools/profiler.h>
+//#include <google/profiler.h>
 #endif
 
 // For inet_pton
@@ -996,7 +997,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -A, --rate           Max Request Rate.\n");
         fprintf(a_stream, "  -R, --recv_buffer    Socket receive buffer size.\n");
         fprintf(a_stream, "  -S, --send_buffer    Socket send buffer size.\n");
-        fprintf(a_stream, "  -D, --no_delay       Socket TCP no-delay.\n");
+        fprintf(a_stream, "  -D, --no_delay       Disable socket TCP no-delay (on by default).\n");
         fprintf(a_stream, "  -T, --timeout        Timeout (seconds).\n");
         fprintf(a_stream, "  -x, --no_stats       Don't collect stats -faster.\n");
         fprintf(a_stream, "  -r, --addr_seq       Rotate through local addresses (number).\n");
@@ -1068,6 +1069,7 @@ int main(int argc, char** argv)
         l_srvr->set_num_parallel(l_num_parallel);
         l_srvr->set_num_reqs_per_conn(-1);
         l_srvr->set_update_stats_ms(l_settings.m_interval_ms);
+        l_srvr->set_sock_opt_no_delay(true);
 
         if(isatty(fileno(stdout)))
         {
@@ -1452,7 +1454,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'D':
                 {
-                        l_srvr->set_sock_opt_no_delay(true);
+                        l_srvr->set_sock_opt_no_delay(false);
                         break;
                 }
                 // ---------------------------------------

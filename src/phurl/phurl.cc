@@ -70,7 +70,8 @@
 
 // Profiler
 #ifdef ENABLE_PROFILER
-#include <google/profiler.h>
+#include <gperftools/profiler.h>
+#include <gperftools/heap-profiler.h>
 #endif
 
 // TLS

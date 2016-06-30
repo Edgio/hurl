@@ -258,6 +258,11 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
 //: ----------------------------------------------------------------------------
 int32_t nconn_tcp::ncset_connected(void)
 {
+        if(!m_sock_opt_no_delay)
+        {
+                m_sock_opt_no_delay = true;
+                SET_SOCK_OPT(m_fd, SOL_TCP, TCP_NODELAY, 1);
+        }
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->mod_fd(m_fd,

@@ -309,7 +309,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                 }
 
                 l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_out_q);
-                //NDBG_PRINT("%snc_run_state_machine%s l_s:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_status);
+                //NDBG_PRINT("%snc_run_state_machine%s l_s:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
                 if(l_s > 0)
                 {
                         if(a_conn_mode == nconn::NC_MODE_READ)
@@ -390,6 +390,14 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                                 if(l_cs->m_in_q)
                                 {
                                         l_cs->m_in_q->reset_write();
+                                }
+                                if(l_t_srvr->dequeue_clnt_session_writeable())
+                                {
+                                        l_s = run_state_machine(a_data, nconn::NC_MODE_WRITE);
+                                        if(!l_s != HLX_STATUS_OK)
+                                        {
+                                                // TODO check status
+                                        }
                                 }
                         }
                 }
@@ -498,6 +506,7 @@ check_conn_status:
                 }
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
                  (l_t_srvr && l_t_srvr->is_running()));
+
 done:
         // Add idle timeout
         if(l_t_srvr &&

@@ -146,12 +146,21 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
                                 return -1;
                         }
                 }
-                //NDBG_PRINT("l_left: %u\n", l_left);
+                //NDBG_PRINT("l_left: %lu\n", l_left);
                 uint32_t l_write_avail = b_write_avail();
                 uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
                 errno = 0;
                 a_status = ::read(a_fd, b_write_ptr(), l_write);
-                if((a_status == 0) ||
+                if(a_status > 0)
+                {
+                        b_write_incr(a_status);
+                        b_read_incr(0);
+                        l_left -= a_status;
+                        l_written += a_status;
+                        //NDBG_PRINT("%sREAD%s[%p][%p]: a_status = %ld l_write: %u avail: %u\n",
+                        //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, this, b_write_ptr(), a_status, l_write, b_write_avail());
+                }
+                else if((a_status == 0) ||
                    ((a_status < 0) && (errno == EAGAIN)))
                 {
                         break;
@@ -160,9 +169,6 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
                 {
                         return HLX_STATUS_ERROR;
                 }
-                b_write_incr(a_status);
-                l_left -= a_status;
-                l_written += a_status;
         }
         return l_written;
 }
@@ -389,6 +395,7 @@ void nbq::print(void)
 int32_t nbq::b_write_add_avail(void)
 {
         nb_t *l_block = new nb_struct(m_bsize);
+        //NDBG_PRINT("%s[[ADD_AVAIL]]%s: %u\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, m_bsize);
         m_q.push_back(l_block);
         if(m_q.size() == 1)
         {
@@ -406,6 +413,7 @@ int32_t nbq::b_write_add_avail(void)
                         m_cur_block_write_ptr = (*m_cur_write_block)->m_data;
                 }
         }
+
         m_cur_block_write_avail += m_bsize;
         return m_bsize;
 }
@@ -422,7 +430,6 @@ void nbq::b_write_incr(uint32_t a_len)
         //                this,
         //                a_len,
         //                (int)m_cur_block_write_avail, m_cur_block_write_ptr, (int)m_total_read_avail);
-
         m_cur_write_offset += a_len;
         m_cur_block_write_avail -= a_len;
         m_cur_block_write_ptr += a_len;
@@ -451,12 +458,12 @@ void nbq::b_write_incr(uint32_t a_len)
 void nbq::b_read_incr(uint32_t a_len)
 {
         uint32_t l_avail = b_read_avail();
-        //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %u l_avail: %d m_total_read_avail: %d\n", ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
+        //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %6u l_avail: %6d m_total_read_avail: %6d\n", ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
         m_total_read_avail -= a_len;
         l_avail -= a_len;
         m_cur_block_read_ptr += a_len;
         m_cur_read_offset += a_len;
-        //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %u l_avail: %d m_total_read_avail: %d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
+        //NDBG_PRINT("%sREAD_INCR%s[%p]: a_len: %6u l_avail: %6d m_total_read_avail: %6d\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, this, a_len, (int)l_avail, (int)m_total_read_avail);
         if(!l_avail && m_total_read_avail)
         {
                 ++m_cur_read_block;

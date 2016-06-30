@@ -126,7 +126,7 @@ int32_t evr_loop::run(void)
         {
                 uint64_t l_now_ms = get_time_ms();
                 l_timer = m_timer_pq.top();
-                if(l_now_ms < l_timer->m_time_ms)
+                if((l_now_ms < l_timer->m_time_ms) && (l_timer->m_state != EVR_TIMER_CANCELLED))
                 {
                         l_time_diff_ms = l_timer->m_time_ms - l_now_ms;
                         break;
@@ -145,7 +145,7 @@ int32_t evr_loop::run(void)
                                 l_timer = NULL;
                                 return l_s;
                         }
-                        //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer_event);
+                        //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer);
                         delete l_timer;
                         l_timer = NULL;
                 }
@@ -294,7 +294,9 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms,
         l_timer->m_state = EVR_TIMER_ACTIVE;
         l_timer->m_time_ms = get_time_ms() + a_time_ms;
         l_timer->m_timer_cb = a_timer_cb;
-        //NDBG_PRINT("%sADDING__%s[%p] TIMER: %p at %lu ms --> %lu\n",ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,a_data,l_timer_event,a_time_ms, l_timer_event->m_time_ms);
+        //NDBG_PRINT("%sADDING__%s[%p] TIMER: %p at %u ms --> %lu\n",
+        //        ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
+        //        a_data, l_timer,a_time_ms, l_timer->m_time_ms);
         //NDBG_PRINT_BT();
         m_timer_pq.push(l_timer);
         *ao_timer = l_timer;
@@ -308,7 +310,7 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms,
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::cancel_timer(evr_timer_t *a_timer)
 {
-        //NDBG_PRINT("%sCANCEL__%s TIMER: %p\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer);
+        //NDBG_PRINT("%sCANCEL__%s TIMER: %p\n",ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,a_timer);
         //NDBG_PRINT_BT();
         // TODO synchronization???
         if(a_timer)

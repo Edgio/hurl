@@ -45,8 +45,8 @@
 
 // Profiler
 #ifdef ENABLE_PROFILER
-#include <google/profiler.h>
-#include <google/heap-profiler.h>
+#include <gperftools/profiler.h>
+#include <gperftools/heap-profiler.h>
 #endif
 
 //: ----------------------------------------------------------------------------
@@ -346,7 +346,7 @@ int main(int argc, char** argv)
         g_settings = &l_settings;
 
         // stats update interval
-        l_srvr->set_update_stats_ms(500);
+        //l_srvr->set_update_stats_ms(500);
 
         // -------------------------------------------
         // Get args...
