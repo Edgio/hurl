@@ -1,5 +1,5 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2014 Verizon.  All Rights Reserved.
+//: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
 //: \file:    main.cc
@@ -922,7 +922,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 
         // print out the version information
         fprintf(a_stream, "phurl HTTP Parallel Curl.\n");
-        fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
+        fprintf(a_stream, "Copyright (C) 2016 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HLX_VERSION);
         exit(a_exit_code);
 

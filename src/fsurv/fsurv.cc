@@ -275,7 +275,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 
         // print out the version information
         fprintf(a_stream, "hlx Simple File Server (fsurv).\n");
-        fprintf(a_stream, "Copyright (C) 2015 Verizon Digital Media.\n");
+        fprintf(a_stream, "Copyright (C) 2016 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HLX_VERSION);
         exit(a_exit_code);
 
