@@ -61,7 +61,11 @@ find_python_module(requests REQUIRED)
 # ------------------------------------------------------------------------------
 # tests
 # ------------------------------------------------------------------------------
-add_test(blackbox ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh)
+add_test(blackbox_handlers_proxy ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh ${CMAKE_CURRENT_SOURCE_DIR}/handlers/bb_test_proxy_h.py)
+add_test(blackbox_examples_basic ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh ${CMAKE_CURRENT_SOURCE_DIR}/examples/bb_test_basic.py)
+add_test(blackbox_examples_files ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh ${CMAKE_CURRENT_SOURCE_DIR}/examples/bb_test_files.py)
+add_test(blackbox_examples_flood ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh ${CMAKE_CURRENT_SOURCE_DIR}/examples/bb_test_flood.py)
+add_test(blackbox_examples_proxy ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh ${CMAKE_CURRENT_SOURCE_DIR}/examples/bb_test_proxy.py)
 
 add_custom_target(blackbox
         ${CMAKE_SOURCE_DIR}/tests/blackbox/run_tests.sh
