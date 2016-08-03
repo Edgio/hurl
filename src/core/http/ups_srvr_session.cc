@@ -27,7 +27,7 @@
 #include "ups_srvr_session.h"
 #include "ndebug.h"
 #include "t_srvr.h"
-#include "nbq.h"
+#include "hlx/nbq.h"
 #include "hlx/srvr.h"
 #include "hlx/trace.h"
 #include "hlx/status.h"
@@ -99,7 +99,7 @@ void ups_srvr_session::clear(void)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_READ);
+        return run_state_machine(a_data, EVR_MODE_READ);
 }
 
 //: ----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ int32_t ups_srvr_session::evr_fd_readable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_WRITE);
+        return run_state_machine(a_data, EVR_MODE_WRITE);
 }
 
 //: ----------------------------------------------------------------------------
@@ -119,7 +119,7 @@ int32_t ups_srvr_session::evr_fd_writeable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_ERROR);
+        return run_state_machine(a_data, EVR_MODE_ERROR);
 }
 
 //: ----------------------------------------------------------------------------
@@ -129,7 +129,7 @@ int32_t ups_srvr_session::evr_fd_error_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_TIMEOUT);
+        return run_state_machine(a_data, EVR_MODE_TIMEOUT);
 }
 
 //: ----------------------------------------------------------------------------
@@ -195,7 +195,7 @@ int32_t ups_srvr_session::teardown(t_srvr *a_t_srvr,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
+int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
 {
         //NDBG_PRINT("RUN a_conn_mode: %d a_data: %p\n", a_conn_mode, a_data);
         //CHECK_FOR_NULL_ERROR(a_data);
@@ -212,7 +212,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
         // -------------------------------------------------
         // Skip timeouts for free connections
         // -------------------------------------------------
-        if((a_conn_mode == nconn::NC_MODE_TIMEOUT) &&
+        if((a_conn_mode == EVR_MODE_TIMEOUT) &&
            (l_nconn->is_free()))
         {
                 return HLX_STATUS_OK;
@@ -220,7 +220,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
         // -------------------------------------------------
         // ERROR
         // -------------------------------------------------
-        if(a_conn_mode == nconn::NC_MODE_ERROR)
+        if(a_conn_mode == EVR_MODE_ERROR)
         {
                 if(l_uss)
                 {
@@ -235,7 +235,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
-        if(a_conn_mode == nconn::NC_MODE_TIMEOUT)
+        if(a_conn_mode == EVR_MODE_TIMEOUT)
         {
                 if(l_t_srvr)
                 {
@@ -247,8 +247,8 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
         // -------------------------------------------------
         // TODO unknown conn mode???
         // -------------------------------------------------
-        if((a_conn_mode != nconn::NC_MODE_READ) &&
-           (a_conn_mode != nconn::NC_MODE_WRITE))
+        if((a_conn_mode != EVR_MODE_READ) &&
+           (a_conn_mode != EVR_MODE_WRITE))
         {
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
                 return HLX_STATUS_ERROR;
@@ -289,14 +289,14 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                 //NDBG_PRINT("l_nconn->nc_run_state_machine(%d): status: %d\n", a_conn_mode, l_s);
                 if(l_s > 0)
                 {
-                        if(a_conn_mode == nconn::NC_MODE_READ)
+                        if(a_conn_mode == EVR_MODE_READ)
                         {
                                 if(l_t_srvr)
                                 {
                                         l_t_srvr->m_stat.m_upsv_bytes_read += l_s;
                                 }
                         }
-                        else if(a_conn_mode == nconn::NC_MODE_WRITE)
+                        else if(a_conn_mode == EVR_MODE_WRITE)
                         {
                                 if(l_t_srvr)
                                 {
@@ -315,7 +315,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, nconn::mode_t a_conn_m
                 // ---------------------------------------------------
                 // READABLE
                 // ---------------------------------------------------
-                if(a_conn_mode == nconn::NC_MODE_READ)
+                if(a_conn_mode == EVR_MODE_READ)
                 {
                         if(l_uss->m_subr->get_ups() && (l_s > 0))
                         {

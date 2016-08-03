@@ -102,7 +102,7 @@ private:
         // -------------------------------------------------
         // Private Static (class) methods
         // -------------------------------------------------
-        static int32_t run_state_machine(void *a_data, nconn::mode_t a_conn_mode);
+        static int32_t run_state_machine(void *a_data, evr_mode_t a_conn_mode);
 };
 
 } // ns_hlx

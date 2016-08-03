@@ -24,11 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
-#include "nbq.h"
-#include "clnt_session.h"
 #include "ups_srvr_session.h"
 #include "t_srvr.h"
+#include "ndebug.h"
+#include "hlx/nbq.h"
+#include "hlx/clnt_session.h"
 #include "hlx/http_status.h"
 #include "hlx/proxy_h.h"
 #include "hlx/subr.h"

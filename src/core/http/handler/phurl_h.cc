@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
-#include "clnt_session.h"
 #include "t_srvr.h"
+#include "ndebug.h"
+#include "hlx/clnt_session.h"
 #include "hlx/phurl_h.h"
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"

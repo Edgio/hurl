@@ -24,12 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nbq.h"
-#include "string_util.h"
 #include "ndebug.h"
 #include "t_srvr.h"
-#include "clnt_session.h"
 #include "mime_types.h"
+#include "hlx/clnt_session.h"
+#include "hlx/nbq.h"
+#include "hlx/string_util.h"
 #include "hlx/time_util.h"
 #include "hlx/file_h.h"
 #include "hlx/rqst.h"

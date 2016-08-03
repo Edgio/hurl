@@ -26,7 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "cb.h"
 #include "ndebug.h"
-#include "clnt_session.h"
+#include "hlx/clnt_session.h"
 #include "hlx/rqst.h"
 #include "hlx/resp.h"
 #include "hlx/trace.h"

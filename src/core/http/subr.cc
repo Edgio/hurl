@@ -26,7 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "nconn_tcp.h"
 #include "ndebug.h"
-#include "string_util.h"
+#include "hlx/string_util.h"
 #include "hlx/subr.h"
 #include "hlx/api_resp.h"
 #include "hlx/resp.h"

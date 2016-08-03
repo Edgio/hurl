@@ -67,6 +67,14 @@ typedef enum evr_file_attr
         EVR_FILE_ATTR_MASK_ET = 1 << 5
 } evr_file_attr_t;
 
+typedef enum mode_enum {
+        EVR_MODE_NONE = 0,
+        EVR_MODE_READ,
+        EVR_MODE_WRITE,
+        EVR_MODE_TIMEOUT,
+        EVR_MODE_ERROR
+} evr_mode_t;
+
 //: ----------------------------------------------------------------------------
 //: \details: Types -copied from epoll
 //: ----------------------------------------------------------------------------

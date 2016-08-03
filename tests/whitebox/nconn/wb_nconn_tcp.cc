@@ -27,7 +27,7 @@
 #include "catch/catch.hpp"
 #include "nconn_tcp.h"
 #include "nlookup.h"
-#include "nbq.h"
+#include "hlx/nbq.h"
 #include <unistd.h>
 
 //: ----------------------------------------------------------------------------

@@ -24,10 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "ndebug.h"
 #include "hlx/trace.h"
 #include "hlx/status.h"
-#include "nbq.h"
-#include "ndebug.h"
+#include "hlx/nbq.h"
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>

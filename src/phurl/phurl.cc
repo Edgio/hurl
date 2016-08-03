@@ -24,15 +24,17 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+// TODO export this???
+#include "support/tls_util.h"
+
 #include "hlx/srvr.h"
 #include "hlx/phurl_h.h"
 #include "hlx/resp.h"
 #include "hlx/status.h"
 #include "hlx/stat.h"
 #include "hlx/trace.h"
+#include "hlx/clnt_session.h"
 
-#include "http/clnt_session.h"
-#include "support/tls_util.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/prettywriter.h"

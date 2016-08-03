@@ -24,12 +24,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "nconn.h"
+#include "ndebug.h"
 #include "hlx/time_util.h"
 #include "hlx/trace.h"
 #include "hlx/status.h"
-#include "nconn.h"
-#include "nbq.h"
-#include "ndebug.h"
+#include "hlx/nbq.h"
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
@@ -41,7 +41,7 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_run_state_machine(mode_t a_mode, nbq *a_in_q, nbq *a_out_q)
+int32_t nconn::nc_run_state_machine(evr_mode_t a_mode, nbq *a_in_q, nbq *a_out_q)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d --START\n",
         //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
@@ -127,7 +127,7 @@ state_top:
                 }
                 if(a_out_q->read_avail())
                 {
-                        a_mode = NC_MODE_WRITE;
+                        a_mode = EVR_MODE_WRITE;
                 }
                 goto state_top;
         }
@@ -160,7 +160,7 @@ state_top:
         {
                 switch(a_mode)
                 {
-                case NC_MODE_READ:
+                case EVR_MODE_READ:
                 {
                         int32_t l_status = NC_STATUS_OK;
                         l_status = nc_read(a_in_q);
@@ -195,7 +195,7 @@ state_top:
                         }
                         return l_status;
                 }
-                case NC_MODE_WRITE:
+                case EVR_MODE_WRITE:
                 {
                         int32_t l_status = NC_STATUS_OK;
                         l_status = nc_write(a_out_q);

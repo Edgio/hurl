@@ -26,24 +26,22 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "cb.h"
+#include "ups_srvr_session.h"
+#include "nconn_pool.h"
+#include "obj_pool.h"
+#include "nresolver.h"
 #include "hlx/resp.h"
 #include "hlx/rqst.h"
 #include "hlx/subr.h"
 #include "hlx/evr.h"
-
-#include "nconn_pool.h"
-#include "obj_pool.h"
+#include "hlx/clnt_session.h"
 #include "hlx/srvr.h"
 #include "hlx/stat.h"
-#include "nresolver.h"
 
 #include <queue>
-
 // for sig_atomic_t
 #include <signal.h>
-#include "cb.h"
-#include "clnt_session.h"
-#include "ups_srvr_session.h"
 
 //: ----------------------------------------------------------------------------
 //: External Fwd decl's

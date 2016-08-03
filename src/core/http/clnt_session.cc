@@ -24,11 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "clnt_session.h"
-
 #include "t_srvr.h"
-#include "nbq.h"
 #include "ndebug.h"
+#include "hlx/nbq.h"
+#include "hlx/clnt_session.h"
 #include "hlx/srvr.h"
 #include "hlx/url_router.h"
 #include "hlx/api_resp.h"
@@ -110,7 +109,7 @@ void clnt_session::clear(void)
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_readable_cb(void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_READ);
+        return run_state_machine(a_data, EVR_MODE_READ);
 }
 
 //: ----------------------------------------------------------------------------
@@ -120,7 +119,7 @@ int32_t clnt_session::evr_fd_readable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_WRITE);
+        return run_state_machine(a_data, EVR_MODE_WRITE);
 }
 
 //: ----------------------------------------------------------------------------
@@ -130,7 +129,7 @@ int32_t clnt_session::evr_fd_writeable_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_error_cb(void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_ERROR);
+        return run_state_machine(a_data, EVR_MODE_ERROR);
 }
 
 //: ----------------------------------------------------------------------------
@@ -140,7 +139,7 @@ int32_t clnt_session::evr_fd_error_cb(void *a_data)
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
 {
-        return run_state_machine(a_data, nconn::NC_MODE_TIMEOUT);
+        return run_state_machine(a_data, EVR_MODE_TIMEOUT);
 }
 
 //: ----------------------------------------------------------------------------
@@ -198,7 +197,7 @@ int32_t clnt_session::teardown(t_srvr *a_t_srvr, clnt_session *a_cs, nconn *a_nc
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
+int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
 {
         //NDBG_PRINT("RUN a_conn_mode: %d a_data: %p\n", a_conn_mode, a_data);
         CHECK_FOR_NULL_ERROR(a_data);
@@ -209,7 +208,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
         // -------------------------------------------------
         // ERROR
         // -------------------------------------------------
-        if(a_conn_mode == nconn::NC_MODE_ERROR)
+        if(a_conn_mode == EVR_MODE_ERROR)
         {
                 if(l_cs)
                 {
@@ -224,7 +223,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
-        if(a_conn_mode == nconn::NC_MODE_TIMEOUT)
+        if(a_conn_mode == EVR_MODE_TIMEOUT)
         {
                 if(l_t_srvr)
                 {
@@ -236,8 +235,8 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
         // -------------------------------------------------
         // TODO unknown conn mode???
         // -------------------------------------------------
-        if((a_conn_mode != nconn::NC_MODE_READ) &&
-           (a_conn_mode != nconn::NC_MODE_WRITE))
+        if((a_conn_mode != EVR_MODE_READ) &&
+           (a_conn_mode != EVR_MODE_WRITE))
         {
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
                 return HLX_STATUS_ERROR;
@@ -297,7 +296,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                 // ---------------------------------------------------
                 // Special handling for files
                 // ---------------------------------------------------
-                if((a_conn_mode == nconn::NC_MODE_WRITE) &&
+                if((a_conn_mode == EVR_MODE_WRITE) &&
                    (!l_nconn->is_accepting()) &&
                    l_cs &&
                    l_cs->m_ups &&
@@ -312,7 +311,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                 //NDBG_PRINT("%snc_run_state_machine%s l_s:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
                 if(l_s > 0)
                 {
-                        if(a_conn_mode == nconn::NC_MODE_READ)
+                        if(a_conn_mode == EVR_MODE_READ)
                         {
                                 if(l_t_srvr)
                                 {
@@ -323,7 +322,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                                         l_cs->m_access_info.m_bytes_in += l_s;
                                 }
                         }
-                        else if(a_conn_mode == nconn::NC_MODE_WRITE)
+                        else if(a_conn_mode == EVR_MODE_WRITE)
                         {
                                 if(l_t_srvr)
                                 {
@@ -345,7 +344,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                 // ---------------------------------------------------
                 // READABLE
                 // ---------------------------------------------------
-                if(a_conn_mode == nconn::NC_MODE_READ)
+                if(a_conn_mode == EVR_MODE_READ)
                 {
                         // -----------------------------------
                         // send expect response -if signalled
@@ -393,7 +392,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                                 }
                                 if(l_t_srvr->dequeue_clnt_session_writeable())
                                 {
-                                        l_s = run_state_machine(a_data, nconn::NC_MODE_WRITE);
+                                        l_s = run_state_machine(a_data, EVR_MODE_WRITE);
                                         if(!l_s != HLX_STATUS_OK)
                                         {
                                                 // TODO check status
@@ -404,7 +403,7 @@ int32_t clnt_session::run_state_machine(void *a_data, nconn::mode_t a_conn_mode)
                 // ---------------------------------------------------
                 // WRITEABLE
                 // ---------------------------------------------------
-                else if(a_conn_mode == nconn::NC_MODE_WRITE)
+                else if(a_conn_mode == EVR_MODE_WRITE)
                 {
                         if(!l_cs->m_out_q && l_t_srvr)
                         {

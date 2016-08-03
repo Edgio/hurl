@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nbq.h"
-#include "ndebug.h"
 #include "cb.h"
+#include "ndebug.h"
+#include "hlx/nbq.h"
 #include "hlx/rqst.h"
 #include "hlx/trace.h"
 #include "hlx/status.h"

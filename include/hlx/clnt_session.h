@@ -26,7 +26,6 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nconn.h"
 #include "hlx/evr.h"
 #include "hlx/default_rqst_h.h"
 #include "hlx/hmsg.h"
@@ -112,7 +111,7 @@ private:
         // -------------------------------------------------
         // Private Static (class) methods
         // -------------------------------------------------
-        static int32_t run_state_machine(void *a_data, nconn::mode_t a_conn_mode);
+        static int32_t run_state_machine(void *a_data, evr_mode_t a_conn_mode);
         static int32_t teardown(t_srvr *a_t_srvr, clnt_session *a_cs, nconn *a_nconn);
 
 };

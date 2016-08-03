@@ -25,11 +25,11 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "t_srvr.h"
-#include "clnt_session.h"
-#include "nbq.h"
 #include "nconn_tcp.h"
 #include "nconn_tls.h"
 #include "ndebug.h"
+#include "hlx/nbq.h"
+#include "hlx/clnt_session.h"
 #include "hlx/stat.h"
 #include "hlx/status.h"
 #include "hlx/api_resp.h"
@@ -527,7 +527,7 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
         //           a_subr.m_host.c_str(), a_nconn.get_data());
-        l_status = a_nconn.nc_run_state_machine(nconn::NC_MODE_WRITE,
+        l_status = a_nconn.nc_run_state_machine(EVR_MODE_WRITE,
                                                 a_ups_srvr_session.m_in_q,
                                                 a_ups_srvr_session.m_out_q);
         a_nconn.bump_num_requested();
@@ -771,7 +771,7 @@ int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
         }
 
         // Returns new client fd on success
-        l_status = l_nconn->nc_run_state_machine(nconn::NC_MODE_NONE,
+        l_status = l_nconn->nc_run_state_machine(EVR_MODE_NONE,
                                                  NULL,
                                                  NULL);
         if(l_status == nconn::NC_STATUS_ERROR)

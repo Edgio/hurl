@@ -25,21 +25,17 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/api_resp.h"
+#include "http_resp.h"
 #include "hlx/srvr.h"
 #include "hlx/rqst.h"
-
-#include "nbq.h"
-#include "string_util.h"
+#include "hlx/nbq.h"
+#include "hlx/string_util.h"
 #include "hlx/time_util.h"
 #include <string.h>
 #include <stdlib.h>
-#include "http_resp.h"
-
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
-
 #include <stdarg.h>
-
 
 namespace ns_hlx {
 

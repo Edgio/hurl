@@ -101,14 +101,6 @@ public:
                 NC_STATUS_NONE = -9
         } status_t;
 
-        typedef enum mode_enum {
-                NC_MODE_NONE = 0,
-                NC_MODE_READ,
-                NC_MODE_WRITE,
-                NC_MODE_TIMEOUT,
-                NC_MODE_ERROR
-        } mode_t;
-
         // -------------------------------------------------
         // Successful read/write callbacks
         // -------------------------------------------------
@@ -196,7 +188,7 @@ public:
         bool can_reuse(void);
 
         // Running
-        int32_t nc_run_state_machine(mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
+        int32_t nc_run_state_machine(evr_mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
         int32_t nc_read(nbq *a_in_q);
         int32_t nc_write(nbq *a_out_q);
         int32_t nc_set_listening(int32_t a_val);

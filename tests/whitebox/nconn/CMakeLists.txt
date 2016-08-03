@@ -29,6 +29,7 @@ cmake_minimum_required(VERSION 2.8.0)
 SET(SRCS wb_nconn_tcp.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
+                    ../../../include/
                     ../../../src/core/support/
                     ../../../src/core/evr/
                     ../../../src/core/dns/

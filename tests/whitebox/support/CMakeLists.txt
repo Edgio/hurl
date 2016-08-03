@@ -29,7 +29,7 @@ cmake_minimum_required(VERSION 2.8.0)
 SET(SRCS wb_nbq.cc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_CURRENT_SOURCE_DIR}/../
-                    ../../../src/core/support/
+                    ../../../include/
                     ../../../src/core/ndebug/)
 add_executable(wb_nbq ${HDRS} ${SRCS})
 target_link_libraries(wb_nbq compiled_catch  ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
