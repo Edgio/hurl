@@ -28,7 +28,6 @@
 #include "hlx/trace.h"
 
 #include "nconn_tcp.h"
-#include "evr.h"
 #include "ndebug.h"
 
 // Fcntl and friends

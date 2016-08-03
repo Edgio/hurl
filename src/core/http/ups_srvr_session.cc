@@ -33,7 +33,7 @@
 #include "hlx/status.h"
 #include "hlx/time_util.h"
 #include "hlx/subr.h"
-#include "hlx/proxy_u.h"
+#include "hlx/proxy_h.h"
 
 //: ----------------------------------------------------------------------------
 //: Macros

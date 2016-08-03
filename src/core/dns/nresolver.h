@@ -41,7 +41,7 @@
 #endif
 
 #ifdef ASYNC_DNS_SUPPORT
-#include "evr.h"
+#include "hlx/evr.h"
 #endif
 
 #define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"

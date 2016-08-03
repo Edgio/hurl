@@ -29,7 +29,6 @@
 #include "hlx/status.h"
 #include "nconn.h"
 #include "nbq.h"
-#include "evr.h"
 #include "ndebug.h"
 #include <errno.h>
 #include <string.h>

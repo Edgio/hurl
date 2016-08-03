@@ -26,8 +26,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "evr.h"
 #include "nconn.h"
+#include "hlx/evr.h"
 #include "hlx/resp.h"
 #include "hlx/http_status.h"
 #include <stdint.h>

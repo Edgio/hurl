@@ -29,7 +29,7 @@
 #include "hlx/scheme.h"
 #include "hlx/conn_status.h"
 #include "hlx/host_info.h"
-#include "evr.h"
+#include "hlx/evr.h"
 
 // For memcpy -TODO move into impl file
 #include <string.h>

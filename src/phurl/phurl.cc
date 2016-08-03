@@ -26,7 +26,6 @@
 //: ----------------------------------------------------------------------------
 #include "hlx/srvr.h"
 #include "hlx/phurl_h.h"
-#include "hlx/phurl_u.h"
 #include "hlx/resp.h"
 #include "hlx/status.h"
 #include "hlx/stat.h"

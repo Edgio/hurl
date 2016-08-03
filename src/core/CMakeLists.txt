@@ -118,11 +118,6 @@ SET(SRCS
     ./http/ups_srvr_session.cc
     ./http/access.cc
     ./http/api_resp.cc
-    
-    ./http/upstream/file_u.cc
-    ./http/upstream/proxy_u.cc
-    ./http/upstream/phurl_u.cc
-    ./http/upstream/cgi_u.cc
 
     ./http/handler/rqst_h.cc
     ./http/handler/default_rqst_h.cc
@@ -130,7 +125,6 @@ SET(SRCS
     ./http/handler/phurl_h.cc
     ./http/handler/stat_h.cc
     ./http/handler/proxy_h.cc
-    ./http/handler/cgi_h.cc
 )
 
 # ------------------------------------------------
@@ -144,6 +138,8 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Headers
 SET(HDRS
+    ../../include/hlx/evr.h
+
     ../../include/hlx/atomic.h
     ../../include/hlx/kv_map_list.h
     ../../include/hlx/cr.h

@@ -26,8 +26,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "evr.h"
 #include "nconn.h"
+#include "hlx/evr.h"
 #include "hlx/default_rqst_h.h"
 #include "hlx/hmsg.h"
 #include "hlx/stat.h"

@@ -28,7 +28,7 @@
 #include "nresolver.h"
 #include "ndebug.h"
 #include "nlookup.h"
-#include "evr.h"
+#include "hlx/evr.h"
 #include "hlx/host_info.h"
 #include "hlx/time_util.h"
 #include "hlx/status.h"

@@ -31,6 +31,7 @@
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
 #include "hlx/status.h"
+#include "hlx/trace.h"
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <string.h>
@@ -38,6 +39,9 @@
 
 namespace ns_hlx {
 
+//: ----------------------------------------------------------------------------
+//: Handler
+//: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -292,6 +296,189 @@ int32_t phurl_h::s_create_resp(phurl_u *a_phr)
 bool phurl_h::get_do_default(void)
 {
         return true;
+}
+
+//: ----------------------------------------------------------------------------
+//: Upstream Object
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+hlx_resp::hlx_resp():
+        m_subr(NULL),
+        m_resp(NULL),
+        m_error_str(),
+        m_status_code(0)
+{
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+hlx_resp::~hlx_resp()
+{
+        if(m_subr)
+        {
+                delete m_subr;
+                m_subr = NULL;
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+phurl_u::phurl_u(clnt_session &a_clnt_session,
+                 uint32_t a_timeout_ms,
+                 float a_completion_ratio):
+        base_u(a_clnt_session),
+        m_pending_subr_uid_map(),
+        m_resp_list(),
+        m_phurl_h(NULL),
+        m_data(NULL),
+        m_timer(NULL),
+        m_size(0),
+        m_timeout_ms(a_timeout_ms),
+        m_completion_ratio(a_completion_ratio),
+        m_delete(true),
+        m_create_resp_cb(phurl_h::s_create_resp)
+{
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+phurl_u::~phurl_u(void)
+{
+        for(hlx_resp_list_t::iterator i_resp = m_resp_list.begin(); i_resp != m_resp_list.end(); ++i_resp)
+        {
+                if(*i_resp)
+                {
+                        t_srvr *l_t_srvr = m_clnt_session.m_t_srvr;
+                        resp *l_resp = (*i_resp)->m_resp;
+                        if(l_t_srvr &&
+                           l_resp)
+                        {
+                                if(l_resp->get_q())
+                                {
+                                        m_clnt_session.m_t_srvr->release_nbq(l_resp->get_q());
+                                        l_resp->set_q(NULL);
+                                }
+                                l_t_srvr->release_resp((*i_resp)->m_resp);
+                                (*i_resp)->m_resp = NULL;
+                        }
+                        delete *i_resp;
+                        *i_resp = NULL;
+                }
+        }
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+ssize_t phurl_u::ups_read(size_t a_len)
+{
+        if(m_state == UPS_STATE_IDLE)
+        {
+                // first time
+                if(m_clnt_session.m_out_q)
+                {
+                        // Return to pool
+                        if(!m_clnt_session.m_t_srvr)
+                        {
+                                TRC_ERROR("m_clnt_session.m_t_srvr == NULL\n");
+                                return HLX_STATUS_ERROR;
+                        }
+                        m_clnt_session.m_t_srvr->release_nbq(m_clnt_session.m_out_q);
+                        m_clnt_session.m_out_q = NULL;
+                }
+        }
+        m_state = UPS_STATE_SENDING;
+        return 0;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Cancel and cleanup
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t phurl_u::ups_cancel(void)
+{
+        if(ups_done())
+        {
+                return HLX_STATUS_OK;
+        }
+        m_state = UPS_STATE_DONE;
+        // ---------------------------------------
+        // Cancel pending...
+        // ---------------------------------------
+        subr_uid_map_t l_map = m_pending_subr_uid_map;
+        //NDBG_PRINT("Cancel pending size: %lu\n", l_map.size());
+        for(subr_uid_map_t::iterator i_s = l_map.begin(); i_s != l_map.end(); ++i_s)
+        {
+                if(i_s->second)
+                {
+                        int32_t l_status;
+                        l_status = i_s->second->cancel();
+                        if(l_status != HLX_STATUS_OK)
+                        {
+                                // TODO ???
+                        }
+                }
+        }
+        // ---------------------------------------
+        // Create Response...
+        // ---------------------------------------
+        int32_t l_status = HLX_STATUS_OK;
+        if(m_create_resp_cb)
+        {
+                l_status = m_create_resp_cb(this);
+                if(l_status != HLX_STATUS_OK)
+                {
+                        //return HLX_STATUS_ERROR;
+                }
+        }
+        if(m_delete)
+        {
+                delete this;
+        }
+        return l_status;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+float phurl_u::get_done_ratio(void)
+{
+        float l_size = (float)m_size;
+        float l_done = (float)(m_pending_subr_uid_map.size());
+        return 100.0*((l_size - l_done)/l_size);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t phurl_u::s_timeout_cb(void *a_ctx, void *a_data)
+{
+        phurl_u *l_phr = static_cast<phurl_u *>(a_data);
+        if(!l_phr)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return l_phr->ups_cancel();
 }
 
 } //namespace ns_hlx {

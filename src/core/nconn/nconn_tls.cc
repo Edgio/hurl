@@ -28,7 +28,6 @@
 #include "hlx/trace.h"
 
 #include "nconn_tls.h"
-#include "evr.h"
 #include "tls_util.h"
 #include "ndebug.h"
 

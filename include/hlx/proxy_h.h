@@ -27,6 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/default_rqst_h.h"
+#include "hlx/base_u.h"
 
 namespace ns_hlx {
 
@@ -38,9 +39,10 @@ class nconn;
 class rqst;
 class resp;
 class subr;
+class nbq;
 
 //: ----------------------------------------------------------------------------
-//: file_h
+//: Handler
 //: ----------------------------------------------------------------------------
 class proxy_h: public default_rqst_h
 {
@@ -84,6 +86,53 @@ private:
         uint32_t m_timeout_ms;
         int32_t m_max_parallel;
 
+};
+
+//: ----------------------------------------------------------------------------
+//: Upstream Object
+//: ----------------------------------------------------------------------------
+class proxy_u: public base_u
+{
+
+public:
+        // -------------------------------------------------
+        // const
+        // -------------------------------------------------
+        static const uint32_t S_UPS_TYPE_PROXY = 0xFFFF000B;
+
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
+        proxy_u(clnt_session &a_clnt_session, subr &a_subr);
+        ~proxy_u();
+
+        // -------------------------------------------------
+        // upstream methods
+        // -------------------------------------------------
+        ssize_t ups_read(size_t a_len);
+        int32_t ups_cancel(void);
+        uint32_t get_type(void) { return S_UPS_TYPE_PROXY;}
+
+        // -------------------------------------------------
+        // Public Class methods
+        // -------------------------------------------------
+        static int32_t s_completion_cb(subr &a_subr, nconn &a_nconn, resp &a_resp);
+        static int32_t s_error_cb(subr &a_subr,
+                                  nconn *a_nconn,
+                                  http_status_t a_status,
+                                  const char *a_error_str);
+private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
+        // Disallow copy/assign
+        proxy_u& operator=(const proxy_u &);
+        proxy_u(const proxy_u &);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        subr &m_subr;
 };
 
 } //namespace ns_hlx {

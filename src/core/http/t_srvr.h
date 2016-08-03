@@ -29,9 +29,9 @@
 #include "hlx/resp.h"
 #include "hlx/rqst.h"
 #include "hlx/subr.h"
+#include "hlx/evr.h"
 
 #include "nconn_pool.h"
-#include "evr.h"
 #include "obj_pool.h"
 #include "hlx/srvr.h"
 #include "hlx/stat.h"
