@@ -107,6 +107,81 @@ void clnt_session::clear(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+evr_loop *clnt_session::get_evr_loop(void)
+{
+        if(!m_t_srvr)
+        {
+                // TODO log error???
+                return NULL;
+        }
+        return m_t_srvr->get_evr_loop();
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+nbq *clnt_session::get_nbq(void)
+{
+        if(!m_t_srvr)
+        {
+                // TODO log error???
+                return NULL;
+        }
+        return m_t_srvr->get_nbq();
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void clnt_session::release_nbq(nbq *a_nbq)
+{
+        if(!m_t_srvr)
+        {
+                // TODO log error???
+                return;
+        }
+        m_t_srvr->release_nbq(a_nbq);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t clnt_session::add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer)
+{
+        if(!m_t_srvr)
+        {
+                // TODO log error???
+                return HLX_STATUS_ERROR;
+        }
+        return m_t_srvr->add_timer(a_time_ms, a_timer_cb, a_data, ao_timer);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t clnt_session::queue_output(void)
+{
+        if(!m_t_srvr)
+        {
+                // TODO log error???
+                return HLX_STATUS_ERROR;
+        }
+        return m_t_srvr->queue_output(*this);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t clnt_session::evr_fd_readable_cb(void *a_data)
 {
         return run_state_machine(a_data, EVR_MODE_READ);

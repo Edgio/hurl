@@ -27,6 +27,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/evr.h"
+#include "hlx/srvr.h"
 #include "hlx/default_rqst_h.h"
 #include "hlx/hmsg.h"
 #include "hlx/stat.h"
@@ -97,6 +98,13 @@ public:
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         void clear(void);
+
+        evr_loop *get_evr_loop(void);
+        nbq *get_nbq(void);
+        void release_nbq(nbq *a_nbq);
+        int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
+        int32_t queue_output(void);
+
 private:
         // -------------------------------------------------
         // Private methods
