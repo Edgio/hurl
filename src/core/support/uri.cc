@@ -31,6 +31,8 @@
 #include <string>
 #include <assert.h>
 
+namespace ns_hlx
+{
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
@@ -106,23 +108,38 @@ std::string uri_decode(const std::string & a_src)
 
         while (pSrc < SRC_LAST_DEC)
         {
-                if (*pSrc == '%')
+                if(*pSrc == '+')
                 {
-                        char dec1, dec2;
-                        if (-1 != (dec1 = G_HEX2DEC[*(pSrc + 1)]) && -1 != (dec2 = G_HEX2DEC[*(pSrc + 2)]))
-                        {
-                                *pEnd++ = (dec1 << 4) + dec2;
-                                pSrc += 3;
-                                continue;
-                        }
+                        *pEnd = ' ';
                 }
-
-                *pEnd++ = *pSrc++;
+                else
+                {
+                        if(*pSrc == '%')
+                        {
+                                char dec1;
+                                char dec2;
+                                if ((-1 != (dec1 = G_HEX2DEC[*(pSrc + 1)])) &&
+                                    (-1 != (dec2 = G_HEX2DEC[*(pSrc + 2)])))
+                                {
+                                        *pEnd = (dec1 << 4) + dec2;
+                                        ++pEnd;
+                                        pSrc += 3;
+                                        continue;
+                                }
+                        }
+                        *pEnd = *pSrc;
+                }
+                ++pEnd;
+                ++pSrc;
         }
 
         // the last 2- chars
         while (pSrc < SRC_END)
-                *pEnd++ = *pSrc++;
+        {
+                *pEnd = *pSrc;
+                ++pEnd;
+                ++pSrc;
+        }
 
         std::string sResult(pStart, pEnd);
         delete[] pStart;
@@ -159,6 +176,8 @@ std::string uri_encode(const std::string & a_src)
         std::string sResult((char *) pStart, (char *) pEnd);
         delete[] pStart;
         return sResult;
+}
+
 }
 
 #if 0

@@ -25,6 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "cb.h"
+#include "uri.h"
 #include "ndebug.h"
 #include "hlx/nbq.h"
 #include "hlx/rqst.h"
@@ -323,10 +324,10 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
                 std::string l_key;
                 std::string l_val;
                 size_t l_eq_pos = l_part.find("=");
-                l_key = l_part.substr(0, l_eq_pos);
+                l_key = uri_decode(l_part.substr(0, l_eq_pos));
                 if(l_eq_pos != std::string::npos)
                 {
-                        l_val = l_part.substr(l_eq_pos + 1, std::string::npos);
+                        l_val = uri_decode(l_part.substr(l_eq_pos + 1, std::string::npos));
                 }
                 //printf("PART: l_key: %s l_val: %s\n", l_key.c_str(), l_val.c_str());
                 ao_query_map[l_key] = l_val;

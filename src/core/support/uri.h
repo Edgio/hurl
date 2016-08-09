@@ -32,6 +32,8 @@
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
+namespace ns_hlx
+{
 std::string uri_decode(const std::string & a_src);
 std::string uri_encode(const std::string & a_src);
-
+}

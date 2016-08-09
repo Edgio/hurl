@@ -26,6 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "nconn_tcp.h"
 #include "ndebug.h"
+#include "t_srvr.h"
 #include "hlx/string_util.h"
 #include "hlx/subr.h"
 #include "hlx/api_resp.h"
@@ -34,7 +35,6 @@
 #include "http_parser/http_parser.h"
 #include <stdlib.h>
 #include <string.h>
-#include "t_srvr.h"
 
 namespace ns_hlx {
 
@@ -1506,7 +1506,7 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         bool l_specd_host = false;
         bool l_specd_ua = false;
 
-        // Loop over reqlet map
+        // Loop over header map
         for(kv_map_list_t::const_iterator i_hl = a_subr.get_headers().begin();
             i_hl != a_subr.get_headers().end();
             ++i_hl)
