@@ -468,7 +468,7 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                 if(l_t_srvr->dequeue_clnt_session_writeable())
                                 {
                                         l_s = run_state_machine(a_data, EVR_MODE_WRITE);
-                                        if(!l_s != HLX_STATUS_OK)
+                                        if((!l_s) != HLX_STATUS_OK)
                                         {
                                                 // TODO check status
                                         }
