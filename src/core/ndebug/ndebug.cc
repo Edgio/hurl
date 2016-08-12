@@ -74,9 +74,9 @@ static int get_stack_string(char* ao_stack_str)
                 if ((i != 0) && (i != 1))
                 {
                         if (i == 2)
-                                snprintf(frame_str, sizeof(frame_str), "%sFrm[%lu]:%s", ANSI_COLOR_FG_RED, i - 2, ANSI_COLOR_FG_GREEN);
+                                snprintf(frame_str, sizeof(frame_str), "%sFrm[%zd]:%s", ANSI_COLOR_FG_RED, i - 2, ANSI_COLOR_FG_GREEN);
                         else
-                                snprintf(frame_str, sizeof(frame_str), "%sFrm[%lu]:%s", ANSI_COLOR_FG_BLUE, i - 2, ANSI_COLOR_FG_GREEN);
+                                snprintf(frame_str, sizeof(frame_str), "%sFrm[%zd]:%s", ANSI_COLOR_FG_BLUE, i - 2, ANSI_COLOR_FG_GREEN);
 
                         strcat(ao_stack_str, frame_str);
 
