@@ -27,6 +27,7 @@
 #include "t_srvr.h"
 #include "ndebug.h"
 #include "hlx/clnt_session.h"
+#include "hlx/ups_srvr_session.h"
 #include "hlx/phurl_h.h"
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
@@ -168,7 +169,7 @@ h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
                 }
                 // TODO -cancel pending???
                 int32_t l_status;
-                l_status = add_timer(a_clnt_session, l_phr->m_timeout_ms, phurl_u::s_timeout_cb, l_phr, &(l_phr->m_timer));
+                l_status = a_clnt_session.add_timer(l_phr->m_timeout_ms, phurl_u::s_timeout_cb, l_phr, &(l_phr->m_timer));
                 if(l_status != HLX_STATUS_OK)
                 {
                         return H_RESP_SERVER_ERROR;
@@ -246,7 +247,7 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_u *a_phr)
                 int32_t l_status;
                 if(a_subr.get_ups_srvr_session())
                 {
-                        l_status = cancel_timer(*a_subr.get_ups_srvr_session(), a_phr->m_timer);
+                        l_status = a_subr.get_ups_srvr_session()->cancel_timer(a_phr->m_timer);
                         if(l_status != HLX_STATUS_OK)
                         {
                                 // TODO ???

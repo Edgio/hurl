@@ -138,7 +138,7 @@ int32_t evr_loop::run(void)
                         // If not cancelled
                         if(l_timer->m_state != EVR_TIMER_CANCELLED)
                         {
-                                //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer_event,l_now_ms);
+                                //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer,l_now_ms);
                                 int32_t l_s;
                                 l_s = l_timer->m_timer_cb(l_timer->m_ctx, l_timer->m_data);
                                 delete l_timer;

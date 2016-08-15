@@ -27,6 +27,7 @@
 #include "hlx/rqst_h.h"
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
+#include "hlx/clnt_session.h"
 
 #include <string.h>
 
@@ -42,7 +43,7 @@ h_resp_t rqst_h::send_json_resp(clnt_session &a_clnt_session,
                                 http_status_t a_status,
                                 const char *a_json_resp)
 {
-        srvr *l_srvr = get_srvr(a_clnt_session);
+        srvr *l_srvr = a_clnt_session.get_srvr();
         if(!l_srvr)
         {
                 return H_RESP_SERVER_ERROR;

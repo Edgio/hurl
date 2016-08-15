@@ -80,8 +80,11 @@ clnt_session::clnt_session(void):
         m_idx(0),
         m_ups(NULL),
         m_access_info(),
-        m_resp_done_cb(NULL)
-{}
+        m_resp_done_cb(NULL),
+        m_last_active_ms(0),
+        m_timeout_ms(10000)
+{
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -152,14 +155,13 @@ void clnt_session::release_nbq(nbq *a_nbq)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t clnt_session::add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer)
+srvr *clnt_session::get_srvr(void)
 {
         if(!m_t_srvr)
         {
-                // TODO log error???
-                return HLX_STATUS_ERROR;
+                return NULL;
         }
-        return m_t_srvr->add_timer(a_time_ms, a_timer_cb, a_data, ao_timer);
+        return m_t_srvr->get_srvr();
 }
 
 //: ----------------------------------------------------------------------------
@@ -175,6 +177,91 @@ int32_t clnt_session::queue_output(void)
                 return HLX_STATUS_ERROR;
         }
         return m_t_srvr->queue_output(*this);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t clnt_session::add_timer(uint32_t a_ms,
+                                timer_cb_t a_cb,
+                                void *a_data,
+                                void **ao_timer)
+{
+        if(!m_t_srvr)
+        {
+                // TODO log error???
+                return HLX_STATUS_ERROR;
+        }
+        int32_t l_status;
+        l_status = m_t_srvr->add_timer(a_ms, a_cb, a_data, ao_timer);
+        if(l_status != HLX_STATUS_OK)
+        {
+                // TODO log error???
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t clnt_session::cancel_timer(void *a_timer)
+{
+        if(!m_t_srvr)
+        {
+            return HLX_STATUS_ERROR;
+        }
+        int32_t l_status;
+        l_status = m_t_srvr->cancel_timer(a_timer);
+        if(l_status != HLX_STATUS_OK)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint32_t clnt_session::get_timeout_ms(void)
+{
+        return m_timeout_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void clnt_session::set_timeout_ms(uint32_t a_t_ms)
+{
+        m_timeout_ms = a_t_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t clnt_session::get_last_active_ms(void)
+{
+        return m_last_active_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void clnt_session::set_last_active_ms(uint64_t a_time_ms)
+{
+        m_last_active_ms = a_time_ms;
 }
 
 //: ----------------------------------------------------------------------------
@@ -222,43 +309,31 @@ int32_t clnt_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void clnt_session::cancel_last_timer(void)
+int32_t clnt_session::teardown(void)
 {
-        if(m_timer_obj && m_t_srvr)
-        {
-                m_t_srvr->cancel_timer(m_timer_obj);
-                m_timer_obj = NULL;
-        }
-}
+        // cancel timer
+        cancel_timer(m_timer_obj);
+        // TODO Check status
 
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t clnt_session::teardown(t_srvr *a_t_srvr, clnt_session *a_cs, nconn *a_nconn)
-{
-        if(a_cs)
+        // if upstream object associated w/ clnt request...
+        if(m_ups)
         {
-                if(a_cs->m_ups)
+                if(!m_ups->ups_done())
                 {
-                        if(!a_cs->m_ups->ups_done())
+                        int32_t l_s;
+                        l_s = m_ups->ups_cancel();
+                        if(l_s != HLX_STATUS_OK)
                         {
-                                int32_t l_s;
-                                l_s = a_cs->m_ups->ups_cancel();
-                                if(l_s != HLX_STATUS_OK)
-                                {
-                                        TRC_ERROR("performing ups_cancel\n");
-                                }
+                                TRC_ERROR("performing ups_cancel\n");
                         }
-                        delete a_cs->m_ups;
-                        a_cs->m_ups = NULL;
                 }
+                delete m_ups;
+                m_ups = NULL;
         }
-        if(a_t_srvr)
+        if(m_t_srvr)
         {
                 int32_t l_s;
-                l_s = a_t_srvr->cleanup_clnt_session(a_cs, a_nconn);
+                l_s = m_t_srvr->cleanup_clnt_session(this, m_nconn);
                 if(l_s != HLX_STATUS_OK)
                 {
                         return HLX_STATUS_ERROR;
@@ -280,32 +355,64 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
         clnt_session *l_cs = static_cast<clnt_session *>(l_nconn->get_data());
+
         // -------------------------------------------------
         // ERROR
         // -------------------------------------------------
         if(a_conn_mode == EVR_MODE_ERROR)
         {
-                if(l_cs)
-                {
-                        l_cs->cancel_last_timer();
-                }
                 if(l_t_srvr)
                 {
                         ++(l_t_srvr->m_stat.m_clnt_errors);
                 }
-                return teardown(l_t_srvr, l_cs, l_nconn);
+                if(l_cs)
+                {
+                        return l_cs->teardown();
+                }
+                TRC_ERROR("a_conn_mode[%d] clnt_session == NULL\n", a_conn_mode);
+                return HLX_STATUS_ERROR;
         }
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
         if(a_conn_mode == EVR_MODE_TIMEOUT)
         {
-                if(l_t_srvr)
+                // calc time since last active
+                if(l_cs && l_t_srvr)
                 {
-                        ++(l_t_srvr->m_stat.m_clnt_idle_killed);
-                        ++(l_t_srvr->m_stat.m_clnt_errors);
+                        // ---------------------------------
+                        // timeout
+                        // ---------------------------------
+                        uint64_t l_ct_ms = get_time_ms();
+                        if(((uint32_t)(l_ct_ms - l_cs->get_last_active_ms())) >= l_cs->get_timeout_ms())
+                        {
+                                ++(l_t_srvr->m_stat.m_clnt_idle_killed);
+                                ++(l_t_srvr->m_stat.m_clnt_errors);
+                                return l_cs->teardown();
+                        }
+                        // ---------------------------------
+                        // active -create new timer with
+                        // delta time
+                        // ---------------------------------
+                        else if(l_cs)
+                        {
+                                uint64_t l_d_time = (uint32_t)(l_cs->get_timeout_ms() - (l_ct_ms - l_cs->get_last_active_ms()));
+                                l_t_srvr->add_timer(l_d_time,
+                                                    clnt_session::evr_fd_timeout_cb,
+                                                    l_nconn,
+                                                    (void **)(&(l_cs->m_timer_obj)));
+                                // TODO check status
+                                return HLX_STATUS_OK;
+                        }
                 }
-                return teardown(l_t_srvr, l_cs, l_nconn);
+                else
+                {
+                        TRC_ERROR("a_conn_mode[%d] clnt_session[%p] || t_srvr[%p] == NULL\n",
+                                        a_conn_mode,
+                                        l_cs,
+                                        l_t_srvr);
+                        return HLX_STATUS_ERROR;
+                }
         }
         // -------------------------------------------------
         // TODO unknown conn mode???
@@ -316,21 +423,9 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
                 return HLX_STATUS_ERROR;
         }
-        // -------------------------------------------------
-        // TODO -only for writeable or timeout ???
-        // -------------------------------------------------
-        //if(l_nconn->is_free())
-        //{
-        //        return HLX_STATUS_OK;
-        //}
         if(l_cs)
         {
-                l_cs->cancel_last_timer();
-        }
-        uint32_t l_timeout_ms = 0;
-        if(l_t_srvr)
-        {
-                l_timeout_ms = l_t_srvr->get_timeout_ms();
+                l_cs->set_last_active_ms(get_time_ms());
         }
         // -------------------------------------------------
         // in/out q's
@@ -468,7 +563,7 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                 if(l_t_srvr->dequeue_clnt_session_writeable())
                                 {
                                         l_s = run_state_machine(a_data, EVR_MODE_WRITE);
-                                        if((!l_s) != HLX_STATUS_OK)
+                                        if(l_s != HLX_STATUS_OK)
                                         {
                                                 // TODO check status
                                         }
@@ -541,7 +636,12 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
 check_conn_status:
                 if(!l_cs)
                 {
-                        return teardown(l_t_srvr, NULL, l_nconn);
+                        TRC_ERROR("a_conn_mode[%d] clnt_session == NULL\n", a_conn_mode);
+                        if(l_t_srvr)
+                        {
+                                return l_t_srvr->cleanup_clnt_session(NULL, l_nconn);
+                        }
+                        return HLX_STATUS_ERROR;
                 }
                 if(l_shutdown)
                 {
@@ -553,7 +653,7 @@ check_conn_status:
                 }
                 else if(l_nconn->is_done())
                 {
-                        return teardown(l_t_srvr, l_cs, l_nconn);
+                        return l_cs->teardown();
                 }
                 switch(l_s)
                 {
@@ -563,11 +663,11 @@ check_conn_status:
                         {
                                 ++(l_t_srvr->m_stat.m_clnt_errors);
                         }
-                        return teardown(l_t_srvr, l_cs, l_nconn);
+                        return l_cs->teardown();
                 }
                 case nconn::NC_STATUS_EOF:
                 {
-                        return teardown(l_t_srvr, l_cs, l_nconn);
+                        return l_cs->teardown();
                 }
                 case nconn::NC_STATUS_OK:
                 {
@@ -582,17 +682,6 @@ check_conn_status:
                  (l_t_srvr && l_t_srvr->is_running()));
 
 done:
-        // Add idle timeout
-        if(l_t_srvr &&
-           l_cs &&
-           !l_cs->m_timer_obj)
-        {
-                l_t_srvr->add_timer(l_timeout_ms,
-                                   evr_fd_timeout_cb,
-                                   l_nconn,
-                                   (void **)(&(l_cs->m_timer_obj)));
-                // TODO Check status
-        }
         return HLX_STATUS_OK;
 }
 
@@ -864,48 +953,6 @@ int32_t queue_resp(clnt_session &a_clnt_session)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t add_timer(clnt_session &a_clnt_session, uint32_t a_ms,
-                  timer_cb_t a_cb, void *a_data,
-                  void **ao_timer)
-{
-        if(!a_clnt_session.m_t_srvr)
-        {
-            return HLX_STATUS_ERROR;
-        }
-        int32_t l_status;
-        l_status = a_clnt_session.m_t_srvr->add_timer(a_ms, a_cb, a_data, ao_timer);
-        if(l_status != HLX_STATUS_OK)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t cancel_timer(clnt_session &a_clnt_session, void *a_timer)
-{
-        if(!a_clnt_session.m_t_srvr)
-        {
-            return HLX_STATUS_ERROR;
-        }
-        int32_t l_status;
-        l_status = a_clnt_session.m_t_srvr->cancel_timer(a_timer);
-        if(l_status != HLX_STATUS_OK)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int32_t add_timer(void *a_t_srvr, uint32_t a_ms,
                   timer_cb_t a_cb, void *a_data,
                   void **ao_timer)
@@ -914,9 +961,9 @@ int32_t add_timer(void *a_t_srvr, uint32_t a_ms,
         {
                 return HLX_STATUS_ERROR;
         }
-        t_srvr *l_hlx = static_cast<t_srvr *>(a_t_srvr);
+        t_srvr *l_t_svr = static_cast<t_srvr *>(a_t_srvr);
         int32_t l_status;
-        l_status = l_hlx->add_timer(a_ms, a_cb, a_data, ao_timer);
+        l_status = l_t_svr->add_timer(a_ms, a_cb, a_data, ao_timer);
         if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;
@@ -935,9 +982,9 @@ int32_t cancel_timer(void *a_t_srvr, void *a_timer)
         {
             return HLX_STATUS_ERROR;
         }
-        t_srvr *l_hlx = static_cast<t_srvr *>(a_t_srvr);
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(a_t_srvr);
         int32_t l_status;
-        l_status = l_hlx->cancel_timer(a_timer);
+        l_status = l_t_srvr->cancel_timer(a_timer);
         if(l_status != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;

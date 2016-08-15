@@ -25,6 +25,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
+#include "nconn.h"
+#include "t_srvr.h"
+#include "hlx/time_util.h"
 #include "hlx/lsnr.h"
 #include "hlx/url_router.h"
 #include "hlx/rqst_h.h"
@@ -62,6 +65,44 @@
         } while(0)
 
 namespace ns_hlx {
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+lsnr::lsnr(uint16_t a_port, scheme_t a_scheme):
+        m_scheme(a_scheme),
+        m_local_addr_v4(INADDR_ANY),
+        m_port(a_port),
+        m_sa(),
+        m_sa_len(0),
+        m_default_handler(NULL),
+        m_url_router(NULL),
+        m_fd(-1),
+        m_is_initd(false)
+{
+        m_url_router = new url_router();
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+lsnr::~lsnr()
+{
+        if(m_fd > 0)
+        {
+                // shutdown
+                shutdown(m_fd, SHUT_RD);
+        }
+        if(m_url_router)
+        {
+                delete m_url_router;
+                m_url_router = NULL;
+        }
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -198,37 +239,86 @@ int32_t lsnr::set_local_addr_v4(const char *a_addr_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-lsnr::lsnr(uint16_t a_port, scheme_t a_scheme):
-        m_scheme(a_scheme),
-        m_local_addr_v4(INADDR_ANY),
-        m_port(a_port),
-        m_sa(),
-        m_sa_len(0),
-        m_default_handler(NULL),
-        m_url_router(NULL),
-        m_fd(-1),
-        m_is_initd(false)
+int32_t lsnr::evr_fd_readable_cb(void *a_data)
 {
-        m_url_router = new url_router();
-}
+        //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_data);
+        if(!a_data)
+        {
+                return HLX_STATUS_OK;
+        }
+        nconn* l_nconn = static_cast<nconn*>(a_data);
+        if(!l_nconn->get_ctx())
+        {
+                // TODO log
+                return HLX_STATUS_ERROR;
+        }
+        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
+        lsnr *l_lsnr = static_cast<lsnr *>(l_nconn->get_data());
+        //NDBG_PRINT("%sREADABLE%s LABEL: %s LSNR: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
+        //                l_nconn->get_label().c_str(), l_lsnr);
+        // Server -incoming client connections
+        if(!l_nconn->is_listening())
+        {
+                return HLX_STATUS_ERROR;
+        }
+        int32_t l_status;
 
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-lsnr::~lsnr()
-{
-        if(m_fd > 0)
+        if(!l_lsnr || !l_nconn)
         {
-                // shutdown
-                shutdown(m_fd, SHUT_RD);
+                return HLX_STATUS_ERROR;
         }
-        if(m_url_router)
+
+        // Returns new client fd on success
+        l_status = l_nconn->nc_run_state_machine(EVR_MODE_NONE,
+                                                 NULL,
+                                                 NULL);
+        if(l_status == nconn::NC_STATUS_ERROR)
         {
-                delete m_url_router;
-                m_url_router = NULL;
+                return HLX_STATUS_ERROR;
         }
+
+        // Get new connected client conn
+        nconn *l_new_nconn = NULL;
+        l_new_nconn = l_t_srvr->get_new_client_conn(l_nconn->get_scheme(), l_lsnr);
+        if(!l_new_nconn)
+        {
+                //NDBG_PRINT("Error performing get_new_client_conn");
+                return HLX_STATUS_ERROR;
+        }
+        clnt_session *l_cs = static_cast<clnt_session *>(l_new_nconn->get_data());
+
+        // ---------------------------------------
+        // Set access info
+        // TODO move to clnt_session???
+        // ---------------------------------------
+        l_nconn->get_remote_sa(l_cs->m_access_info.m_conn_clnt_sa,
+                               l_cs->m_access_info.m_conn_clnt_sa_len);
+        l_lsnr->get_sa(l_cs->m_access_info.m_conn_upsv_sa,
+                       l_cs->m_access_info.m_conn_upsv_sa_len);
+        l_cs->m_access_info.m_start_time_ms = get_time_ms();
+        l_cs->m_access_info.m_total_time_ms = 0;
+        l_cs->m_access_info.m_bytes_in = 0;
+        l_cs->m_access_info.m_bytes_out = 0;
+
+        // Set connected
+        int l_fd = l_status;
+        l_status = l_new_nconn->nc_set_accepting(l_fd);
+        if(l_status != HLX_STATUS_OK)
+        {
+                //NDBG_PRINT("Error: performing run_state_machine\n");
+                l_t_srvr->cleanup_clnt_session(l_cs, l_new_nconn);
+                // TODO Check return
+                return HLX_STATUS_ERROR;
+        }
+        // Add idle timer
+        l_cs->set_timeout_ms(l_t_srvr->get_timeout_ms());
+        l_cs->set_last_active_ms(get_time_ms());
+        l_t_srvr->add_timer(l_cs->get_timeout_ms(),
+                            clnt_session::evr_fd_timeout_cb,
+                            l_new_nconn,
+                            (void **)(&(l_cs->m_timer_obj)));
+        // TODO Check status
+        return HLX_STATUS_OK;
 }
 
 }

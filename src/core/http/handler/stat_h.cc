@@ -29,6 +29,7 @@
 #include "hlx/rqst.h"
 #include "hlx/api_resp.h"
 #include "hlx/srvr.h"
+#include "hlx/clnt_session.h"
 
 #include "ndebug.h"
 
@@ -80,7 +81,7 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
                 }
         }
 
-        srvr *l_srvr = get_srvr(a_clnt_session);
+        srvr *l_srvr = a_clnt_session.get_srvr();
         if(!l_srvr)
         {
                 return H_RESP_SERVER_ERROR;
@@ -149,6 +150,7 @@ h_resp_t stat_h::do_get(clnt_session &a_clnt_session,
         ADD_MEMBER(pool_nbq_used);
 
         ADD_MEMBER(total_run);
+        ADD_MEMBER(total_add_timer);
 
 #define ADD_MEMBER_CALC(_m) do {\
                 l_writer.Key(#_m);\

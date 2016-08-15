@@ -77,6 +77,7 @@ int main(void)
         g_srvr = new ns_hlx::srvr();
         g_srvr->register_lsnr(l_lsnr);
         g_srvr->set_num_threads(0);
+        g_srvr->set_timeout_ms(2000);
         //g_srvr->set_num_threads(1);
         //g_srvr->set_rqst_resp_logging(true);
         //g_srvr->set_rqst_resp_logging_color(true);

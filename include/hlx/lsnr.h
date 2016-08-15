@@ -72,6 +72,11 @@ public:
 
         int32_t init(void);
 
+        // -------------------------------------------------
+        // Class methods
+        // -------------------------------------------------
+        static int32_t evr_fd_readable_cb(void *a_data);
+
 private:
         // -------------------------------------------------
         // Private methods

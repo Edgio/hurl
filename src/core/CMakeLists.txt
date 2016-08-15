@@ -164,6 +164,8 @@ SET(HDRS
     ../../include/hlx/subr.h
     ../../include/hlx/access.h
     ../../include/hlx/srvr.h
+    ../../include/hlx/clnt_session.h
+    ../../include/hlx/ups_srvr_session.h
 
     ../../include/hlx/rqst_h.h
     ../../include/hlx/default_rqst_h.h

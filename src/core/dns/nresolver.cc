@@ -809,6 +809,7 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
 int32_t nresolver::evr_fd_error_cb(void *a_data)
 {
         TRC_ERROR("evr_fd_error_cb\n");
+        //NDBG_PRINT("%sERROR%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         return HLX_STATUS_OK;
 }
 #endif
@@ -821,7 +822,7 @@ int32_t nresolver::evr_fd_error_cb(void *a_data)
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
 {
-        //NDBG_PRINT("%sTIMEOUT%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%sTIMEOUT%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         // timeout cb
         adns_ctx *l_adns_ctx = static_cast<adns_ctx *>(a_data);
         if(!l_adns_ctx)

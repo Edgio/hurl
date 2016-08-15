@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ups_srvr_session.h"
 #include "ndebug.h"
 #include "t_srvr.h"
+#include "hlx/ups_srvr_session.h"
 #include "hlx/nbq.h"
 #include "hlx/srvr.h"
 #include "hlx/trace.h"
@@ -71,7 +71,9 @@ ups_srvr_session::ups_srvr_session(void):
         m_out_q(NULL),
         m_in_q_detached(false),
         m_subr(NULL),
-        m_idx(0)
+        m_idx(0),
+        m_last_active_ms(0),
+        m_timeout_ms(10000)
 {}
 
 //: ----------------------------------------------------------------------------
@@ -137,51 +139,31 @@ int32_t ups_srvr_session::evr_fd_timeout_cb(void *a_ctx, void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void ups_srvr_session::cancel_last_timer(void)
+int32_t ups_srvr_session::teardown(http_status_t a_status)
 {
-        if(m_timer_obj && m_t_srvr)
+        if(m_subr &&
+           m_subr->get_ups() &&
+          (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
         {
-                m_t_srvr->cancel_timer(m_timer_obj);
-                m_timer_obj = NULL;
+                m_subr->get_ups()->set_shutdown();
         }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t ups_srvr_session::teardown(t_srvr *a_t_srvr,
-                                   ups_srvr_session *a_uss,
-                                   nconn *a_nconn,
-                                   http_status_t a_status)
-{
-        if(a_uss)
+        if(a_status != HTTP_STATUS_OK)
         {
-                if(a_uss->m_subr &&
-                   a_uss->m_subr->get_ups() &&
-                  (a_uss->m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
+                if(m_resp)
                 {
-                        a_uss->m_subr->get_ups()->set_shutdown();
+                        m_resp->set_status(a_status);
                 }
-                if(a_status != HTTP_STATUS_OK)
+                int32_t l_s;
+                l_s = subr_error(a_status);
+                if(l_s != HLX_STATUS_OK)
                 {
-                        if(a_uss->m_resp)
-                        {
-                                a_uss->m_resp->set_status(a_status);
-                        }
-                        int32_t l_s;
-                        l_s = a_uss->subr_error(a_status);
-                        if(l_s != HLX_STATUS_OK)
-                        {
-                                TRC_ERROR("performing subr_error\n");
-                        }
+                        TRC_ERROR("performing subr_error\n");
                 }
         }
-        if(a_t_srvr)
+        if(m_t_srvr)
         {
                 int32_t l_s;
-                l_s = a_t_srvr->cleanup_srvr_session(a_uss, a_nconn);
+                l_s = m_t_srvr->cleanup_srvr_session(this, m_nconn);
                 if(l_s != HLX_STATUS_OK)
                 {
                         return HLX_STATUS_ERROR;
@@ -222,27 +204,69 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
         // -------------------------------------------------
         if(a_conn_mode == EVR_MODE_ERROR)
         {
-                if(l_uss)
-                {
-                        l_uss->cancel_last_timer();
-                }
                 if(l_t_srvr)
                 {
                         ++l_t_srvr->m_stat.m_upsv_errors;
                 }
-                return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_BAD_GATEWAY);
+                if(l_uss)
+                {
+                        l_uss->cancel_timer(l_uss->m_timer_obj);
+                        return l_uss->teardown(HTTP_STATUS_BAD_GATEWAY);
+                }
+                else
+                {
+                        if(l_t_srvr)
+                        {
+                                return l_t_srvr->cleanup_srvr_session(NULL, l_nconn);
+                        }
+                        else
+                        {
+                                // TODO log error???
+                                return HLX_STATUS_ERROR;
+                        }
+                }
         }
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
         if(a_conn_mode == EVR_MODE_TIMEOUT)
         {
-                if(l_t_srvr)
+                // calc time since last active
+                if(l_uss && l_t_srvr)
                 {
-                        ++(l_t_srvr->m_stat.m_upsv_errors);
-                        ++(l_t_srvr->m_stat.m_upsv_idle_killed);
+                        // ---------------------------------
+                        // timeout
+                        // ---------------------------------
+                        uint64_t l_ct_ms = get_time_ms();
+                        if(((uint32_t)(l_ct_ms - l_uss->get_last_active_ms())) >= l_uss->get_timeout_ms())
+                        {
+                                ++(l_t_srvr->m_stat.m_upsv_errors);
+                                ++(l_t_srvr->m_stat.m_upsv_idle_killed);
+                                return l_uss->teardown(HTTP_STATUS_GATEWAY_TIMEOUT);
+                        }
+                        // ---------------------------------
+                        // active -create new timer with
+                        // delta time
+                        // ---------------------------------
+                        else
+                        {
+                                uint64_t l_d_time = (uint32_t)(l_uss->get_timeout_ms() - (l_ct_ms - l_uss->get_last_active_ms()));
+                                l_t_srvr->add_timer(l_d_time,
+                                                    clnt_session::evr_fd_timeout_cb,
+                                                    l_nconn,
+                                                    (void **)(&(l_uss->m_timer_obj)));
+                                // TODO check status
+                                return HLX_STATUS_OK;
+                        }
                 }
-                return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_GATEWAY_TIMEOUT);
+                else
+                {
+                        TRC_ERROR("a_conn_mode[%d] ups_srvr_session[%p] || t_srvr[%p] == NULL\n",
+                                        a_conn_mode,
+                                        l_uss,
+                                        l_t_srvr);
+                        return HLX_STATUS_ERROR;
+                }
         }
         // -------------------------------------------------
         // TODO unknown conn mode???
@@ -252,17 +276,6 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
         {
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
                 return HLX_STATUS_ERROR;
-        }
-        if(l_uss)
-        {
-                l_uss->cancel_last_timer();
-        }
-        // Get timeout ms
-        uint32_t l_timeout_ms = l_t_srvr->get_timeout_ms();
-        if(l_uss &&
-           l_uss->m_subr)
-        {
-                l_timeout_ms = l_uss->m_subr->get_timeout_ms();
         }
         // -------------------------------------------------
         // in/out q's
@@ -406,7 +419,15 @@ check_conn_status:
                 if(!l_uss)
                 {
                         TRC_ERROR("no ups_srvr_session associated with nconn mode: %d\n", a_conn_mode);
-                        return teardown(l_t_srvr, NULL, l_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                        if(l_t_srvr)
+                        {
+                                return l_t_srvr->cleanup_srvr_session(NULL, l_nconn);
+                        }
+                        else
+                        {
+                                // TODO log error???
+                                return HLX_STATUS_ERROR;
+                        }
                 }
                 switch(l_s)
                 {
@@ -434,7 +455,7 @@ check_conn_status:
                                 l_uss->m_subr->bump_num_completed();
                                 l_uss->subr_complete();
                         }
-                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
+                        return l_uss->teardown(HTTP_STATUS_OK);
                 }
                 case nconn::NC_STATUS_ERROR:
                 {
@@ -442,7 +463,7 @@ check_conn_status:
                         {
                                 ++(l_t_srvr->m_stat.m_upsv_errors);
                         }
-                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_BAD_GATEWAY);
+                        return l_uss->teardown(HTTP_STATUS_BAD_GATEWAY);
                 }
                 default:
                 {
@@ -451,7 +472,7 @@ check_conn_status:
                 }
                 if(l_nconn->is_done())
                 {
-                        return teardown(l_t_srvr, l_uss, l_nconn, HTTP_STATUS_OK);
+                        return l_uss->teardown(HTTP_STATUS_OK);
                 }
         } while((l_s != nconn::NC_STATUS_AGAIN) &&
                 (l_t_srvr->is_running()));
@@ -477,19 +498,7 @@ check_conn_status:
                 }
                 return HLX_STATUS_OK;
         }
-
-
 done:
-        // Add idle timeout
-        if(l_uss &&
-           !l_uss->m_timer_obj)
-        {
-                l_t_srvr->add_timer(l_timeout_ms,
-                                   evr_fd_timeout_cb,
-                                   l_nconn,
-                                   (void **)(&(l_uss->m_timer_obj)));
-                // TODO Check status
-        }
         return HLX_STATUS_OK;
 }
 
@@ -609,20 +618,59 @@ int32_t ups_srvr_session::subr_error(http_status_t a_status)
         return HLX_STATUS_OK;
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint32_t ups_srvr_session::get_timeout_ms(void)
+{
+        return m_timeout_ms;
+}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t cancel_timer(ups_srvr_session &a_ups_srvr_session, void *a_timer)
+void ups_srvr_session::set_timeout_ms(uint32_t a_t_ms)
 {
-        if(!a_ups_srvr_session.m_t_srvr)
+        m_timeout_ms = a_t_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+uint64_t ups_srvr_session::get_last_active_ms(void)
+{
+        return m_last_active_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void ups_srvr_session::set_last_active_ms(uint64_t a_time_ms)
+{
+        m_last_active_ms = a_time_ms;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t ups_srvr_session::cancel_timer(void *a_timer)
+{
+        if(!m_t_srvr)
         {
             return HLX_STATUS_ERROR;
         }
         int32_t l_s;
-        l_s = a_ups_srvr_session.m_t_srvr->cancel_timer(a_timer);
+        l_s = m_t_srvr->cancel_timer(a_timer);
         if(l_s != HLX_STATUS_OK)
         {
                 return HLX_STATUS_ERROR;

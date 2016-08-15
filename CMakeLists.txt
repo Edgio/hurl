@@ -46,16 +46,6 @@ add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 #add_definitions(-pedantic)
 
 # ------------------------------------------------------------------------------
-# Libraries options
-# ------------------------------------------------------------------------------
-set(LIBRARIES ${LIBRARIES} pthread)
-
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(LIBRARIES ${LIBRARIES} rt)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
-
-# ------------------------------------------------------------------------------
 # Display the current settings
 # ------------------------------------------------------------------------------
 message(STATUS "Build Configuration:")
@@ -137,6 +127,24 @@ macro(find_ubuntu_package output_var_prefix include_test_file
 endmacro(find_ubuntu_package)
 
 # ------------------------------------------------------------------------------
+# ASAN
+# ------------------------------------------------------------------------------
+if (BUILD_ASAN)
+  set(LIBRARIES ${LIBRARIES} asan)
+  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+  set(DEBUG_MODE ON)
+endif()
+
+# ------------------------------------------------------------------------------
+# Libraries options
+# ------------------------------------------------------------------------------
+set(LIBRARIES ${LIBRARIES} pthread)
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(LIBRARIES ${LIBRARIES} rt)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+# ------------------------------------------------------------------------------
 # Mac OS X
 # ------------------------------------------------------------------------------
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -196,15 +204,6 @@ if (BUILD_EFENCE)
   else()
     set(LIBRARIES ${LIBRARIES} efence)
   endif()
-endif()
-
-# ------------------------------------------------------------------------------
-# ASAN
-# ------------------------------------------------------------------------------
-if (BUILD_ASAN)
-  set(LIBRARIES ${LIBRARIES} asan)
-  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
-  set(DEBUG_MODE ON)
 endif()
 
 # ------------------------------------------------------------------------------

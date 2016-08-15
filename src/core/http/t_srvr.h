@@ -27,7 +27,6 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "cb.h"
-#include "ups_srvr_session.h"
 #include "nconn_pool.h"
 #include "obj_pool.h"
 #include "nresolver.h"
@@ -36,6 +35,7 @@
 #include "hlx/subr.h"
 #include "hlx/evr.h"
 #include "hlx/clnt_session.h"
+#include "hlx/ups_srvr_session.h"
 #include "hlx/srvr.h"
 #include "hlx/stat.h"
 
@@ -169,6 +169,7 @@ public:
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
         srvr *get_srvr(void);
         nbq *get_nbq(void);
+        nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
         int32_t queue_output(clnt_session &a_clnt_session);
@@ -178,7 +179,7 @@ public:
         int32_t cancel_timer(void *a_timer);
         void signal(void);
         int32_t cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_nconn);
-        int32_t cleanup_srvr_session(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn);
+        int32_t cleanup_srvr_session(ups_srvr_session *a_uss, nconn *a_nconn);
         void release_resp(resp *a_resp);
         void release_nbq(nbq *a_nbq);
 
@@ -190,9 +191,6 @@ public:
         void bump_num_clnt_reqs(void) { ++m_stat.m_clnt_reqs;}
         void bump_num_clnt_idle_killed(void) { ++m_stat.m_clnt_idle_killed;}
         void bump_num_upsv_idle_killed(void) { ++m_stat.m_upsv_idle_killed;}
-
-        // TODO Move to lsnr readable...
-        static int32_t evr_fd_readable_lsnr_cb(void *a_data);
 
         evr_loop *get_evr_loop(void) {return m_evr_loop;}
 
@@ -258,12 +256,11 @@ private:
         }
 
         // Get new client connection
-        nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
         clnt_session * get_clnt(lsnr *a_lsnr);
         ups_srvr_session * get_ups_srvr(lsnr *a_lsnr);
 
         int32_t subr_try_start(subr &a_subr);
-        int32_t subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, nconn &a_nconn);
+        int32_t subr_start(subr &a_subr, ups_srvr_session &a_uss, nconn &a_nconn);
         int32_t subr_try_deq(void);
 
         inline void subr_dequeue(void)

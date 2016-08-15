@@ -199,6 +199,7 @@ static void aggregate_stat(t_stat_cntr_t &ao_total, const t_stat_cntr_t &a_stat)
         ao_total.m_pool_nbq_used += a_stat.m_pool_nbq_used;
 
         ao_total.m_total_run += a_stat.m_total_run;
+        ao_total.m_total_add_timer += a_stat.m_total_add_timer;
 }
 
 //: ----------------------------------------------------------------------------
@@ -370,6 +371,7 @@ void srvr::display_stat(void)
                 DISPLAY_SRV_STAT(m_pool_nbq_free);
                 DISPLAY_SRV_STAT(m_pool_nbq_used);
                 DISPLAY_GEN_STAT(m_total_run);
+                DISPLAY_GEN_STAT(m_total_add_timer);
         }
 }
 

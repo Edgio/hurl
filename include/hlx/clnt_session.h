@@ -98,12 +98,20 @@ public:
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         void clear(void);
-
         evr_loop *get_evr_loop(void);
         nbq *get_nbq(void);
         void release_nbq(nbq *a_nbq);
-        int32_t add_timer(uint32_t a_time_ms, timer_cb_t a_timer_cb, void *a_data, void **ao_timer);
+        srvr *get_srvr(void);
         int32_t queue_output(void);
+        int32_t add_timer(uint32_t a_ms,
+                          timer_cb_t a_cb,
+                          void *a_data,
+                          void **ao_timer);
+        int32_t cancel_timer(void *a_timer);
+        uint32_t get_timeout_ms(void);
+        void set_timeout_ms(uint32_t a_t_ms);
+        uint64_t get_last_active_ms(void);
+        void set_last_active_ms(uint64_t a_time_ms);
 
 private:
         // -------------------------------------------------
@@ -114,13 +122,18 @@ private:
         clnt_session(const clnt_session &);
         int32_t handle_req(void);
         void log_status(uint16_t a_status = 0);
-        void cancel_last_timer(void);
+        int32_t teardown(void);
 
         // -------------------------------------------------
         // Private Static (class) methods
         // -------------------------------------------------
         static int32_t run_state_machine(void *a_data, evr_mode_t a_conn_mode);
-        static int32_t teardown(t_srvr *a_t_srvr, clnt_session *a_cs, nconn *a_nconn);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        uint64_t m_last_active_ms;
+        uint32_t m_timeout_ms;
 
 };
 

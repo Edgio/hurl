@@ -145,6 +145,7 @@ typedef struct t_stat_cntr_struct
 
         // Totals
         uint64_t m_total_run;
+        uint64_t m_total_add_timer;
 
         t_stat_cntr_struct():
                 m_upsv_stat_us_connect(),
@@ -196,7 +197,8 @@ typedef struct t_stat_cntr_struct
                 m_pool_nbq_free(0),
                 m_pool_nbq_used(0),
 
-                m_total_run(0)
+                m_total_run(0),
+                m_total_add_timer(0)
         {}
         void clear()
         {
@@ -251,6 +253,7 @@ typedef struct t_stat_cntr_struct
                 m_pool_nbq_used = 0;
 
                 m_total_run = 0;
+                m_total_add_timer = 0;
         }
 } t_stat_cntr_t;
 typedef std::list <t_stat_cntr_t> t_stat_cntr_list_t;

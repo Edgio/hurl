@@ -229,22 +229,12 @@ void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str);
 
 // Timer by clnt_session
 typedef int32_t (*timer_cb_t)(void *, void *);
-int32_t add_timer(clnt_session &a_clnt_session, uint32_t a_ms,
-                  timer_cb_t a_cb, void *a_data,
-                  void **ao_timer);
-int32_t cancel_timer(clnt_session &a_clnt_session, void *a_timer);
 
 // Timer by t_srvr
 int32_t add_timer(void *a_t_srvr, uint32_t a_ms,
                   timer_cb_t a_cb, void *a_data,
                   void **ao_timer);
 int32_t cancel_timer(void *a_t_srvr, void *a_timer);
-
-// Timer by upstream server session
-int32_t cancel_timer(ups_srvr_session &a_ups_srvr_session, void *a_timer);
-
-// Helper
-srvr *get_srvr(clnt_session &a_clnt_session);
 
 } //namespace ns_hlx {
 

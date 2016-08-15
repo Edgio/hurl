@@ -79,14 +79,12 @@ public:
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         void clear(void);
         int32_t subr_error(http_status_t a_status);
-
-        // -------------------------------------------------
-        // Public Static (class) methods
-        // -------------------------------------------------
-        static int32_t teardown(t_srvr *a_t_srvr,
-                                ups_srvr_session *a_uss,
-                                nconn *a_nconn,
-                                http_status_t a_status);
+        int32_t cancel_timer(void *a_timer);
+        uint32_t get_timeout_ms(void);
+        void set_timeout_ms(uint32_t a_t_ms);
+        uint64_t get_last_active_ms(void);
+        void set_last_active_ms(uint64_t a_time_ms);
+        int32_t teardown(http_status_t a_status);
 
 private:
         // -------------------------------------------------
@@ -97,12 +95,17 @@ private:
         ups_srvr_session(const ups_srvr_session &);
         bool subr_complete(void);
         void subr_log_status(uint16_t a_status = 0);
-        void cancel_last_timer(void);
 
         // -------------------------------------------------
         // Private Static (class) methods
         // -------------------------------------------------
         static int32_t run_state_machine(void *a_data, evr_mode_t a_conn_mode);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        uint64_t m_last_active_ms;
+        uint32_t m_timeout_ms;
 };
 
 } // ns_hlx

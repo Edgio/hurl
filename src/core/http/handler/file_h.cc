@@ -164,7 +164,7 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
         // ---------------------------------------
         // Write headers
         // ---------------------------------------
-        srvr *l_srvr = get_srvr(a_clnt_session);
+        srvr *l_srvr = a_clnt_session.get_srvr();
         if(!l_srvr)
         {
                 TRC_ERROR("fsinit(%s) failed\n", a_path.c_str());

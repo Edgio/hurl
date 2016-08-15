@@ -302,7 +302,7 @@ int32_t t_srvr::add_lsnr(lsnr &a_lsnr)
         l_nconn->set_num_reqs_per_conn(m_t_conf->m_num_reqs_per_conn);
         l_nconn->set_collect_stats(m_t_conf->m_collect_stats);
         l_nconn->set_connect_only(false);
-        l_nconn->setup_evr_fd(evr_fd_readable_lsnr_cb,
+        l_nconn->setup_evr_fd(lsnr::evr_fd_readable_cb,
                               NULL,
                               NULL);
 
@@ -433,7 +433,7 @@ int32_t t_srvr::queue_output(clnt_session &a_clnt_session)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, nconn &a_nconn)
+int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_uss, nconn &a_nconn)
 {
         int32_t l_status;
         //NDBG_PRINT("TID[%lu]: %sSTART%s: Host: %s l_nconn: %p\n",
@@ -441,37 +441,37 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
         //                a_subr.get_label().c_str(),
         //                &a_nconn);
-        resp *l_resp = a_ups_srvr_session.m_resp;
+        resp *l_resp = a_uss.m_resp;
         get_from_pool_if_null(l_resp, m_resp_pool);
         l_resp->init(a_subr.get_save());
         l_resp->m_http_parser->data = l_resp;
         a_nconn.set_read_cb(http_parse);
         a_nconn.set_read_cb_data(l_resp);
-        a_ups_srvr_session.m_resp = l_resp;
-        a_ups_srvr_session.m_resp->m_expect_resp_body_flag = a_subr.get_expect_resp_body_flag();
-        a_ups_srvr_session.m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
-        a_ups_srvr_session.m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
+        a_uss.m_resp = l_resp;
+        a_uss.m_resp->m_expect_resp_body_flag = a_subr.get_expect_resp_body_flag();
+        a_uss.m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
+        a_uss.m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
 
         // Create request
         if(!a_subr.get_connect_only())
         {
-                if(!get_from_pool_if_null(a_ups_srvr_session.m_in_q, m_nbq_pool))
+                if(!get_from_pool_if_null(a_uss.m_in_q, m_nbq_pool))
                 {
-                        a_ups_srvr_session.m_in_q->reset_write();
+                        a_uss.m_in_q->reset_write();
                 }
 
-                a_ups_srvr_session.m_resp->set_q(a_ups_srvr_session.m_in_q);
+                a_uss.m_resp->set_q(a_uss.m_in_q);
 
-                if(!a_ups_srvr_session.m_out_q)
+                if(!a_uss.m_out_q)
                 {
-                        if(!get_from_pool_if_null(a_ups_srvr_session.m_out_q, m_nbq_pool))
+                        if(!get_from_pool_if_null(a_uss.m_out_q, m_nbq_pool))
                         {
-                                a_ups_srvr_session.m_out_q->reset_write();
+                                a_uss.m_out_q->reset_write();
                         }
                         subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
                         if(l_create_req_cb)
                         {
-                                l_status = l_create_req_cb(a_subr, *a_ups_srvr_session.m_out_q);
+                                l_status = l_create_req_cb(a_subr, *a_uss.m_out_q);
                                 if(HLX_STATUS_OK != l_status)
                                 {
                                         return HLX_STATUS_ERROR;
@@ -483,11 +483,11 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
                         if(a_subr.get_is_multipath())
                         {
                                 // Reset in data
-                                a_ups_srvr_session.m_out_q->reset_write();
+                                a_uss.m_out_q->reset_write();
                                 subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
                                 if(l_create_req_cb)
                                 {
-                                        l_status = l_create_req_cb(a_subr, *a_ups_srvr_session.m_out_q);
+                                        l_status = l_create_req_cb(a_subr, *a_uss.m_out_q);
                                         if(HLX_STATUS_OK != l_status)
                                         {
                                                 return HLX_STATUS_ERROR;
@@ -496,16 +496,16 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
                         }
                         else
                         {
-                                a_ups_srvr_session.m_out_q->reset_read();
+                                a_uss.m_out_q->reset_read();
                         }
                 }
 
                 // Display data from out q
-                if(a_ups_srvr_session.m_rqst_resp_logging)
+                if(a_uss.m_rqst_resp_logging)
                 {
-                        if(a_ups_srvr_session.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
-                        a_ups_srvr_session.m_out_q->print();
-                        if(a_ups_srvr_session.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+                        if(a_uss.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
+                        a_uss.m_out_q->print();
+                        if(a_uss.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 }
         }
         ++m_stat.m_upsv_reqs;
@@ -514,10 +514,13 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         {
                 a_subr.set_start_time_ms(get_time_ms());
         }
-        l_status = add_timer(a_subr.get_timeout_ms(),
+
+        a_uss.set_last_active_ms(get_time_ms());
+        a_uss.set_timeout_ms(a_subr.get_timeout_ms());
+        l_status = add_timer(a_uss.get_timeout_ms(),
                              ups_srvr_session::evr_fd_timeout_cb,
                              &a_nconn,
-                             (void **)&(a_ups_srvr_session.m_timer_obj));
+                             (void **)&(a_uss.m_timer_obj));
         if(l_status != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error: Performing add_timer\n");
@@ -528,13 +531,13 @@ int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_ups_srvr_session, n
         //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
         //           a_subr.m_host.c_str(), a_nconn.get_data());
         l_status = a_nconn.nc_run_state_machine(EVR_MODE_WRITE,
-                                                a_ups_srvr_session.m_in_q,
-                                                a_ups_srvr_session.m_out_q);
+                                                a_uss.m_in_q,
+                                                a_uss.m_out_q);
         a_nconn.bump_num_requested();
         if(l_status == nconn::NC_STATUS_ERROR)
         {
                 ++(m_stat.m_upsv_errors);
-                return ups_srvr_session::teardown(this, &a_ups_srvr_session, &a_nconn, HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                return a_uss.teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
         }
         else if(l_status > 0)
         {
@@ -739,81 +742,6 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
         return HLX_STATUS_OK;
 }
 #endif
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t t_srvr::evr_fd_readable_lsnr_cb(void *a_data)
-{
-        //NDBG_PRINT("%sREADABLE%s %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_data);
-        if(!a_data)
-        {
-                return HLX_STATUS_OK;
-        }
-        nconn* l_nconn = static_cast<nconn*>(a_data);
-        CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
-        t_srvr *l_t_srvr = static_cast<t_srvr *>(l_nconn->get_ctx());
-        lsnr *l_lsnr = static_cast<lsnr *>(l_nconn->get_data());
-        //NDBG_PRINT("%sREADABLE%s LABEL: %s LSNR: %p\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-        //                l_nconn->get_label().c_str(), l_lsnr);
-        // Server -incoming client connections
-        if(!l_nconn->is_listening())
-        {
-                return HLX_STATUS_ERROR;
-        }
-        int32_t l_status;
-
-        if(!l_lsnr || !l_nconn)
-        {
-                return HLX_STATUS_ERROR;
-        }
-
-        // Returns new client fd on success
-        l_status = l_nconn->nc_run_state_machine(EVR_MODE_NONE,
-                                                 NULL,
-                                                 NULL);
-        if(l_status == nconn::NC_STATUS_ERROR)
-        {
-                return HLX_STATUS_ERROR;
-        }
-
-        // Get new connected client conn
-        nconn *l_new_nconn = NULL;
-        l_new_nconn = l_t_srvr->get_new_client_conn(l_nconn->get_scheme(), l_lsnr);
-        if(!l_new_nconn)
-        {
-                //NDBG_PRINT("Error performing get_new_client_conn");
-                return HLX_STATUS_ERROR;
-        }
-        clnt_session *l_clnt_session = static_cast<clnt_session *>(l_new_nconn->get_data());
-
-        // ---------------------------------------
-        // Set access info
-        // TODO move to clnt_session???
-        // ---------------------------------------
-        l_nconn->get_remote_sa(l_clnt_session->m_access_info.m_conn_clnt_sa,
-                               l_clnt_session->m_access_info.m_conn_clnt_sa_len);
-        l_lsnr->get_sa(l_clnt_session->m_access_info.m_conn_upsv_sa,
-                       l_clnt_session->m_access_info.m_conn_upsv_sa_len);
-        l_clnt_session->m_access_info.m_start_time_ms = get_time_ms();
-        l_clnt_session->m_access_info.m_total_time_ms = 0;
-        l_clnt_session->m_access_info.m_bytes_in = 0;
-        l_clnt_session->m_access_info.m_bytes_out = 0;
-
-        // Set connected
-        int l_fd = l_status;
-        l_status = l_new_nconn->nc_set_accepting(l_fd);
-        if(l_status != HLX_STATUS_OK)
-        {
-                //NDBG_PRINT("Error: performing run_state_machine\n");
-                l_t_srvr->cleanup_clnt_session(l_clnt_session, l_new_nconn);
-                // TODO Check return
-                return HLX_STATUS_ERROR;
-        }
-        return HLX_STATUS_OK;
-}
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -1171,11 +1099,10 @@ int32_t t_srvr::cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_ncon
 {
         if(a_clnt_session)
         {
-                if(a_clnt_session->m_timer_obj)
-                {
-                        m_evr_loop->cancel_timer(a_clnt_session->m_timer_obj);
-                        a_clnt_session->m_timer_obj = NULL;
-                }
+                // Cancel last timer
+                cancel_timer(a_clnt_session->m_timer_obj);
+                a_clnt_session->m_timer_obj = NULL;
+
                 a_clnt_session->m_nconn = NULL;
                 if(a_clnt_session->m_rqst)
                 {
@@ -1218,37 +1145,35 @@ int32_t t_srvr::cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_ncon
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::cleanup_srvr_session(ups_srvr_session *a_ups_srvr_session, nconn *a_nconn)
+int32_t t_srvr::cleanup_srvr_session(ups_srvr_session *a_uss, nconn *a_nconn)
 {
-        if(a_ups_srvr_session)
+        if(a_uss)
         {
                 // Cancel last timer
-                if(a_ups_srvr_session->m_timer_obj)
+                cancel_timer(a_uss->m_timer_obj);
+                a_uss->m_timer_obj = NULL;
+
+                a_uss->m_nconn = NULL;
+                if(a_uss->m_resp)
                 {
-                        m_evr_loop->cancel_timer(a_ups_srvr_session->m_timer_obj);
-                        a_ups_srvr_session->m_timer_obj = NULL;
+                        m_resp_pool.release(a_uss->m_resp);
+                        a_uss->m_resp = NULL;
                 }
-                a_ups_srvr_session->m_nconn = NULL;
-                if(a_ups_srvr_session->m_resp)
+                if(a_uss->m_in_q)
                 {
-                        m_resp_pool.release(a_ups_srvr_session->m_resp);
-                        a_ups_srvr_session->m_resp = NULL;
-                }
-                if(a_ups_srvr_session->m_in_q)
-                {
-                        if(!a_ups_srvr_session->m_in_q_detached)
+                        if(!a_uss->m_in_q_detached)
                         {
-                                m_nbq_pool.release(a_ups_srvr_session->m_in_q);
+                                m_nbq_pool.release(a_uss->m_in_q);
                         }
-                        a_ups_srvr_session->m_in_q = NULL;
+                        a_uss->m_in_q = NULL;
                 }
-                if(a_ups_srvr_session->m_out_q)
+                if(a_uss->m_out_q)
                 {
-                        m_nbq_pool.release(a_ups_srvr_session->m_out_q);
-                        a_ups_srvr_session->m_out_q = NULL;
+                        m_nbq_pool.release(a_uss->m_out_q);
+                        a_uss->m_out_q = NULL;
                 }
-                a_ups_srvr_session->clear();
-                m_ups_srvr_session_pool.release(a_ups_srvr_session);
+                a_uss->clear();
+                m_ups_srvr_session_pool.release(a_uss);
         }
         if(a_nconn)
         {
@@ -1465,6 +1390,7 @@ int32_t t_srvr::add_timer(uint32_t a_time_ms,
         }
         evr_timer_t *l_t = NULL;
         int32_t l_status;
+        ++m_stat.m_total_add_timer;
         l_status = m_evr_loop->add_timer(a_time_ms,
                                          a_timer_cb,
                                          this,
@@ -1488,6 +1414,10 @@ int32_t t_srvr::cancel_timer(void *a_timer)
         if(!m_evr_loop)
         {
                 return HLX_STATUS_ERROR;
+        }
+        if(!a_timer)
+        {
+                return HLX_STATUS_OK;
         }
         evr_timer_t *l_t = static_cast<evr_timer_t *>(a_timer);
         return m_evr_loop->cancel_timer(l_t);
