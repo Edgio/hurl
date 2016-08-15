@@ -110,4 +110,14 @@ h_resp_t rqst_h::send_bad_request(clnt_session &a_clnt_session, bool a_keep_aliv
         return send_json_resp_err(a_clnt_session, a_keep_alive, HTTP_STATUS_BAD_REQUEST);
 }
 
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+h_resp_t rqst_h::send_service_not_available(clnt_session &a_clnt_session, bool a_keep_alive)
+{
+        return send_json_resp_err(a_clnt_session, a_keep_alive, HTTP_STATUS_SERVICE_NOT_AVAILABLE);
+}
+
 } //namespace ns_hlx {
