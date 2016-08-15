@@ -71,6 +71,7 @@ public:
         static h_resp_t send_bad_request(clnt_session &a_clnt_session, bool a_keep_alive);
         static h_resp_t send_json_resp(clnt_session &a_clnt_session, bool a_keep_alive,
                                        http_status_t a_status, const char *a_json_resp);
+        static h_resp_t send_service_not_available(clnt_session &a_clnt_session, bool a_keep_alive);
         static h_resp_t send_json_resp_err(clnt_session &a_clnt_session, bool a_keep_alive,
                                            http_status_t a_status);
 
