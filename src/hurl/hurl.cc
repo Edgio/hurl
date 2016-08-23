@@ -549,7 +549,7 @@ int32_t parse_path(const char *a_path,
         {
                 if((l_range_end_pos = l_path.find("]", l_range_start_pos)) == std::string::npos)
                 {
-                        printf("HLX_STATUS_ERROR: Bad range for path: %s at pos: %lu\n", a_path, l_range_start_pos);
+                        printf("HLX_STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
                         return HLX_STATUS_ERROR;
                 }
 
