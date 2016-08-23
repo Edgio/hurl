@@ -1163,7 +1163,7 @@ int main(int argc, char** argv)
 #else
         char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CQ:W:Rcqsmo:ljP";
 #endif
-        while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
+        while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && (l_opt != 255))
         {
 
                 if (optarg)
