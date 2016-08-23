@@ -63,14 +63,25 @@ __thread char g_last_date_str[128];
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+// https://github.com/mellanox/sockperf/issues/47#issuecomment-97041796
 static __inline__ uint64_t get_rdtsc64()
 {
+        uint64_t tm;
+#if defined(__arm__) && defined(__linux__)
+        struct timespec ts;
+        clock_gettime(CLOCK_REALTIME, &ts);
+        tm = ts.tv_sec;
+        tm = tm * 1000000000ULL;
+        tm += ts.tv_nsec;
+#else
         uint32_t l_lo;
         uint32_t l_hi;
         // We cannot use "=A", since this would use %rax on x86_64
         __asm__ __volatile__ ("rdtsc" : "=a" (l_lo), "=d" (l_hi));
         // output registers
-        return (uint64_t) l_hi << 32 | l_lo;
+        tm = (uint64_t) l_hi << 32 | l_lo;
+#endif
+        return tm;
 }
 
 //: ----------------------------------------------------------------------------
