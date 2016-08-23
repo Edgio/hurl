@@ -336,7 +336,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                                 l_size = l_uss->m_subr->get_ups()->ups_read((size_t)l_s);
                                 if(l_size < 0)
                                 {
-                                        TRC_ERROR("performing ups_read -a_conn_status: %d l_size: %ld\n", l_s, l_size);
+                                        TRC_ERROR("performing ups_read -a_conn_status: %d l_size: %zd\n", l_s, l_size);
                                 }
                         }
                         // -------------------------------------------

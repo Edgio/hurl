@@ -288,7 +288,7 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
         //l_status = read(m_fd, a_buf, a_buf_len);
         errno = 0;
         l_status = recvfrom(m_fd, a_buf, a_buf_len, 0, NULL, NULL);
-        TRC_ALL("HOST[%s] fd[%3d] READ: %ld bytes. Reason: %s\n",
+        TRC_ALL("HOST[%s] fd[%3d] READ: %zd bytes. Reason: %s\n",
                 m_label.c_str(),
                 m_fd,
                 l_status,

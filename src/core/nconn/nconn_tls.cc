@@ -602,7 +602,7 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
         int32_t l_bytes_read = 0;
         errno = 0;
         l_status = ::SSL_read(m_tls, a_buf, a_buf_len);
-        TRC_ALL("HOST[%s] tls[%p] READ: %ld bytes. Reason: %s\n",
+        TRC_ALL("HOST[%s] tls[%p] READ: %zd bytes. Reason: %s\n",
                  m_label.c_str(),
                  m_tls,
                  l_status,

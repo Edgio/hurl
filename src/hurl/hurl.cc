@@ -549,7 +549,7 @@ int32_t parse_path(const char *a_path,
         {
                 if((l_range_end_pos = l_path.find("]", l_range_start_pos)) == std::string::npos)
                 {
-                        printf("HLX_STATUS_ERROR: Bad range for path: %s at pos: %lu\n", a_path, l_range_start_pos);
+                        printf("HLX_STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
                         return HLX_STATUS_ERROR;
                 }
 
@@ -1194,7 +1194,7 @@ int main(int argc, char** argv)
         char l_short_arg_list[] = "hVwd:y:p:f:N:t:H:X:A:M:l:R:S:DT:xr:vcqCLjYZo:P:U:";
 #endif
 
-        while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1)
+        while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && (l_opt != 255))
         {
 
                 if (optarg)

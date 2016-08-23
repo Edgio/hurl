@@ -188,7 +188,7 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
         }
 
         char l_length_str[32];
-        sprintf(l_length_str, "%lu", l_fs->fssize());
+        sprintf(l_length_str, "%zu", l_fs->fssize());
         nbq_write_header(l_q, "Content-Length", l_length_str);
 
         // TODO get last modified for file...
