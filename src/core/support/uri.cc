@@ -30,13 +30,14 @@
 #include "uri.h"
 #include <string>
 #include <assert.h>
+#include <stdint.h>
 
 namespace ns_hlx
 {
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
-const char G_HEX2DEC[256] =
+const int8_t G_HEX2DEC[256] =
 {
         /*       0  1  2  3   4  5  6  7   8  9  A  B   C  D  E  F */
         /* 0 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
@@ -62,7 +63,7 @@ const char G_HEX2DEC[256] =
 
 
 // Only alphanum is safe.
-const char G_SAFE[256] =
+const int8_t G_SAFE[256] =
 {
         /*      0 1 2 3  4 5 6 7  8 9 A B  C D E F */
         /* 0 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
@@ -118,8 +119,8 @@ std::string uri_decode(const std::string & a_src)
                         {
                                 char dec1;
                                 char dec2;
-                                if ((-1 != (dec1 = G_HEX2DEC[*(pSrc + 1)])) &&
-                                    (-1 != (dec2 = G_HEX2DEC[*(pSrc + 2)])))
+                                if ((-1 != (dec1 = (char)G_HEX2DEC[*(pSrc + 1)])) &&
+                                    (-1 != (dec2 = (char)G_HEX2DEC[*(pSrc + 2)])))
                                 {
                                         *pEnd = (dec1 << 4) + dec2;
                                         ++pEnd;
