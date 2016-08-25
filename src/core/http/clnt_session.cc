@@ -314,6 +314,7 @@ int32_t clnt_session::teardown(void)
         // cancel timer
         cancel_timer(m_timer_obj);
         // TODO Check status
+        m_timer_obj = NULL;
 
         // if upstream object associated w/ clnt request...
         if(m_ups)

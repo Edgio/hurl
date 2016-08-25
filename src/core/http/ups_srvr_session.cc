@@ -211,6 +211,8 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                 if(l_uss)
                 {
                         l_uss->cancel_timer(l_uss->m_timer_obj);
+                        // TODO Check status
+                        l_uss->m_timer_obj = NULL;
                         return l_uss->teardown(HTTP_STATUS_BAD_GATEWAY);
                 }
                 else
@@ -345,6 +347,11 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                         if(l_uss->m_resp &&
                            l_uss->m_resp->m_complete)
                         {
+                                // Cancel timer
+                                l_uss->cancel_timer(l_uss->m_timer_obj);
+                                // TODO Check status
+                                l_uss->m_timer_obj = NULL;
+
                                 if(l_uss->m_rqst_resp_logging && l_uss->m_resp)
                                 {
                                         if(l_uss->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
