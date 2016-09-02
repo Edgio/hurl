@@ -1161,16 +1161,25 @@ int subr::set_header(const std::string &a_key, const std::string &a_val)
         {
                 // Special handling for Host/User-agent/referer
                 bool l_replace = false;
+                bool l_remove = false;
                 if(!strcasecmp(a_key.c_str(), "User-Agent") ||
                    !strcasecmp(a_key.c_str(), "Referer") ||
+                   !strcasecmp(a_key.c_str(), "Accept") ||
                    !strcasecmp(a_key.c_str(), "Host"))
                 {
                         l_replace = true;
+                        if(a_val.empty())
+                        {
+                                l_remove = true;
+                        }
                 }
                 if(l_replace)
                 {
                         i_obj->second.pop_front();
-                        i_obj->second.push_back(a_val);
+                        if(!l_remove)
+                        {
+                                i_obj->second.push_back(a_val);
+                        }
                 }
                 else
                 {
