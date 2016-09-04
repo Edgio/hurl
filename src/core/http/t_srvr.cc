@@ -433,131 +433,6 @@ int32_t t_srvr::queue_output(clnt_session &a_clnt_session)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_srvr::subr_start(subr &a_subr, ups_srvr_session &a_uss, nconn &a_nconn)
-{
-        int32_t l_status;
-        //NDBG_PRINT("TID[%lu]: %sSTART%s: Host: %s l_nconn: %p\n",
-        //                pthread_self(),
-        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
-        //                a_subr.get_label().c_str(),
-        //                &a_nconn);
-        resp *l_resp = a_uss.m_resp;
-        get_from_pool_if_null(l_resp, m_resp_pool);
-        l_resp->init(a_subr.get_save());
-        l_resp->m_http_parser->data = l_resp;
-        a_nconn.set_read_cb(http_parse);
-        a_nconn.set_read_cb_data(l_resp);
-        a_uss.m_resp = l_resp;
-        a_uss.m_resp->m_expect_resp_body_flag = a_subr.get_expect_resp_body_flag();
-        a_uss.m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
-        a_uss.m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
-
-        // Create request
-        if(!a_subr.get_connect_only())
-        {
-                if(!get_from_pool_if_null(a_uss.m_in_q, m_nbq_pool))
-                {
-                        a_uss.m_in_q->reset_write();
-                }
-
-                a_uss.m_resp->set_q(a_uss.m_in_q);
-
-                if(!a_uss.m_out_q)
-                {
-                        if(!get_from_pool_if_null(a_uss.m_out_q, m_nbq_pool))
-                        {
-                                a_uss.m_out_q->reset_write();
-                        }
-                        subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
-                        if(l_create_req_cb)
-                        {
-                                l_status = l_create_req_cb(a_subr, *a_uss.m_out_q);
-                                if(HLX_STATUS_OK != l_status)
-                                {
-                                        return HLX_STATUS_ERROR;
-                                }
-                        }
-                }
-                else
-                {
-                        if(a_subr.get_is_multipath())
-                        {
-                                // Reset in data
-                                a_uss.m_out_q->reset_write();
-                                subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
-                                if(l_create_req_cb)
-                                {
-                                        l_status = l_create_req_cb(a_subr, *a_uss.m_out_q);
-                                        if(HLX_STATUS_OK != l_status)
-                                        {
-                                                return HLX_STATUS_ERROR;
-                                        }
-                                }
-                        }
-                        else
-                        {
-                                a_uss.m_out_q->reset_read();
-                        }
-                }
-
-                // Display data from out q
-                if(a_uss.m_rqst_resp_logging)
-                {
-                        if(a_uss.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
-                        a_uss.m_out_q->print();
-                        if(a_uss.m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
-                }
-        }
-        ++m_stat.m_upsv_reqs;
-        // Set start time
-        if(a_subr.get_kind() != subr::SUBR_KIND_DUPE)
-        {
-                a_subr.set_start_time_ms(get_time_ms());
-        }
-
-        a_uss.set_last_active_ms(get_time_ms());
-        a_uss.set_timeout_ms(a_subr.get_timeout_ms());
-        l_status = add_timer(a_uss.get_timeout_ms(),
-                             ups_srvr_session::evr_fd_timeout_cb,
-                             &a_nconn,
-                             (void **)&(a_uss.m_timer_obj));
-        if(l_status != HLX_STATUS_OK)
-        {
-                //NDBG_PRINT("Error: Performing add_timer\n");
-                return HLX_STATUS_ERROR;
-        }
-        //NDBG_PRINT("g_client_req_num: %d\n", ++g_client_req_num);
-        //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
-        //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
-        //           a_subr.m_host.c_str(), a_nconn.get_data());
-        l_status = a_nconn.nc_run_state_machine(EVR_MODE_WRITE,
-                                                a_uss.m_in_q,
-                                                a_uss.m_out_q);
-        a_nconn.bump_num_requested();
-        if(l_status == nconn::NC_STATUS_ERROR)
-        {
-                ++(m_stat.m_upsv_errors);
-                return a_uss.teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
-        }
-        else if(l_status > 0)
-        {
-                m_stat.m_upsv_bytes_written += l_status;
-        }
-
-        // Get request time
-        if(a_nconn.get_collect_stats_flag())
-        {
-                a_nconn.set_request_start_time_us(get_time_us());
-        }
-
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
 {
         nconn *l_nconn;
@@ -885,6 +760,24 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 {
                         T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CIPHER_STR,m_t_conf->m_tls_client_ctx_cipher_list.c_str(),m_t_conf->m_tls_client_ctx_cipher_list.length());
                         T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CTX,m_t_conf->m_tls_client_ctx,sizeof(m_t_conf->m_tls_client_ctx));
+                        bool l_val;
+                        l_val = a_subr.get_tls_verify();
+                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY, &(l_val), sizeof(bool));
+                        l_val = a_subr.get_tls_self_ok();
+                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED, &(l_val), sizeof(bool));
+                        l_val = a_subr.get_tls_no_host_check();
+                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK, &(l_val), sizeof(bool));
+                        l_val = a_subr.get_tls_sni();
+                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_SNI, &(l_val), sizeof(bool));
+                        if(!a_subr.get_hostname().empty())
+                        {
+                                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_HOSTNAME, a_subr.get_hostname().c_str(), a_subr.get_hostname().length());
+                        }
+                        else
+                        {
+                                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_HOSTNAME, a_subr.get_host().c_str(), a_subr.get_host().length());
+                        }
+
                 }
                 l_nconn->set_host_info(l_host_info);
                 a_subr.set_host_info(l_host_info);
@@ -895,8 +788,10 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
 
         }
-        // If we grabbed an idle connection spoof the connect time
-        // for stats
+        // -------------------------------------------------
+        // If we grabbed an idle connection spoof connect
+        // time for stats
+        // -------------------------------------------------
         else
         {
                 // Reset stats
@@ -906,60 +801,170 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         l_nconn->set_connect_start_time_us(get_time_us());
                 }
         }
-        if(l_nconn->get_scheme() == SCHEME_TLS)
-        {
-                bool l_val;
-                l_val = a_subr.get_tls_verify();
-                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY, &(l_val), sizeof(bool));
-                l_val = a_subr.get_tls_self_ok();
-                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED, &(l_val), sizeof(bool));
-                l_val = a_subr.get_tls_no_host_check();
-                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK, &(l_val), sizeof(bool));
-                l_val = a_subr.get_tls_sni();
-                T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_SNI, &(l_val), sizeof(bool));
-                if(!a_subr.get_hostname().empty())
-                {
-                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_HOSTNAME, a_subr.get_hostname().c_str(), a_subr.get_hostname().length());
-                }
-                else
-                {
-                        T_HLX_SET_NCONN_OPT((*l_nconn), nconn_tls::OPT_TLS_HOSTNAME, a_subr.get_host().c_str(), a_subr.get_host().length());
-                }
-        }
 
-        ups_srvr_session *l_ups_srvr_session = NULL;
-        if(!get_from_pool_if_null(l_ups_srvr_session, m_ups_srvr_session_pool))
+        ups_srvr_session *l_uss = NULL;
+        if(!get_from_pool_if_null(l_uss, m_ups_srvr_session_pool))
         {
                 //NDBG_PRINT("REUSED!!!\n");
         }
 
         //NDBG_PRINT("Adding http_data: %p.\n", l_clnt_session);
-        l_ups_srvr_session->m_t_srvr = this;
-        l_ups_srvr_session->m_timer_obj = NULL;
+        l_uss->m_t_srvr = this;
+        l_uss->m_timer_obj = NULL;
 
         // Setup nconn
-        l_nconn->set_data(l_ups_srvr_session);
+        l_nconn->set_data(l_uss);
         l_nconn->set_evr_loop(m_evr_loop);
         l_nconn->set_pre_connect_cb(a_subr.get_pre_connect_cb());
 
         // Setup clnt_session
-        l_ups_srvr_session->m_nconn = l_nconn;
-        l_ups_srvr_session->m_subr = &a_subr;
+        l_uss->m_nconn = l_nconn;
+        l_uss->m_subr = &a_subr;
 
         // Assign clnt_session
-        a_subr.set_ups_srvr_session(l_ups_srvr_session);
-        l_status = subr_start(a_subr, *l_ups_srvr_session, *l_nconn);
-        if(l_status != HLX_STATUS_OK)
+        a_subr.set_ups_srvr_session(l_uss);
+
+        // -------------------------------------------------
+        //
+        // -------------------------------------------------
+        //NDBG_PRINT("TID[%lu]: %sSTART%s: Host: %s l_nconn: %p\n",
+        //                pthread_self(),
+        //                ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+        //                a_subr.get_label().c_str(),
+        //                &a_nconn);
+        resp *l_resp = l_uss->m_resp;
+        get_from_pool_if_null(l_resp, m_resp_pool);
+        l_resp->init(a_subr.get_save());
+        l_resp->m_http_parser->data = l_resp;
+        l_nconn->set_read_cb(http_parse);
+        l_nconn->set_read_cb_data(l_resp);
+        l_uss->m_resp = l_resp;
+        l_uss->m_resp->m_expect_resp_body_flag = a_subr.get_expect_resp_body_flag();
+        l_uss->m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
+        l_uss->m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
+
+        // ---------------------------------------
+        // in q
+        // ---------------------------------------
+        if(!get_from_pool_if_null(l_uss->m_in_q, m_nbq_pool))
         {
-                //NDBG_PRINT("Error performing request\n");
-                return HLX_STATUS_ERROR;
+                l_uss->m_in_q->reset_write();
+        }
+        l_uss->m_resp->set_q(l_uss->m_in_q);
+
+        // ---------------------------------------
+        // out q
+        // ---------------------------------------
+        bool l_create_req = false;
+        if(!l_uss->m_out_q)
+        {
+                if(!get_from_pool_if_null(l_uss->m_out_q, m_nbq_pool))
+                {
+                        l_uss->m_out_q->reset_write();
+                }
+                l_create_req = true;
+        }
+        else if(a_subr.get_is_multipath())
+        {
+                // Reset in data
+                l_uss->m_out_q->reset_write();
+                l_create_req = true;
         }
         else
         {
-                a_subr.set_state(subr::SUBR_STATE_ACTIVE);
-                a_subr.bump_num_requested();
-                return HLX_STATUS_OK;
+                l_uss->m_out_q->reset_read();
         }
+
+        // ---------------------------------------
+        // create request
+        // ---------------------------------------
+        if(l_create_req)
+        {
+                subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
+                if(l_create_req_cb)
+                {
+                        l_status = l_create_req_cb(a_subr, *l_uss->m_out_q);
+                        if(HLX_STATUS_OK != l_status)
+                        {
+                                l_uss->teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                                // TODO check status
+                                return HLX_STATUS_ERROR;
+                        }
+                }
+        }
+
+        // ---------------------------------------
+        // Display data from out q
+        // ---------------------------------------
+        if(l_uss->m_rqst_resp_logging)
+        {
+                if(l_uss->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
+                l_uss->m_out_q->print();
+                if(l_uss->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+        }
+
+        // ---------------------------------------
+        // stats
+        // ---------------------------------------
+        ++m_stat.m_upsv_reqs;
+        // Set start time
+        if(a_subr.get_kind() != subr::SUBR_KIND_DUPE)
+        {
+                a_subr.set_start_time_ms(get_time_ms());
+        }
+        if(l_nconn->get_collect_stats_flag())
+        {
+                l_nconn->set_request_start_time_us(get_time_us());
+        }
+        l_uss->set_last_active_ms(get_time_ms());
+        l_uss->set_timeout_ms(a_subr.get_timeout_ms());
+
+        // ---------------------------------------
+        // idle timer
+        // ---------------------------------------
+        l_status = add_timer(l_uss->get_timeout_ms(),
+                             ups_srvr_session::evr_fd_timeout_cb,
+                             l_nconn,
+                             (void **)&(l_uss->m_timer_obj));
+        if(l_status != HLX_STATUS_OK)
+        {
+                //NDBG_PRINT("Error: Performing add_timer\n");
+                l_uss->teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                // TODO check status
+                return HLX_STATUS_ERROR;
+        }
+
+        // ---------------------------------------
+        // start writing request
+        // ---------------------------------------
+        //NDBG_PRINT("g_client_req_num: %d\n", ++g_client_req_num);
+        //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
+        //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
+        //           a_subr.m_host.c_str(), l_nconn->get_data());
+        l_status = l_nconn->nc_run_state_machine(EVR_MODE_WRITE,
+                                                l_uss->m_in_q,
+                                                l_uss->m_out_q);
+        l_nconn->bump_num_requested();
+        if(l_status == nconn::NC_STATUS_ERROR)
+        {
+                ++(m_stat.m_upsv_errors);
+                l_uss->teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
+                // TODO check status
+                return HLX_STATUS_ERROR;
+        }
+        // ---------------------------------------
+        // stats
+        // ---------------------------------------
+        if(l_status > 0)
+        {
+                m_stat.m_upsv_bytes_written += l_status;
+        }
+
+        // ---------------------------------------
+        // set to active state
+        // ---------------------------------------
+        a_subr.set_state(subr::SUBR_STATE_ACTIVE);
+        a_subr.bump_num_requested();
         return HLX_STATUS_OK;
 }
 
@@ -977,39 +982,38 @@ int32_t t_srvr::subr_try_deq(void)
                 if(!l_subr)
                 {
                         subr_dequeue();
+                        continue;
                 }
+
+                int32_t l_status;
+                l_status = subr_try_start(*l_subr);
+                if(l_status == HLX_STATUS_OK)
+                {
+                        if(l_subr->get_is_pending_done())
+                        {
+                                //NDBG_PRINT("POP'ing: host: %s\n",
+                                //           l_subr->get_label().c_str());
+                                subr_dequeue();
+                                l_subr->set_i_q(m_subr_list.end());
+                        }
+                }
+                else if(l_status == HLX_STATUS_AGAIN)
+                {
+                        // break since ran out of available connections
+                        break;
+                }
+#ifdef ASYNC_DNS_SUPPORT
+                else if(l_status == STATUS_QUEUED_ASYNC_DNS)
+                {
+                        l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
+                        subr_dequeue();
+                        l_subr->set_i_q(m_subr_list.end());
+                }
+#endif
                 else
                 {
-                        int32_t l_status;
-                        l_status = subr_try_start(*l_subr);
-                        if(l_status == HLX_STATUS_OK)
-                        {
-                                if(l_subr->get_is_pending_done())
-                                {
-                                        //NDBG_PRINT("POP'ing: host: %s\n",
-                                        //           l_subr->get_label().c_str());
-                                        subr_dequeue();
-                                        l_subr->set_i_q(m_subr_list.end());
-                                }
-                        }
-                        else if(l_status == HLX_STATUS_AGAIN)
-                        {
-                                // break since ran out of available connections
-                                break;
-                        }
-#ifdef ASYNC_DNS_SUPPORT
-                        else if(l_status == STATUS_QUEUED_ASYNC_DNS)
-                        {
-                                l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
-                                subr_dequeue();
-                                l_subr->set_i_q(m_subr_list.end());
-                        }
-#endif
-                        else
-                        {
-                                subr_dequeue();
-                                l_subr->set_i_q(m_subr_list.end());
-                        }
+                        subr_dequeue();
+                        l_subr->set_i_q(m_subr_list.end());
                 }
         }
         return HLX_STATUS_OK;
@@ -1313,11 +1317,11 @@ int32_t t_srvr::get_ups_status_code_count_map(status_code_count_map_t &ao_ups_st
 //: ----------------------------------------------------------------------------
 ups_srvr_session * t_srvr::get_ups_srvr(lsnr *a_lsnr)
 {
-        ups_srvr_session *l_ups_srvr_session = NULL;
-        get_from_pool_if_null(l_ups_srvr_session, m_ups_srvr_session_pool);
-        l_ups_srvr_session->m_t_srvr = this;
-        l_ups_srvr_session->m_timer_obj = NULL;
-        return l_ups_srvr_session;
+        ups_srvr_session *l_uss = NULL;
+        get_from_pool_if_null(l_uss, m_ups_srvr_session_pool);
+        l_uss->m_t_srvr = this;
+        l_uss->m_timer_obj = NULL;
+        return l_uss;
 }
 
 //: ----------------------------------------------------------------------------

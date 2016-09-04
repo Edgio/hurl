@@ -37,6 +37,7 @@ TEST_CASE( "nconn pool test", "[nconn_pool]" )
         {
                 INFO("Init");
                 ns_hlx::nconn_pool l_p(0xDEADBEEF, 8,16);
+
                 REQUIRE((l_p.get_active_available() == 8));
                 REQUIRE((l_p.get_active_size() == 0));
                 REQUIRE((l_p.get_idle_size() == 0));

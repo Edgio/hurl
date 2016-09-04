@@ -91,6 +91,15 @@ clnt_session::clnt_session(void):
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+clnt_session::~clnt_session(void)
+{
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void clnt_session::clear(void)
 {
         m_nconn = NULL;

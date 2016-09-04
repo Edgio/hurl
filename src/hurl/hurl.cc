@@ -1772,6 +1772,7 @@ int main(int argc, char** argv)
         // Add subrequests
         // -------------------------------------------
         ns_hlx::srvr::t_srvr_list_t &l_t_srvr_list = l_srvr->get_t_srvr_list();
+        ns_hlx::subr_list_t l_subr_list;
         uint32_t l_num_hlx = (uint32_t)l_t_srvr_list.size();
         uint32_t i_hlx_idx = 0;
         for(ns_hlx::srvr::t_srvr_list_t::iterator i_t = l_t_srvr_list.begin();
@@ -1783,8 +1784,8 @@ int main(int argc, char** argv)
                         continue;
                 }
                 ns_hlx::subr *l_duped_subr = new ns_hlx::subr(*l_subr);
+                l_subr_list.push_back(l_duped_subr);
                 l_duped_subr->set_uid(l_srvr->get_next_subr_uuid());
-
                 // Recalculate num fetches per thread
                 if(l_duped_subr->get_num_to_request() > 0)
                 {
@@ -1915,6 +1916,19 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
+        if(!l_subr_list.empty())
+        {
+                for(ns_hlx::subr_list_t::iterator i_s = l_subr_list.begin();
+                    i_s != l_subr_list.end();
+                    ++i_s)
+                {
+                        if(*i_s)
+                        {
+                                delete *i_s;
+                                *i_s = NULL;
+                        }
+                }
+        }
         if(l_srvr)
         {
                 delete l_srvr;

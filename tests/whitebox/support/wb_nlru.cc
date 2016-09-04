@@ -157,6 +157,14 @@ TEST_CASE( "nlru test", "[nlru]" ) {
                 REQUIRE( (l_get != NULL) );
                 printf("l_get->m_name: %s\n", l_get->m_name.c_str());
                 REQUIRE( (l_get->m_name == "Droopy") );
+                if(l_get)
+                {
+                        delete l_get;
+                        l_get = NULL;
+                }
         }
-
+        while(l_animal_lru.size())
+        {
+                l_animal_lru.evict();
+        }
 }

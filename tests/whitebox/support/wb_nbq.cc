@@ -137,4 +137,10 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 nbq_read(l_nbq, l_buf, BLOCK_SIZE);
                 REQUIRE(( l_nbq.read_avail() == 0 ));
         }
+
+        if(l_buf)
+        {
+                free(l_buf);
+                l_buf = NULL;
+        }
 }

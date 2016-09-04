@@ -260,7 +260,6 @@ private:
         ups_srvr_session * get_ups_srvr(lsnr *a_lsnr);
 
         int32_t subr_try_start(subr &a_subr);
-        int32_t subr_start(subr &a_subr, ups_srvr_session &a_uss, nconn &a_nconn);
         int32_t subr_try_deq(void);
 
         inline void subr_dequeue(void)

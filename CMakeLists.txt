@@ -23,20 +23,26 @@
 project(hlx)
 cmake_minimum_required(VERSION 2.8.0)
 
+if (POLICY CMP0050)
+    cmake_policy(SET CMP0050 OLD)
+endif()
+
 # Build options
-option(GCC_OPTIONS      "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
-option(FORTIFY          "Fortify Source GCC options" OFF)
-option(DEBUG_MODE       "Compile in debug mode." OFF)
-option(BUILD_APPS       "Build hurl/phurl/fsurve" ON)
-option(BUILD_EXAMPLES   "Build examples" OFF)
-option(BUILD_TESTS      "Build the unit tests." OFF)
-option(BUILD_TCMALLOC   "Build with tcmalloc" OFF)
-option(BUILD_PROFILER   "Enable google cpu and heap profiler support" OFF)
-option(BUILD_SYMBOLS    "Build with Symbols" OFF)
-option(BUILD_EFENCE     "Build with efence" OFF)
-option(BUILD_ASAN       "Build with Address Sanitizer" OFF)
-option(BUILD_UDNS       "Build with udns (async dns support)" ON)
-option(BUILD_UBUNTU     "Build for Ubuntu" OFF)
+option(GCC_OPTIONS       "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
+option(FORTIFY           "Fortify Source GCC options" OFF)
+option(DEBUG_MODE        "Compile in debug mode." OFF)
+option(BUILD_APPS        "Build hurl/phurl/fsurve" ON)
+option(BUILD_EXAMPLES    "Build examples" OFF)
+option(BUILD_TESTS       "Build the unit tests." OFF)
+option(BUILD_TCMALLOC    "Build with tcmalloc" OFF)
+option(BUILD_PROFILER    "Enable google cpu and heap profiler support" OFF)
+option(BUILD_SYMBOLS     "Build with Symbols" OFF)
+option(BUILD_EFENCE      "Build with efence" OFF)
+option(BUILD_ASAN        "Build with Address Sanitizer" OFF)
+option(BUILD_ASAN_STATIC "Build with Address Sanitizer -statically linked" OFF)
+option(BUILD_UBSAN       "Build with Undefined Behavior Sanitizer" OFF)
+option(BUILD_UDNS        "Build with udns (async dns support)" ON)
+option(BUILD_UBUNTU      "Build for Ubuntu" OFF)
 
 # ------------------------------------------------------------------------------
 # Compiler options
@@ -63,6 +69,8 @@ message("    Build Symbols                              " "BUILD_SYMBOLS        
 message("    Build with tcmalloc:                       " "BUILD_TCMALLOC          " ${BUILD_TCMALLOC})
 message("    Build with efence:                         " "BUILD_EFENCE            " ${BUILD_EFENCE})
 message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
+message("    Build with Address Sanitizer (static):     " "BUILD_ASAN_STATIC       " ${BUILD_ASAN_STATIC})
+message("    Build with Undefined Behavior Sanitizer:   " "BUILD_UBSAN             " ${BUILD_UBSAN})
 message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
 message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU            " ${BUILD_UBUNTU})
 message("")
@@ -133,6 +141,26 @@ if (BUILD_ASAN)
   set(LIBRARIES ${LIBRARIES} asan)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
   set(DEBUG_MODE ON)
+  set(BUILD_PROFILER OFF)
+  set(BUILD_TCMALLOC OFF)
+# ------------------------------------------------------------------------------
+# ASAN STATIC
+# ------------------------------------------------------------------------------
+elseif (BUILD_ASAN_STATIC)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libasan -fsanitize=address")
+  add_definitions(-g3 -fno-omit-frame-pointer -static-libstdc++ -static-libasan -fsanitize=address)
+  set(DEBUG_MODE ON)
+  set(BUILD_PROFILER OFF)
+  set(BUILD_TCMALLOC OFF)
+# ------------------------------------------------------------------------------
+# UBSAN
+# ------------------------------------------------------------------------------
+elseif (BUILD_UBSAN)
+  set(LIBRARIES ${LIBRARIES} ubsan)
+  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover)
+  set(DEBUG_MODE ON)
+  set(BUILD_PROFILER OFF)
+  set(BUILD_TCMALLOC OFF)
 endif()
 
 # ------------------------------------------------------------------------------

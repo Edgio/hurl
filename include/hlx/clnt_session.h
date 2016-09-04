@@ -95,6 +95,7 @@ public:
         // Public methods
         // -------------------------------------------------
         clnt_session(void);
+        ~clnt_session(void);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         void clear(void);
@@ -120,6 +121,7 @@ private:
         // Disallow copy/assign
         clnt_session& operator=(const clnt_session &);
         clnt_session(const clnt_session &);
+
         int32_t handle_req(void);
         void log_status(uint16_t a_status = 0);
         int32_t teardown(void);
