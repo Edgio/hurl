@@ -147,8 +147,8 @@ if (BUILD_ASAN)
 # ASAN STATIC
 # ------------------------------------------------------------------------------
 elseif (BUILD_ASAN_STATIC)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libasan -fsanitize=address")
-  add_definitions(-g3 -fno-omit-frame-pointer -static-libstdc++ -static-libasan -fsanitize=address)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static-libasan -fsanitize=address")
+  add_definitions(-g3 -fno-omit-frame-pointer -static-libgcc -static-libstdc++ -static-libasan -fsanitize=address)
   set(DEBUG_MODE ON)
   set(BUILD_PROFILER OFF)
   set(BUILD_TCMALLOC OFF)
