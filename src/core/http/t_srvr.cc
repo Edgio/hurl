@@ -349,40 +349,8 @@ int32_t t_srvr::add_lsnr(lsnr &a_lsnr)
 int32_t t_srvr::subr_add(subr &a_subr)
 {
         a_subr.set_t_srvr(this);
-        //NDBG_PRINT("Adding subreq.\n");
-        if(m_stopped)
-        {
-                a_subr.set_state(subr::SUBR_STATE_QUEUED);
-                //m_subr_list.push_back(&a_subr);
-                subr_enqueue(a_subr);
-        }
-        else
-        {
-                int32_t l_status;
-                l_status = subr_try_start(a_subr);
-                if(l_status == HLX_STATUS_AGAIN)
-                {
-                        a_subr.set_state(subr::SUBR_STATE_QUEUED);
-                        //m_subr_list.push_back(&a_subr);
-                        subr_enqueue(a_subr);
-                        return HLX_STATUS_OK;
-                }
-#ifdef ASYNC_DNS_SUPPORT
-                else if(l_status == STATUS_QUEUED_ASYNC_DNS)
-                {
-                        a_subr.set_state(subr::SUBR_STATE_DNS_LOOKUP);
-                        return HLX_STATUS_OK;
-                }
-#endif
-                else if(l_status ==  HLX_STATUS_OK)
-                {
-                        return HLX_STATUS_OK;
-                }
-                else
-                {
-                        return HLX_STATUS_ERROR;
-                }
-        }
+        a_subr.set_state(subr::SUBR_STATE_QUEUED);
+        subr_enqueue(a_subr);
         return HLX_STATUS_OK;
 }
 
