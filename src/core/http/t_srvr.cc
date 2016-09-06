@@ -355,7 +355,6 @@ int32_t t_srvr::subr_add(subr &a_subr)
                 a_subr.set_state(subr::SUBR_STATE_QUEUED);
                 //m_subr_list.push_back(&a_subr);
                 subr_enqueue(a_subr);
-                a_subr.set_i_q(--(m_subr_list.end()));
         }
         else
         {
@@ -366,15 +365,15 @@ int32_t t_srvr::subr_add(subr &a_subr)
                         a_subr.set_state(subr::SUBR_STATE_QUEUED);
                         //m_subr_list.push_back(&a_subr);
                         subr_enqueue(a_subr);
-                        a_subr.set_i_q(--(m_subr_list.end()));
                         return HLX_STATUS_OK;
                 }
+#ifdef ASYNC_DNS_SUPPORT
                 else if(l_status == STATUS_QUEUED_ASYNC_DNS)
                 {
                         a_subr.set_state(subr::SUBR_STATE_DNS_LOOKUP);
-                        a_subr.set_i_q(m_subr_list.end());
                         return HLX_STATUS_OK;
                 }
+#endif
                 else if(l_status ==  HLX_STATUS_OK)
                 {
                         return HLX_STATUS_OK;
@@ -611,7 +610,6 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
         {
                 //l_t_srvr->m_subr_list.push_back(l_subr);
                 l_t_srvr->subr_enqueue(*l_subr);
-                l_subr->set_i_q(--(l_t_srvr->m_subr_list.end()));
         }
         l_t_srvr->subr_add(*l_subr);
         return HLX_STATUS_OK;
@@ -994,7 +992,6 @@ int32_t t_srvr::subr_try_deq(void)
                                 //NDBG_PRINT("POP'ing: host: %s\n",
                                 //           l_subr->get_label().c_str());
                                 subr_dequeue();
-                                l_subr->set_i_q(m_subr_list.end());
                         }
                 }
                 else if(l_status == HLX_STATUS_AGAIN)
@@ -1007,13 +1004,11 @@ int32_t t_srvr::subr_try_deq(void)
                 {
                         l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
                         subr_dequeue();
-                        l_subr->set_i_q(m_subr_list.end());
                 }
 #endif
                 else
                 {
                         subr_dequeue();
-                        l_subr->set_i_q(m_subr_list.end());
                 }
         }
         return HLX_STATUS_OK;

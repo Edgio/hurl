@@ -164,7 +164,6 @@ public:
         void set_start_time_ms(uint64_t a_val);
         void set_end_time_ms(uint64_t a_val);
         void set_lookup_job(void *a_data);
-        void set_i_q(subr_list_t::iterator a_i_q);
         void set_tls_verify(bool a_val);
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
@@ -262,7 +261,6 @@ private:
         uint64_t m_start_time_ms;
         uint64_t m_end_time_ms;
         void *m_lookup_job;
-        subr_list_t::iterator m_i_q;
         bool m_tls_verify;
         bool m_tls_sni;
         bool m_tls_self_ok;
