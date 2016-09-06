@@ -222,7 +222,7 @@ int32_t clnt_session::cancel_timer(void *a_timer)
 {
         if(!m_t_srvr)
         {
-            return HLX_STATUS_ERROR;
+                return HLX_STATUS_ERROR;
         }
         int32_t l_status;
         l_status = m_t_srvr->cancel_timer(a_timer);

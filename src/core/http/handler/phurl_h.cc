@@ -362,12 +362,7 @@ phurl_u::phurl_u(clnt_session &a_clnt_session,
 //: ----------------------------------------------------------------------------
 phurl_u::~phurl_u(void)
 {
-        if(m_timer)
-        {
-                m_clnt_session.cancel_timer(m_timer);
-                // TODO Check status
-                m_timer = NULL;
-        }
+        ups_cancel();
         for(hlx_resp_list_t::iterator i_resp = m_resp_list.begin(); i_resp != m_resp_list.end(); ++i_resp)
         {
                 if(*i_resp)
@@ -424,19 +419,17 @@ ssize_t phurl_u::ups_read(size_t a_len)
 //: ----------------------------------------------------------------------------
 int32_t phurl_u::ups_cancel(void)
 {
-        if(ups_done())
-        {
-                return HLX_STATUS_OK;
-        }
-        int32_t l_status = HLX_STATUS_OK;
-
         if(m_timer)
         {
                 m_clnt_session.cancel_timer(m_timer);
                 // TODO Check status
                 m_timer = NULL;
         }
-
+        if(ups_done())
+        {
+                return HLX_STATUS_OK;
+        }
+        int32_t l_status = HLX_STATUS_OK;
         m_state = UPS_STATE_DONE;
         // ---------------------------------------
         // Cancel pending...
