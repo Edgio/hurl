@@ -229,6 +229,22 @@ int32_t phurl_h::s_error_cb(subr &a_subr,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+int32_t phurl_u::s_timeout_cb(void *a_ctx, void *a_data)
+{
+        phurl_u *l_phr = static_cast<phurl_u *>(a_data);
+        if(!l_phr)
+        {
+                return HLX_STATUS_ERROR;
+        }
+        l_phr->m_timer = NULL;
+        return l_phr->ups_cancel();
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 int32_t phurl_h::s_done_check(subr &a_subr, phurl_u *a_phr)
 {
         if(!a_phr)
@@ -243,18 +259,6 @@ int32_t phurl_h::s_done_check(subr &a_subr, phurl_u *a_phr)
              (a_phr->get_done_ratio() >= a_phr->m_completion_ratio)) ||
            !(a_phr->m_pending_subr_uid_map.size()))
         {
-                // Cancel pending
-                int32_t l_status;
-                if(a_subr.get_ups_srvr_session())
-                {
-                        l_status = a_subr.get_ups_srvr_session()->cancel_timer(a_phr->m_timer);
-                        if(l_status != HLX_STATUS_OK)
-                        {
-                                // TODO ???
-                                // warn -still need to cancel...
-                        }
-                        a_phr->m_timer = NULL;
-                }
                 return a_phr->ups_cancel();
         }
         return HLX_STATUS_OK;
@@ -358,6 +362,12 @@ phurl_u::phurl_u(clnt_session &a_clnt_session,
 //: ----------------------------------------------------------------------------
 phurl_u::~phurl_u(void)
 {
+        if(m_timer)
+        {
+                m_clnt_session.cancel_timer(m_timer);
+                // TODO Check status
+                m_timer = NULL;
+        }
         for(hlx_resp_list_t::iterator i_resp = m_resp_list.begin(); i_resp != m_resp_list.end(); ++i_resp)
         {
                 if(*i_resp)
@@ -418,6 +428,15 @@ int32_t phurl_u::ups_cancel(void)
         {
                 return HLX_STATUS_OK;
         }
+        int32_t l_status = HLX_STATUS_OK;
+
+        if(m_timer)
+        {
+                m_clnt_session.cancel_timer(m_timer);
+                // TODO Check status
+                m_timer = NULL;
+        }
+
         m_state = UPS_STATE_DONE;
         // ---------------------------------------
         // Cancel pending...
@@ -439,7 +458,6 @@ int32_t phurl_u::ups_cancel(void)
         // ---------------------------------------
         // Create Response...
         // ---------------------------------------
-        int32_t l_status = HLX_STATUS_OK;
         if(m_create_resp_cb)
         {
                 l_status = m_create_resp_cb(this);
@@ -465,21 +483,6 @@ float phurl_u::get_done_ratio(void)
         float l_size = (float)m_size;
         float l_done = (float)(m_pending_subr_uid_map.size());
         return 100.0*((l_size - l_done)/l_size);
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t phurl_u::s_timeout_cb(void *a_ctx, void *a_data)
-{
-        phurl_u *l_phr = static_cast<phurl_u *>(a_data);
-        if(!l_phr)
-        {
-                return HLX_STATUS_ERROR;
-        }
-        return l_phr->ups_cancel();
 }
 
 } //namespace ns_hlx {
