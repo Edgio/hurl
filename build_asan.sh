@@ -31,7 +31,7 @@ mkdir -p build
 pushd build && \
     cmake ../ \
     -DBUILD_SYMBOLS=ON \
-    -DBUILD_ASAN_STATIC=ON \
+    -DBUILD_ASAN=ON \
     -DBUILD_APPS=ON \
     -DBUILD_UBUNTU=ON \
     -DCMAKE_INSTALL_PREFIX=/usr && \
