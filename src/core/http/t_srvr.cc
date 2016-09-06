@@ -722,6 +722,8 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_RECV_BUF_SIZE,NULL,m_t_conf->m_sock_opt_recv_buf_size);
                 T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_SEND_BUF_SIZE,NULL,m_t_conf->m_sock_opt_send_buf_size);
                 T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tcp::OPT_TCP_NO_DELAY,NULL,m_t_conf->m_sock_opt_no_delay);
+
+
                 if(l_nconn->get_scheme() == SCHEME_TLS)
                 {
                         T_HLX_SET_NCONN_OPT((*l_nconn),nconn_tls::OPT_TLS_CIPHER_STR,m_t_conf->m_tls_client_ctx_cipher_list.c_str(),m_t_conf->m_tls_client_ctx_cipher_list.length());
@@ -745,11 +747,14 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         }
 
                 }
+
                 l_nconn->set_host_info(l_host_info);
                 a_subr.set_host_info(l_host_info);
+
                 // Reset stats
                 l_nconn->reset_stats();
 
+                // stats
                 ++m_stat.m_upsv_conn_started;
                 m_stat.m_pool_proxy_conn_active = m_nconn_proxy_pool.get_active_size();
 
@@ -849,12 +854,10 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                 subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
                 if(l_create_req_cb)
                 {
-                        l_status = l_create_req_cb(a_subr, *l_uss->m_out_q);
+                        l_status = l_create_req_cb(a_subr, *(l_uss->m_out_q));
                         if(HLX_STATUS_OK != l_status)
                         {
-                                l_uss->teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
-                                // TODO check status
-                                return HLX_STATUS_ERROR;
+                                return ups_srvr_session::evr_fd_error_cb(l_nconn);
                         }
                 }
         }
@@ -886,6 +889,12 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         l_uss->set_timeout_ms(a_subr.get_timeout_ms());
 
         // ---------------------------------------
+        // set to active state
+        // ---------------------------------------
+        a_subr.set_state(subr::SUBR_STATE_ACTIVE);
+        a_subr.bump_num_requested();
+
+        // ---------------------------------------
         // idle timer
         // ---------------------------------------
         l_status = add_timer(l_uss->get_timeout_ms(),
@@ -894,44 +903,13 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                              (void **)&(l_uss->m_timer_obj));
         if(l_status != HLX_STATUS_OK)
         {
-                //NDBG_PRINT("Error: Performing add_timer\n");
-                l_uss->teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
-                // TODO check status
-                return HLX_STATUS_ERROR;
+                return ups_srvr_session::evr_fd_error_cb(l_nconn);
         }
 
         // ---------------------------------------
         // start writing request
         // ---------------------------------------
-        //NDBG_PRINT("g_client_req_num: %d\n", ++g_client_req_num);
-        //NDBG_PRINT("%sCONNECT%s: %s --data: %p\n",
-        //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
-        //           a_subr.m_host.c_str(), l_nconn->get_data());
-        l_status = l_nconn->nc_run_state_machine(EVR_MODE_WRITE,
-                                                l_uss->m_in_q,
-                                                l_uss->m_out_q);
-        l_nconn->bump_num_requested();
-        if(l_status == nconn::NC_STATUS_ERROR)
-        {
-                ++(m_stat.m_upsv_errors);
-                l_uss->teardown(HTTP_STATUS_INTERNAL_SERVER_ERROR);
-                // TODO check status
-                return HLX_STATUS_ERROR;
-        }
-        // ---------------------------------------
-        // stats
-        // ---------------------------------------
-        if(l_status > 0)
-        {
-                m_stat.m_upsv_bytes_written += l_status;
-        }
-
-        // ---------------------------------------
-        // set to active state
-        // ---------------------------------------
-        a_subr.set_state(subr::SUBR_STATE_ACTIVE);
-        a_subr.bump_num_requested();
-        return HLX_STATUS_OK;
+        return ups_srvr_session::evr_fd_writeable_cb(l_nconn);
 }
 
 //: ----------------------------------------------------------------------------
