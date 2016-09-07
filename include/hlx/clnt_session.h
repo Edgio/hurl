@@ -108,7 +108,6 @@ public:
                           timer_cb_t a_cb,
                           void *a_data,
                           void **ao_timer);
-        int32_t cancel_timer(void *a_timer);
         uint32_t get_timeout_ms(void);
         void set_timeout_ms(uint32_t a_t_ms);
         uint64_t get_last_active_ms(void);
@@ -125,6 +124,7 @@ private:
         int32_t handle_req(void);
         void log_status(uint16_t a_status = 0);
         int32_t teardown(void);
+        int32_t cancel_timer(void *a_timer);
 
         // -------------------------------------------------
         // Private Static (class) methods

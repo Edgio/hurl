@@ -118,6 +118,7 @@ SET(SRCS
     ./http/ups_srvr_session.cc
     ./http/access.cc
     ./http/api_resp.cc
+    ./http/base_u.cc
 
     ./http/handler/rqst_h.cc
     ./http/handler/default_rqst_h.cc

@@ -421,7 +421,7 @@ int32_t phurl_u::ups_cancel(void)
 {
         if(m_timer)
         {
-                m_clnt_session.cancel_timer(m_timer);
+                cancel_timer(m_t_srvr, m_timer);
                 // TODO Check status
                 m_timer = NULL;
         }

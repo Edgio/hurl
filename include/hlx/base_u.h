@@ -26,6 +26,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include <stdint.h>
+#include <stdio.h>
 
 namespace ns_hlx {
 
@@ -33,6 +35,7 @@ namespace ns_hlx {
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
 class nbq;
+class t_srvr;
 class clnt_session;
 
 //: ----------------------------------------------------------------------------
@@ -44,11 +47,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        base_u(clnt_session &a_clnt_session):
-                m_clnt_session(a_clnt_session),
-                m_state(UPS_STATE_IDLE),
-                m_shutdown(false)
-        {}
+        base_u(clnt_session &a_clnt_session);
         virtual ~base_u() {};
         virtual ssize_t ups_read(size_t a_len) = 0;
         virtual int32_t ups_cancel(void) = 0;
@@ -74,6 +73,7 @@ protected:
         // protected members
         // -------------------------------------------------
         clnt_session &m_clnt_session;
+        t_srvr *m_t_srvr;
         state_t m_state;
         bool m_shutdown;
 private:
