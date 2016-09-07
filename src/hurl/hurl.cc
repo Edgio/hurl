@@ -1743,12 +1743,12 @@ int main(int argc, char** argv)
         {
                 if(l_max_reqs_per_conn < 0)
                 {
-                        fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite reqests per connection\n",
+                        fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite requests per connection\n",
                                 l_max_threads, l_num_parallel);
                 }
                 else
                 {
-                        fprintf(stdout, "Running %d threads %d parallel connections per thread with %d reqests per connection\n",
+                        fprintf(stdout, "Running %d threads %d parallel connections per thread with %d requests per connection\n",
                                 l_max_threads, l_num_parallel, l_max_reqs_per_conn);
                 }
         }
