@@ -1916,19 +1916,6 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(!l_subr_list.empty())
-        {
-                for(ns_hlx::subr_list_t::iterator i_s = l_subr_list.begin();
-                    i_s != l_subr_list.end();
-                    ++i_s)
-                {
-                        if(*i_s)
-                        {
-                                delete *i_s;
-                                *i_s = NULL;
-                        }
-                }
-        }
         if(l_srvr)
         {
                 delete l_srvr;
