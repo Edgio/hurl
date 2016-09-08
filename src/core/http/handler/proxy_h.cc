@@ -107,12 +107,15 @@ h_resp_t proxy_h::get_proxy(clnt_session &a_clnt_session,
         l_subr.set_timeout_ms(m_timeout_ms);
         l_subr.set_max_parallel(m_max_parallel);
         l_subr.set_verb(a_rqst.get_method_str());
-        const char *l_body_data = a_rqst.get_body_data();
-        uint64_t l_body_data_len = a_rqst.get_body_len();
+        char *l_body_data = NULL;
+        uint64_t l_body_data_len = 0;
+        if(!a_rqst.get_body_data_copy(&l_body_data, l_body_data_len))
+        {
+                return ns_hlx::H_RESP_SERVER_ERROR;
+        }
         l_subr.set_body_data(l_body_data, l_body_data_len);
         l_subr.set_clnt_session(&a_clnt_session);
-
-        proxy_u *l_px = new proxy_u(a_clnt_session, l_subr);
+        proxy_u *l_px = new proxy_u(a_clnt_session, l_subr, l_body_data, l_body_data_len);
         l_subr.set_ups(l_px);
         a_clnt_session.m_ups = l_px;
         int32_t l_s;
@@ -163,9 +166,13 @@ void proxy_h::set_max_parallel(int32_t a_val)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 proxy_u::proxy_u(clnt_session &a_clnt_session,
-                 subr &a_subr):
+                subr &a_subr,
+                char *a_body_data,
+                uint64_t a_body_len):
         base_u(a_clnt_session),
-        m_subr(a_subr)
+        m_subr(a_subr),
+        m_body_data(a_body_data),
+        m_body_data_len(a_body_len)
 {
         //NDBG_PRINT("%sCONSTRUCT%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
 }
@@ -179,6 +186,14 @@ proxy_u::~proxy_u(void)
 {
         //NDBG_PRINT("%sDELETE%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         delete &m_subr;
+
+        // TODO move body data ownership into subr???
+        if(m_body_data)
+        {
+                free(m_body_data);
+                m_body_data = NULL;
+                m_body_data_len = 0;
+        }
 }
 
 //: ----------------------------------------------------------------------------
@@ -225,8 +240,9 @@ ssize_t proxy_u::ups_read(size_t a_len)
                 TRC_ERROR("m_clnt_session.m_out_q == NULL\n");
                 return HLX_STATUS_ERROR;
         }
-        //NDBG_PRINT("l_ups_srvr_session->m_in_q->b_read_avail() = %d\n", l_ups_srvr_session->m_in_q->b_read_avail());
-        //NDBG_PRINT("m_clnt_session.m_out_q->b_read_avail()     = %d\n", m_clnt_session.m_out_q->b_read_avail());
+        //NDBG_PRINT("l_ups_srvr_session->m_in_q->b_read_avail(): = %d\n", l_ups_srvr_session->m_in_q->b_read_avail());
+        //NDBG_PRINT("m_clnt_session.m_out_q->b_read_avail():     = %d\n", m_clnt_session.m_out_q->b_read_avail());
+        //NDBG_PRINT("l_ups_srvr_session->m_resp->m_complete:     = %d\n", l_ups_srvr_session->m_resp->m_complete);
         if(l_ups_srvr_session->m_resp->m_complete)
         {
                 m_state = UPS_STATE_DONE;

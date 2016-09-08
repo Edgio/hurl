@@ -169,6 +169,27 @@ const char *hmsg::get_body_data(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+char *hmsg::get_body_data_copy(char **ao_buf, uint64_t &ao_len)
+{
+        if(m_q == NULL)
+        {
+                // nothing here yet
+                return NULL;
+        }
+        if(m_body == NULL)
+        {
+                // body not initialized yet
+                *ao_buf = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
+                ao_len = m_p_body.m_len;
+        }
+        return *ao_buf;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 uint64_t hmsg::get_body_len(void) const
 {
         return m_body_len;

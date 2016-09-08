@@ -146,6 +146,7 @@ int32_t ups_srvr_session::teardown(http_status_t a_status)
           (m_subr->get_ups()->get_type() == proxy_u::S_UPS_TYPE_PROXY))
         {
                 m_subr->get_ups()->set_shutdown();
+                m_subr->get_ups()->set_ups_done();
         }
         if(a_status != HTTP_STATUS_OK)
         {

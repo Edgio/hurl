@@ -72,6 +72,7 @@ public:
         nbq *get_q(void) const;
         const char *get_body_data();
         uint64_t get_body_len() const;
+        char *get_body_data_copy(char **ao_buf, uint64_t &ao_len);
         void get_headers(kv_map_list_t *ao_headers) const;
         const kv_map_list_t &get_headers();
         uint64_t get_idx(void) const;

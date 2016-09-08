@@ -53,6 +53,7 @@ public:
         virtual int32_t ups_cancel(void) = 0;
         virtual uint32_t get_type(void) = 0;
         bool ups_done(void) {return m_state == UPS_STATE_DONE;}
+        void set_ups_done(void) { m_state = UPS_STATE_DONE;}
         clnt_session &get_clnt_session(void) {return m_clnt_session;}
 
         // Signal upstream was shutdown
