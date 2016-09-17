@@ -1115,33 +1115,6 @@ void subr::set_headers(const kv_map_list_t &a_headers_list)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int subr::set_header(const std::string &a_header)
-{
-        int32_t l_status;
-        std::string l_header_key;
-        std::string l_header_val;
-        l_status = break_header_string(a_header, l_header_key, l_header_val);
-        if(l_status != 0)
-        {
-                // If verbose???
-                NDBG_PRINT("Error header string[%s] is malformed\n", a_header.c_str());
-                return HLX_STATUS_ERROR;
-        }
-        l_status = set_header(l_header_key, l_header_val);
-        if(l_status != HLX_STATUS_OK)
-        {
-                // If verbose???
-                NDBG_PRINT("Error performing set header with key: %s value: %s\n", l_header_key.c_str(), l_header_val.c_str());
-                return HLX_STATUS_ERROR;
-        }
-        return HLX_STATUS_OK;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 int subr::set_header(const std::string &a_key, const std::string &a_val)
 {
         kv_map_list_t::iterator i_obj = m_headers.find(a_key);
@@ -1182,7 +1155,6 @@ int subr::set_header(const std::string &a_key, const std::string &a_val)
         }
         return HLX_STATUS_OK;
 }
-
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

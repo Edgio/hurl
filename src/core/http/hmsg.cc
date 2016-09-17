@@ -198,7 +198,8 @@ uint64_t hmsg::get_body_len(void) const
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
-//: \param:   ao_headers   Pointer to the headers object to populate.  ASSUMPTION: is valid
+//: \param:   ao_headers   Pointer to the headers object to populate.
+//: \note:    assume is valid
 //: ----------------------------------------------------------------------------
 void hmsg::get_headers(kv_map_list_t *ao_headers) const
 {

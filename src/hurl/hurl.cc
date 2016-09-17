@@ -33,6 +33,7 @@
 #include "hlx/time_util.h"
 #include "hlx/trace.h"
 #include "hlx/status.h"
+#include "hlx/string_util.h"
 #include "tinymt64.h"
 #include "http/t_srvr.h"
 
@@ -1113,7 +1114,7 @@ int main(int argc, char** argv)
         // Get args...
         // -------------------------------------------
         char l_opt;
-        std::string l_argument;
+        std::string l_arg;
         int l_option_index = 0;
         struct option l_long_options[] =
                 {
@@ -1198,10 +1199,10 @@ int main(int argc, char** argv)
         {
 
                 if (optarg)
-                        l_argument = std::string(optarg);
+                        l_arg = std::string(optarg);
                 else
-                        l_argument.clear();
-                //NDBG_PRINT("arg[%c=%d]: %s\n", l_opt, l_option_index, l_argument.c_str());
+                        l_arg.clear();
+                //NDBG_PRINT("arg[%c=%d]: %s\n", l_opt, l_option_index, l_arg.c_str());
 
                 switch (l_opt)
                 {
@@ -1237,14 +1238,14 @@ int main(int argc, char** argv)
                         // TODO Size limits???
                         int32_t l_status;
                         // If a_data starts with @ assume file
-                        if(l_argument[0] == '@')
+                        if(l_arg[0] == '@')
                         {
                                 char *l_buf;
                                 uint32_t l_len;
-                                l_status = read_file(l_argument.data() + 1, &(l_buf), &(l_len));
+                                l_status = read_file(l_arg.data() + 1, &(l_buf), &(l_len));
                                 if(l_status != 0)
                                 {
-                                        printf("Error reading body data from file: %s\n", l_argument.c_str() + 1);
+                                        printf("Error reading body data from file: %s\n", l_arg.c_str() + 1);
                                         return -1;
                                 }
                                 l_subr->set_body_data(l_buf, l_len);
@@ -1253,7 +1254,7 @@ int main(int argc, char** argv)
                         {
                                 char *l_buf;
                                 uint32_t l_len;
-                                l_len = l_argument.length() + 1;
+                                l_len = l_arg.length() + 1;
                                 l_buf = (char *)malloc(sizeof(char)*l_len);
                                 l_subr->set_body_data(l_buf, l_len);
                         }
@@ -1270,7 +1271,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'G':
                 {
-                        l_gprof_file = l_argument;
+                        l_gprof_file = l_arg;
                         break;
                 }
 #endif
@@ -1279,7 +1280,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'y':
                 {
-                        l_srvr->set_tls_client_ctx_cipher_list(l_argument);
+                        l_srvr->set_tls_client_ctx_cipher_list(l_arg);
                         break;
                 }
                 // ---------------------------------------
@@ -1336,7 +1337,7 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 't':
                 {
-                        //NDBG_PRINT("arg: --threads: %s\n", l_argument.c_str());
+                        //NDBG_PRINT("arg: --threads: %s\n", l_arg.c_str());
                         l_max_threads = atoi(optarg);
                         if (l_max_threads < 0)
                         {
@@ -1353,10 +1354,18 @@ int main(int argc, char** argv)
                 case 'H':
                 {
                         int32_t l_status;
-                        l_status = l_subr->set_header(l_argument);
+                        std::string l_key;
+                        std::string l_val;
+                        l_status = ns_hlx::break_header_string(l_arg, l_key, l_val);
                         if (l_status != 0)
                         {
-                                printf("Error performing set_header: %s\n", l_argument.c_str());
+                                printf("Error breaking header string: %s -not in <HEADER>:<VAL> format?\n", l_arg.c_str());
+                                return -1;
+                        }
+                        l_status = l_subr->set_header(l_key, l_val);
+                        if (l_status != 0)
+                        {
+                                printf("Error performing set_header: %s\n", l_arg.c_str());
                                 return -1;
                         }
                         break;
@@ -1366,12 +1375,12 @@ int main(int argc, char** argv)
                 // ---------------------------------------
                 case 'X':
                 {
-                        if(l_argument.length() > 64)
+                        if(l_arg.length() > 64)
                         {
-                                printf("Error verb string: %s too large try < 64 chars\n", l_argument.c_str());
+                                printf("Error verb string: %s too large try < 64 chars\n", l_arg.c_str());
                                 return -1;
                         }
-                        l_subr->set_verb(l_argument);
+                        l_subr->set_verb(l_arg);
                         break;
                 }
                 // ---------------------------------------
