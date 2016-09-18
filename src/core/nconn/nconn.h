@@ -188,9 +188,13 @@ public:
         bool can_reuse(void);
 
         // Running
-        int32_t nc_run_state_machine(evr_mode_t a_mode, nbq *a_in_q, nbq *a_out_q);
-        int32_t nc_read(nbq *a_in_q);
-        int32_t nc_write(nbq *a_out_q);
+        int32_t nc_run_state_machine(evr_mode_t a_mode,
+                                     nbq *a_in_q,
+                                     uint32_t &ao_read,
+                                     nbq *a_out_q,
+                                     uint32_t &ao_written);
+        int32_t nc_read(nbq *a_in_q, uint32_t &ao_read);
+        int32_t nc_write(nbq *a_out_q, uint32_t &ao_written);
         int32_t nc_set_listening(int32_t a_val);
         int32_t nc_set_listening_nb(int32_t a_val);
         int32_t nc_set_accepting(int a_fd);

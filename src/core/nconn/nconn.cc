@@ -41,7 +41,11 @@ namespace ns_hlx {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_run_state_machine(evr_mode_t a_mode, nbq *a_in_q, nbq *a_out_q)
+int32_t nconn::nc_run_state_machine(evr_mode_t a_mode,
+                                    nbq *a_in_q,
+                                    uint32_t &ao_read,
+                                    nbq *a_out_q,
+                                    uint32_t &ao_written)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d --START\n",
         //                ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
@@ -72,7 +76,6 @@ state_top:
                 {
                         m_connect_start_time_us = get_time_us();
                 }
-
                 goto state_top;
         }
 
@@ -163,7 +166,7 @@ state_top:
                 case EVR_MODE_READ:
                 {
                         int32_t l_status = NC_STATUS_OK;
-                        l_status = nc_read(a_in_q);
+                        l_status = nc_read(a_in_q, ao_read);
                         //NDBG_PRINT("l_status: %d\n", l_status);
                         switch(l_status){
                         case NC_STATUS_EOF:
@@ -186,7 +189,7 @@ state_top:
                         {
                                 if(m_collect_stats_flag)
                                 {
-                                        m_stat.m_total_bytes += l_status;
+                                        m_stat.m_total_bytes += ao_read;
                                         if(m_stat.m_tt_first_read_us == 0)
                                         {
                                                 m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
@@ -198,7 +201,7 @@ state_top:
                 case EVR_MODE_WRITE:
                 {
                         int32_t l_status = NC_STATUS_OK;
-                        l_status = nc_write(a_out_q);
+                        l_status = nc_write(a_out_q, ao_written);
                         switch(l_status){
                         case NC_STATUS_EOF:
                         {
@@ -229,7 +232,7 @@ state_top:
         // -------------------------------------------------
         case NC_STATE_DONE:
         {
-                NDBG_PRINT("return EOF\n");
+                //NDBG_PRINT("return EOF\n");
                 return NC_STATUS_EOF;
         }
         default:
@@ -245,9 +248,10 @@ state_top:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_read(nbq *a_in_q)
+int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
 {
         //NDBG_PRINT("%sTRY_READ%s: \n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+        ao_read = 0;
         if(!a_in_q)
         {
                 TRC_ERROR("a_in_q == NULL\n");
@@ -259,8 +263,7 @@ int32_t nconn::nc_read(nbq *a_in_q)
         //   if size read == read_q free size
         //     add block to queue
         // -------------------------------------------------
-        int32_t l_bytes_read = 0;
-        int32_t l_total_read = 0;
+        int32_t l_status = 0;
         do {
                 if(a_in_q->b_write_avail() <= 0)
                 {
@@ -278,9 +281,9 @@ int32_t nconn::nc_read(nbq *a_in_q)
                 //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
                 //                l_buf,
                 //                l_read_size);
-                l_bytes_read = ncread(l_buf, l_read_size);
+                l_status = ncread(l_buf, l_read_size);
                 //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read);
-                switch(l_bytes_read){
+                switch(l_status){
                 case NC_STATUS_ERROR:
                 {
                         //NDBG_PRINT("Error performing ncread: status: %d\n", l_bytes_read);
@@ -308,31 +311,30 @@ int32_t nconn::nc_read(nbq *a_in_q)
                 //                l_bytes_read,
                 //                m_in_q->read_avail(),
                 //                errno, strerror(errno));
-                if(l_bytes_read > 0)
+                if(l_status > 0)
                 {
-                        l_total_read += l_bytes_read;
+                        ao_read += l_status;
 
                         //ns_hlx::mem_display((uint8_t *)(l_buf), l_bytes_read);
                         if(m_read_cb)
                         {
-                                int32_t l_status = m_read_cb(m_read_cb_data, l_buf, l_bytes_read, a_in_q->get_cur_write_offset());
-                                if(l_status != HLX_STATUS_OK)
+                                int32_t l_rcb_status = m_read_cb(m_read_cb_data, l_buf, l_status, a_in_q->get_cur_write_offset());
+                                if(l_rcb_status != HLX_STATUS_OK)
                                 {
                                         //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
                                         return NC_STATUS_ERROR;
                                 }
                         }
-                        a_in_q->b_write_incr(l_bytes_read);
+                        a_in_q->b_write_incr(l_status);
                 }
                 //???
-                if((uint32_t)l_bytes_read < l_read_size)
+                if((uint32_t)l_status < l_read_size)
                 {
                         // Read as much as can -done...
                         break;
                 }
-
-        } while(l_bytes_read > 0);
-        return l_total_read;
+        } while(l_status > 0);
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -340,9 +342,10 @@ int32_t nconn::nc_read(nbq *a_in_q)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nconn::nc_write(nbq *a_out_q)
+int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
 {
         //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
+        ao_written = 0;
         if(!a_out_q)
         {
                 TRC_ERROR("a_out_q == NULL\n");
@@ -361,17 +364,17 @@ int32_t nconn::nc_write(nbq *a_out_q)
         //   if size write == write_q free size
         //     add
         // -------------------------------------------------
-        int32_t l_bytes_written;
+        int32_t l_status;
         do {
                 //NDBG_PRINT("%sTRY_WRITE%s: m_out_q->b_read_ptr(): %p m_out_q->b_read_avail(): %d\n",
                 //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                 //                a_out_q->b_read_ptr(),
                 //                a_out_q->b_read_avail());
-                l_bytes_written = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
+                l_status = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
                 //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
-                if(l_bytes_written < 0)
+                if(l_status < 0)
                 {
-                        if(l_bytes_written == NC_STATUS_AGAIN)
+                        if(l_status == NC_STATUS_AGAIN)
                         {
                                 return NC_STATUS_AGAIN;
                         }
@@ -381,23 +384,25 @@ int32_t nconn::nc_write(nbq *a_out_q)
                                 return NC_STATUS_ERROR;
                         }
                 }
-                if(m_write_cb &&
-                  (l_bytes_written > 0))
+                if(l_status > 0)
                 {
-                        // TODO Unused???
-                        int32_t l_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_bytes_written, 0);
-                        if(l_status != HLX_STATUS_OK)
+                        ao_written += l_status;
+                        if(m_write_cb)
                         {
-                                //NDBG_PRINT("Error performing m_write_cb\n");
-                                return NC_STATUS_ERROR;
+                                // TODO Unused???
+                                int32_t l_wcb_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_status, 0);
+                                if(l_wcb_status != HLX_STATUS_OK)
+                                {
+                                        //NDBG_PRINT("Error performing m_write_cb\n");
+                                        return NC_STATUS_ERROR;
+                                }
                         }
                 }
                 // and not error?
-                a_out_q->b_read_incr(l_bytes_written);
+                a_out_q->b_read_incr(l_status);
                 a_out_q->shrink();
-
-        } while(l_bytes_written > 0 && a_out_q->read_avail());
-        return l_bytes_written;
+        } while(l_status > 0 && a_out_q->read_avail());
+        return HLX_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

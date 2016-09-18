@@ -1288,15 +1288,7 @@ srvr *t_srvr::get_srvr(void)
 nbq *t_srvr::get_nbq(void)
 {
         nbq *l_nbq = NULL;
-        bool l_new = false;
-        l_nbq = m_nbq_pool.get_free();
-        if(!l_nbq)
-        {
-                l_nbq = new nbq(4096);
-                m_nbq_pool.add(l_nbq);
-                l_new = true;
-        }
-        if(!l_new)
+        if(!get_from_pool_if_null(l_nbq, m_nbq_pool))
         {
                 l_nbq->reset_write();
         }

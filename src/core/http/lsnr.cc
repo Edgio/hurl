@@ -261,7 +261,6 @@ int32_t lsnr::evr_fd_readable_cb(void *a_data)
         {
                 return HLX_STATUS_ERROR;
         }
-        int32_t l_status;
 
         if(!l_lsnr || !l_nconn)
         {
@@ -269,10 +268,11 @@ int32_t lsnr::evr_fd_readable_cb(void *a_data)
         }
 
         // Returns new client fd on success
-        l_status = l_nconn->nc_run_state_machine(EVR_MODE_NONE,
-                                                 NULL,
-                                                 NULL);
-        if(l_status == nconn::NC_STATUS_ERROR)
+        uint32_t l_read = 0;
+        uint32_t l_written = 0;
+        int32_t l_s;
+        l_s = l_nconn->nc_run_state_machine(EVR_MODE_NONE, NULL, l_read, NULL, l_written);
+        if(l_s == nconn::NC_STATUS_ERROR)
         {
                 return HLX_STATUS_ERROR;
         }
@@ -301,9 +301,9 @@ int32_t lsnr::evr_fd_readable_cb(void *a_data)
         l_cs->m_access_info.m_bytes_out = 0;
 
         // Set connected
-        int l_fd = l_status;
-        l_status = l_new_nconn->nc_set_accepting(l_fd);
-        if(l_status != HLX_STATUS_OK)
+        int l_fd = l_s;
+        l_s = l_new_nconn->nc_set_accepting(l_fd);
+        if(l_s != HLX_STATUS_OK)
         {
                 //NDBG_PRINT("Error: performing run_state_machine\n");
                 l_t_srvr->cleanup_clnt_session(l_cs, l_new_nconn);

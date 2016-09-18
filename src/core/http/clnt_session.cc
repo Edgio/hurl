@@ -487,32 +487,20 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                         l_cs->m_ups->ups_read(32768);
                 }
 
-                l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_out_q);
-                //NDBG_PRINT("%snc_run_state_machine%s l_s:  %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
-                if(l_s > 0)
+                uint32_t l_read = 0;
+                uint32_t l_written = 0;
+                l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_read, l_out_q, l_written);
+                //NDBG_PRINT("l_nconn->nc_run_state_machine(%d): status: %d\n", a_conn_mode, l_s);
+                if(l_t_srvr)
                 {
-                        if(a_conn_mode == EVR_MODE_READ)
-                        {
-                                if(l_t_srvr)
-                                {
-                                        l_t_srvr->m_stat.m_clnt_bytes_read += l_s;
-                                }
-                                if(l_cs)
-                                {
-                                        l_cs->m_access_info.m_bytes_in += l_s;
-                                }
-                        }
-                        else if(a_conn_mode == EVR_MODE_WRITE)
-                        {
-                                if(l_t_srvr)
-                                {
-                                        l_t_srvr->m_stat.m_clnt_bytes_written += l_s;
-                                }
-                                if(l_cs)
-                                {
-                                        l_cs->m_access_info.m_bytes_out += l_s;
-                                }
-                        }
+                        l_t_srvr->m_stat.m_upsv_bytes_read += l_read;
+                        l_t_srvr->m_stat.m_upsv_bytes_written += l_written;
+                }
+                if(l_cs)
+                {
+                        l_cs->m_access_info.m_bytes_in += l_read;
+                        l_cs->m_access_info.m_bytes_out += l_written;
+
                 }
                 if(!l_cs ||
                    (l_s == nconn::NC_STATUS_EOF) ||
@@ -534,7 +522,13 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                 nbq l_nbq(64);
                                 const char l_exp_reply[] = "HTTP/1.1 100 Continue\r\n\r\n";
                                 l_nbq.write(l_exp_reply, sizeof(l_exp_reply));
-                                l_nconn->nc_write(&l_nbq);
+                                uint32_t l_w;
+                                l_nconn->nc_write(&l_nbq, l_w);
+                                if(l_t_srvr)
+                                {
+                                        l_t_srvr->m_stat.m_upsv_bytes_written += l_w;
+                                }
+                                l_cs->m_access_info.m_bytes_out += l_w;
                                 l_cs->m_rqst->m_expect = false;
                         }
                         // -------------------------------------------

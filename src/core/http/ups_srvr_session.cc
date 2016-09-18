@@ -301,24 +301,14 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
         bool l_idle = false;
         int32_t l_s = HLX_STATUS_OK;
         do {
-                l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_out_q);
+                uint32_t l_read = 0;
+                uint32_t l_written = 0;
+                l_s = l_nconn->nc_run_state_machine(a_conn_mode, l_in_q, l_read, l_out_q, l_written);
                 //NDBG_PRINT("l_nconn->nc_run_state_machine(%d): status: %d\n", a_conn_mode, l_s);
-                if(l_s > 0)
+                if(l_t_srvr)
                 {
-                        if(a_conn_mode == EVR_MODE_READ)
-                        {
-                                if(l_t_srvr)
-                                {
-                                        l_t_srvr->m_stat.m_upsv_bytes_read += l_s;
-                                }
-                        }
-                        else if(a_conn_mode == EVR_MODE_WRITE)
-                        {
-                                if(l_t_srvr)
-                                {
-                                        l_t_srvr->m_stat.m_upsv_bytes_written += l_s;
-                                }
-                        }
+                        l_t_srvr->m_stat.m_upsv_bytes_read += l_read;
+                        l_t_srvr->m_stat.m_upsv_bytes_written += l_written;
                 }
                 if(!l_uss ||
                    !l_uss->m_subr ||
@@ -333,13 +323,13 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                 // ---------------------------------------------------
                 if(a_conn_mode == EVR_MODE_READ)
                 {
-                        if(l_uss->m_subr->get_ups() && (l_s > 0))
+                        if(l_uss->m_subr->get_ups() && (l_read > 0))
                         {
                                 ssize_t l_size;
-                                l_size = l_uss->m_subr->get_ups()->ups_read((size_t)l_s);
+                                l_size = l_uss->m_subr->get_ups()->ups_read((size_t)l_read);
                                 if(l_size < 0)
                                 {
-                                        TRC_ERROR("performing ups_read -a_conn_status: %d l_size: %zd\n", l_s, l_size);
+                                        TRC_ERROR("performing ups_read -a_conn_status: %d l_size: %zd\n", l_read, l_size);
                                 }
                         }
                         // -------------------------------------------
