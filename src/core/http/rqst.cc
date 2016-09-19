@@ -115,12 +115,14 @@ void rqst::init(bool a_save)
 //: ----------------------------------------------------------------------------
 const std::string &rqst::get_url()
 {
+        static std::string l_empty_str = std::string();
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
                 if(l_status != HLX_STATUS_OK)
                 {
-                        // do nothing...
+                        // return empty string
+                        return l_empty_str;
                 }
         }
         return m_url;
@@ -258,7 +260,7 @@ int32_t rqst::parse_uri()
         l_status = http_parser_parse_url(l_url_fixed.c_str(), l_url_fixed.length(), 0, &l_url);
         if(l_status != 0)
         {
-                NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
+                TRC_ERROR("parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
                 return HLX_STATUS_ERROR;
         }

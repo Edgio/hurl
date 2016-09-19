@@ -76,13 +76,16 @@ h_resp_t proxy_h::do_default(clnt_session &a_clnt_session, rqst &a_rqst, const u
 {
         // Remove route from url
         std::string l_route = a_rqst.get_url();
+        if(l_route.empty())
+        {
+                return H_RESP_SERVER_ERROR;
+        }
         std::string::size_type i_s = l_route.find(m_route);
         if (i_s != std::string::npos)
         {
                 l_route.erase(i_s, m_route.length());
         }
         std::string l_url = m_ups_host + l_route;
-
         //NDBG_PRINT("l_path: %s\n",l_path.c_str());
         return get_proxy(a_clnt_session, a_rqst, l_url);
 }

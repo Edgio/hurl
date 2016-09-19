@@ -704,15 +704,27 @@ void clnt_session::log_status(uint16_t a_status)
 //: ----------------------------------------------------------------------------
 int32_t clnt_session::handle_req(void)
 {
-        if(!m_lsnr || !m_lsnr->get_url_router())
+        if(!m_lsnr)
         {
+                TRC_ERROR("m_lsnr == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
+        if(!m_lsnr->get_url_router())
+        {
+                TRC_ERROR("m_lsnr->get_url_router() == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
+        const std::string &l_url = m_rqst->get_url();
+        if(l_url.empty())
+        {
+                TRC_ERROR("rqst url empty\n");
                 return HLX_STATUS_ERROR;
         }
         // -------------------------------------------------
         // access info
         // TODO -this is a lil clunky...
         // -------------------------------------------------
-        m_access_info.m_rqst_request = m_rqst->get_url();
+        m_access_info.m_rqst_request = l_url;
         const kv_map_list_t &l_headers = m_rqst->get_headers();
         kv_map_list_t::const_iterator i_h;
         if((i_h = l_headers.find("User-Agent")) != l_headers.end())
@@ -739,7 +751,7 @@ int32_t clnt_session::handle_req(void)
         m_access_info.m_rqst_method = m_rqst->get_method_str();
         m_access_info.m_rqst_http_major = m_rqst->m_http_major;
         m_access_info.m_rqst_http_minor = m_rqst->m_http_minor;
-        TRC_DEBUG("RQST: %s %s\n", m_rqst->get_method_str(), m_rqst->get_url().c_str());
+        TRC_DEBUG("RQST: %s %s\n", m_rqst->get_method_str(), l_url.c_str());
         url_pmap_t l_pmap;
         h_resp_t l_hdlr_status = H_RESP_NONE;
         rqst_h *l_rqst_h = (rqst_h *)m_lsnr->get_url_router()->find_route(m_rqst->get_url_path(),l_pmap);
