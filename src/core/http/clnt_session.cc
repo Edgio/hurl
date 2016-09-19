@@ -538,7 +538,7 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                             l_cs->m_rqst->m_complete))
                         {
                                 // Display...
-                                if(l_cs->m_rqst_resp_logging && l_cs->m_rqst)
+                                if(l_cs->m_rqst_resp_logging)
                                 {
                                         if(l_cs->m_rqst_resp_logging_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
                                         l_cs->m_rqst->show();
@@ -554,23 +554,12 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                         l_s = nconn::NC_STATUS_ERROR;
                                         goto check_conn_status;
                                 }
-                                if(l_cs->m_rqst)
-                                {
-                                        bool l_ka = l_cs->m_rqst->m_supports_keep_alives;
-                                        l_cs->m_rqst->init(true);
-                                        l_cs->m_rqst->m_supports_keep_alives = l_ka;
-                                }
+                                bool l_ka = l_cs->m_rqst->m_supports_keep_alives;
+                                l_cs->m_rqst->init(true);
+                                l_cs->m_rqst->m_supports_keep_alives = l_ka;
                                 if(l_cs->m_in_q)
                                 {
                                         l_cs->m_in_q->reset_write();
-                                }
-                                if(l_t_srvr->dequeue_clnt_session_writeable())
-                                {
-                                        l_s = run_state_machine(a_data, EVR_MODE_WRITE);
-                                        if(l_s != HLX_STATUS_OK)
-                                        {
-                                                // TODO check status
-                                        }
                                 }
                         }
                 }
@@ -841,20 +830,35 @@ int32_t clnt_session::handle_req(void)
         }
         return HLX_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: Subrequests
-//: ----------------------------------------------------------------------------
+
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr &create_subr(clnt_session &a_clnt_session)
+subr *clnt_session::create_subr(const subr *a_subr)
 {
-        subr *l_subr = new subr();
-        l_subr->set_uid(a_clnt_session.m_t_srvr->get_srvr()->get_next_subr_uuid());
-        // TODO check exists!!!
-        return *l_subr;
+        if(!m_t_srvr)
+        {
+                TRC_ERROR("m_t_srvr == NULL\n");
+                return NULL;
+        }
+        if(!m_t_srvr->get_srvr())
+        {
+                TRC_ERROR("m_t_srvr->get_srvr() == NULL\n");
+                return NULL;
+        }
+        subr *l_subr = NULL;
+        if(a_subr)
+        {
+                l_subr = new subr(*a_subr);
+        }
+        else
+        {
+                l_subr = new subr();
+        }
+        l_subr->set_uid(m_t_srvr->get_srvr()->get_next_subr_uuid());
+        return l_subr;
 }
 
 //: ----------------------------------------------------------------------------
@@ -862,26 +866,21 @@ subr &create_subr(clnt_session &a_clnt_session)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr &create_subr(clnt_session &a_clnt_session, const subr &a_subr)
+int32_t clnt_session::queue_subr(subr &a_subr)
 {
-        subr *l_subr = new subr(a_subr);
-        l_subr->set_uid(a_clnt_session.m_t_srvr->get_srvr()->get_next_subr_uuid());
-        // TODO check exists!!!
-        return *l_subr;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t queue_subr(clnt_session &a_clnt_session, subr &a_subr)
-{
-        a_subr.set_clnt_session(&a_clnt_session);
-        a_clnt_session.m_t_srvr->subr_add(a_subr);
+        if(!m_t_srvr)
+        {
+                TRC_ERROR("m_t_srvr == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
+        a_subr.set_clnt_session(this);
+        m_t_srvr->subr_add(a_subr);
         return HLX_STATUS_OK;
 }
 
+//: ----------------------------------------------------------------------------
+//: Subrequests
+//: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
 //: \details: add subr to t_srvr
 //:           WARNING only meant to be run if t_srvr is stopped.

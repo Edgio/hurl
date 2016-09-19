@@ -224,9 +224,9 @@ t_srvr::~t_srvr()
                 subr *l_subr = m_subr_list.front();
                 if(l_subr)
                 {
-                        delete l_subr;
+                        // TODO RPM_TEST PUT BACK
+                        //delete l_subr;
                 }
-                //m_subr_list.pop_front();
                 subr_dequeue();
         }
 #ifdef ASYNC_DNS_SUPPORT
@@ -349,7 +349,6 @@ int32_t t_srvr::add_lsnr(lsnr &a_lsnr)
 int32_t t_srvr::subr_add(subr &a_subr)
 {
         a_subr.set_t_srvr(this);
-        a_subr.set_state(subr::SUBR_STATE_QUEUED);
         subr_enqueue(a_subr);
         return HLX_STATUS_OK;
 }
@@ -576,7 +575,6 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
         // Special handling for DUPE'd subr's
         if(l_subr->get_kind() == subr::SUBR_KIND_DUPE)
         {
-                //l_t_srvr->m_subr_list.push_back(l_subr);
                 l_t_srvr->subr_enqueue(*l_subr);
         }
         l_t_srvr->subr_add(*l_subr);
@@ -891,7 +889,6 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         // ---------------------------------------
         // set to active state
         // ---------------------------------------
-        a_subr.set_state(subr::SUBR_STATE_ACTIVE);
         a_subr.bump_num_requested();
 
         // ---------------------------------------
@@ -923,39 +920,33 @@ int32_t t_srvr::subr_try_deq(void)
               !m_stopped)
         {
                 subr *l_subr = m_subr_list.front();
+                subr_dequeue();
                 if(!l_subr)
                 {
-                        subr_dequeue();
                         continue;
                 }
-
                 int32_t l_status;
                 l_status = subr_try_start(*l_subr);
                 if(l_status == HLX_STATUS_OK)
                 {
-                        if(l_subr->get_is_pending_done())
+                        l_subr->set_state(subr::SUBR_STATE_ACTIVE);
+                        if(!l_subr->get_is_pending_done())
                         {
-                                //NDBG_PRINT("POP'ing: host: %s\n",
-                                //           l_subr->get_label().c_str());
-                                subr_dequeue();
+                                subr_enqueue(*l_subr);
                         }
                 }
                 else if(l_status == HLX_STATUS_AGAIN)
                 {
                         // break since ran out of available connections
+                        subr_enqueue(*l_subr);
                         break;
                 }
 #ifdef ASYNC_DNS_SUPPORT
                 else if(l_status == STATUS_QUEUED_ASYNC_DNS)
                 {
                         l_subr->set_state(subr::SUBR_STATE_DNS_LOOKUP);
-                        subr_dequeue();
                 }
 #endif
-                else
-                {
-                        subr_dequeue();
-                }
         }
         return HLX_STATUS_OK;
 }

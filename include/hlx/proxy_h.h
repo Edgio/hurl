@@ -103,7 +103,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        proxy_u(clnt_session &a_clnt_session, subr &a_subr, char *a_body_data, uint64_t a_body_len);
+        proxy_u(clnt_session &a_clnt_session, subr *a_subr, char *a_body_data, uint64_t a_body_len);
         ~proxy_u();
 
         // -------------------------------------------------
@@ -132,7 +132,7 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        subr &m_subr;
+        subr *m_subr;
         char *m_body_data;
         uint64_t m_body_data_len;
 };

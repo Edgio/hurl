@@ -264,12 +264,20 @@ private:
 
         inline void subr_dequeue(void)
         {
+                subr *l_subr = m_subr_list.front();
+                if(l_subr)
+                {
+                        l_subr->set_state(subr::SUBR_STATE_NONE);
+                        l_subr->set_i_q(m_subr_list.end());
+                }
                 m_subr_list.pop_front();
                 --m_subr_list_size;
         }
         inline void subr_enqueue(subr &a_subr)
         {
+                a_subr.set_state(subr::SUBR_STATE_QUEUED);
                 m_subr_list.push_back(&a_subr);
+                a_subr.set_i_q(--(m_subr_list.end()));
                 ++m_subr_list_size;
         }
 

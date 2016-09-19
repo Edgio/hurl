@@ -97,34 +97,43 @@ h_resp_t proxy_h::get_proxy(clnt_session &a_clnt_session,
                             const std::string &a_url)
 {
         // subr setup
-        ns_hlx::subr &l_subr = ns_hlx::create_subr(a_clnt_session);
-        l_subr.init_with_url(a_url);
-        l_subr.set_completion_cb(proxy_u::s_completion_cb);
-        l_subr.set_error_cb(proxy_u::s_error_cb);
-        l_subr.set_data(this);
-        l_subr.set_headers(a_rqst.get_headers());
-        l_subr.set_keepalive(true);
-        l_subr.set_timeout_ms(m_timeout_ms);
-        l_subr.set_max_parallel(m_max_parallel);
-        l_subr.set_verb(a_rqst.get_method_str());
+        subr *l_subr = a_clnt_session.create_subr(NULL);
+        if(!l_subr)
+        {
+                TRC_ERROR("performing create_subr\n");
+                return H_RESP_SERVER_ERROR;
+        }
+        l_subr->init_with_url(a_url);
+        l_subr->set_completion_cb(proxy_u::s_completion_cb);
+        l_subr->set_error_cb(proxy_u::s_error_cb);
+        l_subr->set_data(this);
+        l_subr->set_headers(a_rqst.get_headers());
+        l_subr->set_keepalive(true);
+        l_subr->set_timeout_ms(m_timeout_ms);
+        l_subr->set_max_parallel(m_max_parallel);
+        l_subr->set_verb(a_rqst.get_method_str());
         char *l_body_data = NULL;
         uint64_t l_body_data_len = 0;
         if(!a_rqst.get_body_data_copy(&l_body_data, l_body_data_len))
         {
-                return ns_hlx::H_RESP_SERVER_ERROR;
+                delete l_subr;
+                l_subr = NULL;
+                return H_RESP_SERVER_ERROR;
         }
-        l_subr.set_body_data(l_body_data, l_body_data_len);
-        l_subr.set_clnt_session(&a_clnt_session);
+        l_subr->set_body_data(l_body_data, l_body_data_len);
+        l_subr->set_clnt_session(&a_clnt_session);
         proxy_u *l_px = new proxy_u(a_clnt_session, l_subr, l_body_data, l_body_data_len);
-        l_subr.set_ups(l_px);
+        l_subr->set_ups(l_px);
         a_clnt_session.m_ups = l_px;
         int32_t l_s;
-        l_s = queue_subr(a_clnt_session, l_subr);
+        l_s = a_clnt_session.queue_subr(*l_subr);
         if(l_s != HLX_STATUS_OK)
         {
-                return ns_hlx::H_RESP_SERVER_ERROR;
+                delete l_subr;
+                l_subr = NULL;
+                return H_RESP_SERVER_ERROR;
         }
-        return ns_hlx::H_RESP_DONE;
+        return H_RESP_DONE;
 }
 
 //: ----------------------------------------------------------------------------
@@ -166,9 +175,9 @@ void proxy_h::set_max_parallel(int32_t a_val)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 proxy_u::proxy_u(clnt_session &a_clnt_session,
-                subr &a_subr,
-                char *a_body_data,
-                uint64_t a_body_len):
+                 subr *a_subr,
+                 char *a_body_data,
+                 uint64_t a_body_len):
         base_u(a_clnt_session),
         m_subr(a_subr),
         m_body_data(a_body_data),
@@ -185,8 +194,15 @@ proxy_u::proxy_u(clnt_session &a_clnt_session,
 proxy_u::~proxy_u(void)
 {
         //NDBG_PRINT("%sDELETE%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
-        delete &m_subr;
-
+        if(m_subr)
+        {
+                if(m_subr->get_state() == subr::SUBR_STATE_QUEUED)
+                {
+                        m_subr->cancel();
+                }
+                delete m_subr;
+                m_subr = NULL;
+        }
         // TODO move body data ownership into subr???
         if(m_body_data)
         {
@@ -211,7 +227,12 @@ ssize_t proxy_u::ups_read(size_t a_len)
         {
                 return HLX_STATUS_OK;
         }
-        ups_srvr_session *l_ups_srvr_session = m_subr.get_ups_srvr_session();
+        if(!m_subr)
+        {
+                TRC_ERROR("m_subr == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
+        ups_srvr_session *l_ups_srvr_session = m_subr->get_ups_srvr_session();
         if(!l_ups_srvr_session || !l_ups_srvr_session->m_in_q)
         {
                 TRC_ERROR("requester ups_srvr_session or m_in_q == NULL\n");
@@ -268,16 +289,23 @@ int32_t proxy_u::ups_cancel(void)
         {
                 return HLX_STATUS_OK;
         }
+        if(!m_subr)
+        {
+                TRC_ERROR("m_subr == NULL\n");
+                return HLX_STATUS_ERROR;
+        }
         m_state = UPS_STATE_DONE;
         //NDBG_PRINT("%sUPS_CANCEL%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         // cancel subrequest
-        m_subr.set_error_cb(NULL);
+        m_subr->set_error_cb(NULL);
         int32_t l_s;
-        l_s = m_subr.cancel();
+        l_s = m_subr->cancel();
         if(l_s != HLX_STATUS_OK)
         {
                 TRC_ERROR("performing subr cancel.\n");
         }
+        delete m_subr;
+        m_subr = NULL;
         return HLX_STATUS_OK;
 }
 

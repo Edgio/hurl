@@ -83,6 +83,7 @@ subr::subr(void):
         m_start_time_ms(0),
         m_end_time_ms(0),
         m_lookup_job(NULL),
+        m_i_q(),
         m_tls_verify(false),
         m_tls_sni(false),
         m_tls_self_ok(false),
@@ -137,6 +138,7 @@ subr::subr(const subr &a_subr):
         m_start_time_ms(a_subr.m_start_time_ms),
         m_end_time_ms(a_subr.m_end_time_ms),
         m_lookup_job(a_subr.m_lookup_job),
+        m_i_q(a_subr.m_i_q),
         m_tls_verify(a_subr.m_tls_verify),
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
@@ -901,6 +903,16 @@ void subr::set_lookup_job(void *a_data)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+void subr::set_i_q(subr_list_t::iterator a_i_q)
+{
+        m_i_q = a_i_q;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
 void subr::set_tls_verify(bool a_val)
 {
         m_tls_verify = a_val;
@@ -1380,6 +1392,8 @@ int32_t subr::cancel(void)
         {
         case SUBR_STATE_QUEUED:
         {
+                // Delete from queue
+                *m_i_q = NULL;
                 bump_num_completed();
                 bump_num_requested();
                 if(m_error_cb)

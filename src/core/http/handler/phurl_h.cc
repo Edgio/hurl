@@ -128,7 +128,13 @@ h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
         phurl_u *l_phr = new phurl_u(a_clnt_session);
         for(host_list_t::iterator i_host = m_host_list.begin(); i_host != m_host_list.end(); ++i_host)
         {
-                subr &l_subr = create_subr(a_clnt_session, m_subr_template);
+                subr *l_subr_ptr = a_clnt_session.create_subr(&m_subr_template);
+                if(l_subr_ptr)
+                {
+                        TRC_ERROR("creating subr.\n");
+                        return H_RESP_SERVER_ERROR;
+                }
+                subr &l_subr = *l_subr_ptr;
 
                 const char *l_body_data = a_rqst.get_body_data();
                 uint64_t l_body_data_len = a_rqst.get_body_len();
@@ -149,10 +155,10 @@ h_resp_t phurl_h::do_default(clnt_session &a_clnt_session,
                 l_phr->m_pending_subr_uid_map[l_subr.get_uid()] = &l_subr;
 
                 int32_t l_status = 0;
-                l_status = queue_subr(a_clnt_session, l_subr);
+                l_status = a_clnt_session.queue_subr(l_subr);
                 if(l_status != HLX_STATUS_OK)
                 {
-                        //("Error: performing add_subreq.\n");
+                        TRC_ERROR("performing add_subreq.\n");
                         return H_RESP_SERVER_ERROR;
                 }
         }

@@ -127,6 +127,7 @@ public:
         uint64_t get_start_time_ms(void) const;
         uint64_t get_end_time_ms(void) const;
         void * get_lookup_job(void);
+        void set_i_q(subr_list_t::iterator a_i_q);
         bool get_tls_verify(void) const;
         bool get_tls_sni(void) const;
         bool get_tls_self_ok(void) const;
@@ -260,6 +261,7 @@ private:
         uint64_t m_start_time_ms;
         uint64_t m_end_time_ms;
         void *m_lookup_job;
+        subr_list_t::iterator m_i_q;
         bool m_tls_verify;
         bool m_tls_sni;
         bool m_tls_self_ok;
@@ -272,10 +274,6 @@ private:
 //: ----------------------------------------------------------------------------
 //: hnconn_utils
 //: ----------------------------------------------------------------------------
-// Subrequests
-subr &create_subr(clnt_session &a_clnt_session);
-subr &create_subr(clnt_session &a_clnt_session, const subr &a_subr);
-int32_t queue_subr(clnt_session &a_clnt_session, subr &a_subr);
 int32_t add_subr_t_srvr(void *a_t_srvr, subr &a_subr);
 
 }

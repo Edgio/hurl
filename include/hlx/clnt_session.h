@@ -112,7 +112,8 @@ public:
         void set_timeout_ms(uint32_t a_t_ms);
         uint64_t get_last_active_ms(void);
         void set_last_active_ms(uint64_t a_time_ms);
-
+        subr *create_subr(const subr *a_subr);
+        int32_t queue_subr(subr &a_subr);
 private:
         // -------------------------------------------------
         // Private methods
