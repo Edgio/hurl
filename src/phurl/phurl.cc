@@ -1944,12 +1944,6 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
-        if(l_srvr)
-        {
-                delete l_srvr;
-                l_srvr = NULL;
-        }
-
         if(l_host_list)
         {
                 delete l_host_list;
@@ -1962,7 +1956,6 @@ int main(int argc, char** argv)
                 l_broadcast_h = NULL;
         }
 
-        // Cleanup
         for(phurl_h_resp_list_t::iterator i_hr = l_settings.m_phr_list.begin();
             i_hr != l_settings.m_phr_list.end();
             ++i_hr)
@@ -1973,6 +1966,13 @@ int main(int argc, char** argv)
                         *i_hr = NULL;
                 }
         }
+
+        if(l_srvr)
+        {
+                delete l_srvr;
+                l_srvr = NULL;
+        }
+
         return 0;
 }
 
