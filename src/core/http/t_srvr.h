@@ -172,6 +172,7 @@ public:
         nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
+        void *dequeue_output(void);
         int32_t queue_output(clnt_session &a_clnt_session);
         int32_t queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_session);
         void add_stat_to_agg(const conn_stat_t &a_conn_stat, uint16_t a_status_code);
@@ -193,17 +194,6 @@ public:
         void bump_num_upsv_idle_killed(void) { ++m_stat.m_upsv_idle_killed;}
 
         evr_loop *get_evr_loop(void) {return m_evr_loop;}
-
-        void *dequeue_clnt_session_writeable(void)
-        {
-                void *l_retval = NULL;
-                if(m_clnt_session_writeable_data)
-                {
-                        l_retval = m_clnt_session_writeable_data;
-                        m_clnt_session_writeable_data = NULL;
-                }
-                return l_retval;
-        }
 
         // -------------------------------------------------
         // Public members
@@ -311,7 +301,7 @@ private:
         pthread_mutex_t m_stat_copy_mutex;
 
         // Write after read upstream
-        void *m_clnt_session_writeable_data;
+        std::queue <void *>m_clnt_output_q;
 };
 
 } //namespace ns_hlx {

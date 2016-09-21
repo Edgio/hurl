@@ -186,7 +186,7 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
         m_stat_copy(),
         m_upsv_status_code_count_map_copy(),
         m_stat_copy_mutex(),
-        m_clnt_session_writeable_data(NULL)
+        m_clnt_output_q()
 {
         pthread_mutex_init(&m_stat_copy_mutex, NULL);
 
@@ -379,8 +379,23 @@ int32_t t_srvr::queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_sessio
         {
                 return HLX_STATUS_ERROR;
         }
-        m_clnt_session_writeable_data = a_clnt_session.m_nconn;
-        return HLX_STATUS_OK;
+        return queue_output(a_clnt_session);
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void *t_srvr::dequeue_output(void)
+{
+        void *l_retval = NULL;
+        if(!m_clnt_output_q.empty())
+        {
+                l_retval = m_clnt_output_q.front();
+                m_clnt_output_q.pop();
+        }
+        return l_retval;
 }
 
 //: ----------------------------------------------------------------------------
@@ -390,7 +405,7 @@ int32_t t_srvr::queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_sessio
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::queue_output(clnt_session &a_clnt_session)
 {
-        m_clnt_session_writeable_data = a_clnt_session.m_nconn;
+        m_clnt_output_q.push(a_clnt_session.m_nconn);
         return HLX_STATUS_OK;
 }
 
@@ -1003,8 +1018,8 @@ void *t_srvr::t_run(void *a_nothing)
 
                 }
 
-                void *l_data = dequeue_clnt_session_writeable();
-                if(l_data)
+                void *l_data = NULL;
+                while((l_data = dequeue_output()) != NULL)
                 {
                         l_s = clnt_session::evr_fd_writeable_cb(l_data);
                         if(l_s != HLX_STATUS_OK)
