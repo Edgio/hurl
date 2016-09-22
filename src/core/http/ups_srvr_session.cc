@@ -379,11 +379,8 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                                 // Give back rqst + in q
                                 if(l_t_srvr)
                                 {
-                                        if(l_uss->m_out_q)
-                                        {
-                                                l_t_srvr->release_nbq(l_uss->m_out_q);
-                                                l_uss->m_out_q = NULL;
-                                        }
+                                        l_t_srvr->release_nbq(l_uss->m_out_q);
+                                        l_uss->m_out_q = NULL;
                                         if(!l_detach_resp)
                                         {
                                                 if(l_uss->m_resp)
@@ -391,7 +388,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                                                         l_t_srvr->release_resp(l_uss->m_resp);
                                                         l_uss->m_resp = NULL;
                                                 }
-                                                if(l_uss->m_in_q)
+                                                if(!l_uss->m_in_q_detached)
                                                 {
                                                         l_t_srvr->release_nbq(l_uss->m_in_q);
                                                         l_uss->m_in_q = NULL;

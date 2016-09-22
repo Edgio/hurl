@@ -141,7 +141,7 @@ nbq *clnt_session::get_nbq(void)
                 // TODO log error???
                 return NULL;
         }
-        return m_t_srvr->get_nbq();
+        return m_t_srvr->get_nbq(NULL);
 }
 
 //: ----------------------------------------------------------------------------
@@ -572,7 +572,7 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                         {
                                 // Take over orphan -and assign new to orphan out q
                                 l_cs->m_out_q = l_t_srvr->m_orphan_out_q;
-                                l_t_srvr->m_orphan_out_q = l_cs->m_t_srvr->get_nbq();
+                                l_t_srvr->m_orphan_out_q = l_cs->m_t_srvr->get_nbq(NULL);
                                 // TODO check for error...
                         }
                         // -------------------------------------------

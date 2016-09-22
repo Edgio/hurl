@@ -190,8 +190,8 @@ t_srvr::t_srvr(const t_conf *a_t_conf):
 {
         pthread_mutex_init(&m_stat_copy_mutex, NULL);
 
-        m_orphan_in_q = get_nbq();
-        m_orphan_out_q = get_nbq();
+        m_orphan_in_q = get_nbq(NULL);
+        m_orphan_out_q = get_nbq(NULL);
 
 }
 
@@ -360,16 +360,7 @@ int32_t t_srvr::subr_add(subr &a_subr)
 //: ----------------------------------------------------------------------------
 int32_t t_srvr::queue_api_resp(api_resp &a_api_resp, clnt_session &a_clnt_session)
 {
-        if(!a_clnt_session.m_out_q)
-        {
-                bool l_new;
-                l_new = get_from_pool_if_null(a_clnt_session.m_out_q, m_nbq_pool);
-                if(!l_new)
-                {
-                        a_clnt_session.m_out_q->reset_write();
-                }
-        }
-
+        a_clnt_session.m_out_q = get_nbq(a_clnt_session.m_out_q);
         // access info
         a_clnt_session.m_access_info.m_resp_status = a_api_resp.get_status();
 
@@ -469,10 +460,7 @@ nconn *t_srvr::get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr)
         l_clnt_session->m_rqst_resp_logging = m_t_conf->m_rqst_resp_logging;
         l_clnt_session->m_rqst_resp_logging_color = m_t_conf->m_rqst_resp_logging_color;
         l_clnt_session->m_resp_done_cb = m_t_conf->m_resp_done_cb;
-        if(!get_from_pool_if_null(l_clnt_session->m_in_q, m_nbq_pool))
-        {
-                l_clnt_session->m_in_q->reset_write();
-        }
+        l_clnt_session->m_in_q = get_nbq(l_clnt_session->m_in_q);
         l_clnt_session->m_out_q = NULL;
         l_clnt_session->m_nconn = l_nconn;
         l_nconn->set_data(l_clnt_session);
@@ -830,22 +818,17 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         // ---------------------------------------
         // in q
         // ---------------------------------------
-        if(!get_from_pool_if_null(l_uss->m_in_q, m_nbq_pool))
-        {
-                l_uss->m_in_q->reset_write();
-        }
+        l_uss->m_in_q = get_nbq(l_uss->m_in_q);
         l_uss->m_resp->set_q(l_uss->m_in_q);
 
         // ---------------------------------------
         // out q
         // ---------------------------------------
         bool l_create_req = false;
+
         if(!l_uss->m_out_q)
         {
-                if(!get_from_pool_if_null(l_uss->m_out_q, m_nbq_pool))
-                {
-                        l_uss->m_out_q->reset_write();
-                }
+                l_uss->m_out_q = get_nbq(l_uss->m_out_q);
                 l_create_req = true;
         }
         else if(a_subr.get_is_multipath())
@@ -1062,12 +1045,12 @@ int32_t t_srvr::cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_ncon
                 }
                 if(a_clnt_session->m_in_q)
                 {
-                        m_nbq_pool.release(a_clnt_session->m_in_q);
+                        release_nbq(a_clnt_session->m_in_q);
                         a_clnt_session->m_in_q = NULL;
                 }
                 if(a_clnt_session->m_out_q)
                 {
-                        m_nbq_pool.release(a_clnt_session->m_out_q);
+                        release_nbq(a_clnt_session->m_out_q);
                         a_clnt_session->m_out_q = NULL;
                 }
                 a_clnt_session->clear();
@@ -1114,13 +1097,13 @@ int32_t t_srvr::cleanup_srvr_session(ups_srvr_session *a_uss, nconn *a_nconn)
                 {
                         if(!a_uss->m_in_q_detached)
                         {
-                                m_nbq_pool.release(a_uss->m_in_q);
+                                release_nbq(a_uss->m_in_q);
                         }
                         a_uss->m_in_q = NULL;
                 }
                 if(a_uss->m_out_q)
                 {
-                        m_nbq_pool.release(a_uss->m_out_q);
+                        release_nbq(a_uss->m_out_q);
                         a_uss->m_out_q = NULL;
                 }
                 a_uss->clear();
@@ -1291,14 +1274,13 @@ srvr *t_srvr::get_srvr(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-nbq *t_srvr::get_nbq(void)
+nbq *t_srvr::get_nbq(nbq *a_nbq)
 {
-        nbq *l_nbq = NULL;
-        if(!get_from_pool_if_null(l_nbq, m_nbq_pool))
+        if(!get_from_pool_if_null(a_nbq, m_nbq_pool))
         {
-                l_nbq->reset_write();
+                a_nbq->reset_write();
         }
-        return l_nbq;
+        return a_nbq;
 }
 
 //: ----------------------------------------------------------------------------

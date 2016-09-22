@@ -139,7 +139,7 @@ h_resp_t file_h::get_file(clnt_session &a_clnt_session,
                         TRC_ERROR("a_clnt_session.m_t_srvr == NULL\n");
                         return send_internal_server_error(a_clnt_session, a_rqst.m_supports_keep_alives);
                 }
-                a_clnt_session.m_out_q = a_clnt_session.m_t_srvr->get_nbq();
+                a_clnt_session.m_out_q = a_clnt_session.m_t_srvr->get_nbq(NULL);
                 if(!a_clnt_session.m_out_q)
                 {
                         TRC_ERROR("a_clnt_session.m_out_q\n");

@@ -442,6 +442,10 @@ static int32_t s_completion_cb(ns_hlx::subr &a_subr,
                                ns_hlx::nconn &a_nconn,
                                ns_hlx::resp &a_resp)
 {
+        if(g_test_finished)
+        {
+                a_subr.set_num_to_request(0);
+        }
         pthread_mutex_lock(&g_completion_mutex);
         ++g_num_completed;
         pthread_mutex_unlock(&g_completion_mutex);

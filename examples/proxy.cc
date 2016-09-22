@@ -64,7 +64,10 @@ public:
 int main(void)
 {
         // Suppress errors
-        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_ERROR);
+        ns_hlx::trc_log_file_open("/dev/stdout");
+        ns_hlx::trc_out_file_open("/dev/stdout");
+
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::proxy_h *l_proxy_h = new ns_hlx::proxy_h("http://127.0.0.1:12346", "/proxy");
         l_proxy_h->set_timeout_ms(1000);
@@ -93,4 +96,7 @@ int main(void)
         if(g_srvr) {delete g_srvr; g_srvr = NULL;}
         if(l_proxy_h) {delete l_proxy_h; l_proxy_h = NULL;}
         if(l_rqst_h_quit) {delete l_rqst_h_quit; l_rqst_h_quit = NULL;}
+        ns_hlx::trc_log_file_close();
+        ns_hlx::trc_out_file_close();
+
 }

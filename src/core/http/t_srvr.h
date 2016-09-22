@@ -168,7 +168,6 @@ public:
         bool is_running(void) { return !m_stopped; }
         uint32_t get_timeout_ms(void) { return m_t_conf->m_timeout_ms;};
         srvr *get_srvr(void);
-        nbq *get_nbq(void);
         nconn *get_new_client_conn(scheme_t a_scheme, lsnr *a_lsnr);
         int32_t add_lsnr(lsnr &a_lsnr);
         int32_t subr_add(subr &a_subr);
@@ -182,6 +181,7 @@ public:
         int32_t cleanup_clnt_session(clnt_session *a_clnt_session, nconn *a_nconn);
         int32_t cleanup_srvr_session(ups_srvr_session *a_uss, nconn *a_nconn);
         void release_resp(resp *a_resp);
+        nbq *get_nbq(nbq *a_nbq);
         void release_nbq(nbq *a_nbq);
 
         int32_t get_stat(t_stat_cntr_t &ao_stat);
