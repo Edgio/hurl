@@ -371,6 +371,12 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
         // -------------------------------------------------
         if(a_conn_mode == EVR_MODE_ERROR)
         {
+                // ignore callbacks for free connections
+                if(l_nconn->is_free())
+                {
+                        TRC_ERROR("call back for free connection\n");
+                        return HLX_STATUS_OK;
+                }
                 if(l_t_srvr)
                 {
                         ++(l_t_srvr->m_stat.m_clnt_errors);
@@ -380,13 +386,19 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                         return l_cs->teardown();
                 }
                 TRC_ERROR("a_conn_mode[%d] clnt_session == NULL\n", a_conn_mode);
-                return HLX_STATUS_ERROR;
+                return HLX_STATUS_OK;
         }
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
-        if(a_conn_mode == EVR_MODE_TIMEOUT)
+        else if(a_conn_mode == EVR_MODE_TIMEOUT)
         {
+                // ignore callbacks for free connections
+                if(l_nconn->is_free())
+                {
+                        TRC_ERROR("call back for free connection\n");
+                        return HLX_STATUS_OK;
+                }
                 // calc time since last active
                 if(l_cs && l_t_srvr)
                 {
@@ -421,22 +433,32 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                         a_conn_mode,
                                         l_cs,
                                         l_t_srvr);
-                        return HLX_STATUS_ERROR;
+                        return HLX_STATUS_OK;
                 }
         }
         // -------------------------------------------------
         // TODO unknown conn mode???
         // -------------------------------------------------
-        if((a_conn_mode != EVR_MODE_READ) &&
-           (a_conn_mode != EVR_MODE_WRITE))
+        else if((a_conn_mode != EVR_MODE_READ) &&
+                (a_conn_mode != EVR_MODE_WRITE))
         {
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
-                return HLX_STATUS_ERROR;
+                return HLX_STATUS_OK;
         }
+
+        // ignore callbacks for free connections
+        if(l_nconn->is_free())
+        {
+                TRC_ERROR("call back for free connection\n");
+                return HLX_STATUS_OK;
+        }
+
+        // set last active
         if(l_cs)
         {
                 l_cs->set_last_active_ms(get_time_ms());
         }
+
         // -------------------------------------------------
         // in/out q's
         // -------------------------------------------------
@@ -467,15 +489,15 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                 }
         }
 
-        // -----------------------------------------------------------
+        // -------------------------------------------------
         // conn loop
-        // -----------------------------------------------------------
+        // -------------------------------------------------
         int32_t l_s = HLX_STATUS_OK;
         do {
                 bool l_shutdown = false;
-                // ---------------------------------------------------
+                // -----------------------------------------
                 // Special handling for files
-                // ---------------------------------------------------
+                // -----------------------------------------
                 if((a_conn_mode == EVR_MODE_WRITE) &&
                    (!l_nconn->is_accepting()) &&
                    l_cs &&
@@ -509,14 +531,14 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                 {
                         goto check_conn_status;
                 }
-                // ---------------------------------------------------
+                // -----------------------------------------
                 // READABLE
-                // ---------------------------------------------------
+                // -----------------------------------------
                 if(a_conn_mode == EVR_MODE_READ)
                 {
-                        // -----------------------------------
-                        // send expect response -if signalled
-                        // -----------------------------------
+                        // ---------------------------------
+                        // send expect response -if signal
+                        // ---------------------------------
                         if(l_cs->m_rqst && l_cs->m_rqst->m_expect)
                         {
                                 nbq l_nbq(64);
@@ -531,9 +553,9 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                 l_cs->m_access_info.m_bytes_out += l_w;
                                 l_cs->m_rqst->m_expect = false;
                         }
-                        // -------------------------------------------
+                        // ---------------------------------
                         // rqst complete
-                        // -------------------------------------------
+                        // ---------------------------------
                         if((l_cs->m_rqst &&
                             l_cs->m_rqst->m_complete))
                         {
@@ -563,9 +585,9 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                 }
                         }
                 }
-                // ---------------------------------------------------
+                // -----------------------------------------
                 // WRITEABLE
-                // ---------------------------------------------------
+                // -----------------------------------------
                 else if(a_conn_mode == EVR_MODE_WRITE)
                 {
                         if(!l_cs->m_out_q && l_t_srvr)
@@ -575,9 +597,9 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                                 l_t_srvr->m_orphan_out_q = l_cs->m_t_srvr->get_nbq(NULL);
                                 // TODO check for error...
                         }
-                        // -------------------------------------------
+                        // ---------------------------------
                         // check is done
-                        // -------------------------------------------
+                        // ---------------------------------
                         bool l_done = false;
                         if(l_cs->m_out_q && !l_cs->m_out_q->read_avail())
                         {
@@ -627,6 +649,10 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                         }
                 }
 check_conn_status:
+                if(l_nconn->is_free())
+                {
+                        return HLX_STATUS_OK;
+                }
                 if(!l_cs)
                 {
                         TRC_ERROR("a_conn_mode[%d] clnt_session == NULL\n", a_conn_mode);
@@ -634,15 +660,11 @@ check_conn_status:
                         {
                                 return l_t_srvr->cleanup_clnt_session(NULL, l_nconn);
                         }
-                        return HLX_STATUS_ERROR;
+                        return HLX_STATUS_OK;
                 }
                 if(l_shutdown)
                 {
                         l_s = nconn::NC_STATUS_EOF;
-                }
-                if(l_nconn->is_free())
-                {
-                        return HLX_STATUS_OK;
                 }
                 else if(l_nconn->is_done())
                 {

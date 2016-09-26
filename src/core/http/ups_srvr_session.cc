@@ -193,18 +193,16 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
         ups_srvr_session *l_uss = static_cast<ups_srvr_session *>(l_nconn->get_data());
 
         // -------------------------------------------------
-        // Skip timeouts for free connections
-        // -------------------------------------------------
-        if((a_conn_mode == EVR_MODE_TIMEOUT) &&
-           (l_nconn->is_free()))
-        {
-                return HLX_STATUS_OK;
-        }
-        // -------------------------------------------------
         // ERROR
         // -------------------------------------------------
         if(a_conn_mode == EVR_MODE_ERROR)
         {
+                // ignore errors for free connections
+                if(l_nconn->is_free())
+                {
+                        TRC_ERROR("call back for free connection\n");
+                        return HLX_STATUS_OK;
+                }
                 if(l_t_srvr)
                 {
                         ++l_t_srvr->m_stat.m_upsv_errors;
@@ -232,8 +230,14 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
-        if(a_conn_mode == EVR_MODE_TIMEOUT)
+        else if(a_conn_mode == EVR_MODE_TIMEOUT)
         {
+                // ignore timeout for free connections
+                if(l_nconn->is_free())
+                {
+                        TRC_ERROR("call back for free connection\n");
+                        return HLX_STATUS_OK;
+                }
                 // calc time since last active
                 if(l_uss && l_t_srvr)
                 {
@@ -271,15 +275,31 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                         return HLX_STATUS_ERROR;
                 }
         }
+        else if(a_conn_mode == EVR_MODE_READ)
+        {
+                // ignore readable for free connections
+                if(l_nconn->is_free())
+                {
+                        TRC_ERROR("call back for free connection\n");
+                        return HLX_STATUS_OK;
+                }
+        }
         // -------------------------------------------------
         // TODO unknown conn mode???
         // -------------------------------------------------
-        if((a_conn_mode != EVR_MODE_READ) &&
-           (a_conn_mode != EVR_MODE_WRITE))
+        else if((a_conn_mode != EVR_MODE_READ) &&
+                (a_conn_mode != EVR_MODE_WRITE))
         {
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
-                return HLX_STATUS_ERROR;
+                return HLX_STATUS_OK;
         }
+
+        // set last active
+        if(l_uss)
+        {
+                l_uss->set_last_active_ms(get_time_ms());
+        }
+
         // -------------------------------------------------
         // in/out q's
         // -------------------------------------------------
@@ -295,9 +315,9 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                 l_in_q = l_t_srvr->m_orphan_in_q;
                 l_out_q = l_t_srvr->m_orphan_out_q;
         }
-        // -----------------------------------------------------------
+        // -------------------------------------------------
         // conn loop
-        // -----------------------------------------------------------
+        // -------------------------------------------------
         bool l_idle = false;
         int32_t l_s = HLX_STATUS_OK;
         do {
@@ -318,9 +338,9 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                 {
                         goto check_conn_status;
                 }
-                // ---------------------------------------------------
+                // -----------------------------------------
                 // READABLE
-                // ---------------------------------------------------
+                // -----------------------------------------
                 if(a_conn_mode == EVR_MODE_READ)
                 {
                         if(l_uss->m_subr->get_ups() && (l_read > 0))
@@ -332,9 +352,9 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                                         TRC_ERROR("performing ups_read -a_conn_status: %d l_size: %zd\n", l_read, l_size);
                                 }
                         }
-                        // -------------------------------------------
+                        // -----------------------------------------
                         // Handle completion
-                        // -------------------------------------------
+                        // -----------------------------------------
                         if(l_uss->m_resp &&
                            l_uss->m_resp->m_complete)
                         {
@@ -398,9 +418,9 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                                 l_idle = true;
                         }
                 }
-                // ---------------------------------------------------
+                // -----------------------------------------
                 // STATUS_OK
-                // ---------------------------------------------------
+                // -----------------------------------------
                 else if(l_s == nconn::NC_STATUS_OK)
                 {
                         l_s = nconn::NC_STATUS_BREAK;
