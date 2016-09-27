@@ -515,8 +515,8 @@ int32_t clnt_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode)
                 //NDBG_PRINT("l_nconn->nc_run_state_machine(%d): status: %d\n", a_conn_mode, l_s);
                 if(l_t_srvr)
                 {
-                        l_t_srvr->m_stat.m_upsv_bytes_read += l_read;
-                        l_t_srvr->m_stat.m_upsv_bytes_written += l_written;
+                        l_t_srvr->m_stat.m_clnt_bytes_read += l_read;
+                        l_t_srvr->m_stat.m_clnt_bytes_written += l_written;
                 }
                 if(l_cs)
                 {
