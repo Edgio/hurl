@@ -259,7 +259,7 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                         {
                                 uint64_t l_d_time = (uint32_t)(l_uss->get_timeout_ms() - (l_ct_ms - l_uss->get_last_active_ms()));
                                 l_t_srvr->add_timer(l_d_time,
-                                                    clnt_session::evr_fd_timeout_cb,
+                                                    ups_srvr_session::evr_fd_timeout_cb,
                                                     l_nconn,
                                                     (void **)(&(l_uss->m_timer_obj)));
                                 // TODO check status

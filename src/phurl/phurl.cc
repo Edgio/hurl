@@ -1956,6 +1956,8 @@ int main(int argc, char** argv)
                 l_broadcast_h = NULL;
         }
 
+        // TODO Fix deallocation
+#if 0
         for(phurl_h_resp_list_t::iterator i_hr = l_settings.m_phr_list.begin();
             i_hr != l_settings.m_phr_list.end();
             ++i_hr)
@@ -1966,6 +1968,7 @@ int main(int argc, char** argv)
                         *i_hr = NULL;
                 }
         }
+#endif
 
         if(l_srvr)
         {
