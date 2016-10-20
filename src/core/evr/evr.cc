@@ -32,9 +32,9 @@
 #include "hlx/status.h"
 #include "hlx/trace.h"
 
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <stdlib.h>
 
 namespace ns_hlx {
 
