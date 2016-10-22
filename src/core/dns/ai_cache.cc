@@ -37,6 +37,7 @@
 #include "rapidjson/document.h"
 //#pragma GCC diagnostic pop
 
+#include <stdlib.h>
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>

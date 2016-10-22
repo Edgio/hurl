@@ -38,10 +38,10 @@
 #include "udns-0.4/udns.h"
 #endif
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
-#include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>

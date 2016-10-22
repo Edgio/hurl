@@ -37,6 +37,7 @@
 #include "hlx/srvr.h"
 #include "hlx/status.h"
 #include "hlx/trace.h"
+#include <stdlib.h>
 
 namespace ns_hlx {
 
