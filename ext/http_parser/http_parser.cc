@@ -1205,12 +1205,6 @@ reexecute:
       /* minor HTTP version or end of request line */
       case s_req_http_minor:
       {
-        // Hack to support version strings with spaces after version number
-        // Reed P. Morrison 04/17/2016
-        if (ch == ' ') {
-          break;
-        }
-
         if (ch == CR) {
           UPDATE_STATE(s_req_line_almost_done);
           break;
@@ -1372,12 +1366,7 @@ reexecute:
                   || c != CONTENT_LENGTH[parser->index]) {
                 parser->header_state = h_general;
               } else if (parser->index == sizeof(CONTENT_LENGTH)-2) {
-                if (parser->flags & F_CONTENTLENGTH) {
-                  SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
-                  goto error;
-                }
                 parser->header_state = h_content_length;
-                parser->flags |= F_CONTENTLENGTH;
               }
               break;
 
@@ -1480,6 +1469,12 @@ reexecute:
               goto error;
             }
 
+            if (parser->flags & F_CONTENTLENGTH) {
+              SET_ERRNO(HPE_UNEXPECTED_CONTENT_LENGTH);
+              goto error;
+            }
+
+            parser->flags |= F_CONTENTLENGTH;
             parser->content_length = ch - '0';
             break;
 
@@ -1817,6 +1812,9 @@ reexecute:
           switch (settings->on_headers_complete(parser)) {
             case 0:
               break;
+
+            case 2:
+              parser->upgrade = 1;
 
             case 1:
               parser->flags |= F_SKIPBODY;
@@ -2256,11 +2254,12 @@ http_parse_host_char(enum http_host_state s, const char ch) {
 
 static int
 http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
-  assert(u->field_set & (1 << UF_HOST));
   enum http_host_state s;
 
   const char *p;
   size_t buflen = u->field_data[UF_HOST].off + u->field_data[UF_HOST].len;
+
+  assert(u->field_set & (1 << UF_HOST));
 
   u->field_data[UF_HOST].len = 0;
 
