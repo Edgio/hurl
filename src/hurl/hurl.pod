@@ -55,12 +55,6 @@ B<-l>, B<--seconds>       run for <N> seconds .
 
 B<-A>, B<--rate>          max number of requests per second.
 
-B<-R>, B<--recv_buffer>   socket receive buffer size.
-
-B<-S>, B<--send_buffer>   socket send buffer size.
-
-B<-D>, B<--no_delay>      disable socket TCP no-delay (on by default).
-
 B<-T>, B<--timeout>       timeout (seconds).
 
 B<-x>, B<--no_stats>      don't collect stats -faster.
@@ -75,8 +69,6 @@ B<-C>, B<--responses>     display http(s) response codes instead of request stat
 
 B<-L>, B<--responses_per> display http(s) response codes per interval instead of request statistics
 
-B<-P>, B<--data_port>     start HTTP Stats Daemon on port.
-
 B<-Y>, B<--http_load>     display in http load mode [MODE] -Legacy support
 
 =head1 EXAMPLE
@@ -90,7 +82,7 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 =head1 COPYRIGHT
 
-Copyright (C) 2014 Verizon.  All Rights Reserved.
+Copyright (C) 2016 Verizon.  All Rights Reserved.
 Apache License: Version 2.0, January 2004 <http://www.apache.org/licenses/LICENSE-2.0>
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.

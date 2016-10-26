@@ -24,8 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-// TODO export this???
-#include "support/tls_util.h"
+#include "tls_util.h"
+#include "ndebug.h"
 
 #include "hlx/srvr.h"
 #include "hlx/phurl_h.h"
@@ -90,32 +90,6 @@
 #define NB_DISABLE 0
 
 #define MAX_READLINE_SIZE 1024
-
-//: ----------------------------------------------------------------------------
-//: ANSI Color Code Strings
-//:
-//: Taken from:
-//: http://pueblo.sourceforge.net/doc/manual/ansi_color_codes.html
-//: ----------------------------------------------------------------------------
-#define ANSI_COLOR_OFF          "\033[0m"
-#define ANSI_COLOR_FG_BLACK     "\033[01;30m"
-#define ANSI_COLOR_FG_RED       "\033[01;31m"
-#define ANSI_COLOR_FG_GREEN     "\033[01;32m"
-#define ANSI_COLOR_FG_YELLOW    "\033[01;33m"
-#define ANSI_COLOR_FG_BLUE      "\033[01;34m"
-#define ANSI_COLOR_FG_MAGENTA   "\033[01;35m"
-#define ANSI_COLOR_FG_CYAN      "\033[01;36m"
-#define ANSI_COLOR_FG_WHITE     "\033[01;37m"
-#define ANSI_COLOR_FG_DEFAULT   "\033[01;39m"
-#define ANSI_COLOR_BG_BLACK     "\033[01;40m"
-#define ANSI_COLOR_BG_RED       "\033[01;41m"
-#define ANSI_COLOR_BG_GREEN     "\033[01;42m"
-#define ANSI_COLOR_BG_YELLOW    "\033[01;43m"
-#define ANSI_COLOR_BG_BLUE      "\033[01;44m"
-#define ANSI_COLOR_BG_MAGENTA   "\033[01;45m"
-#define ANSI_COLOR_BG_CYAN      "\033[01;46m"
-#define ANSI_COLOR_BG_WHITE     "\033[01;47m"
-#define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -957,9 +931,6 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -H, --header         Request headers -can add multiple ie -H<> -H<>...\n");
         fprintf(a_stream, "  -X, --verb           Request command -HTTP verb to use -GET/PUT/etc\n");
         fprintf(a_stream, "  -T, --timeout        Timeout (seconds).\n");
-        fprintf(a_stream, "  -R, --recv_buffer    Socket receive buffer size.\n");
-        fprintf(a_stream, "  -S, --send_buffer    Socket send buffer size.\n");
-        fprintf(a_stream, "  -D, --no_delay       Socket TCP no-delay.\n");
         fprintf(a_stream, "  -n, --no_async_dns   Use getaddrinfo to resolve.\n");
         fprintf(a_stream, "  -k, --no_cache       Don't use addr info cache.\n");
         fprintf(a_stream, "  -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).\n");
@@ -1046,9 +1017,6 @@ int main(int argc, char** argv)
         // Setup default headers before the user
         l_subr->set_header("User-Agent", "Verizon Digital Media Parallel Curl phurl ");
         //l_subr->set_header("Accept", "*/*");
-        //l_srvr->set_header("User-Agent", "ONGA_BONGA (╯°□°）╯︵ ┻━┻)");
-        //l_srvr->set_header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/33.0.1750.117 Safari/537.36");
-        //l_srvr->set_header("x-select-backend", "self");
         //l_srvr->set_header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
         //l_srvr->set_header("Accept-Encoding", "gzip,deflate");
         l_subr->set_completion_cb(broadcast_h::s_completion_cb);
@@ -1075,9 +1043,6 @@ int main(int argc, char** argv)
                 { "header",         1, 0, 'H' },
                 { "verb",           1, 0, 'X' },
                 { "timeout",        1, 0, 'T' },
-                { "recv_buffer",    1, 0, 'R' },
-                { "send_buffer",    1, 0, 'S' },
-                { "no_delay",       1, 0, 'D' },
                 { "no_async_dns",   1, 0, 'n' },
                 { "no_cache",       0, 0, 'k' },
                 { "ai_cache",       1, 0, 'A' },
@@ -1160,9 +1125,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CQ:W:Rcqsmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:nkA:CQ:W:Rcqsmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:R:S:DnkA:CQ:W:Rcqsmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:Ip:t:H:X:T:nkA:CQ:W:Rcqsmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -1421,34 +1386,6 @@ int main(int argc, char** argv)
                                 return -1;
                         }
                         l_subr->set_timeout_ms(l_timeout_s*1000);
-                        break;
-                }
-                // ---------------------------------------
-                // sock_opt_recv_buf_size
-                // ---------------------------------------
-                case 'R':
-                {
-                        int l_sock_opt_recv_buf_size = atoi(optarg);
-                        // TODO Check value...
-                        l_srvr->set_sock_opt_recv_buf_size(l_sock_opt_recv_buf_size);
-                        break;
-                }
-                // ---------------------------------------
-                // sock_opt_send_buf_size
-                // ---------------------------------------
-                case 'S':
-                {
-                        int l_sock_opt_send_buf_size = atoi(optarg);
-                        // TODO Check value...
-                        l_srvr->set_sock_opt_send_buf_size(l_sock_opt_send_buf_size);
-                        break;
-                }
-                // ---------------------------------------
-                // No delay
-                // ---------------------------------------
-                case 'D':
-                {
-                        l_srvr->set_sock_opt_no_delay(true);
                         break;
                 }
                 // ---------------------------------------

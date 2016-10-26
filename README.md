@@ -11,24 +11,6 @@ A few utilities for testing and curling from http servers.
 *hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
 eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html".
 
-* **Stats API**:
-If  *hurl* is started with *-P port_number* option,  *hurl* listens on the user specified port for stats requests:
-For example if hurl is run with:
-```bash
-~>hurl "http://127.0.0.1:8089/index.html" -P12345
-Running 1 parallel connections with: 1 reqs/conn, 1 threads
-+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+
-|    Cmpltd /     Total |    IdlKil |    Errors | kBytes Recvd |   Elapsed |       Req/s |      MB/s |
-+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+
-|      2603 /      2603 |         0 |         0 |      2158.15 |     0.20s |       0.00s |     0.00s |
-|      5250 /      5250 |         0 |         0 |      4352.78 |     0.40s |   13235.00s |    10.72s |
-|      7831 /      7831 |         0 |         0 |      6492.69 |     0.60s |   12905.00s |    10.45s |
-|     10390 /     10390 |         0 |         0 |      8614.37 |     0.80s |   12795.00s |    10.36s |
-|     13131 /     13131 |         0 |         0 |     10886.93 |     1.00s |   13705.00s |    11.10s |
-|     15737 /     15737 |         0 |         0 |     13047.57 |     1.20s |   13030.00s |    10.55s |
-...
-```
-
 ####An example
 ```bash
 hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
@@ -47,7 +29,6 @@ Input Options:
   -d, --data           HTTP body data -supports curl style @ file specifier
   
 Settings:
-  -y, --cipher         Cipher --see "openssl ciphers" for list.
   -p, --parallel       Num parallel. Default: 100.
   -f, --fetches        Num fetches.
   -N, --num_calls      Number of requests per connection
@@ -56,12 +37,8 @@ Settings:
   -X, --verb           Request command -HTTP verb to use -GET/PUT/etc. Default GET
   -l, --seconds        Run for <N> seconds .
   -A, --rate           Max Request Rate.
-  -R, --recv_buffer    Socket receive buffer size.
-  -S, --send_buffer    Socket send buffer size.
-  -D, --no_delay       Disable socket TCP no-delay (on by default).
   -T, --timeout        Timeout (seconds).
   -x, --no_stats       Don't collect stats -faster.
-  -r, --addr_seq       Rotate through local addresses (number).
   
 Print Options:
   -v, --verbose        Verbose logging
@@ -72,16 +49,12 @@ Print Options:
   
 Stat Options:
   -U, --update         Update output every N ms. Default 500ms.
-  -P, --data_port      Start HTTP Stats Daemon on port.
   
 Results Options:
   -j, --json           Display results in json
   -Y, --http_load      Display results in http load mode -Legacy support
   -Z, --http_load_line Display results in http load mode on a single line -Legacy support
   -o, --output         Output results to file <FILE> -default to stdout
-  
-Profile Options:
-  -G, --gprofile       Google profiler output file
   
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
@@ -117,9 +90,6 @@ Settings:
   -H, --header         Request headers -can add multiple ie -H<> -H<>...
   -X, --verb           Request command -HTTP verb to use -GET/PUT/etc
   -T, --timeout        Timeout (seconds).
-  -R, --recv_buffer    Socket receive buffer size.
-  -S, --send_buffer    Socket send buffer size.
-  -D, --no_delay       Socket TCP no-delay.
   -n, --no_async_dns   Use getaddrinfo to resolve.
   -k, --no_cache       Don't use addr info cache.
   -A, --ai_cache       Path to Address Info Cache (DNS lookup cache).
@@ -153,8 +123,6 @@ Output Options: -defaults to line delimited
   -j, --json           JSON { <HOST>: "body": <RESPONSE> ...
   -P, --pretty         Pretty output
   
-Debug Options:
-  -G, --gprofile       Google profiler output file
   
 Note: If running large jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
@@ -165,29 +133,29 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 ####An example
 ```cpp
-#include <hlx/hlx.h>
+#include <hlx/srvr.h>
 #include <hlx/lsnr.h>
 #include <hlx/api_resp.h>
 #include <hlx/default_rqst_h.h>
 #include <string.h>
 #include <stdio.h>
-ns_hlx::hlx *g_hlx = NULL;
+
 class bananas_getter: public ns_hlx::default_rqst_h
 {
 public:
         // GET
-        ns_hlx::h_resp_t do_get(ns_hlx::hconn &a_hconn,
+        ns_hlx::h_resp_t do_get(ns_hlx::clnt_session &a_clnt_session,
                                 ns_hlx::rqst &a_rqst,
                                 const ns_hlx::url_pmap_t &a_url_pmap)
         {
                 char l_len_str[64];
                 uint32_t l_body_len = strlen("Hello World\n");
                 sprintf(l_len_str, "%u", l_body_len);
-                ns_hlx::api_resp &l_api_resp = create_api_resp(a_hconn);
+                ns_hlx::api_resp &l_api_resp = create_api_resp(a_clnt_session);
                 l_api_resp.set_status(ns_hlx::HTTP_STATUS_OK);
                 l_api_resp.set_header("Content-Length", l_len_str);
                 l_api_resp.set_body_data("Hello World\n", l_body_len);
-                ns_hlx::queue_api_resp(a_hconn, l_api_resp);
+                ns_hlx::queue_api_resp(a_clnt_session, l_api_resp);
                 return ns_hlx::H_RESP_DONE;
         }
 };
@@ -196,12 +164,12 @@ int main(void)
         ns_hlx::lsnr *l_lsnr = new ns_hlx::lsnr(12345, ns_hlx::SCHEME_TCP);
         ns_hlx::rqst_h *l_rqst_h = new bananas_getter();
         l_lsnr->add_route("/bananas", l_rqst_h);
-        g_hlx = new ns_hlx::hlx();
-        g_hlx->register_lsnr(l_lsnr);
+        ns_hlx::srvr *t_srvr = new ns_hlx::srvr();
+        t_srvr->register_lsnr(l_lsnr);
         // Run in foreground w/ threads == 0
-        g_hlx->set_num_threads(0);
-        g_hlx->run();
-        if(g_hlx) {delete g_hlx; g_hlx = NULL;}
+        t_srvr->set_num_threads(0);
+        t_srvr->run();
+        if(t_srvr) {delete t_srvr; t_srvr = NULL;}
         if(l_rqst_h) {delete l_rqst_h; l_rqst_h = NULL;}
         return 0;
 }

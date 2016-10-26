@@ -114,7 +114,6 @@ h_resp_t proxy_h::get_proxy(clnt_session &a_clnt_session,
         l_subr->set_headers(a_rqst.get_headers());
         l_subr->set_keepalive(true);
         l_subr->set_timeout_ms(m_timeout_ms);
-        l_subr->set_max_parallel(m_max_parallel);
         l_subr->set_verb(a_rqst.get_method_str());
         char *l_body_data = NULL;
         uint64_t l_body_data_len = 0;

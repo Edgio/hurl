@@ -26,7 +26,10 @@
 //: ----------------------------------------------------------------------------
 #include "nconn_tcp.h"
 #include "ndebug.h"
+#include "nresolver.h"
 #include "t_srvr.h"
+#include "hlx/ups_srvr_session.h"
+#include "hlx/clnt_session.h"
 #include "hlx/string_util.h"
 #include "hlx/subr.h"
 #include "hlx/api_resp.h"
@@ -45,14 +48,12 @@ namespace ns_hlx {
 //: ----------------------------------------------------------------------------
 subr::subr(void):
         m_state(SUBR_STATE_NONE),
-        m_kind(SUBR_KIND_NONE),
         m_scheme(SCHEME_NONE),
         m_host(),
         m_port(0),
         m_server_label(),
         m_save(true),
         m_connect_only(false),
-        m_is_multipath(false),
         m_timeout_ms(10000),
         m_path(),
         m_query(),
@@ -66,13 +67,8 @@ subr::subr(void):
         m_headers(),
         m_body_data(NULL),
         m_body_data_len(0),
-        m_num_to_request(1),
-        m_num_requested(0),
-        m_num_completed(0),
-        m_max_parallel(-1),
         m_error_cb(NULL),
         m_completion_cb(NULL),
-        m_create_req_cb(create_request),
         m_data(NULL),
         m_detach_resp(false),
         m_uid(0),
@@ -88,7 +84,6 @@ subr::subr(void):
         m_tls_sni(false),
         m_tls_self_ok(false),
         m_tls_no_host_check(false),
-        m_pre_connect_cb(NULL),
         m_ups(NULL)
 {
 }
@@ -100,14 +95,12 @@ subr::subr(void):
 //: ----------------------------------------------------------------------------
 subr::subr(const subr &a_subr):
         m_state(a_subr.m_state),
-        m_kind(a_subr.m_kind),
         m_scheme(a_subr.m_scheme),
         m_host(a_subr.m_host),
         m_port(a_subr.m_port),
         m_server_label(a_subr.m_server_label),
         m_save(a_subr.m_save),
         m_connect_only(a_subr.m_connect_only),
-        m_is_multipath(a_subr.m_is_multipath),
         m_timeout_ms(a_subr.m_timeout_ms),
         m_path(a_subr.m_path),
         m_query(a_subr.m_query),
@@ -121,13 +114,8 @@ subr::subr(const subr &a_subr):
         m_headers(a_subr.m_headers),
         m_body_data(a_subr.m_body_data),
         m_body_data_len(a_subr.m_body_data_len),
-        m_num_to_request(a_subr.m_num_to_request),
-        m_num_requested(a_subr.m_num_requested),
-        m_num_completed(a_subr.m_num_completed),
-        m_max_parallel(a_subr.m_max_parallel),
         m_error_cb(a_subr.m_error_cb),
         m_completion_cb(a_subr.m_completion_cb),
-        m_create_req_cb(a_subr.m_create_req_cb),
         m_data(a_subr.m_data),
         m_detach_resp(a_subr.m_detach_resp),
         m_uid(a_subr.m_uid),
@@ -143,7 +131,6 @@ subr::subr(const subr &a_subr):
         m_tls_sni(a_subr.m_tls_sni),
         m_tls_self_ok(a_subr.m_tls_self_ok),
         m_tls_no_host_check(a_subr.m_tls_no_host_check),
-        m_pre_connect_cb(a_subr.m_pre_connect_cb),
         m_ups(a_subr.m_ups)
 {
 }
@@ -168,16 +155,6 @@ subr::~subr(void)
 subr::subr_state_t subr::get_state(void) const
 {
         return m_state;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-subr::subr_kind_t subr::get_kind(void) const
-{
-        return m_kind;
 }
 
 //: ----------------------------------------------------------------------------
@@ -265,93 +242,9 @@ uint16_t subr::get_port(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subr::get_num_to_request(void) const
-{
-        return m_num_to_request;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-uint32_t subr::get_num_requested(void) const
-{
-        return m_num_requested;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-uint32_t subr::get_num_completed(void) const
-{
-        return m_num_completed;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t subr::get_max_parallel(void) const
-{
-        return m_max_parallel;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 bool subr::get_keepalive(void) const
 {
         return m_keepalive;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool subr::get_is_done(void) const
-{
-        if((m_num_to_request < 0) || m_num_completed < (uint32_t)m_num_to_request)
-        {
-                return false;
-        }
-        else
-        {
-                return true;
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool subr::get_is_pending_done(void) const
-{
-        if((m_num_to_request < 0) || m_num_requested < (uint32_t)m_num_to_request)
-        {
-                return false;
-        }
-        else
-        {
-                return true;
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-bool subr::get_is_multipath(void) const
-{
-        return m_is_multipath;
 }
 
 //: ----------------------------------------------------------------------------
@@ -372,16 +265,6 @@ subr::error_cb_t subr::get_error_cb(void) const
 subr::completion_cb_t subr::get_completion_cb(void) const
 {
         return m_completion_cb;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-subr::create_req_cb_t subr::get_create_req_cb(void) const
-{
-        return m_create_req_cb;
 }
 
 //: ----------------------------------------------------------------------------
@@ -589,16 +472,6 @@ const std::string &subr::get_label(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-subr::pre_connect_cb_t subr::get_pre_connect_cb(void) const
-{
-        return m_pre_connect_cb;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 base_u *subr::get_ups(void)
 {
         return m_ups;
@@ -615,16 +488,6 @@ base_u *subr::get_ups(void)
 void subr::set_state(subr_state_t a_state)
 {
         m_state = a_state;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_kind(subr_kind_t a_kind)
-{
-        m_kind = a_kind;
 }
 
 //: ----------------------------------------------------------------------------
@@ -655,36 +518,6 @@ void subr::set_save(bool a_val)
 void subr::set_connect_only(bool a_val)
 {
         m_connect_only = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_is_multipath(bool a_val)
-{
-        m_is_multipath = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_num_to_request(int32_t a_val)
-{
-        m_num_to_request = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_max_parallel(int32_t a_val)
-{
-        m_max_parallel = a_val;
 }
 
 //: ----------------------------------------------------------------------------
@@ -724,16 +557,6 @@ void subr::set_error_cb(error_cb_t a_cb)
 void subr::set_completion_cb(completion_cb_t a_cb)
 {
         m_completion_cb = a_cb;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_create_req_cb(create_req_cb_t a_cb)
-{
-        m_create_req_cb = a_cb;
 }
 
 //: ----------------------------------------------------------------------------
@@ -946,16 +769,6 @@ void subr::set_tls_self_ok(bool a_val)
 void subr::set_tls_no_host_check(bool a_val)
 {
         m_tls_no_host_check = a_val;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::set_pre_connect_cb(pre_connect_cb_t a_cb)
-{
-        m_pre_connect_cb = a_cb;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1205,29 +1018,6 @@ void subr::clear_headers(void)
 }
 
 //: ----------------------------------------------------------------------------
-//:                                 Stats
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::bump_num_requested(void)
-{
-        ++m_num_requested;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void subr::bump_num_completed(void)
-{
-        ++m_num_completed;
-}
-
-//: ----------------------------------------------------------------------------
 //:                              Initialize
 //: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
@@ -1394,8 +1184,6 @@ int32_t subr::cancel(void)
         {
                 // Delete from queue
                 *m_i_q = NULL;
-                bump_num_completed();
-                bump_num_requested();
                 if(m_error_cb)
                 {
                         m_error_cb(*(this), NULL, HTTP_STATUS_GATEWAY_TIMEOUT, get_resp_status_str(HTTP_STATUS_GATEWAY_TIMEOUT));
@@ -1411,8 +1199,6 @@ int32_t subr::cancel(void)
                 {
                         l_job->m_cb = NULL;
                 }
-                bump_num_requested();
-                bump_num_completed();
                 if(m_error_cb)
                 {
                         m_error_cb(*(this), NULL, HTTP_STATUS_GATEWAY_TIMEOUT, get_resp_status_str(HTTP_STATUS_GATEWAY_TIMEOUT));
@@ -1460,9 +1246,9 @@ int32_t subr::cancel(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t subr::create_request(subr &a_subr, nbq &ao_q)
+int32_t subr::create_request(nbq &ao_q)
 {
-        std::string l_path_ref = a_subr.get_path();
+        std::string l_path_ref = get_path();
 
         char l_buf[2048];
         int32_t l_len = 0;
@@ -1470,14 +1256,14 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         {
                 l_path_ref = "/";
         }
-        if(!(a_subr.get_query().empty()))
+        if(!(get_query().empty()))
         {
                 l_path_ref += "?";
-                l_path_ref += a_subr.get_query();
+                l_path_ref += get_query();
         }
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %.500s HTTP/1.1", a_subr.get_verb().c_str(), l_path_ref.c_str());
+                        "%s %.500s HTTP/1.1", get_verb().c_str(), l_path_ref.c_str());
 
         nbq_write_request_line(ao_q, l_buf, l_len);
 
@@ -1488,8 +1274,8 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         bool l_specd_ua = false;
 
         // Loop over header map
-        for(kv_map_list_t::const_iterator i_hl = a_subr.get_headers().begin();
-            i_hl != a_subr.get_headers().end();
+        for(kv_map_list_t::const_iterator i_hl = get_headers().begin();
+            i_hl != get_headers().end();
             ++i_hl)
         {
                 if(i_hl->first.empty() || i_hl->second.empty())
@@ -1519,7 +1305,7 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         if (!l_specd_host)
         {
                 nbq_write_header(ao_q, "Host", strlen("Host"),
-                                 a_subr.get_host().c_str(), a_subr.get_host().length());
+                                 get_host().c_str(), get_host().length());
         }
 
         // -------------------------------------------
@@ -1527,11 +1313,11 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         // -------------------------------------------
         if (!l_specd_ua)
         {
-                if(!a_subr.m_t_srvr->get_srvr())
+                if(!m_t_srvr->get_srvr())
                 {
                         return HLX_STATUS_ERROR;
                 }
-                const std::string &l_ua = a_subr.m_t_srvr->get_srvr()->get_server_name();
+                const std::string &l_ua = m_t_srvr->get_srvr()->get_server_name();
                 nbq_write_header(ao_q, "User-Agent", strlen("User-Agent"),
                                 l_ua.c_str(), l_ua.length());
         }
@@ -1539,16 +1325,15 @@ int32_t subr::create_request(subr &a_subr, nbq &ao_q)
         // -------------------------------------------
         // body
         // -------------------------------------------
-        if(a_subr.get_body_data() && a_subr.get_body_len())
+        if(get_body_data() && get_body_len())
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                nbq_write_body(ao_q, a_subr.get_body_data(), a_subr.get_body_len());
+                nbq_write_body(ao_q, get_body_data(), get_body_len());
         }
         else
         {
                 nbq_write_body(ao_q, NULL, 0);
         }
-
         return HLX_STATUS_OK;
 }
 

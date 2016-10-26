@@ -34,6 +34,7 @@ include_directories(
     ./nconn
     ./dns
     ./http
+    ./srvr
     ../../include
     ${LIBUDNS_INCLUDE_DIR}
 )
@@ -109,23 +110,24 @@ SET(SRCS
     ./http/hmsg.cc
     ./http/rqst.cc
     ./http/resp.cc
-    ./http/lsnr.cc
     ./http/subr.cc
     ./http/cb.cc
-    ./http/srvr.cc
-    ./http/t_srvr.cc
-    ./http/clnt_session.cc
-    ./http/ups_srvr_session.cc
-    ./http/access.cc
-    ./http/api_resp.cc
-    ./http/base_u.cc
 
-    ./http/handler/rqst_h.cc
-    ./http/handler/default_rqst_h.cc
-    ./http/handler/file_h.cc
-    ./http/handler/phurl_h.cc
-    ./http/handler/stat_h.cc
-    ./http/handler/proxy_h.cc
+    ./srvr/lsnr.cc
+    ./srvr/srvr.cc
+    ./srvr/t_srvr.cc
+    ./srvr/clnt_session.cc
+    ./srvr/ups_srvr_session.cc
+    ./srvr/access.cc
+    ./srvr/api_resp.cc
+    ./srvr/base_u.cc
+
+    ./srvr/handler/rqst_h.cc
+    ./srvr/handler/default_rqst_h.cc
+    ./srvr/handler/file_h.cc
+    ./srvr/handler/phurl_h.cc
+    ./srvr/handler/stat_h.cc
+    ./srvr/handler/proxy_h.cc
 )
 
 # ------------------------------------------------

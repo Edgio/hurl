@@ -278,6 +278,7 @@ typedef struct t_stat_calc_struct
         uint64_t m_upsv_req_delta;
         uint64_t m_upsv_resp_delta;
         float m_upsv_req_s;
+        float m_upsv_resp_s;
         float m_upsv_bytes_read_s;
         float m_upsv_bytes_write_s;
         float m_upsv_resp_status_2xx_pcnt;
@@ -299,6 +300,7 @@ typedef struct t_stat_calc_struct
                 m_upsv_req_delta(0),
                 m_upsv_resp_delta(0),
                 m_upsv_req_s(0.0),
+                m_upsv_resp_s(0.0),
                 m_upsv_bytes_read_s(0.0),
                 m_upsv_bytes_write_s(0.0),
                 m_upsv_resp_status_2xx_pcnt(0.0),
@@ -311,6 +313,7 @@ typedef struct t_stat_calc_struct
                 m_clnt_req_delta = 0;
                 m_clnt_resp_delta = 0;
                 m_clnt_req_s = 0.0;
+                m_upsv_resp_s = 0.0;
                 m_clnt_bytes_read_s = 0.0;
                 m_clnt_bytes_write_s = 0.0;
                 m_clnt_resp_status_2xx_pcnt = 0.0;

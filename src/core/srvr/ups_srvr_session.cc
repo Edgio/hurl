@@ -378,7 +378,6 @@ int32_t ups_srvr_session::run_state_machine(void *a_data, evr_mode_t a_conn_mode
                                 {
                                         l_t_srvr->add_stat_to_agg(l_nconn->get_stats(), l_uss->m_resp->get_status());
                                 }
-                                l_uss->m_subr->bump_num_completed();
                                 bool l_hmsg_keep_alive = false;
                                 if(l_uss->m_resp)
                                 {
@@ -467,7 +466,6 @@ check_conn_status:
                         }
                         if(l_uss->m_subr)
                         {
-                                l_uss->m_subr->bump_num_completed();
                                 l_uss->subr_complete();
                         }
                         return l_uss->teardown(HTTP_STATUS_OK);
@@ -518,9 +516,6 @@ done:
 }
 
 //: ----------------------------------------------------------------------------
-//: Subrequests
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
@@ -565,10 +560,7 @@ bool ups_srvr_session::subr_complete(void)
                 return true;
         }
         bool l_complete = false;
-        if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
-        {
-                m_subr->set_end_time_ms(get_time_ms());
-        }
+        m_subr->set_end_time_ms(get_time_ms());
         // Get vars -completion -can delete subr object
         bool l_connect_only = m_subr->get_connect_only();
         bool l_detach_resp = m_subr->get_detach_resp();
@@ -604,11 +596,7 @@ int32_t ups_srvr_session::subr_error(http_status_t a_status)
         {
                 return HLX_STATUS_ERROR;
         }
-        m_subr->bump_num_completed();
-        if(m_subr->get_kind() != subr::SUBR_KIND_DUPE)
-        {
-                m_subr->set_end_time_ms(get_time_ms());
-        }
+        m_subr->set_end_time_ms(get_time_ms());
         if(m_nconn && m_nconn->get_collect_stats_flag())
         {
                 m_nconn->set_stat_tt_completion_us(get_delta_time_us(m_nconn->get_connect_start_time_us()));

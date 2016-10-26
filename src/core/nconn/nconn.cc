@@ -167,6 +167,14 @@ state_top:
                 {
                         int32_t l_status = NC_STATUS_OK;
                         l_status = nc_read(a_in_q, ao_read);
+                        if(m_collect_stats_flag && (ao_read > 0))
+                        {
+                                m_stat.m_total_bytes += ao_read;
+                                if(m_stat.m_tt_first_read_us == 0)
+                                {
+                                        m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
+                                }
+                        }
                         //NDBG_PRINT("l_status: %d\n", l_status);
                         switch(l_status){
                         case NC_STATUS_EOF:
@@ -183,18 +191,6 @@ state_top:
                         {
                                 break;
                         }
-                        }
-
-                        if(l_status > 0)
-                        {
-                                if(m_collect_stats_flag)
-                                {
-                                        m_stat.m_total_bytes += ao_read;
-                                        if(m_stat.m_tt_first_read_us == 0)
-                                        {
-                                                m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
-                                        }
-                                }
                         }
                         return l_status;
                 }
@@ -213,6 +209,7 @@ state_top:
                         {
                                 return l_status;
                         }
+
                         default:
                         {
                                 break;
@@ -334,7 +331,7 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                         break;
                 }
         } while(l_status > 0);
-        return HLX_STATUS_OK;
+        return NC_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -402,7 +399,7 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                 a_out_q->b_read_incr(l_status);
                 a_out_q->shrink();
         } while(l_status > 0 && a_out_q->read_avail());
-        return HLX_STATUS_OK;
+        return NC_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -551,7 +548,6 @@ nconn::nconn(void):
       m_connect_only(false),
       m_remote_sa(),
       m_remote_sa_len(0),
-      m_pre_connect_cb(NULL),
       m_nc_state(NC_STATE_FREE),
       m_id(0),
       m_idx(0),

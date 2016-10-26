@@ -31,13 +31,18 @@ endif()
 LIST(APPEND INST_HDRS ${HDRS})
 
 # include paths
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-#${CMAKE_CURRENT_BINARY_DIR}
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    #${CMAKE_CURRENT_BINARY_DIR}
     ../../include
     ../../ext
     ../core/
+    ../core/dns
+    ../core/support
     ../core/evr
     ../core/nconn
+    ../core/http
+    ../core/ndebug
 )
 
 #add_definitions(-std=c++0x)

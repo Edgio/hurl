@@ -105,7 +105,6 @@ public:
         // Successful read/write callbacks
         // -------------------------------------------------
         typedef int32_t (*nconn_cb_t)(void *, char *, uint32_t, uint64_t);
-        typedef int32_t (*pre_connect_cb_t)(int);
 
         // -------------------------------------------------
         // Public methods
@@ -144,7 +143,6 @@ public:
         conn_status_t get_status(void) { return m_conn_status;}
         host_info get_host_info(void) {return m_host_info;}
         bool get_host_info_is_set(void) {return m_host_info_is_set;}
-        pre_connect_cb_t get_pre_connect_cb(void) const { return m_pre_connect_cb;};
         void get_remote_sa(sockaddr_storage &ao_sa, socklen_t &ao_sa_len)
         {
                 memcpy(&ao_sa, &m_remote_sa, m_remote_sa_len);
@@ -169,7 +167,6 @@ public:
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
         void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
         void set_status(conn_status_t a_status) { m_conn_status = a_status;}
-        void set_pre_connect_cb(pre_connect_cb_t a_cb) {m_pre_connect_cb = a_cb;}
         void setup_evr_fd(evr_file_cb_t a_read_cb,
                           evr_file_cb_t a_write_cb,
                           evr_file_cb_t a_error_cb)
@@ -248,7 +245,6 @@ protected:
         bool m_connect_only;
         sockaddr_storage m_remote_sa;
         socklen_t m_remote_sa_len;
-        pre_connect_cb_t m_pre_connect_cb;
 
 private:
         // ---------------------------------------

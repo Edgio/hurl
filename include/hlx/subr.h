@@ -73,19 +73,11 @@ public:
                 SUBR_STATE_ACTIVE
         } subr_state_t;
 
-        // kind
-        typedef enum {
-                SUBR_KIND_NONE = 0,
-                SUBR_KIND_DUPE
-        } subr_kind_t;
-
         // ---------------------------------------
         // Callbacks
         // ---------------------------------------
         typedef int32_t (*error_cb_t)(subr &, nconn *, http_status_t, const char *);
         typedef int32_t (*completion_cb_t)(subr &, nconn &, resp &);
-        typedef int32_t (*create_req_cb_t)(subr &, nbq &);
-        typedef int32_t (*pre_connect_cb_t)(int);
 
         // -------------------------------------------------
         // Public methods
@@ -96,7 +88,6 @@ public:
 
         // Getters
         subr_state_t get_state() const;
-        subr_kind_t get_kind() const;
         scheme_t get_scheme(void) const;
         bool get_save(void) const;
         bool get_connect_only(void) const;
@@ -105,17 +96,9 @@ public:
         const std::string &get_id(void) const;
         const std::string &get_where(void) const;
         uint16_t get_port(void) const;
-        int32_t get_num_to_request(void) const;
-        uint32_t get_num_requested(void) const;
-        uint32_t get_num_completed(void) const;
-        int32_t get_max_parallel(void) const;
         bool get_keepalive(void) const;
-        bool get_is_done(void) const;
-        bool get_is_pending_done(void) const;
-        bool get_is_multipath(void) const;
         error_cb_t get_error_cb(void) const;
         completion_cb_t get_completion_cb(void) const;
-        create_req_cb_t get_create_req_cb(void) const;
         int32_t get_timeout_ms(void) const;
         void *get_data(void) const;
         bool get_detach_resp(void) const;
@@ -133,22 +116,18 @@ public:
         bool get_tls_self_ok(void) const;
         bool get_tls_no_host_check(void) const;
         const std::string &get_label(void);
-        pre_connect_cb_t get_pre_connect_cb(void) const;
         base_u *get_ups(void);
 
         // Setters
         void set_state(subr_state_t a_state);
-        void set_kind(subr_kind_t a_kind);
         void set_scheme(scheme_t a_scheme);
         void set_save(bool a_val);
         void set_connect_only(bool a_val);
-        void set_is_multipath(bool a_val);
         void set_num_to_request(int32_t a_val);
         void set_max_parallel(int32_t a_val);
         void set_keepalive(bool a_val);
         void set_error_cb(error_cb_t a_cb);
         void set_completion_cb(completion_cb_t a_cb);
-        void set_create_req_cb(create_req_cb_t a_cb);
         void set_timeout_ms(int32_t a_val);
         void set_host(const std::string &a_val);
         void set_hostname(const std::string &a_val);
@@ -169,7 +148,6 @@ public:
         void set_tls_sni(bool a_val);
         void set_tls_self_ok(bool a_val);
         void set_tls_no_host_check(bool a_val);
-        void set_pre_connect_cb(pre_connect_cb_t a_cb);
         void set_ups(base_u *a_ups);
 
         // Request Parts
@@ -197,20 +175,14 @@ public:
         void clear_headers(void);
         void reset_label(void);
 
-        // Stats
-        void bump_num_requested(void);
-        void bump_num_completed(void);
-
         // Initialize
         int32_t init_with_url(const std::string &a_url);
 
+        // Create request
+        int32_t create_request(nbq &ao_q);
+
         // Cancel
         int32_t cancel(void);
-
-        // -------------------------------------------------
-        // Public static methods
-        // -------------------------------------------------
-        static int32_t create_request(subr &a_subr, nbq &ao_q);
 
 private:
         // -------------------------------------------------
@@ -223,14 +195,12 @@ private:
         // Private members
         // -------------------------------------------------
         subr_state_t m_state;
-        subr_kind_t m_kind;
         scheme_t m_scheme;
         std::string m_host;
         uint16_t m_port;
         std::string m_server_label;
         bool m_save;
         bool m_connect_only;
-        bool m_is_multipath;
         int32_t m_timeout_ms;
         std::string m_path;
         std::string m_query;
@@ -244,13 +214,8 @@ private:
         kv_map_list_t m_headers;
         const char *m_body_data;
         uint32_t m_body_data_len;
-        int32_t m_num_to_request;
-        uint32_t m_num_requested;
-        uint32_t m_num_completed;
-        int32_t m_max_parallel;
         error_cb_t m_error_cb;
         completion_cb_t m_completion_cb;
-        create_req_cb_t m_create_req_cb;
         void *m_data;
         bool m_detach_resp;
         uint64_t m_uid;
@@ -266,9 +231,7 @@ private:
         bool m_tls_sni;
         bool m_tls_self_ok;
         bool m_tls_no_host_check;
-        pre_connect_cb_t m_pre_connect_cb;
         base_u *m_ups;
-
 };
 
 //: ----------------------------------------------------------------------------

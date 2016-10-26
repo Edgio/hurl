@@ -561,8 +561,6 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
                 //NDBG_PRINT("a_host_info == NULL --HOST: %s\n", l_subr->get_host().c_str());
                 //NDBG_PRINT("l_host_info null\n");
                 ++(l_t_srvr->m_stat.m_upsv_errors);
-                l_subr->bump_num_requested();
-                l_subr->bump_num_completed();
                 subr::error_cb_t l_error_cb = l_subr->get_error_cb();
                 if(l_error_cb)
                 {
@@ -575,11 +573,6 @@ int32_t t_srvr::adns_resolved_cb(const host_info *a_host_info, void *a_data)
         //NDBG_PRINT("l_subr: %p -HOST: %s\n", l_subr, l_subr->get_host().c_str());
         l_subr->set_host_info(*a_host_info);
         ++(l_t_srvr->m_stat.m_dns_resolved);
-        // Special handling for DUPE'd subr's
-        if(l_subr->get_kind() == subr::SUBR_KIND_DUPE)
-        {
-                l_t_srvr->subr_enqueue(*l_subr);
-        }
         l_t_srvr->subr_add(*l_subr);
         return HLX_STATUS_OK;
 }
@@ -686,8 +679,6 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
                         {
                                 //NDBG_PRINT("Error: performing lookup_sync\n");
                                 ++m_stat.m_upsv_errors;
-                                a_subr.bump_num_requested();
-                                a_subr.bump_num_completed();
                                 subr::error_cb_t l_error_cb = a_subr.get_error_cb();
                                 if(l_error_cb)
                                 {
@@ -787,8 +778,6 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         // Setup nconn
         l_nconn->set_data(l_uss);
         l_nconn->set_evr_loop(m_evr_loop);
-        l_nconn->set_pre_connect_cb(a_subr.get_pre_connect_cb());
-
         // Setup clnt_session
         l_uss->m_nconn = l_nconn;
         l_uss->m_subr = &a_subr;
@@ -824,40 +813,22 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         // ---------------------------------------
         // out q
         // ---------------------------------------
-        bool l_create_req = false;
-
         if(!l_uss->m_out_q)
         {
                 l_uss->m_out_q = get_nbq(l_uss->m_out_q);
-                l_create_req = true;
-        }
-        else if(a_subr.get_is_multipath())
-        {
-                // Reset in data
-                l_uss->m_out_q->reset_write();
-                l_create_req = true;
         }
         else
         {
                 l_uss->m_out_q->reset_read();
         }
-
         // ---------------------------------------
         // create request
         // ---------------------------------------
-        if(l_create_req)
+        l_status = a_subr.create_request(*(l_uss->m_out_q));
+        if(HLX_STATUS_OK != l_status)
         {
-                subr::create_req_cb_t l_create_req_cb = a_subr.get_create_req_cb();
-                if(l_create_req_cb)
-                {
-                        l_status = l_create_req_cb(a_subr, *(l_uss->m_out_q));
-                        if(HLX_STATUS_OK != l_status)
-                        {
-                                return ups_srvr_session::evr_fd_error_cb(l_nconn);
-                        }
-                }
+                return ups_srvr_session::evr_fd_error_cb(l_nconn);
         }
-
         // ---------------------------------------
         // Display data from out q
         // ---------------------------------------
@@ -872,22 +843,13 @@ int32_t t_srvr::subr_try_start(subr &a_subr)
         // stats
         // ---------------------------------------
         ++m_stat.m_upsv_reqs;
-        // Set start time
-        if(a_subr.get_kind() != subr::SUBR_KIND_DUPE)
-        {
-                a_subr.set_start_time_ms(get_time_ms());
-        }
+        a_subr.set_start_time_ms(get_time_ms());
         if(l_nconn->get_collect_stats_flag())
         {
                 l_nconn->set_request_start_time_us(get_time_us());
         }
         l_uss->set_last_active_ms(get_time_ms());
         l_uss->set_timeout_ms(a_subr.get_timeout_ms());
-
-        // ---------------------------------------
-        // set to active state
-        // ---------------------------------------
-        a_subr.bump_num_requested();
 
         // ---------------------------------------
         // idle timer
@@ -928,10 +890,6 @@ int32_t t_srvr::subr_try_deq(void)
                 if(l_status == HLX_STATUS_OK)
                 {
                         l_subr->set_state(subr::SUBR_STATE_ACTIVE);
-                        if(!l_subr->get_is_pending_done())
-                        {
-                                subr_enqueue(*l_subr);
-                        }
                 }
                 else if(l_status == HLX_STATUS_AGAIN)
                 {
