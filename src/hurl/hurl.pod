@@ -37,8 +37,6 @@ B<-M>, B<--mode>          request mode -if multipath [random(default) | sequenti
 
 B<-d>, B<--data>          HTTP body data -supports bodies up to -supports curl style @ <file> specifier.
 
-B<-y>, B<--cipher>        cipher --see "openssl ciphers" for list.
-
 B<-p>, B<--parallel>      number of parallel requests. Default: 100.
 
 B<-f>, B<--fetches>       number of requests to run before exiting (defaults to infinite).
