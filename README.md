@@ -190,7 +190,7 @@ Hello World
 ##OS requirements:
 Linux/OS X (kqueue support coming soon-ish)
 
-###Install dependecies:
+###Install dependencies:
 Library requirements:
 * libssl/libcrypto (OpenSSL)
 
