@@ -32,6 +32,7 @@
 #include "ndebug.h"
 #include "cb.h"
 #include "obj_pool.h"
+#include "tls_util.h"
 
 #include "hlx/stat.h"
 #include "hlx/api_resp.h"
@@ -125,18 +126,6 @@
                         return HLX_STATUS_ERROR;\
                 }\
         } while(0);
-
-#define T_HLX_SET_NCONN_OPT(_conn, _opt, _buf, _len) \
-        do { \
-                int _status = 0; \
-                _status = _conn.set_opt((_opt), (_buf), (_len)); \
-                if (_status != nconn::NC_STATUS_OK) { \
-                        TRC_ERROR("set_opt %d.  Status: %d.\n", \
-                                   _opt, _status); \
-                        m_nconn_proxy_pool.release(&_conn); \
-                        return HLX_STATUS_ERROR;\
-                } \
-        } while(0)
 
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -364,6 +353,7 @@ public:
                m_num_in_progress(0),
                m_orphan_in_q(NULL),
                m_orphan_out_q(NULL),
+               m_ctx(NULL),
                m_subr(a_subr),
                m_evr_loop(NULL),
                m_is_initd(false),
@@ -442,6 +432,7 @@ public:
         uint32_t m_num_in_progress;
         ns_hlx::nbq *m_orphan_in_q;
         ns_hlx::nbq *m_orphan_out_q;
+        SSL_CTX *m_ctx;
 private:
         // -------------------------------------------------
         // Private methods
@@ -1048,6 +1039,7 @@ ns_hlx::nconn *t_hurl::create_new_nconn(void)
         if(m_subr.get_scheme() == ns_hlx::SCHEME_TLS)
         {
                 l_nconn = new ns_hlx::nconn_tls();
+                l_nconn->set_opt(ns_hlx::nconn_tls::OPT_TLS_CTX, m_ctx, sizeof(m_ctx));
         }
         else if(m_subr.get_scheme() == ns_hlx::SCHEME_TCP)
         {
@@ -2029,6 +2021,18 @@ int main(int argc, char** argv)
         //ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_ALL);
         //ns_hlx::trc_out_file_open("/dev/stdout");
 
+        ns_hlx::tls_init();
+        SSL_CTX *l_ctx = NULL;
+        std::string l_unused;
+        l_ctx = ns_hlx::tls_init_ctx(l_unused,   // ctx cipher list str
+                                     0,          // ctx options
+                                     l_unused,   // ctx ca file
+                                     l_unused,   // ctx ca path
+                                     false,      // is server?
+                                     l_unused,   // tls key
+                                     l_unused);  // tls crt
+        // TODO check result...
+
         if(isatty(fileno(stdout)))
         {
                 g_color = true;
@@ -2656,6 +2660,7 @@ int main(int argc, char** argv)
             i_t != g_t_hurl_list.end();
             ++i_t)
         {
+                (*i_t)->m_ctx = l_ctx;
                 (*i_t)->run();
                 // TODO Check status
         }
