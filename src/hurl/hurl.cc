@@ -603,6 +603,7 @@ int32_t session::teardown(ns_hlx::http_status_t a_status)
         {
                 int32_t l_s;
                 l_s = m_t_hurl->cleanup_session(this, m_nconn);
+                m_nconn = NULL;
                 if(l_s != HLX_STATUS_OK)
                 {
                         return HLX_STATUS_ERROR;
@@ -1241,6 +1242,7 @@ int32_t t_hurl::cleanup_session(session *a_ses, ns_hlx::nconn *a_nconn)
         }
         if(a_nconn)
         {
+                a_nconn->nc_cleanup();
                 delete a_nconn;
                 // TODO Log error???
         }
