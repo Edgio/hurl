@@ -73,7 +73,6 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/stat.h>
-
 #include <stdint.h>
 
 #ifndef __STDC_FORMAT_MACROS
@@ -95,6 +94,9 @@
 
 // Get resource limits
 #include <sys/resource.h>
+
+// free context
+#include <openssl/ssl.h>
 
 // Json output
 #include "rapidjson/document.h"
@@ -216,7 +218,8 @@ void get_results(double a_elapsed_time,
                  std::string &ao_results);
 
 void get_results_http_load(double a_elapsed_time,
-                           std::string &ao_results, bool a_one_line_flag = false);
+                           std::string &ao_results,
+                           bool a_one_line_flag = false);
 
 void get_results_json(double a_elapsed_time,
                       std::string &ao_results);
@@ -291,6 +294,31 @@ public:
                 m_timeout_ms(10000)
 #endif
         {}
+
+        ~session(void)
+        {
+                if(m_nconn)
+                {
+                        delete m_nconn;
+                        m_nconn = NULL;
+                }
+                if(m_resp)
+                {
+                        delete m_resp;
+                        m_resp = NULL;
+                }
+                if(m_in_q)
+                {
+                        delete m_in_q;
+                        m_in_q = NULL;
+                }
+                if(m_out_q)
+                {
+                        delete m_out_q;
+                        m_out_q = NULL;
+                }
+        }
+
         int32_t cancel_timer(void *a_timer);
         int32_t teardown(ns_hlx::http_status_t a_status);
         int32_t subr_error(ns_hlx::http_status_t a_status);
@@ -374,6 +402,11 @@ public:
                 {
                         delete m_orphan_out_q;
                         m_orphan_out_q = NULL;
+                }
+                if(m_evr_loop)
+                {
+                        delete m_evr_loop;
+                        m_evr_loop = NULL;
                 }
         }
         int32_t init(void)
@@ -621,6 +654,7 @@ int32_t session::teardown(ns_hlx::http_status_t a_status)
 int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
 {
         //NDBG_PRINT("%sRUN%s a_conn_mode: %d a_data: %p\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, a_conn_mode, a_data);
+        //NDBG_PRINT_BT();
         //CHECK_FOR_NULL_ERROR(a_data);
         // TODO -return OK for a_data == NULL
         if(!a_data)
@@ -923,7 +957,9 @@ check_conn_status:
                         {
                                 ++(l_t_hurl->m_stat.m_upsv_errors);
                         }
-                        return l_ses->teardown(ns_hlx::HTTP_STATUS_BAD_GATEWAY);
+                        l_ses->teardown(ns_hlx::HTTP_STATUS_BAD_GATEWAY);
+                        // TODO check/log status???
+                        return HLX_STATUS_ERROR;
                 }
                 default:
                 {
@@ -1217,6 +1253,7 @@ int32_t t_hurl::subr_start(void)
         // ---------------------------------------
         // start writing request
         // ---------------------------------------
+        //NDBG_PRINT("%sSTARTING REQUEST...%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
         return session::evr_fd_writeable_cb(l_nconn);
 }
 
@@ -2784,6 +2821,16 @@ int main(int argc, char** argv)
                 }
         }
         g_t_hurl_list.clear();
+        if(l_subr)
+        {
+                delete l_subr;
+                l_subr = NULL;
+        }
+        if(l_ctx)
+        {
+                SSL_CTX_free(l_ctx);
+                l_ctx = NULL;
+        }
         return 0;
 }
 

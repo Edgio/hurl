@@ -194,6 +194,12 @@ int32_t evr_loop::run(void)
                                         continue;
                                 }
                         }
+                        if((l_events & EVR_EV_HUP) ||
+                           (l_events & EVR_EV_ERR))
+                        {
+                                // Skip handling more events for this fd
+                                continue;
+                        }
                 }
                 if(l_events & EVR_EV_OUT)
                 {

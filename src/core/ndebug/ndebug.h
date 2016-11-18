@@ -87,13 +87,13 @@
 #ifndef NDBG_HEXDUMP
 #define NDBG_HEXDUMP(buffer, len) \
         do { \
-                mem_display(buffer, len); \
+                ns_hlx::mem_display(buffer, len); \
                 fflush(stdout); \
         } while(0)
 #endif
 
 #ifndef NDBG_PRINT_BT
-#define NDBG_PRINT_BT() print_bt(__FILE__,__FUNCTION__,__LINE__)
+#define NDBG_PRINT_BT() ns_hlx::print_bt(__FILE__,__FUNCTION__,__LINE__)
 #endif
 
 //: ----------------------------------------------------------------------------
