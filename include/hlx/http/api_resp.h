@@ -109,6 +109,7 @@ int32_t nbq_write_header(nbq &ao_q,
                          const char *a_val_buf, uint32_t a_val_len);
 int32_t nbq_write_header(nbq &ao_q, const char *a_key_buf, const char *a_val_buf);
 int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len);
+void create_json_resp_str(ns_hlx::http_status_t a_status, std::string &ao_resp_str);
 
 }
 
