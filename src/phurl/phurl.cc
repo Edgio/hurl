@@ -1023,18 +1023,18 @@ ns_hlx::nconn *t_phurl::create_new_nconn(const request &a_request)
                 bool l_val = g_conf_tls_verify;
                 _SET_NCONN_OPT(l_nconn, ns_hlx::nconn_tls::OPT_TLS_VERIFY, &(l_val), sizeof(bool));
                 l_val = g_conf_tls_self_ok;
-                _SET_NCONN_OPT((*l_nconn), ns_hlx::nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED, &(l_val), sizeof(bool));
+                _SET_NCONN_OPT(l_nconn, ns_hlx::nconn_tls::OPT_TLS_VERIFY_ALLOW_SELF_SIGNED, &(l_val), sizeof(bool));
                 l_val = g_conf_tls_no_host_check;
-                _SET_NCONN_OPT((*l_nconn), ns_hlx::nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK, &(l_val), sizeof(bool));
+                _SET_NCONN_OPT(l_nconn, ns_hlx::nconn_tls::OPT_TLS_VERIFY_NO_HOST_CHECK, &(l_val), sizeof(bool));
                 l_val = g_conf_tls_sni;
-                _SET_NCONN_OPT((*l_nconn), ns_hlx::nconn_tls::OPT_TLS_SNI, &(l_val), sizeof(bool));
+                _SET_NCONN_OPT(l_nconn, ns_hlx::nconn_tls::OPT_TLS_SNI, &(l_val), sizeof(bool));
                 if(!a_request.m_hostname.empty())
                 {
-                        _SET_NCONN_OPT((*l_nconn), ns_hlx::nconn_tls::OPT_TLS_HOSTNAME, a_request.m_hostname.c_str(), a_request.m_hostname.length());
+                        _SET_NCONN_OPT(l_nconn, ns_hlx::nconn_tls::OPT_TLS_HOSTNAME, a_request.m_hostname.c_str(), a_request.m_hostname.length());
                 }
                 else
                 {
-                        _SET_NCONN_OPT((*l_nconn), ns_hlx::nconn_tls::OPT_TLS_HOSTNAME, a_request.m_host.c_str(), a_request.m_host.length());
+                        _SET_NCONN_OPT(l_nconn, ns_hlx::nconn_tls::OPT_TLS_HOSTNAME, a_request.m_host.c_str(), a_request.m_host.length());
                 }
 
         }
