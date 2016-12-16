@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/http/http_status.h"
-#include "http_resp.h"
+#include "hlx/http/http_resp.h"
 #include "hlx/support/nbq.h"
 #include "hlx/support/string_util.h"
 #include "hlx/support/time_util.h"

@@ -27,8 +27,8 @@
 #include "hlx/support/time_util.h"
 #include "hlx/support/trace.h"
 
-#include "nconn_tls.h"
-#include "tls_util.h"
+#include "hlx/nconn/nconn_tls.h"
+#include "hlx/support/tls_util.h"
 #include "ndebug.h"
 
 #include <errno.h>

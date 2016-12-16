@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "nlookup.h"
+#include "hlx/dns/nlookup.h"
 #include "hlx/nconn/host_info.h"
 #include "hlx/support/time_util.h"
 #include "hlx/status.h"

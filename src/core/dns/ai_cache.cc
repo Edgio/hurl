@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ai_cache.h"
+#include "hlx/dns/ai_cache.h"
 #include "ndebug.h"
 #include "hlx/nconn/host_info.h"
 #include "hlx/status.h"

@@ -30,6 +30,8 @@
 
 #include "http_parser/http_parser.h"
 
+#include "ndebug.h"
+
 #include "hlx/status.h"
 #include "hlx/support/atomic.h"
 #include "hlx/support/trace.h"
@@ -42,13 +44,12 @@
 #include "hlx/http/resp.h"
 #include "hlx/http/api_resp.h"
 
-#include "nresolver.h"
-#include "tls_util.h"
-#include "nconn.h"
-#include "nconn_tcp.h"
-#include "nconn_tls.h"
-#include "ndebug.h"
-#include "cb.h"
+#include "hlx/dns/nresolver.h"
+#include "hlx/support/tls_util.h"
+#include "hlx/nconn/nconn.h"
+#include "hlx/nconn/nconn_tcp.h"
+#include "hlx/nconn/nconn_tls.h"
+#include "hlx/http/cb.h"
 
 #include <stdio.h>
 #include <stdlib.h>

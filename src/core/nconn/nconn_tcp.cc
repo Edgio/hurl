@@ -27,7 +27,7 @@
 #include "hlx/support/time_util.h"
 #include "hlx/support/trace.h"
 
-#include "nconn_tcp.h"
+#include "hlx/nconn/nconn_tcp.h"
 #include "ndebug.h"
 
 // Fcntl and friends

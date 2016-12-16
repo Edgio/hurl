@@ -26,8 +26,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nlru.h"
-#include "obj_pool.h"
+#include "hlx/support/nlru.h"
+#include "hlx/support/obj_pool.h"
 #include <set>
 #include "hlx/nconn/scheme.h"
 

@@ -24,11 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/trace.h"
 #include "hlx/status.h"
-#include "nconn_pool.h"
-#include "nconn_tcp.h"
-#include "nconn_tls.h"
+#include "hlx/support/trace.h"
+#include "hlx/nconn/nconn_pool.h"
+#include "hlx/nconn/nconn_tcp.h"
+#include "hlx/nconn/nconn_tls.h"
 #include "ndebug.h"
 
 namespace ns_hlx {

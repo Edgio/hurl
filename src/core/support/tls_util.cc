@@ -28,7 +28,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "tls_util.h"
+#include "hlx/support/tls_util.h"
 #include "ndebug.h"
 #include "hostcheck/hostcheck.h"
 #include "hlx/status.h"

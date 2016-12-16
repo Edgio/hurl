@@ -25,8 +25,8 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hlx/nconn/host_info.h"
-#include "nresolver.h"
-#include "ai_cache.h"
+#include "hlx/dns/nresolver.h"
+#include "hlx/dns/ai_cache.h"
 #include "hlx/support/time_util.h"
 #include "catch/catch.hpp"
 

@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "cb.h"
-#include "uri.h"
 #include "ndebug.h"
+#include "hlx/http/cb.h"
+#include "hlx/support/uri.h"
 #include "hlx/support/nbq.h"
 #include "hlx/http/rqst.h"
 #include "hlx/support/trace.h"

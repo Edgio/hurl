@@ -24,10 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ai_cache.h"
-#include "nresolver.h"
+#include "hlx/dns/ai_cache.h"
+#include "hlx/dns/nresolver.h"
 #include "ndebug.h"
-#include "nlookup.h"
+#include "hlx/dns/nlookup.h"
 #include "hlx/evr/evr.h"
 #include "hlx/nconn/host_info.h"
 #include "hlx/support/time_util.h"

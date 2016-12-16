@@ -25,14 +25,14 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "tinymt64.h"
-#include "nlookup.h"
-#include "nconn.h"
-#include "nconn_tcp.h"
-#include "nconn_tls.h"
+#include "hlx/dns/nlookup.h"
+#include "hlx/nconn/nconn.h"
+#include "hlx/nconn/nconn_tcp.h"
+#include "hlx/nconn/nconn_tls.h"
 #include "ndebug.h"
-#include "cb.h"
-#include "obj_pool.h"
-#include "tls_util.h"
+#include "hlx/http/cb.h"
+#include "hlx/support/obj_pool.h"
+#include "hlx/support/tls_util.h"
 
 #include "hlx/status.h"
 #include "hlx/support/time_util.h"

@@ -24,8 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "nconn.h"
 #include "ndebug.h"
+#include "hlx/nconn/nconn.h"
 #include "hlx/status.h"
 #include "hlx/support/time_util.h"
 #include "hlx/support/trace.h"

@@ -25,8 +25,8 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "catch/catch.hpp"
-#include "nconn_pool.h"
-#include "nconn.h"
+#include "hlx/nconn/nconn_pool.h"
+#include "hlx/nconn/nconn.h"
 
 //: ----------------------------------------------------------------------------
 //: Tests
