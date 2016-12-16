@@ -138,32 +138,6 @@ int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str)
-{
-        ao_resp_str += "{ \"errors\": [";
-        ao_resp_str += "{\"code\": ";
-        char l_status_code_str[8];
-        sprintf(l_status_code_str, "%u", a_status);
-        ao_resp_str += l_status_code_str;
-        ao_resp_str += ", \"message\": \"";
-        http_resp_strs::code_resp_map_t::const_iterator i_r = http_resp_strs::S_CODE_RESP_MAP.find(a_status);
-        if(i_r != http_resp_strs::S_CODE_RESP_MAP.end())
-        {
-                ao_resp_str += i_r->second;
-        }
-        else
-        {
-                ao_resp_str += "Missing";
-        }
-        ao_resp_str += "\"}],";
-        ao_resp_str += " \"success\": false}\r\n";
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 api_resp::api_resp():
                 m_status(HTTP_STATUS_OK),
                 m_headers(),
