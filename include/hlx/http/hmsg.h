@@ -29,8 +29,8 @@
 // For fixed size types
 #include <stdint.h>
 
-#include "hlx/cr.h"
-#include "hlx/kv_map_list.h"
+#include "hlx/http/cr.h"
+#include "hlx/support/kv_map_list.h"
 
 //: ----------------------------------------------------------------------------
 //: External Fwd Decl's

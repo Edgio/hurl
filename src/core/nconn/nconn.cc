@@ -26,10 +26,11 @@
 //: ----------------------------------------------------------------------------
 #include "nconn.h"
 #include "ndebug.h"
-#include "hlx/time_util.h"
-#include "hlx/trace.h"
 #include "hlx/status.h"
-#include "hlx/nbq.h"
+#include "hlx/support/time_util.h"
+#include "hlx/support/trace.h"
+#include "hlx/support/nbq.h"
+#include "hlx/nconn/conn_status.h"
 #include <errno.h>
 #include <string.h>
 #include <strings.h>

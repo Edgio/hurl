@@ -8,7 +8,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/url_router.h"
+#include "hlx/url_router/url_router.h"
 
 // For fixed width types...
 #include <stdint.h>

@@ -34,7 +34,6 @@ include_directories(
     ./nconn
     ./dns
     ./http
-    ./srvr
     ../../include
     ${LIBUDNS_INCLUDE_DIR}
 )
@@ -101,8 +100,8 @@ SET(SRCS
     ./nconn/nconn_tcp.cc
     ./nconn/nconn_tls.cc
     ./nconn/nconn_pool.cc
+    ./nconn/host_info.cc
     
-    ./dns/host_info.cc
     ./dns/ai_cache.cc
     ./dns/nresolver.cc
     ./dns/nlookup.cc
@@ -110,24 +109,9 @@ SET(SRCS
     ./http/hmsg.cc
     ./http/rqst.cc
     ./http/resp.cc
-    ./http/subr.cc
     ./http/cb.cc
+    ./http/api_resp.cc
 
-    ./srvr/lsnr.cc
-    ./srvr/srvr.cc
-    ./srvr/t_srvr.cc
-    ./srvr/clnt_session.cc
-    ./srvr/ups_srvr_session.cc
-    ./srvr/access.cc
-    ./srvr/api_resp.cc
-    ./srvr/base_u.cc
-
-    ./srvr/handler/rqst_h.cc
-    ./srvr/handler/default_rqst_h.cc
-    ./srvr/handler/file_h.cc
-    ./srvr/handler/phurl_h.cc
-    ./srvr/handler/stat_h.cc
-    ./srvr/handler/proxy_h.cc
 )
 
 # ------------------------------------------------
@@ -141,41 +125,27 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Headers
 SET(HDRS
-    ../../include/hlx/evr.h
+    ../../include/hlx/evr/evr.h
 
-    ../../include/hlx/atomic.h
-    ../../include/hlx/kv_map_list.h
-    ../../include/hlx/cr.h
-    ../../include/hlx/conn_status.h
-    ../../include/hlx/h_resp.h
-    ../../include/hlx/scheme.h
-    ../../include/hlx/http_status.h
+    ../../include/hlx/support/atomic.h
+    ../../include/hlx/support/kv_map_list.h
+    ../../include/hlx/support/time_util.h
+    ../../include/hlx/support/trace.h
+    ../../include/hlx/support/stat.h
 
-    ../../include/hlx/url_router.h
+    ../../include/hlx/url_router/url_router.h
 
-    ../../include/hlx/time_util.h
-    ../../include/hlx/trace.h
-    ../../include/hlx/stat.h
+    ../../include/hlx/nconn/scheme.h
+    ../../include/hlx/nconn/conn_status.h
+    ../../include/hlx/nconn/host_info.h
 
-    ../../include/hlx/hmsg.h
-    ../../include/hlx/rqst.h
-    ../../include/hlx/resp.h
+    ../../include/hlx/http/cr.h
+    ../../include/hlx/http/http_status.h
+    ../../include/hlx/http/hmsg.h
+    ../../include/hlx/http/rqst.h
+    ../../include/hlx/http/resp.h
+    ../../include/hlx/http/api_resp.h
 
-    ../../include/hlx/host_info.h
-    ../../include/hlx/api_resp.h
-    ../../include/hlx/lsnr.h
-    ../../include/hlx/subr.h
-    ../../include/hlx/access.h
-    ../../include/hlx/srvr.h
-    ../../include/hlx/clnt_session.h
-    ../../include/hlx/ups_srvr_session.h
-
-    ../../include/hlx/rqst_h.h
-    ../../include/hlx/default_rqst_h.h
-    ../../include/hlx/file_h.h
-    ../../include/hlx/stat_h.h
-    ../../include/hlx/phurl_h.h
-    ../../include/hlx/proxy_h.h
 )
 
 add_library(hlxcore STATIC ${HDRS} ${SRCS})

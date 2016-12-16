@@ -23,6 +23,16 @@
 #ifndef _CONN_STATUS_H
 #define _CONN_STATUS_H
 
+//: ----------------------------------------------------------------------------
+//: Includes
+//: ----------------------------------------------------------------------------
+#include <string>
+
+//: ----------------------------------------------------------------------------
+//: Fwd Decl
+//: ----------------------------------------------------------------------------
+typedef struct ssl_st SSL;
+
 namespace ns_hlx {
 
 // ---------------------------------------
@@ -47,6 +57,17 @@ typedef enum {
         CONN_STATUS_CANCELLED                   = -100
 
 } conn_status_t;
+
+//: ----------------------------------------------------------------------------
+//: nconn_utils
+//: ----------------------------------------------------------------------------
+class nconn;
+int nconn_get_fd(nconn &a_nconn);
+SSL *nconn_get_SSL(nconn &a_nconn);
+long nconn_get_last_SSL_err(nconn &a_nconn);
+conn_status_t nconn_get_status(nconn &a_nconn);
+const std::string &nconn_get_last_error_str(nconn &a_nconn);
+
 
 }
 

@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/trace.h"
+#include "hlx/support/trace.h"
 #include "hlx/status.h"
 #include "nconn_pool.h"
 #include "nconn_tcp.h"

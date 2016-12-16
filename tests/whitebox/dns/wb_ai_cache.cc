@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/host_info.h"
+#include "hlx/nconn/host_info.h"
 #include "ai_cache.h"
-#include "hlx/time_util.h"
+#include "hlx/support/time_util.h"
 #include "catch/catch.hpp"
 
 #include <unistd.h>

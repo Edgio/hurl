@@ -29,7 +29,7 @@
 #include "nlru.h"
 #include "obj_pool.h"
 #include <set>
-#include "hlx/scheme.h"
+#include "hlx/nconn/scheme.h"
 
 namespace ns_hlx {
 

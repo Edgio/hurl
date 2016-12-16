@@ -24,8 +24,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/time_util.h"
-#include "hlx/trace.h"
+#include "hlx/support/time_util.h"
+#include "hlx/support/trace.h"
 
 #include "nconn_tls.h"
 #include "tls_util.h"

@@ -28,7 +28,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/stat.h"
+#include "hlx/support/stat.h"
 #include "hlx/status.h"
 #include "ndebug.h"
 #include <stdio.h>

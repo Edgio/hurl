@@ -26,9 +26,9 @@
 //: ----------------------------------------------------------------------------
 #include "ai_cache.h"
 #include "ndebug.h"
-#include "hlx/host_info.h"
+#include "hlx/nconn/host_info.h"
 #include "hlx/status.h"
-#include "hlx/time_util.h"
+#include "hlx/support/time_util.h"
 #include "base64/base64.h"
 
 // json support

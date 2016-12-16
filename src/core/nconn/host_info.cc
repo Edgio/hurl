@@ -2,10 +2,10 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    stat_h.h
+//: \file:    host_info.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    12/12/2015
+//: \date:    11/20/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,38 +20,46 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STAT_H_H
-#define _STAT_H_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/default_rqst_h.h"
+#include "hlx/nconn/host_info.h"
+#include <netinet/in.h>
+#include <stdio.h>
 
 namespace ns_hlx {
-
 //: ----------------------------------------------------------------------------
-//: file_h
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
 //: ----------------------------------------------------------------------------
-class stat_h: public default_rqst_h
+host_info::host_info():
+        m_sa(),
+        m_sa_len(16),
+        m_sock_family(AF_INET),
+        m_sock_type(SOCK_STREAM),
+        m_sock_protocol(IPPROTO_TCP),
+        m_expires_s(0)
 {
-public:
-        // -------------------------------------------------
-        // Public methods
-        // -------------------------------------------------
-        stat_h(void);
-        ~stat_h();
-        h_resp_t do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-
-private:
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
-        // Disallow copy/assign
-        stat_h& operator=(const stat_h &);
-        stat_h(const stat_h &);
+        ((struct sockaddr_in *)(&m_sa))->sin_family = AF_INET;
 };
 
-} //namespace ns_hlx {
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void host_info::show(void)
+{
+        printf("+-----------+\n");
+        printf("| Host Info |\n");
+        printf("+-----------+-------------------------\n");
+        printf(": m_sock_family:   %d\n", m_sock_family);
+        printf(": m_sock_type:     %d\n", m_sock_type);
+        printf(": m_sock_protocol: %d\n", m_sock_protocol);
+        printf(": m_sa_len:        %d\n", m_sa_len);
+        printf(": m_expires:       %u\n", m_expires_s);
+        printf("+-------------------------------------\n");
+}
 
-#endif
+} //namespace ns_hlx {

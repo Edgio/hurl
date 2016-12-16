@@ -25,9 +25,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/trace.h"
 #include "hlx/status.h"
-#include "hlx/nbq.h"
+#include "hlx/support/trace.h"
+#include "hlx/support/nbq.h"
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>

@@ -41,7 +41,7 @@
 #endif
 
 #ifdef ASYNC_DNS_SUPPORT
-#include "hlx/evr.h"
+#include "hlx/evr/evr.h"
 #endif
 
 #define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
@@ -155,9 +155,7 @@ public:
                         m_timer_obj(NULL),
                         m_job_q(),
                         m_job_pq()
-                {
-
-                }
+                {}
                 ~adns_ctx()
                 {
                         // empty job queues
@@ -201,7 +199,7 @@ public:
 
 #ifdef ASYNC_DNS_SUPPORT
         adns_ctx* get_new_adns_ctx(evr_loop *a_evr_loop, resolved_cb a_cb);
-        int32_t get_active(adns_ctx* a_adns_ctx);
+        static int32_t get_active(adns_ctx* a_adns_ctx);
         int32_t destroy_async(adns_ctx* a_adns_ctx);
         int32_t lookup_async(adns_ctx* a_adns_ctx,
                              const std::string &a_host,
@@ -210,7 +208,7 @@ public:
                              void **ao_job_handle);
         void set_timeout_s(uint32_t a_val) { m_timeout_s = a_val;}
         void set_retries(uint32_t a_val) { m_retries = a_val;}
-        void set_max_parllel(uint32_t a_val) { m_max_parallel = a_val;}
+        void set_max_parallel(uint32_t a_val) { m_max_parallel = a_val;}
 
         // -------------------------------------------------
         // Public Static (class) methods

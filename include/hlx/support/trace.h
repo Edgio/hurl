@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
-#include "hlx/time_util.h"
+#include "hlx/support/time_util.h"
 
 //: ----------------------------------------------------------------------------
 //: trace macros

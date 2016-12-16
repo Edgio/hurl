@@ -34,18 +34,18 @@
 #include "obj_pool.h"
 #include "tls_util.h"
 
-#include "hlx/stat.h"
-#include "hlx/api_resp.h"
-#include "hlx/subr.h"
-#include "hlx/time_util.h"
-#include "hlx/trace.h"
 #include "hlx/status.h"
-#include "hlx/string_util.h"
-#include "hlx/atomic.h"
-#include "hlx/evr.h"
-#include "hlx/resp.h"
-#include "hlx/nbq.h"
-#include "hlx/time_util.h"
+#include "hlx/support/time_util.h"
+#include "hlx/support/trace.h"
+#include "hlx/support/stat.h"
+#include "hlx/support/string_util.h"
+#include "hlx/support/atomic.h"
+#include "hlx/support/nbq.h"
+
+#include "hlx/evr/evr.h"
+
+#include "hlx/http/resp.h"
+#include "hlx/http/api_resp.h"
 
 #include <string.h>
 
@@ -162,6 +162,135 @@ typedef struct range_struct {
         uint32_t m_end;
 } range_t;
 
+// -----------------------------------------------
+// request object/meta
+// -----------------------------------------------
+class request {
+public:
+        typedef int32_t (*completion_cb_t)(request &, ns_hlx::nconn &, ns_hlx::resp &);
+        typedef int32_t (*error_cb_t)(request &, ns_hlx::nconn *, ns_hlx::http_status_t, const char *);
+        request():
+                m_uid(0),
+                m_scheme(ns_hlx::SCHEME_TCP),
+                m_host(),
+                m_url(),
+                m_url_path(),
+                m_url_query(),
+                m_verb("GET"),
+                m_headers(),
+                m_body_data(NULL),
+                m_body_data_len(0),
+                m_port(0),
+                m_expect_resp_body_flag(false),
+                m_connect_only(false),
+                m_keepalive(false),
+                m_save(false),
+                m_timeout_ms(10000),
+                m_completion_cb(NULL),
+                m_error_cb(NULL),
+                m_host_info(),
+                m_data(NULL),
+                m_start_time_ms(0)
+
+        {};
+        request(const request &a_r):
+                m_uid(a_r.m_uid),
+                m_scheme(a_r.m_scheme),
+                m_host(a_r.m_host),
+                m_url(a_r.m_url),
+                m_url_path(a_r.m_url_path),
+                m_url_query(a_r.m_url_query),
+                m_verb(a_r.m_verb),
+                m_headers(a_r.m_headers),
+                m_body_data(a_r.m_body_data),
+                m_body_data_len(a_r.m_body_data_len),
+                m_port(a_r.m_port),
+                m_expect_resp_body_flag(a_r.m_expect_resp_body_flag),
+                m_connect_only(a_r.m_connect_only),
+                m_keepalive(a_r.m_keepalive),
+                m_save(a_r.m_save),
+                m_timeout_ms(a_r.m_timeout_ms),
+                m_completion_cb(a_r.m_completion_cb),
+                m_error_cb(a_r.m_error_cb),
+                m_host_info(a_r.m_host_info),
+                m_data(a_r.m_data),
+                m_start_time_ms(a_r.m_start_time_ms)
+        {}
+
+        int set_header(const std::string &a_key, const std::string &a_val)
+        {
+                ns_hlx::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
+                if(i_obj != m_headers.end())
+                {
+                        // Special handling for Host/User-agent/referer
+                        bool l_replace = false;
+                        bool l_remove = false;
+                        if(!strcasecmp(a_key.c_str(), "User-Agent") ||
+                           !strcasecmp(a_key.c_str(), "Referer") ||
+                           !strcasecmp(a_key.c_str(), "Accept") ||
+                           !strcasecmp(a_key.c_str(), "Host"))
+                        {
+                                l_replace = true;
+                                if(a_val.empty())
+                                {
+                                        l_remove = true;
+                                }
+                        }
+                        if(l_replace)
+                        {
+                                i_obj->second.pop_front();
+                                if(!l_remove)
+                                {
+                                        i_obj->second.push_back(a_val);
+                                }
+                        }
+                        else
+                        {
+                                i_obj->second.push_back(a_val);
+                        }
+                }
+                else
+                {
+                        ns_hlx::str_list_t l_list;
+                        l_list.push_back(a_val);
+                        m_headers[a_key] = l_list;
+                }
+                return HLX_STATUS_OK;
+        }
+
+        // Initialize
+        int32_t init_with_url(const std::string &a_url);
+
+        uint64_t m_uid;
+        ns_hlx::scheme_t m_scheme;
+        std::string m_host;
+        std::string m_url;
+        std::string m_url_path;
+        std::string m_url_query;
+        std::string m_verb;
+        ns_hlx::kv_map_list_t m_headers;
+        char *m_body_data;
+        uint32_t m_body_data_len;
+        uint16_t m_port;
+        bool m_expect_resp_body_flag;
+
+        bool m_connect_only;
+        bool m_keepalive;
+        bool m_save;
+        uint32_t m_timeout_ms;
+        completion_cb_t m_completion_cb;
+        error_cb_t m_error_cb;
+
+        ns_hlx::host_info m_host_info;
+        void *m_data;
+
+        uint64_t m_start_time_ms;
+
+private:
+        // Disallow copy/assign
+        request& operator=(const request &);
+};
+
 typedef std::list <std::string> header_str_list_t;
 typedef std::vector <std::string> path_substr_vector_t;
 typedef std::vector <std::string> path_vector_t;
@@ -225,7 +354,7 @@ void get_results_json(double a_elapsed_time,
                       std::string &ao_results);
 
 int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
-static int32_t s_create_request(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq);
+static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq);
 
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
@@ -247,7 +376,7 @@ void sig_handler(int signo)
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 ns_hlx::uint64_atomic_t g_cur_subr_uid = 0;
-static inline uint64_t get_next_subr_uuid(void)
+static inline uint64_t get_next_request_uuid(void)
 {
         return ++g_cur_subr_uid;
 }
@@ -267,7 +396,7 @@ public:
         ns_hlx::resp *m_resp;
         ns_hlx::nbq *m_in_q;
         ns_hlx::nbq *m_out_q;
-        ns_hlx::subr *m_subr;
+        request *m_request;
         uint64_t m_idx;
         // -------------------------------------------------
         // Public Static (class) methods
@@ -286,7 +415,7 @@ public:
                 m_resp(NULL),
                 m_in_q(NULL),
                 m_out_q(NULL),
-                m_subr(NULL),
+                m_request(NULL),
                 m_idx(0)
 #if 0
         ,
@@ -321,7 +450,7 @@ public:
 
         int32_t cancel_timer(void *a_timer);
         int32_t teardown(ns_hlx::http_status_t a_status);
-        int32_t subr_error(ns_hlx::http_status_t a_status);
+        int32_t request_error(ns_hlx::http_status_t a_status);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
 #if 0
@@ -338,8 +467,8 @@ private:
         // Disallow copy/assign
         session& operator=(const session &);
         session(const session &);
-        bool subr_complete(void);
-        void subr_log_status(uint16_t a_status = 0);
+        bool request_complete(void);
+        void request_log_status(uint16_t a_status = 0);
 
         // -------------------------------------------------
         // Private Static (class) methods
@@ -369,7 +498,7 @@ public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        t_hurl(ns_hlx::subr a_subr,
+        t_hurl(const request &a_request,
                uint32_t a_max_parallel,
                int32_t a_num_to_request):
                m_stopped(true),
@@ -382,7 +511,7 @@ public:
                m_orphan_in_q(NULL),
                m_orphan_out_q(NULL),
                m_ctx(NULL),
-               m_subr(a_subr),
+               m_request(a_request),
                m_evr_loop(NULL),
                m_is_initd(false),
                m_num_parallel_max(a_max_parallel),
@@ -426,7 +555,7 @@ public:
                         return HLX_STATUS_ERROR;
                 }
                 m_is_initd = true;
-                m_subr.set_data(this);
+                m_request.m_data = this;
                 return HLX_STATUS_OK;
         }
         int run(void) {
@@ -438,7 +567,6 @@ public:
                 return HLX_STATUS_OK;
         };
         void *t_run(void *a_nothing);
-        int32_t subr_try_start(void);
         void stop(void) {
                 m_stopped = true;
                 m_evr_loop->signal();
@@ -480,12 +608,12 @@ private:
                 return reinterpret_cast<t_hurl *>(a_context)->t_run(NULL);
         }
         ns_hlx::nconn *create_new_nconn(void);
-        int32_t subr_start(void);
-        int32_t subr_dequeue(void);
+        int32_t request_start(void);
+        int32_t request_dequeue(void);
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        ns_hlx::subr m_subr;
+        request m_request;
         ns_hlx::evr_loop *m_evr_loop;
         bool m_is_initd;
         uint32_t m_num_parallel_max;
@@ -498,7 +626,154 @@ private:
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void session::subr_log_status(uint16_t a_status)
+int32_t request::init_with_url(const std::string &a_url)
+{
+        std::string l_url_fixed = a_url;
+        // Find scheme prefix "://"
+        if(a_url.find("://", 0) == std::string::npos)
+        {
+                l_url_fixed = "http://" + a_url;
+        }
+
+        //NDBG_PRINT("Parse url:           %s\n", a_url.c_str());
+        //NDBG_PRINT("Parse a_wildcarding: %d\n", a_wildcarding);
+        http_parser_url l_url;
+        http_parser_url_init(&l_url);
+        // silence bleating memory sanitizers...
+        //memset(&l_url, 0, sizeof(l_url));
+        int l_status;
+        l_status = http_parser_parse_url(l_url_fixed.c_str(), l_url_fixed.length(), 0, &l_url);
+        if(l_status != 0)
+        {
+                NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
+                // TODO get error msg from http_parser
+                return HLX_STATUS_ERROR;
+        }
+
+        // Set no port
+        m_port = 0;
+
+        for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
+        {
+                //NDBG_PRINT("i_part: %d offset: %d len: %d\n", i_part, l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                //NDBG_PRINT("len+off: %d\n",       l_url.field_data[i_part].len + l_url.field_data[i_part].off);
+                //NDBG_PRINT("a_url.length(): %d\n", (int)a_url.length());
+                if(l_url.field_data[i_part].len &&
+                  // TODO Some bug with parser -parsing urls like "http://127.0.0.1" sans paths
+                  ((l_url.field_data[i_part].len + l_url.field_data[i_part].off) <= l_url_fixed.length()))
+                {
+                        switch(i_part)
+                        {
+                        case UF_SCHEMA:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part: %s\n", l_part.c_str());
+                                if(l_part == "http")
+                                {
+                                        m_scheme = ns_hlx::SCHEME_TCP;
+                                }
+                                else if(l_part == "https")
+                                {
+                                        m_scheme = ns_hlx::SCHEME_TLS;
+                                }
+                                else
+                                {
+                                        NDBG_PRINT("Error schema[%s] is unsupported\n", l_part.c_str());
+                                        return HLX_STATUS_ERROR;
+                                }
+                                break;
+                        }
+                        case UF_HOST:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_HOST]: %s\n", l_part.c_str());
+                                m_host = l_part;
+                                break;
+                        }
+                        case UF_PORT:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_PORT]: %s\n", l_part.c_str());
+                                m_port = (uint16_t)strtoul(l_part.c_str(), NULL, 10);
+                                break;
+                        }
+                        case UF_PATH:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_PATH]: %s\n", l_part.c_str());
+                                m_url_path = l_part;
+                                break;
+                        }
+                        case UF_QUERY:
+                        {
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_QUERY]: %s\n", l_part.c_str());
+                                m_url_query = l_part;
+                                break;
+                        }
+                        case UF_FRAGMENT:
+                        {
+                                //std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //NDBG_PRINT("l_part[UF_FRAGMENT]: %s\n", l_part.c_str());
+                                //m_fragment = l_part;
+                                break;
+                        }
+                        case UF_USERINFO:
+                        {
+                                //std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                //sNDBG_PRINT("l_part[UF_USERINFO]: %s\n", l_part.c_str());
+                                //m_userinfo = l_part;
+                                break;
+                        }
+                        default:
+                        {
+                                break;
+                        }
+                        }
+                }
+        }
+
+        // Default ports
+        if(!m_port)
+        {
+                switch(m_scheme)
+                {
+                case ns_hlx::SCHEME_TCP:
+                {
+                        m_port = 80;
+                        break;
+                }
+                case ns_hlx::SCHEME_TLS:
+                {
+                        m_port = 443;
+                        break;
+                }
+                default:
+                {
+                        m_port = 80;
+                        break;
+                }
+                }
+        }
+        //m_num_to_req = m_path_vector.size();
+        //NDBG_PRINT("Showing parsed url.\n");
+        //m_url.show();
+        if (HLX_STATUS_OK != l_status)
+        {
+                // Failure
+                NDBG_PRINT("Error parsing url: %s.\n", l_url_fixed.c_str());
+                return HLX_STATUS_ERROR;
+        }
+        //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
+        return HLX_STATUS_OK;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+void session::request_log_status(uint16_t a_status)
 {
         if(!m_t_hurl)
         {
@@ -531,24 +806,24 @@ void session::subr_log_status(uint16_t a_status)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-bool session::subr_complete(void)
+bool session::request_complete(void)
 {
-        subr_log_status(0);
-        if(!m_resp || !m_subr || !m_nconn)
+        request_log_status(0);
+        if(!m_resp || !m_request || !m_nconn)
         {
                 return true;
         }
         bool l_complete = false;
 #if 0
-        m_subr->set_end_time_ms(ns_hlx::get_time_ms());
+        m_request->m_end_time_ms = ns_hlx::get_time_ms();
 #endif
         // Get vars -completion -can delete subr object
-        bool l_connect_only = m_subr->get_connect_only();
-        ns_hlx::subr::completion_cb_t l_completion_cb = m_subr->get_completion_cb();
+        bool l_connect_only = m_request->m_connect_only;
+        request::completion_cb_t l_completion_cb = m_request->m_completion_cb;
         // Call completion handler
         if(l_completion_cb)
         {
-                l_completion_cb(*m_subr, *m_nconn, *m_resp);
+                l_completion_cb(*m_request, *m_nconn, *m_resp);
         }
         // Connect only
         if(l_connect_only)
@@ -563,22 +838,22 @@ bool session::subr_complete(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t session::subr_error(ns_hlx::http_status_t a_status)
+int32_t session::request_error(ns_hlx::http_status_t a_status)
 {
-        subr_log_status(a_status);
-        if(!m_subr)
+        request_log_status(a_status);
+        if(!m_request)
         {
                 return HLX_STATUS_ERROR;
         }
 #if 0
-        m_subr->set_end_time_ms(ns_hlx::get_time_ms());
+        m_request->m_end_time_ms = ns_hlx::get_time_ms();
         if(m_nconn && m_nconn->get_collect_stats_flag())
         {
                 m_nconn->set_stat_tt_completion_us(ns_hlx::get_delta_time_us(m_nconn->get_connect_start_time_us()));
                 m_nconn->reset_stats();
         }
 #endif
-        ns_hlx::subr::error_cb_t l_error_cb = m_subr->get_error_cb();
+        request::error_cb_t l_error_cb = m_request->m_error_cb;
         if(l_error_cb)
         {
                 const char *l_err_str = NULL;
@@ -586,7 +861,7 @@ int32_t session::subr_error(ns_hlx::http_status_t a_status)
                 {
                         l_err_str = m_nconn->get_last_error().c_str();
                 }
-                l_error_cb(*(m_subr), m_nconn, a_status, l_err_str);
+                l_error_cb(*(m_request), m_nconn, a_status, l_err_str);
                 // TODO Check status...
         }
         return HLX_STATUS_OK;
@@ -626,7 +901,7 @@ int32_t session::teardown(ns_hlx::http_status_t a_status)
                         m_resp->set_status(a_status);
                 }
                 int32_t l_s;
-                l_s = subr_error(a_status);
+                l_s = request_error(a_status);
                 if(l_s != HLX_STATUS_OK)
                 {
                         TRC_ERROR("performing subr_error\n");
@@ -816,7 +1091,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                         }
                 }
                 if(!l_ses ||
-                   !l_ses->m_subr ||
+                   !l_ses->m_request ||
                    (l_s == ns_hlx::nconn::NC_STATUS_EOF) ||
                    (l_s == ns_hlx::nconn::NC_STATUS_ERROR) ||
                    l_nconn->is_done())
@@ -870,8 +1145,8 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                                         l_hmsg_keep_alive = l_ses->m_resp->m_supports_keep_alives;
                                 }
                                 bool l_nconn_can_reuse = l_nconn->can_reuse();
-                                bool l_keepalive = l_ses->m_subr->get_keepalive();
-                                bool l_complete = l_ses->subr_complete();
+                                bool l_keepalive = l_ses->m_request->m_keepalive;
+                                bool l_complete = l_ses->request_complete();
                                 if(l_complete ||
                                   (!l_nconn_can_reuse ||
                                    !l_keepalive ||
@@ -933,8 +1208,8 @@ check_conn_status:
                 case ns_hlx::nconn::NC_STATUS_EOF:
                 {
                         // Connect only && done --early exit...
-                        if(l_ses->m_subr &&
-                           l_ses->m_subr->get_connect_only())
+                        if(l_ses->m_request &&
+                           l_ses->m_request->m_connect_only)
                         {
                                 if(l_ses->m_resp)
                                 {
@@ -945,9 +1220,9 @@ check_conn_status:
                                         l_t_hurl->add_stat_to_agg(l_nconn->get_stats(), HTTP_STATUS_OK);
                                 }
                         }
-                        if(l_ses->m_subr)
+                        if(l_ses->m_request)
                         {
-                                l_ses->subr_complete();
+                                l_ses->request_complete();
                         }
                         return l_ses->teardown(ns_hlx::HTTP_STATUS_OK);
                 }
@@ -1005,7 +1280,7 @@ void *t_hurl::t_run(void *a_nothing)
         }
         m_stopped = false;
         m_stat.clear();
-        l_s = subr_dequeue();
+        l_s = request_dequeue();
         // TODO check return status???
         // -------------------------------------------------
         // Run server
@@ -1020,7 +1295,7 @@ void *t_hurl::t_run(void *a_nothing)
                         // TODO log run failure???
                 }
                 // Subrequests
-                l_s = subr_dequeue();
+                l_s = request_dequeue();
                 if(l_s != HLX_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing subr_try_deq.\n");
@@ -1037,7 +1312,7 @@ void *t_hurl::t_run(void *a_nothing)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_hurl::subr_dequeue(void)
+int32_t t_hurl::request_dequeue(void)
 {
         uint32_t l_dq = 0;
         while(!g_test_finished &&
@@ -1046,7 +1321,7 @@ int32_t t_hurl::subr_dequeue(void)
               ((m_num_to_request < 0) || ((uint32_t)m_num_to_request > m_stat.m_upsv_reqs)))
         {
                 int32_t l_s;
-                l_s = subr_start();
+                l_s = request_start();
                 if(l_s != HLX_STATUS_OK)
                 {
                         // Log error
@@ -1073,12 +1348,12 @@ int32_t t_hurl::subr_dequeue(void)
 ns_hlx::nconn *t_hurl::create_new_nconn(void)
 {
         ns_hlx::nconn *l_nconn = NULL;
-        if(m_subr.get_scheme() == ns_hlx::SCHEME_TLS)
+        if(m_request.m_scheme == ns_hlx::SCHEME_TLS)
         {
                 l_nconn = new ns_hlx::nconn_tls();
                 l_nconn->set_opt(ns_hlx::nconn_tls::OPT_TLS_CTX, m_ctx, sizeof(m_ctx));
         }
-        else if(m_subr.get_scheme() == ns_hlx::SCHEME_TCP)
+        else if(m_request.m_scheme == ns_hlx::SCHEME_TCP)
         {
                 l_nconn = new ns_hlx::nconn_tcp();
         }
@@ -1094,7 +1369,7 @@ ns_hlx::nconn *t_hurl::create_new_nconn(void)
         l_nconn->setup_evr_fd(session::evr_fd_readable_cb,
                               session::evr_fd_writeable_cb,
                               session::evr_fd_error_cb);
-        l_nconn->set_host_info(m_subr.get_host_info());
+        l_nconn->set_host_info(m_request.m_host_info);
         return l_nconn;
 }
 
@@ -1103,7 +1378,7 @@ ns_hlx::nconn *t_hurl::create_new_nconn(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_hurl::subr_start(void)
+int32_t t_hurl::request_start(void)
 {
         //NDBG_PRINT("%ssubr label%s: %s --HOST: %s\n",
         //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
@@ -1158,7 +1433,7 @@ int32_t t_hurl::subr_start(void)
         // Setup clnt_session
         l_ses->m_nconn = l_nconn;
         l_nconn->set_data(l_ses);
-        l_ses->m_subr = &m_subr;
+        l_ses->m_request = &m_request;
 
         // ---------------------------------------
         // setup resp
@@ -1176,7 +1451,7 @@ int32_t t_hurl::subr_start(void)
         l_ses->m_resp->m_http_parser->data = l_ses->m_resp;
         l_nconn->set_read_cb(ns_hlx::http_parse);
         l_nconn->set_read_cb_data(l_ses->m_resp);
-        l_ses->m_resp->m_expect_resp_body_flag = m_subr.get_expect_resp_body_flag();
+        l_ses->m_resp->m_expect_resp_body_flag = m_request.m_expect_resp_body_flag;
 
         // setup q's
         if(!l_ses->m_in_q)
@@ -1206,7 +1481,7 @@ int32_t t_hurl::subr_start(void)
         // create request
         if(!l_ses_reused || g_multipath)
         {
-                l_s = s_create_request(m_subr, *(l_ses->m_out_q));
+                l_s = s_create_request(m_request, *(l_ses->m_out_q));
                 if(HLX_STATUS_OK != l_s)
                 {
                         return session::evr_fd_error_cb(l_nconn);
@@ -1218,7 +1493,7 @@ int32_t t_hurl::subr_start(void)
 
         if(g_stats)
         {
-                m_subr.set_start_time_ms(ns_hlx::get_time_ms());
+                m_request.m_start_time_ms = ns_hlx::get_time_ms();
                 l_nconn->set_request_start_time_us(ns_hlx::get_time_us());
         }
 #if 0
@@ -1304,7 +1579,7 @@ void t_hurl::add_stat_to_agg(const ns_hlx::conn_stat_t &a_conn_stat, uint16_t a_
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_completion_cb(ns_hlx::subr &a_subr,
+static int32_t s_completion_cb(request &a_request,
                                ns_hlx::nconn &a_nconn,
                                ns_hlx::resp &a_resp)
 {
@@ -1739,7 +2014,7 @@ const std::string &get_path(void *a_rand)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_create_request(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
+static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
 {
         // TODO grab from path...
         std::string l_path_ref = get_path(g_rand_ptr);
@@ -1750,14 +2025,14 @@ static int32_t s_create_request(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
         {
                 l_path_ref = "/";
         }
-        if(!(a_subr.get_query().empty()))
+        if(!(a_request.m_url_query.empty()))
         {
                 l_path_ref += "?";
-                l_path_ref += a_subr.get_query();
+                l_path_ref += a_request.m_url_query;
         }
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %.500s HTTP/1.1", a_subr.get_verb().c_str(), l_path_ref.c_str());
+                        "%s %.500s HTTP/1.1", a_request.m_verb.c_str(), l_path_ref.c_str());
 
         ns_hlx::nbq_write_request_line(a_nbq, l_buf, l_len);
 
@@ -1767,8 +2042,8 @@ static int32_t s_create_request(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
         bool l_specd_host = false;
 
         // Loop over reqlet map
-        for(ns_hlx::kv_map_list_t::const_iterator i_hl = a_subr.get_headers().begin();
-            i_hl != a_subr.get_headers().end();
+        for(ns_hlx::kv_map_list_t::const_iterator i_hl = a_request.m_headers.begin();
+            i_hl != a_request.m_headers.end();
             ++i_hl)
         {
                 if(i_hl->first.empty() || i_hl->second.empty())
@@ -1792,23 +2067,23 @@ static int32_t s_create_request(ns_hlx::subr &a_subr, ns_hlx::nbq &a_nbq)
         // -------------------------------------------
         if (!l_specd_host)
         {
-                ns_hlx::nbq_write_header(a_nbq, "Host", strlen("Host"),
-                                         a_subr.get_host().c_str(), a_subr.get_host().length());
+                ns_hlx::nbq_write_header(a_nbq,
+                                         "Host", strlen("Host"),
+                                         a_request.m_host.c_str(), a_request.m_host.length());
         }
 
         // -------------------------------------------
         // body
         // -------------------------------------------
-        if(a_subr.get_body_data() && a_subr.get_body_len())
+        if(a_request.m_body_data && a_request.m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                ns_hlx::nbq_write_body(a_nbq, a_subr.get_body_data(), a_subr.get_body_len());
+                ns_hlx::nbq_write_body(a_nbq, a_request.m_body_data, a_request.m_body_data_len);
         }
         else
         {
                 ns_hlx::nbq_write_body(a_nbq, NULL, 0);
         }
-
         return HLX_STATUS_OK;
 }
 
@@ -2080,14 +2355,14 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Subrequest settings
         // -------------------------------------------------
-        ns_hlx::subr *l_subr = new ns_hlx::subr();
-        l_subr->set_uid(get_next_subr_uuid());
-        l_subr->set_save(false);
+        request *l_request = new request();
+        l_request->m_uid = get_next_request_uuid();
+        l_request->m_save = false;
 
         // Default headers
-        l_subr->set_header("User-Agent","hurl Server Load Tester");
-        l_subr->set_header("Accept","*/*");
-        l_subr->set_keepalive(true);
+        l_request->set_header("User-Agent","hurl Server Load Tester");
+        l_request->set_header("Accept","*/*");
+        l_request->m_keepalive = true;
         //l_subr->set_num_reqs_per_conn(1);
 
         // Initialize rand...
@@ -2232,7 +2507,8 @@ int main(int argc, char** argv)
                                         printf("Error reading body data from file: %s\n", l_arg.c_str() + 1);
                                         return HLX_STATUS_ERROR;
                                 }
-                                l_subr->set_body_data(l_buf, l_len);
+                                l_request->m_body_data = l_buf;
+                                l_request->m_body_data_len = l_len;
                         }
                         else
                         {
@@ -2240,13 +2516,14 @@ int main(int argc, char** argv)
                                 uint32_t l_len;
                                 l_len = l_arg.length() + 1;
                                 l_buf = (char *)malloc(sizeof(char)*l_len);
-                                l_subr->set_body_data(l_buf, l_len);
+                                l_request->m_body_data = l_buf;
+                                l_request->m_body_data_len = l_len;
                         }
 
                         // Add content length
                         char l_len_str[64];
-                        sprintf(l_len_str, "%u", l_subr->get_body_len());
-                        l_subr->set_header("Content-Length", l_len_str);
+                        sprintf(l_len_str, "%u", l_request->m_body_data_len);
+                        l_request->set_header("Content-Length", l_len_str);
                         break;
                 }
 #ifdef ENABLE_PROFILER
@@ -2309,7 +2586,7 @@ int main(int argc, char** argv)
                         g_reqs_per_conn = l_val;
                         if (g_reqs_per_conn == 1)
                         {
-                                l_subr->set_keepalive(false);
+                                l_request->m_keepalive = false;
                         }
                         break;
                 }
@@ -2342,7 +2619,7 @@ int main(int argc, char** argv)
                                 printf("Error breaking header string: %s -not in <HEADER>:<VAL> format?\n", l_arg.c_str());
                                 return HLX_STATUS_ERROR;
                         }
-                        l_s = l_subr->set_header(l_key, l_val);
+                        l_s = l_request->set_header(l_key, l_val);
                         if (l_s != 0)
                         {
                                 printf("Error performing set_header: %s\n", l_arg.c_str());
@@ -2360,7 +2637,7 @@ int main(int argc, char** argv)
                                 printf("Error verb string: %s too large try < 64 chars\n", l_arg.c_str());
                                 return HLX_STATUS_ERROR;
                         }
-                        l_subr->set_verb(l_arg);
+                        l_request->m_verb = l_arg;
                         break;
                 }
                 // ---------------------------------------
@@ -2429,7 +2706,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return HLX_STATUS_ERROR;
                         }
-                        l_subr->set_timeout_ms(l_subreq_timeout_s*1000);
+                        l_request->m_timeout_ms = l_subreq_timeout_s*1000;
                         break;
                 }
                 // ---------------------------------------
@@ -2446,7 +2723,7 @@ int main(int argc, char** argv)
                 case 'v':
                 {
                         g_verbose = true;
-                        l_subr->set_save(true);
+                        l_request->m_save = true;
                         break;
                 }
                 // ---------------------------------------
@@ -2589,7 +2866,7 @@ int main(int argc, char** argv)
         }
 
         // -------------------------------------------
-        // Sigint handler3
+        // Sigint handler
         // -------------------------------------------
         if (signal(SIGINT, sig_handler) == SIG_ERR)
         {
@@ -2602,18 +2879,18 @@ int main(int argc, char** argv)
         // -------------------------------------------
         //printf("Adding url: %s\n", l_url.c_str());
         // Set url
-        l_s = l_subr->init_with_url(l_url);
+        l_s = l_request->init_with_url(l_url);
         if(l_s != 0)
         {
                 printf("Error: performing init_with_url: %s\n", l_url.c_str());
                 return HLX_STATUS_ERROR;
         }
-        l_subr->set_completion_cb(s_completion_cb);
+        l_request->m_completion_cb = s_completion_cb;
 
         // -------------------------------------------
         // Paths...
         // -------------------------------------------
-        std::string l_raw_path = l_subr->get_path();
+        std::string l_raw_path = l_request->m_url_path;
         //printf("l_raw_path: %s\n",l_raw_path.c_str());
         if(l_wildcarding)
         {
@@ -2661,13 +2938,13 @@ int main(int argc, char** argv)
         // resolve
         // -------------------------------------------
         ns_hlx::host_info l_host_info;
-        l_s = ns_hlx::nlookup(l_subr->get_host(), l_subr->get_port(), l_host_info);
+        l_s = ns_hlx::nlookup(l_request->m_host, l_request->m_port, l_host_info);
         if(l_s != HLX_STATUS_OK)
         {
-                printf("Error: resolving: %s:%d\n", l_subr->get_host().c_str(), l_subr->get_port());
+                printf("Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
                 return HLX_STATUS_ERROR;
         }
-        l_subr->set_host_info(l_host_info);
+        l_request->m_host_info = l_host_info;
 
         // -------------------------------------------
         // Init
@@ -2685,7 +2962,7 @@ int main(int argc, char** argv)
                                 l_num_to_request += g_num_to_request % g_num_threads;
                         }
                 }
-                t_hurl *l_t_hurl = new t_hurl(*l_subr, g_num_parallel, l_num_to_request);
+                t_hurl *l_t_hurl = new t_hurl(*l_request, g_num_parallel, l_num_to_request);
                 g_t_hurl_list.push_back(l_t_hurl);
                 l_t_hurl->init();
                 // TODO Check status
@@ -2821,10 +3098,10 @@ int main(int argc, char** argv)
                 }
         }
         g_t_hurl_list.clear();
-        if(l_subr)
+        if(l_request)
         {
-                delete l_subr;
-                l_subr = NULL;
+                delete l_request;
+                l_request = NULL;
         }
         if(l_ctx)
         {

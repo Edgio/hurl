@@ -28,7 +28,7 @@
 #include "nconn_tls.h"
 #include "tls_util.h"
 #include "nlookup.h"
-#include "hlx/nbq.h"
+#include "hlx/support/nbq.h"
 #include <unistd.h>
 
 //: ----------------------------------------------------------------------------

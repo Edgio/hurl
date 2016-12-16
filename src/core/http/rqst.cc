@@ -27,9 +27,9 @@
 #include "cb.h"
 #include "uri.h"
 #include "ndebug.h"
-#include "hlx/nbq.h"
-#include "hlx/rqst.h"
-#include "hlx/trace.h"
+#include "hlx/support/nbq.h"
+#include "hlx/http/rqst.h"
+#include "hlx/support/trace.h"
 #include "hlx/status.h"
 #include "http_parser/http_parser.h"
 

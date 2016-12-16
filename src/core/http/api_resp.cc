@@ -24,13 +24,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/api_resp.h"
+#include "hlx/http/http_status.h"
 #include "http_resp.h"
-#include "hlx/srvr.h"
-#include "hlx/rqst.h"
-#include "hlx/nbq.h"
-#include "hlx/string_util.h"
-#include "hlx/time_util.h"
+#include "hlx/support/nbq.h"
+#include "hlx/support/string_util.h"
+#include "hlx/support/time_util.h"
+#include "hlx/http/api_resp.h"
+#include "hlx/http/rqst.h"
 #include <string.h>
 #include <stdlib.h>
 #define __STDC_FORMAT_MACROS 1
@@ -219,10 +219,10 @@ void api_resp::add_std_headers(http_status_t a_status,
                                const char *a_content_type,
                                uint64_t a_len,
                                bool a_keep_alive,
-                               const srvr &a_srvr)
+                               const std::string &a_server_name)
 {
         set_status(a_status);
-        set_header("Server", a_srvr.get_server_name());
+        set_header("Server", a_server_name);
         set_header("Date", get_date_str());
         set_header("Content-type", a_content_type);
         set_header("Connection", a_keep_alive ? "keep-alive" : "close");

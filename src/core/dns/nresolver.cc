@@ -28,11 +28,11 @@
 #include "nresolver.h"
 #include "ndebug.h"
 #include "nlookup.h"
-#include "hlx/evr.h"
-#include "hlx/host_info.h"
-#include "hlx/time_util.h"
+#include "hlx/evr/evr.h"
+#include "hlx/nconn/host_info.h"
+#include "hlx/support/time_util.h"
 #include "hlx/status.h"
-#include "hlx/trace.h"
+#include "hlx/support/trace.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
@@ -328,7 +328,9 @@ static bool is_valid_ip_address(const char *a_str)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nresolver::lookup_tryfast(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
+int32_t nresolver::lookup_tryfast(const std::string &a_host,
+                                  uint16_t a_port,
+                                  host_info &ao_host_info)
 {
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
@@ -695,7 +697,7 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 a_adns_ctx->m_job_pq.pop();
         }
         // Get active number
-        l_active = dns_active(l_ctx);
+        l_active = get_active(a_adns_ctx);
 
         // Add timer to handle timeouts
         if(l_active && !a_adns_ctx->m_timer_obj)
@@ -754,6 +756,7 @@ int32_t nresolver::get_active(adns_ctx* a_adns_ctx)
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_writeable_cb(void *a_data)
 {
+        //NDBG_PRINT("%sWRITEABLE%s\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF);
         TRC_ERROR("writeable cb for adns resolver");
         return HLX_STATUS_OK;
 }
@@ -808,8 +811,8 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_error_cb(void *a_data)
 {
+        //NDBG_PRINT("%sERROR%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
         TRC_ERROR("evr_fd_error_cb\n");
-        //NDBG_PRINT("%sERROR%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         return HLX_STATUS_OK;
 }
 #endif
@@ -837,6 +840,7 @@ int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
                 std::string l_unused;
                 int32_t l_s;
                 void *l_job;
+                l_adns_ctx->m_timer_obj = NULL;
                 l_s = l_adns_ctx->m_ctx->lookup_async(l_adns_ctx,l_unused,0,l_adns_ctx,&l_job);
                 if(l_s != HLX_STATUS_OK)
                 {

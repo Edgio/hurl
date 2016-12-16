@@ -2,7 +2,7 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    default_rqst_h.h
+//: \file:    resp.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    03/11/2015
@@ -20,45 +20,67 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _DEFAULT_RQST_H
-#define _DEFAULT_RQST_H
+#ifndef _RESP_H
+#define _RESP_H
 
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/rqst_h.h"
+#include "hlx/http/hmsg.h"
+#include "hlx/http/http_status.h"
 
 namespace ns_hlx {
 
 //: ----------------------------------------------------------------------------
-//: default_rqst_h
+//: \details: TODO
 //: ----------------------------------------------------------------------------
-class default_rqst_h: public rqst_h
+class resp : public hmsg
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        default_rqst_h(void);
-        ~default_rqst_h();
+        resp();
+        ~resp();
 
-        h_resp_t do_get(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_post(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_put(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_delete(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
-        h_resp_t do_default(clnt_session &a_clnt_session, rqst &a_rqst, const url_pmap_t &a_url_pmap);
+        // Getters
+        uint16_t get_status(void);
 
-        // Do default method override
-        bool get_do_default(void);
+        // Setters
+        void set_status(http_status_t a_code);
+
+        void clear(void);
+        void init(bool a_save);
+
+        // Debug
+        void show();
+
+        // -------------------------------------------------
+        // Public members
+        // -------------------------------------------------
+        // ---------------------------------------
+        // raw http request offsets
+        // ---------------------------------------
+        cr_t m_p_status;
+
+        // TODO REMOVE
+        const char *m_tls_info_protocol_str;
+        const char *m_tls_info_cipher_str;
 
 private:
+        // -------------------------------------------------
+        // Private methods
+        // -------------------------------------------------
         // Disallow copy/assign
-        default_rqst_h& operator=(const default_rqst_h &);
-        default_rqst_h(const default_rqst_h &);
+        resp& operator=(const resp &);
+        resp(const resp &);
+
+        // -------------------------------------------------
+        // Private members
+        // -------------------------------------------------
+        http_status_t m_status;
 };
 
 }
 
 #endif
-
-

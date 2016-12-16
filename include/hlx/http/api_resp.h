@@ -26,8 +26,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/http_status.h"
-#include "hlx/kv_map_list.h"
+#include "hlx/http/http_status.h"
+#include "hlx/support/kv_map_list.h"
 
 // For fixed size types
 #include <stdint.h>
@@ -70,7 +70,7 @@ public:
                              const char *a_content_type,
                              uint64_t a_len,
                              bool a_keep_alive,
-                             const srvr &a_srvr);
+                             const std::string &a_server_name);
         // Clear
         void clear_headers(void);
 

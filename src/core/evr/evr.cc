@@ -24,13 +24,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/evr.h"
+#include "hlx/status.h"
+#include "hlx/support/time_util.h"
+#include "hlx/support/trace.h"
+#include "hlx/evr/evr.h"
 #include "evr_select.h"
 #include "evr_epoll.h"
 #include "ndebug.h"
-#include "hlx/time_util.h"
-#include "hlx/status.h"
-#include "hlx/trace.h"
 
 #include <stdlib.h>
 #include <errno.h>

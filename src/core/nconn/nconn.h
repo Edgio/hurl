@@ -26,10 +26,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/scheme.h"
-#include "hlx/conn_status.h"
-#include "hlx/host_info.h"
-#include "hlx/evr.h"
+#include "hlx/nconn/scheme.h"
+#include "hlx/nconn/conn_status.h"
+#include "hlx/nconn/host_info.h"
+#include "hlx/evr/evr.h"
 
 // For memcpy -TODO move into impl file
 #include <string.h>
