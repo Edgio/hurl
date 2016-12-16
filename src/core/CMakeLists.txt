@@ -28,7 +28,6 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ../../ext
     ./ndebug
-    ./url_router
     ./evr
     ./support
     ./nconn
@@ -83,8 +82,6 @@ SET(SRCS
     
     ./ndebug/ndebug.cc
     
-    ./url_router/url_router.cc
-    
     ./evr/evr.cc
     ./evr/evr_select.cc
     
@@ -132,8 +129,6 @@ SET(HDRS
     ../../include/hlx/support/time_util.h
     ../../include/hlx/support/trace.h
     ../../include/hlx/support/stat.h
-
-    ../../include/hlx/url_router/url_router.h
 
     ../../include/hlx/nconn/scheme.h
     ../../include/hlx/nconn/conn_status.h
