@@ -88,7 +88,6 @@ SET(SRCS
     ./support/string_util.cc
     ./support/time_util.cc
     ./support/tls_util.cc
-    ./support/stat.cc
     ./support/uri.cc
     ./support/nbq.cc
     ./support/trace.cc
@@ -128,7 +127,6 @@ SET(HDRS
     ../../include/hlx/support/kv_map_list.h
     ../../include/hlx/support/time_util.h
     ../../include/hlx/support/trace.h
-    ../../include/hlx/support/stat.h
 
     ../../include/hlx/nconn/scheme.h
     ../../include/hlx/nconn/conn_status.h

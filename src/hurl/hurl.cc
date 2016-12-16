@@ -37,7 +37,6 @@
 #include "hlx/status.h"
 #include "hlx/support/time_util.h"
 #include "hlx/support/trace.h"
-#include "hlx/support/stat.h"
 #include "hlx/support/string_util.h"
 #include "hlx/support/atomic.h"
 #include "hlx/support/nbq.h"
@@ -62,6 +61,7 @@
 // signal
 #include <signal.h>
 
+#include <math.h>
 #include <list>
 #include <algorithm>
 #include <pthread.h>
@@ -153,6 +153,220 @@ typedef enum results_scheme_enum {
         RESULTS_SCHEME_JSON
 
 } results_scheme_t;
+
+//: ----------------------------------------------------------------------------
+//:                                 S T A T S
+//: ----------------------------------------------------------------------------
+//: ----------------------------------------------------------------------------
+//: Types
+//: ----------------------------------------------------------------------------
+typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
+
+// TODO DEBUG???
+//typedef std::map<std::string, void *> subr_pending_resolv_map_t;
+
+//: ----------------------------------------------------------------------------
+//: xstat
+//: ----------------------------------------------------------------------------
+typedef struct xstat_struct
+{
+        double m_sum_x;
+        double m_sum_x2;
+        double m_min;
+        double m_max;
+        uint64_t m_num;
+
+        double min() const { return m_min; }
+        double max() const { return m_max; }
+        double mean() const { return (m_num > 0) ? m_sum_x / m_num : 0.0; }
+        double var() const { return (m_num > 0) ? (m_sum_x2 - m_sum_x) / m_num : 0.0; }
+        double stdev() const;
+
+        xstat_struct():
+                m_sum_x(0.0),
+                m_sum_x2(0.0),
+                m_min(1000000000.0),
+                m_max(0.0),
+                m_num(0)
+        {}
+
+        void clear()
+        {
+                m_sum_x = 0.0;
+                m_sum_x2 = 0.0;
+                m_min = 1000000000.0;
+                m_max = 0.0;
+                m_num = 0;
+        };
+} xstat_t;
+
+//: ----------------------------------------------------------------------------
+//: counter stats
+//: ----------------------------------------------------------------------------
+typedef struct t_stat_cntr_struct
+{
+        // Stats
+        xstat_t m_upsv_stat_us_connect;
+        xstat_t m_upsv_stat_us_first_response;
+        xstat_t m_upsv_stat_us_end_to_end;
+
+        // Upstream stats
+        uint64_t m_upsv_conn_started;
+        uint64_t m_upsv_conn_completed;
+        uint64_t m_upsv_reqs;
+        uint64_t m_upsv_idle_killed;
+        uint64_t m_upsv_subr_queued;
+
+        // Upstream resp
+        uint64_t m_upsv_resp;
+        uint64_t m_upsv_resp_status_2xx;
+        uint64_t m_upsv_resp_status_3xx;
+        uint64_t m_upsv_resp_status_4xx;
+        uint64_t m_upsv_resp_status_5xx;
+
+        // clnt counts
+        uint64_t m_upsv_errors;
+        uint64_t m_upsv_bytes_read;
+        uint64_t m_upsv_bytes_written;
+
+        // Totals
+        uint64_t m_total_run;
+        uint64_t m_total_add_timer;
+
+        t_stat_cntr_struct():
+                m_upsv_stat_us_connect(),
+                m_upsv_stat_us_first_response(),
+                m_upsv_stat_us_end_to_end(),
+
+                m_upsv_conn_started(0),
+                m_upsv_conn_completed(0),
+                m_upsv_reqs(0),
+                m_upsv_idle_killed(0),
+                m_upsv_subr_queued(0),
+                m_upsv_resp(0),
+                m_upsv_resp_status_2xx(0),
+                m_upsv_resp_status_3xx(0),
+                m_upsv_resp_status_4xx(0),
+                m_upsv_resp_status_5xx(0),
+                m_upsv_errors(0),
+                m_upsv_bytes_read(0),
+                m_upsv_bytes_written(0),
+
+                m_total_run(0),
+                m_total_add_timer(0)
+        {}
+        void clear()
+        {
+                m_upsv_stat_us_connect.clear();
+                m_upsv_stat_us_connect.clear();
+                m_upsv_stat_us_first_response.clear();
+                m_upsv_stat_us_end_to_end.clear();
+
+                m_upsv_conn_started = 0;
+                m_upsv_conn_completed = 0;
+                m_upsv_reqs = 0;
+                m_upsv_idle_killed = 0;
+                m_upsv_subr_queued = 0;
+                m_upsv_resp = 0;
+                m_upsv_resp_status_2xx = 0;
+                m_upsv_resp_status_3xx = 0;
+                m_upsv_resp_status_4xx = 0;
+                m_upsv_resp_status_5xx = 0;
+                m_upsv_errors = 0;
+                m_upsv_bytes_read = 0;
+                m_upsv_bytes_written = 0;
+
+                m_total_run = 0;
+                m_total_add_timer = 0;
+        }
+} t_stat_cntr_t;
+typedef std::list <t_stat_cntr_t> t_stat_cntr_list_t;
+
+//: ----------------------------------------------------------------------------
+//: calculated stats
+//: ----------------------------------------------------------------------------
+typedef struct t_stat_calc_struct
+{
+        // ups
+        uint64_t m_upsv_req_delta;
+        uint64_t m_upsv_resp_delta;
+        float m_upsv_req_s;
+        float m_upsv_resp_s;
+        float m_upsv_bytes_read_s;
+        float m_upsv_bytes_write_s;
+        float m_upsv_resp_status_2xx_pcnt;
+        float m_upsv_resp_status_3xx_pcnt;
+        float m_upsv_resp_status_4xx_pcnt;
+        float m_upsv_resp_status_5xx_pcnt;
+
+        t_stat_calc_struct():
+                m_upsv_req_delta(0),
+                m_upsv_resp_delta(0),
+                m_upsv_req_s(0.0),
+                m_upsv_resp_s(0.0),
+                m_upsv_bytes_read_s(0.0),
+                m_upsv_bytes_write_s(0.0),
+                m_upsv_resp_status_2xx_pcnt(0.0),
+                m_upsv_resp_status_3xx_pcnt(0.0),
+                m_upsv_resp_status_4xx_pcnt(0.0),
+                m_upsv_resp_status_5xx_pcnt(0.0)
+        {}
+        void clear()
+        {
+                m_upsv_resp_s = 0.0;
+                m_upsv_req_delta = 0;
+                m_upsv_resp_delta = 0;
+                m_upsv_req_s = 0.0;
+                m_upsv_bytes_read_s = 0.0;
+                m_upsv_bytes_write_s = 0.0;
+                m_upsv_resp_status_2xx_pcnt = 0.0;
+                m_upsv_resp_status_3xx_pcnt = 0.0;
+                m_upsv_resp_status_4xx_pcnt = 0.0;
+                m_upsv_resp_status_5xx_pcnt = 0.0;
+        }
+} t_stat_calc_t;
+
+//: ----------------------------------------------------------------------------
+//: \details: Update stat with new value
+//: \return:  n/a
+//: \param:   ao_stat stat to be updated
+//: \param:   a_val value to update stat with
+//: ----------------------------------------------------------------------------
+void update_stat(xstat_t &ao_stat, double a_val)
+{
+        ao_stat.m_num++;
+        ao_stat.m_sum_x += a_val;
+        ao_stat.m_sum_x2 += a_val*a_val;
+        if(a_val > ao_stat.m_max) ao_stat.m_max = a_val;
+        if(a_val < ao_stat.m_min) ao_stat.m_min = a_val;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: Add stats
+//: \return:  n/a
+//: \param:   ao_stat stat to be updated
+//: \param:   a_from_stat stat to add
+//: ----------------------------------------------------------------------------
+void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
+{
+        ao_stat.m_num += a_from_stat.m_num;
+        ao_stat.m_sum_x += a_from_stat.m_sum_x;
+        ao_stat.m_sum_x2 += a_from_stat.m_sum_x2;
+        if(a_from_stat.m_min < ao_stat.m_min)
+                ao_stat.m_min = a_from_stat.m_min;
+        if(a_from_stat.m_max > ao_stat.m_max)
+                ao_stat.m_max = a_from_stat.m_max;
+}
+
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   n/a
+//: ----------------------------------------------------------------------------
+double xstat_struct::stdev() const
+{
+        return sqrt(var());
+}
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -335,9 +549,9 @@ static pthread_mutex_t g_completion_mutex;
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-void get_stat(ns_hlx::t_stat_cntr_t &ao_total,
-              ns_hlx::t_stat_calc_t &ao_total_calc,
-              ns_hlx::t_stat_cntr_list_t &ao_thread);
+void get_stat(t_stat_cntr_t &ao_total,
+              t_stat_calc_t &ao_total_calc,
+              t_stat_cntr_list_t &ao_thread);
 void display_results_line_desc(void);
 void display_results_line(void);
 void display_responses_line_desc(void);
@@ -588,8 +802,8 @@ public:
         pthread_t m_t_run_thread;
         idle_nconn_list_t m_idle_nconn_list;
         session_pool_t m_session_pool;
-        ns_hlx::t_stat_cntr_t m_stat;
-        ns_hlx::status_code_count_map_t m_status_code_count_map;
+        t_stat_cntr_t m_stat;
+        status_code_count_map_t m_status_code_count_map;
         uint32_t m_num_in_progress;
         ns_hlx::nbq *m_orphan_in_q;
         ns_hlx::nbq *m_orphan_out_q;
@@ -2209,9 +2423,9 @@ void command_exec(void)
                                 if(l_first_time)
                                 {
                                         display_responses_line_desc();
-                                        ns_hlx::t_stat_cntr_t l_total;
-                                        ns_hlx::t_stat_calc_t l_total_calc;
-                                        ns_hlx::t_stat_cntr_list_t l_thread;
+                                        t_stat_cntr_t l_total;
+                                        t_stat_calc_t l_total_calc;
+                                        t_stat_cntr_list_t l_thread;
                                         get_stat(l_total, l_total_calc, l_thread);
                                         if(!g_test_finished)
                                         {
@@ -2226,9 +2440,9 @@ void command_exec(void)
                                 if(l_first_time)
                                 {
                                         display_results_line_desc();
-                                        ns_hlx::t_stat_cntr_t l_total;
-                                        ns_hlx::t_stat_calc_t l_total_calc;
-                                        ns_hlx::t_stat_cntr_list_t l_thread;
+                                        t_stat_cntr_t l_total;
+                                        t_stat_calc_t l_total_calc;
+                                        t_stat_cntr_list_t l_thread;
                                         get_stat(l_total, l_total_calc, l_thread);
                                         if(!g_test_finished)
                                         {
@@ -3116,14 +3330,14 @@ int main(int argc, char** argv)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void get_stat(ns_hlx::t_stat_cntr_t &ao_total,
-              ns_hlx::t_stat_calc_t &ao_total_calc,
-              ns_hlx::t_stat_cntr_list_t &ao_thread)
+void get_stat(t_stat_cntr_t &ao_total,
+              t_stat_calc_t &ao_total_calc,
+              t_stat_cntr_list_t &ao_thread)
 {
         // ---------------------------------------
         // store last values -for calc'd stats
         // ---------------------------------------
-        static ns_hlx::t_stat_cntr_t s_last;
+        static t_stat_cntr_t s_last;
         static uint64_t s_stat_last_time_ms = 0;
 
         uint64_t l_cur_time_ms = ns_hlx::get_time_ms();
@@ -3254,14 +3468,14 @@ void display_responses_line_desc(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static void get_status_codes(ns_hlx::status_code_count_map_t &ao_map)
+static void get_status_codes(status_code_count_map_t &ao_map)
 {
         for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
             i_t != g_t_hurl_list.end();
             ++i_t)
         {
-                ns_hlx::status_code_count_map_t i_m = (*i_t)->m_status_code_count_map;
-                for(ns_hlx::status_code_count_map_t::iterator i_c = i_m.begin();
+                status_code_count_map_t i_m = (*i_t)->m_status_code_count_map;
+                for(status_code_count_map_t::iterator i_c = i_m.begin();
                     i_c != i_m.end();
                     ++i_c)
                 {
@@ -3278,9 +3492,9 @@ static void get_status_codes(ns_hlx::status_code_count_map_t &ao_map)
 void display_responses_line(void)
 {
         // Get stats
-        ns_hlx::t_stat_cntr_t l_total;
-        ns_hlx::t_stat_calc_t l_total_calc;
-        ns_hlx::t_stat_cntr_list_t l_thread;
+        t_stat_cntr_t l_total;
+        t_stat_calc_t l_total_calc;
+        t_stat_cntr_list_t l_thread;
         get_stat(l_total, l_total_calc, l_thread);
         if(g_show_per_interval)
         {
@@ -3313,9 +3527,9 @@ void display_responses_line(void)
         {
                 // Aggregate over status code map
                 uint32_t l_responses[10] = {0};
-                ns_hlx::status_code_count_map_t l_status_code_count_map;
+                status_code_count_map_t l_status_code_count_map;
                 get_status_codes(l_status_code_count_map);
-                for(ns_hlx::status_code_count_map_t::iterator i_code = l_status_code_count_map.begin();
+                for(status_code_count_map_t::iterator i_code = l_status_code_count_map.begin();
                     i_code != l_status_code_count_map.end();
                     ++i_code)
                 {
@@ -3406,9 +3620,9 @@ void display_results_line_desc(void)
 void display_results_line(void)
 {
         // Get stats
-        ns_hlx::t_stat_cntr_t l_total;
-        ns_hlx::t_stat_calc_t l_total_calc;
-        ns_hlx::t_stat_cntr_list_t l_thread;
+        t_stat_cntr_t l_total;
+        t_stat_calc_t l_total_calc;
+        t_stat_cntr_list_t l_thread;
         get_stat(l_total, l_total_calc, l_thread);
         if(g_color)
         {
@@ -3458,9 +3672,9 @@ void get_results(double a_elapsed_time,
                  std::string &ao_results)
 {
         // Get stats
-        ns_hlx::t_stat_cntr_t l_total;
-        ns_hlx::t_stat_calc_t l_total_calc;
-        ns_hlx::t_stat_cntr_list_t l_thread;
+        t_stat_cntr_t l_total;
+        t_stat_calc_t l_total_calc;
+        t_stat_cntr_list_t l_thread;
         get_stat(l_total, l_total_calc, l_thread);
         std::string l_tag;
         char l_buf[1024];
@@ -3516,9 +3730,9 @@ void get_results(double a_elapsed_time,
         {
         STR_PRINT("| HTTP response codes: \n");
         }
-        ns_hlx::status_code_count_map_t l_status_code_count_map;
+        status_code_count_map_t l_status_code_count_map;
         get_status_codes(l_status_code_count_map);
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+        for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
             i_status_code != l_status_code_count_map.end();
             ++i_status_code)
         {
@@ -3543,9 +3757,9 @@ void get_results_http_load(double a_elapsed_time,
                            bool a_one_line_flag)
 {
         // Get stats
-        ns_hlx::t_stat_cntr_t l_total;
-        ns_hlx::t_stat_calc_t l_total_calc;
-        ns_hlx::t_stat_cntr_list_t l_thread;
+        t_stat_cntr_t l_total;
+        t_stat_calc_t l_total_calc;
+        t_stat_cntr_list_t l_thread;
         get_stat(l_total, l_total_calc, l_thread);
         std::string l_tag;
         // Separator
@@ -3582,9 +3796,9 @@ void get_results_http_load(double a_elapsed_time,
         {
         STR_PRINT("%s", l_sep.c_str());
         }
-        ns_hlx::status_code_count_map_t l_status_code_count_map;
+        status_code_count_map_t l_status_code_count_map;
         get_status_codes(l_status_code_count_map);
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+        for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
             i_status_code != l_status_code_count_map.end();
             ++i_status_code)
         {
@@ -3601,9 +3815,9 @@ void get_results_json(double a_elapsed_time,
                       std::string &ao_results)
 {
         // Get stats
-        ns_hlx::t_stat_cntr_t l_total;
-        ns_hlx::t_stat_calc_t l_total_calc;
-        ns_hlx::t_stat_cntr_list_t l_thread;
+        t_stat_cntr_t l_total;
+        t_stat_calc_t l_total_calc;
+        t_stat_cntr_list_t l_thread;
         get_stat(l_total, l_total_calc, l_thread);
         uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
         rapidjson::Document l_body;
@@ -3634,13 +3848,13 @@ void get_results_json(double a_elapsed_time,
         ADD_MEMBER("end2end-ms-max", l_total.m_upsv_stat_us_end_to_end.max()/1000.0);
         ADD_MEMBER("end2end-ms-min", l_total.m_upsv_stat_us_end_to_end.min()/1000.0);
 
-        ns_hlx::status_code_count_map_t l_status_code_count_map;
+        status_code_count_map_t l_status_code_count_map;
         get_status_codes(l_status_code_count_map);
         if(l_status_code_count_map.size())
         {
         rapidjson::Value l_obj;
         l_obj.SetObject();
-        for(ns_hlx::status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+        for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
             i_status_code != l_status_code_count_map.end();
             ++i_status_code)
         {
