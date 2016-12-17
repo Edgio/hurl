@@ -316,6 +316,7 @@ int32_t rqst::parse_uri()
 //: ----------------------------------------------------------------------------
 int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
 {
+        //TODO -zero copy version??? -offsets to pos
         size_t l_pos = 0;
         size_t l_last_pos = 0;
         do {
@@ -332,7 +333,17 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
                         l_val = uri_decode(l_part.substr(l_eq_pos + 1, std::string::npos));
                 }
                 //printf("PART: l_key: %s l_val: %s\n", l_key.c_str(), l_val.c_str());
-                ao_query_map[l_key] = l_val;
+                query_map_t::iterator i_obj = ao_query_map.find(l_key);
+                if(i_obj != ao_query_map.end())
+                {
+                        i_obj->second.push_back(l_val);
+                }
+                else
+                {
+                        ns_hlx::str_list_t l_list;
+                        l_list.push_back(l_val);
+                        ao_query_map[l_key] = l_list;
+                }
                 l_last_pos = l_pos + 1;
         } while(l_pos != std::string::npos);
         return 0;
