@@ -510,6 +510,7 @@ int32_t nconn::nc_cleanup()
         //                m_nc_state,
         //                this);
         //NDBG_PRINT_BT();
+        TRC_DEBUG("tearing down: label: %s\n", m_label.c_str());
         int32_t l_status;
         l_status = nccleanup();
         m_nc_state = NC_STATE_FREE;
