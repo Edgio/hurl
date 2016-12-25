@@ -1,5 +1,0 @@
-create libhlx.a
-addlib ../../../ext/udns-0.4/libudns.a
-addlib libhlxcore.a
-save
-end

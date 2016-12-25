@@ -174,7 +174,7 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   add_custom_command(
     TARGET hlxcore
     POST_BUILD
-    COMMAND ar -M < ${CMAKE_SOURCE_DIR}/src/core/libhlx.mri && mv libhlx.a libhlxcore.a
+    COMMAND ${CMAKE_SOURCE_DIR}/src/core/gen_mri.sh ${CMAKE_SOURCE_DIR} && ar -M < _libhlx.mri && mv libhlx.a libhlxcore.a
     DEPENDS hlxcore udns
   )
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
