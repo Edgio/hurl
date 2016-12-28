@@ -92,6 +92,7 @@ typedef struct nb_struct {
         uint32_t write_avail(void) { return m_len - m_written;}
         uint32_t read_avail(void) { return m_written - m_read;}
         char *data(void) { return m_data; }
+        bool ref(void) const { return m_ref; }
         uint32_t size(void) { return m_len; }
         uint32_t written(void) { return m_written; }
         char *write_ptr(void) { return m_data + m_written; }
@@ -368,9 +369,23 @@ void nbq::reset_write(void)
         m_cur_write_offset = 0;
         for(nb_list_t::const_iterator i_b = m_q.begin();
             i_b != m_q.end();
-            ++i_b)
+            )
         {
-                (*i_b)->write_reset();
+                if(!(*i_b))
+                {
+                        ++i_b;
+                        continue;
+                }
+                // erase references
+                if((*i_b)->ref())
+                {
+                        m_q.erase(i_b++);
+                }
+                else
+                {
+                        (*i_b)->write_reset();
+                        ++i_b;
+                }
         }
 }
 
