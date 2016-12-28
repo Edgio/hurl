@@ -38,6 +38,7 @@
 #include "hlx/support/kv_map_list.h"
 #include "hlx/support/string_util.h"
 #include "hlx/support/nbq.h"
+#include "hlx/support/nbq_stream.h"
 #include "hlx/nconn/host_info.h"
 #include "hlx/nconn/scheme.h"
 #include "hlx/http/http_status.h"
@@ -261,6 +262,7 @@ uint32_t g_conf_body_data_len = 0;
 ns_hlx::scheme_t g_conf_url_scheme = ns_hlx::SCHEME_TCP;
 uint16_t g_conf_url_port = 80;
 std::string g_conf_url_path = "";
+std::string g_conf_url_query = "";
 
 // tls
 std::string g_conf_tls_cipher_list;
@@ -842,6 +844,7 @@ void *t_phurl::t_run(void *a_nothing)
                 {
                         // TODO log run failure???
                 }
+
                 // Subrequests
                 l_s = request_dequeue();
                 if(l_s != HLX_STATUS_OK)
@@ -931,7 +934,7 @@ int32_t t_phurl::request_start(request &a_request)
         {
                 a_request.m_resp = new ns_hlx::resp();
         }
-        a_request.m_resp->init(g_conf_verbose);
+        a_request.m_resp->init(true);
         a_request.m_resp->m_http_parser->data = a_request.m_resp;
         l_nconn->set_read_cb(ns_hlx::http_parse);
         l_nconn->set_read_cb_data(a_request.m_resp);
@@ -1079,7 +1082,10 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         int l_len;
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %.500s HTTP/1.1", g_conf_verb.c_str(), g_conf_url_path.c_str());
+                        "%s %s?%s HTTP/1.1",
+                        g_conf_verb.c_str(),
+                        g_conf_url_path.c_str(),
+                        g_conf_url_query.c_str());
         ns_hlx::nbq_write_request_line(a_nbq, l_buf, l_len);
         // -------------------------------------------
         // Add repo headers
@@ -1421,6 +1427,7 @@ int command_exec(bool a_send_stop)
 int32_t init_with_url(ns_hlx::scheme_t &ao_scheme,
                       uint16_t &ao_port,
                       std::string &ao_path,
+                      std::string &ao_query,
                       const std::string &a_url)
 {
         std::string l_url_fixed = a_url;
@@ -1495,9 +1502,9 @@ int32_t init_with_url(ns_hlx::scheme_t &ao_scheme,
                         // TODO ???
                         case UF_QUERY:
                         {
-                                //std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
+                                std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
                                 //NDBG_PRINT("l_part[UF_QUERY]: %s\n", l_part.c_str());
-                                //m_query = l_part;
+                                ao_query = l_part;
                                 break;
                         }
                         default:
@@ -1571,6 +1578,7 @@ int32_t add_line(FILE *a_file_ptr, request_list_t &ao_request_list)
                 {
                         request *l_rqst = new request();
                         l_rqst->m_host = l_host;
+                        l_rqst->m_port = g_conf_url_port;
                         ao_request_list.push_back(l_rqst);
                 }
                 //printf("READLINE: %s\n", l_readline);
@@ -1694,6 +1702,8 @@ int main(int argc, char** argv)
 {
         // Suppress errors
         ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+        //ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_ALL);
+        //ns_hlx::trc_log_file_open("/dev/stdout");
 
         if(isatty(fileno(stdout)) == 0)
         {
@@ -2232,13 +2242,13 @@ int main(int argc, char** argv)
         l_s = init_with_url(g_conf_url_scheme,
                             g_conf_url_port,
                             g_conf_url_path,
+                            g_conf_url_query,
                             l_url);
         if(l_s != STATUS_OK)
         {
                 printf("Error performing init_with_url: url: %s\n", l_url.c_str());
                 return STATUS_ERROR;
         }
-
 
         // -------------------------------------------------
         // Get resource limits
@@ -2412,7 +2422,7 @@ int main(int argc, char** argv)
                         if(l_doc[i_record].HasMember("where")) l_r->m_where = l_doc[i_record]["where"].GetString();
                         //else l_host.m_where = "NO_WHERE";
                         if(l_doc[i_record].HasMember("port")) l_r->m_port = l_doc[i_record]["port"].GetUint();
-                        else l_r->m_port = 80;
+                        else l_r->m_port = g_conf_url_port;
                         l_request_list->push_back(l_r);
                 }
 
@@ -2505,6 +2515,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // queueing
         // -------------------------------------------
+        //NDBG_PRINT("resolving addresses\n");
         g_conf_num_hosts = l_request_list->size();
         uint64_t l_last_time_ms = ns_hlx::get_time_ms();
         uint32_t l_size = l_request_list->size();
@@ -2567,10 +2578,14 @@ int main(int argc, char** argv)
                         }
 #endif
                 }
-                l_s = l_evr_loop->run();
-                if(l_s != HLX_STATUS_OK)
+                if(g_dns_num_in_flight)
                 {
-                        // TODO log error???
+                        //NDBG_PRINT("running g_dns_num_in_flight: %u\n", g_dns_num_in_flight.v);
+                        l_s = l_evr_loop->run();
+                        if(l_s != HLX_STATUS_OK)
+                        {
+                                // TODO log error???
+                        }
                 }
                 // every 100ms
                 if(!g_conf_quiet &&
@@ -2632,6 +2647,7 @@ int main(int argc, char** argv)
                 }
                 if((*i_r)->m_host_resolved)
                 {
+                        //((*i_r)->m_host_info.show());
                         l_request_queue->push(*i_r);
                 }
                 else
@@ -2645,6 +2661,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Init
         // -------------------------------------------
+        //NDBG_PRINT("initializing threads\n");
         uint32_t l_q_size = l_request_queue->size();
         for(uint32_t i_t = 0; i_t < g_conf_num_threads; ++i_t)
         {
@@ -2683,6 +2700,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Run
         // -------------------------------------------
+        //NDBG_PRINT("running\n");
         //g_start_time_ms = ns_hlx::get_time_ms();;
         for(t_phurl_list_t::iterator i_t = g_t_phurl_list.begin();
             i_t != g_t_phurl_list.end();
@@ -2978,13 +2996,21 @@ std::string dump_all_responses_line_dl(request_list_t &a_request_list,
                         if(l_resp)
                         {
                                 //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                                const char *l_body_buf = l_resp->get_body_data();
-                                uint64_t l_body_len = l_resp->get_body_len();
-                                if(l_body_buf && l_body_len)
+                                ns_hlx::nbq *l_q = l_resp->get_body_q();
+                                if(l_q && l_q->read_avail())
                                 {
-                                        sprintf(l_buf, "\"%sbody%s\": %s",
+                                        char *l_buf;
+                                        uint64_t l_len = l_q->read_avail();
+                                        l_buf = (char *)malloc(sizeof(char)*l_len);
+                                        l_q->read(l_buf, l_len);
+                                        sprintf(l_buf, "\"%sbody%s\": %.*s",
                                                         l_body_color.c_str(), l_off_color.c_str(),
-                                                        l_body_buf);
+                                                        (int)l_len, l_buf);
+                                        if(l_buf)
+                                        {
+                                                free(l_buf);
+                                                l_buf = NULL;
+                                        }
                                 }
                                 else
                                 {
@@ -3122,23 +3148,32 @@ std::string dump_all_responses_json(request_list_t &a_request_list,
                 {
 
                         //NDBG_PRINT("RESPONSE SIZE: %ld\n", (*i_rx)->m_response_body.length());
-                        const char *l_body_buf = l_resp->get_body_data();
-                        uint64_t l_body_len = l_resp->get_body_len();
-                        if(l_body_buf && l_body_len)
+                        ns_hlx::nbq *l_q = l_resp->get_body_q();
+                        if(l_q && l_q->read_avail())
                         {
                                 // Append json
                                 if(l_content_type_json)
                                 {
+                                        ns_hlx::nbq_stream l_q_s(*l_q);
                                         rapidjson::Document l_doc_body;
-                                        l_doc_body.Parse(l_body_buf);
+                                        l_doc_body.ParseStream(l_q_s);
                                         l_obj.AddMember("body",
                                                         rapidjson::Value(l_doc_body, l_js_allocator).Move(),
                                                         l_js_allocator);
-
                                 }
                                 else
                                 {
-                                        JS_ADD_MEMBER("body", l_body_buf);
+                                        char *l_buf;
+                                        uint64_t l_len = l_q->read_avail();
+                                        l_buf = (char *)malloc(sizeof(char)*l_len+1);
+                                        l_q->read(l_buf, l_len);
+                                        l_buf[l_len] = '\0';
+                                        JS_ADD_MEMBER("body", l_buf);
+                                        if(l_buf)
+                                        {
+                                                free(l_buf);
+                                                l_buf = NULL;
+                                        }
                                 }
                         }
                         else

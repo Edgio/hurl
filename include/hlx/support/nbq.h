@@ -27,28 +27,14 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <stdint.h>
-#include <list>
 #include <unistd.h>
+#include <stdlib.h>
+#include <list>
 
 namespace ns_hlx {
 
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef struct nb_struct {
-        char *m_data;
-        uint32_t m_len;
-
-        nb_struct(uint32_t a_len);
-        void init(uint32_t a_len);
-        ~nb_struct(void);
-private:
-        // Disallow copy/assign
-        nb_struct& operator=(const nb_struct &);
-        nb_struct(const nb_struct &);
-
-} nb_t;
-
+struct nb_struct;
+typedef struct nb_struct nb_t;
 typedef std::list <nb_t *> nb_list_t;
 
 //: ----------------------------------------------------------------------------
@@ -72,10 +58,11 @@ public:
         int64_t write_q(nbq &a_q);
 
         // Reading
+        char peek(void) const;
         int64_t read(char *a_buf, uint64_t a_len);
         uint64_t read_seek(uint64_t a_off);
         uint64_t read_from(uint64_t a_off, char *a_buf, uint64_t a_len);
-        uint64_t read_avail(void) {return m_total_read_avail;}
+        uint64_t read_avail(void) const {return m_total_read_avail;}
 
         // Resetting...
         void reset_read(void);
@@ -88,20 +75,26 @@ public:
         // Print
         void print(void);
 
+        // Split and create separate nbq with tail at offset
+        int32_t split(nbq **ao_nbq_tail, uint64_t a_offset);
+
+        // Join nbq with reference nbq
+        int32_t join_ref(const nbq &ao_nbq_tail);
+
         // Block Writing...
-        char *   b_write_ptr(void) {return m_cur_block_write_ptr;}
-        uint32_t b_write_avail(void) {return m_cur_block_write_avail;}
-        int32_t  b_write_add_avail();
-        void     b_write_incr(uint32_t a_len);
+        char * b_write_ptr(void);
+        uint32_t b_write_avail(void);
+        int32_t b_write_add_avail();
+        void b_write_incr(uint32_t a_len);
 
         // Block Reading...
-        char *   b_read_ptr(void) {return m_cur_block_read_ptr;}
-        int32_t  b_read_avail(void);
-        void     b_read_incr(uint32_t a_len);
+        char *b_read_ptr(void) const;
+        int32_t b_read_avail(void) const;
+        void b_read_incr(uint32_t a_len);
 
         // Debugging display all
-        void     b_display_all(void);
-        void     b_display_written(void);
+        void b_display_all(void);
+        void b_display_written(void);
 
         // For use with obj pool
         uint64_t get_idx(void) {return m_idx;}
@@ -118,28 +111,22 @@ private:
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        // Write...
-        uint64_t m_cur_write_offset;
-        char *m_cur_block_write_ptr;
-        uint32_t m_cur_block_write_avail;
-        nb_list_t::iterator m_cur_write_block;
-
-        // Read...
-        uint64_t m_cur_read_offset;
-        char *m_cur_block_read_ptr;
-        nb_list_t::iterator m_cur_read_block;
-
-        // Totals
-        uint64_t m_total_read_avail;
+        // Block list
+        nb_list_t m_q;
 
         // Block size
         uint32_t m_bsize;
 
-        // Block list
-        nb_list_t m_q;
+        // cur write/read blocks
+        nb_list_t::iterator m_cur_write_block;
+        nb_list_t::iterator m_cur_read_block;
 
         // For use with obj pool
         uint64_t m_idx;
+
+        // internal acct'ing
+        uint64_t m_cur_write_offset;
+        uint64_t m_total_read_avail;
 
 };
 

@@ -89,44 +89,6 @@ int32_t trc_log_file_close(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t trc_out_file_open(const std::string &a_file)
-{
-        // WARNING DON'T USE TRC MACROS HERE'S -WILL BE RECURSIVE
-        g_trc_out_file = fopen(a_file.c_str(), "a");
-        if(!g_trc_out_file)
-        {
-                printf("Error opening trace output file: %s. Reason: %s\n",
-                                a_file.c_str(),
-                                strerror(errno));
-                return -1;
-        }
-        return 0;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t trc_out_file_close(void)
-{
-        int l_s;
-        l_s = fclose(g_trc_log_file);
-        if(l_s != 0)
-        {
-                printf("Error closing trace logging file: %p. Reason: %s\n",
-                                g_trc_log_file,
-                                strerror(errno));
-                return -1;
-        }
-        return 0;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
 #ifndef ARRAY_SIZE
   #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #endif

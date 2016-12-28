@@ -70,9 +70,9 @@ public:
         // Getters
         type_t get_type(void) const;
         nbq *get_q(void) const;
-        const char *get_body_data();
-        uint64_t get_body_len() const;
-        char *get_body_data_copy(char **ao_buf, uint64_t &ao_len);
+        nbq *get_body_q(void);
+        uint64_t get_body_len(void) const;
+
         void get_headers(kv_map_list_t *ao_headers) const;
         const kv_map_list_t &get_headers();
         uint64_t get_idx(void) const;
@@ -80,7 +80,7 @@ public:
 
         // Setters
         void set_q(nbq *a_q);
-        void reset_body_data(void);
+        void reset_body_q(void);
 
         virtual void init(bool a_save);
 
@@ -120,12 +120,11 @@ protected:
         // -------------------------------------------------
         type_t m_type;
         nbq *m_q;
+        nbq *m_body_q;
         uint64_t m_idx;
 
         // populated on demand by getters
         kv_map_list_t *m_headers;
-        char *m_body;
-        uint64_t m_body_len;
 
 private:
         // -------------------------------------------------

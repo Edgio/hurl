@@ -24,6 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hlx/status.h"
 #include "hlx/http/hmsg.h"
 #include "hlx/support/nbq.h"
 #include "ndebug.h"
@@ -53,10 +54,9 @@ hmsg::hmsg(void):
         m_supports_keep_alives(false),
         m_type(TYPE_NONE),
         m_q(NULL),
+        m_body_q(NULL),
         m_idx(0),
-        m_headers(NULL),
-        m_body(NULL),
-        m_body_len(0)
+        m_headers(NULL)
 {
         m_http_parser_settings = (http_parser_settings *)calloc(1, sizeof(http_parser_settings));
         m_http_parser = (http_parser *)calloc(1, sizeof(http_parser));
@@ -70,11 +70,9 @@ hmsg::hmsg(void):
 //: ----------------------------------------------------------------------------
 hmsg::~hmsg(void)
 {
-        if(m_body)
+        if(m_body_q)
         {
-                free(m_body);
-                m_body = NULL;
-                m_body_len = 0;
+                delete m_body_q;
         }
         if(m_headers)
         {
@@ -110,14 +108,11 @@ void hmsg::init(bool a_save)
                 delete m_headers;
                 m_headers = NULL;
         }
-
-        if(NULL != m_body)
+        if(m_body_q)
         {
-                // body to deal with
-                free(m_body);
+                delete m_body_q;
+                m_body_q = NULL;
         }
-        m_body = NULL;
-        m_body_len = 0;
 }
 
 //: ----------------------------------------------------------------------------
@@ -148,41 +143,23 @@ nbq *hmsg::get_q(void) const
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-const char *hmsg::get_body_data(void)
+nbq *hmsg::get_body_q(void)
 {
-        if(m_q == NULL)
+        if(m_body_q)
         {
-                // nothing here yet
+                return m_body_q;
+        }
+        if(!m_p_body.m_off)
+        {
                 return NULL;
         }
-        if(m_body == NULL)
+        int32_t l_s;
+        l_s = m_q->split(&m_body_q, m_p_body.m_off);
+        if(l_s != HLX_STATUS_OK)
         {
-                // body not initialized yet
-                m_body = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
-                m_body_len = m_p_body.m_len;
-        }
-        return m_body;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-char *hmsg::get_body_data_copy(char **ao_buf, uint64_t &ao_len)
-{
-        if(m_q == NULL)
-        {
-                // nothing here yet
                 return NULL;
         }
-        if(m_body == NULL)
-        {
-                // body not initialized yet
-                *ao_buf = copy_part(*m_q, m_p_body.m_off, m_p_body.m_len);
-                ao_len = m_p_body.m_len;
-        }
-        return *ao_buf;
+        return m_body_q;
 }
 
 //: ----------------------------------------------------------------------------
@@ -192,7 +169,7 @@ char *hmsg::get_body_data_copy(char **ao_buf, uint64_t &ao_len)
 //: ----------------------------------------------------------------------------
 uint64_t hmsg::get_body_len(void) const
 {
-        return m_body_len;
+        return m_p_body.m_len;
 }
 
 //: ----------------------------------------------------------------------------
@@ -292,10 +269,11 @@ void hmsg::set_q(nbq *a_q)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void hmsg::reset_body_data(void)
+void hmsg::reset_body_q(void)
 {
-       m_body = NULL;
-       m_body_len = 0;
+       m_body_q = NULL;
+       m_p_body.m_len = 0;
+       m_p_body.m_off = 0;
 }
 
 } //namespace ns_hlx {

@@ -127,8 +127,6 @@ const char *trc_log_level_str(trc_log_level_t a_level);
 void trc_log_level_set(trc_log_level_t a_level);
 int32_t trc_log_file_open(const std::string &a_file);
 int32_t trc_log_file_close(void);
-int32_t trc_out_file_open(const std::string &a_file);
-int32_t trc_out_file_close(void);
 
 //: ----------------------------------------------------------------------------
 //: Externs

@@ -395,7 +395,7 @@ public:
                 m_body_data(NULL),
                 m_body_data_len(0),
                 m_port(0),
-                m_expect_resp_body_flag(false),
+                m_expect_resp_body_flag(true),
                 m_connect_only(false),
                 m_keepalive(false),
                 m_save(false),
@@ -2547,7 +2547,7 @@ int main(int argc, char** argv)
 
         // Log all packets
         //ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_ALL);
-        //ns_hlx::trc_out_file_open("/dev/stdout");
+        //ns_hlx::trc_log_file_open("/dev/stdout");
 
         ns_hlx::tls_init();
         SSL_CTX *l_ctx = NULL;
