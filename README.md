@@ -5,7 +5,7 @@
 A few utilities for testing and curling from http servers.
 
 ## *hurl* HTTP Server Load Tester
-*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
+*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for multithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
 
 * **A little more about URLs Ranges**:
 *hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
@@ -130,7 +130,7 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ##OS requirements:
 Linux/OS X (kqueue support coming soon-ish)
 
-###Install dependecies:
+###Install dependencies:
 Library requirements:
 * libssl/libcrypto (OpenSSL)
 
