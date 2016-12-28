@@ -2246,7 +2246,7 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
         }
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %.500s HTTP/1.1", a_request.m_verb.c_str(), l_path_ref.c_str());
+                        "%s %s HTTP/1.1", a_request.m_verb.c_str(), l_path_ref.c_str());
 
         ns_hlx::nbq_write_request_line(a_nbq, l_buf, l_len);
 
