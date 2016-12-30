@@ -367,7 +367,7 @@ void nbq::reset_write(void)
         m_cur_read_block = m_q.begin();
         m_total_read_avail = 0;
         m_cur_write_offset = 0;
-        for(nb_list_t::const_iterator i_b = m_q.begin();
+        for(nb_list_t::iterator i_b = m_q.begin();
             i_b != m_q.end();
             )
         {
