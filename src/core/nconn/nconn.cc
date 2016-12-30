@@ -327,7 +327,7 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
 
         // Read as much as can...
         } while((l_status > 0) &&
-                ((uint32_t)l_status < l_read_size));
+                ((uint32_t)l_status <= l_read_size));
 
         return NC_STATUS_OK;
 }

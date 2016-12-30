@@ -344,7 +344,6 @@ uint64_t nbq::read_from(uint64_t a_off, char *a_buf, uint64_t a_len)
 //: ----------------------------------------------------------------------------
 void nbq::reset_read(void)
 {
-        m_cur_read_block = m_q.begin();
         // reset read ptrs and recalc read available
         m_total_read_avail = 0;
         for(nb_list_t::const_iterator i_b = m_q.begin();
@@ -354,6 +353,7 @@ void nbq::reset_read(void)
                 (*i_b)->read_reset();
                 m_total_read_avail += (*i_b)->read_avail();
         }
+        m_cur_read_block = m_q.begin();
 }
 
 //: ----------------------------------------------------------------------------
@@ -363,10 +363,6 @@ void nbq::reset_read(void)
 //: ----------------------------------------------------------------------------
 void nbq::reset_write(void)
 {
-        m_cur_write_block = m_q.begin();
-        m_cur_read_block = m_q.begin();
-        m_total_read_avail = 0;
-        m_cur_write_offset = 0;
         for(nb_list_t::iterator i_b = m_q.begin();
             i_b != m_q.end();
             )
@@ -379,6 +375,8 @@ void nbq::reset_write(void)
                 // erase references
                 if((*i_b)->ref())
                 {
+                        delete (*i_b);
+                        (*i_b) = NULL;
                         m_q.erase(i_b++);
                 }
                 else
@@ -387,6 +385,10 @@ void nbq::reset_write(void)
                         ++i_b;
                 }
         }
+        m_cur_write_block = m_q.begin();
+        m_cur_read_block = m_q.begin();
+        m_total_read_avail = 0;
+        m_cur_write_offset = 0;
 }
 
 //: ----------------------------------------------------------------------------
