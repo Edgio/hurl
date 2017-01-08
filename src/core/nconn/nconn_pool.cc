@@ -46,7 +46,7 @@ nconn_pool::nconn_pool(uint32_t a_id,
                        m_active_conn_map(),
                        m_active_conn_map_size(0),
                        m_active_conn_map_max_size(a_max_active_size),
-                       m_idle_conn_ncache(a_max_idle_size),
+                       m_idle_conn_lru(a_max_idle_size),
                        m_nconn_obj_pool()
 {
         //NDBG_PRINT("a_max_active_size: %d\n", a_max_active_size);
@@ -71,9 +71,9 @@ nconn_pool::~nconn_pool(void)
 //: ----------------------------------------------------------------------------
 void nconn_pool::evict_all_idle(void)
 {
-        while(m_idle_conn_ncache.size())
+        while(m_idle_conn_lru.size())
         {
-                m_idle_conn_ncache.evict();
+                m_idle_conn_lru.evict();
         }
 }
 
@@ -170,8 +170,8 @@ nconn *nconn_pool::get_idle(const std::string &a_label)
         {
                 init();
         }
-        //NDBG_PRINT("m_idle_conn_ncache size: %lu\n", m_idle_conn_ncache.size());
-        nconn* l_c = m_idle_conn_ncache.get(a_label);
+        //NDBG_PRINT("m_idle_conn_lru size: %lu\n", m_idle_conn_lru.size());
+        nconn* l_c = m_idle_conn_lru.get(a_label);
         if(l_c)
         {
                 add_active(l_c);
@@ -187,7 +187,7 @@ nconn *nconn_pool::get_idle(const std::string &a_label)
 //: ----------------------------------------------------------------------------
 uint64_t nconn_pool::get_idle_size(void)
 {
-        return m_idle_conn_ncache.size();
+        return m_idle_conn_lru.size();
 }
 
 //: ----------------------------------------------------------------------------
@@ -214,11 +214,11 @@ int32_t nconn_pool::add_idle(nconn *a_nconn)
                 return HLX_STATUS_ERROR;
         }
         id_t l_id;
-        l_id = m_idle_conn_ncache.insert(a_nconn->get_label(), a_nconn);
+        l_id = m_idle_conn_lru.insert(a_nconn->get_label(), a_nconn);
         a_nconn->set_id(l_id);
         //NDBG_PRINT("%sADD_IDLE%s: size: %lu LABEL: %s ID: %u\n",
         //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
-        //                m_idle_conn_ncache.size(),
+        //                m_idle_conn_lru.size(),
         //                a_nconn->get_label().c_str(),
         //                l_id);
         return HLX_STATUS_OK;
@@ -309,7 +309,7 @@ int nconn_pool::s_delete_cb(void* o_1, void *a_2)
 //: ----------------------------------------------------------------------------
 void nconn_pool::init(void)
 {
-        m_idle_conn_ncache.set_delete_cb(s_delete_cb, this);
+        m_idle_conn_lru.set_delete_cb(s_delete_cb, this);
 }
 
 //: ----------------------------------------------------------------------------
@@ -371,13 +371,13 @@ int32_t nconn_pool::remove_active(nconn *a_nconn)
 //: ----------------------------------------------------------------------------
 int32_t nconn_pool::remove_idle(nconn *a_nconn)
 {
-        if(m_idle_conn_ncache.size() &&
+        if(m_idle_conn_lru.size() &&
            a_nconn)
         {
                 uint64_t l_id = a_nconn->get_id();
-                m_idle_conn_ncache.remove(l_id);
+                m_idle_conn_lru.remove(l_id);
                 //NDBG_PRINT("%sDEL_IDLE%s: size: %lu ID: %lu\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
-                //           m_idle_conn_ncache.size(),
+                //           m_idle_conn_lru.size(),
                 //           l_id);
         }
         return HLX_STATUS_OK;

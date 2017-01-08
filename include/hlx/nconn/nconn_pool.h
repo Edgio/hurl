@@ -70,6 +70,16 @@ public:
         int32_t add_idle(nconn *a_nconn);
         int32_t release(nconn *a_nconn);
 
+        // accessors
+        const active_conn_map_t &get_active_conn_map(void)
+        {
+                return m_active_conn_map;
+        }
+        const idle_conn_lru_t &get_idle_conn_lru(void)
+        {
+                return m_idle_conn_lru;
+        }
+
         // -------------------------------------------------
         // Public static methods
         // -------------------------------------------------
@@ -100,7 +110,7 @@ private:
         uint64_t m_active_conn_map_max_size;
 
         // Idle connections
-        idle_conn_lru_t m_idle_conn_ncache;
+        idle_conn_lru_t m_idle_conn_lru;
 
         // Connection pool for reuse
         nconn_obj_pool_t m_nconn_obj_pool;

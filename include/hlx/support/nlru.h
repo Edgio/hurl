@@ -275,6 +275,21 @@ public:
                 }
 
         }
+
+        void get_label_cnts(std::map<std::string, uint32_t> &ao_label_cnts) const
+        {
+                for(typename label_id_set_map_t::const_iterator _i = m_label_id_set_map.begin();
+                                _i != m_label_id_set_map.end();
+                                ++_i)
+                {
+                        for(typename id_set_t::const_iterator _s = _i->second.begin();
+                                        _s != _i->second.end();
+                                        ++_s)
+                        {
+                                ++ao_label_cnts[_i->first];
+                        }
+                }
+        }
 private:
         // Disallow copy/assign
         nlru& operator=(const nlru &);
