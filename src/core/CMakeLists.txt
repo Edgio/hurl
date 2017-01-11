@@ -95,7 +95,6 @@ SET(SRCS
     ./nconn/nconn.cc
     ./nconn/nconn_tcp.cc
     ./nconn/nconn_tls.cc
-    ./nconn/nconn_pool.cc
     ./nconn/host_info.cc
     
     ./dns/ai_cache.cc

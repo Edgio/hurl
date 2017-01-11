@@ -57,15 +57,3 @@ add_executable(wb_nconn_tls ${HDRS} ${SRCS})
 target_link_libraries(wb_nconn_tls compiled_catch ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_nconn_tls PROPERTIES OUTPUT_NAME "wb_nconn_tls")
 add_test(nconn_tls wb_nconn_tls)
-
-# ------------------------------------------------
-# wb_nconn_pool
-# ------------------------------------------------
-SET(SRCS wb_nconn_pool.cc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../
-                    ../../../src/core/ndebug/)
-add_executable(wb_nconn_pool ${HDRS} ${SRCS})
-target_link_libraries(wb_nconn_pool compiled_catch ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
-SET_TARGET_PROPERTIES(wb_nconn_pool PROPERTIES OUTPUT_NAME "wb_nconn_pool")
-add_test(nconn_pool wb_nconn_pool)
