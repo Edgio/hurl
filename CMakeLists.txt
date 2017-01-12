@@ -72,7 +72,7 @@ message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU         
 message("")
 
 if (FORTIFY)
-  add_definitions(-D_FORTIFY_SOURCE=2 -O1 -Wl,-z,relro,-z,now)
+  add_definitions(-D_FORTIFY_SOURCE=2 -O1 -fstack-protector-all -Wl,-z,relro,-z,now)
 endif()
 
 # ------------------------------------------------------------------------------
