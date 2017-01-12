@@ -92,7 +92,7 @@ public:
           m_tls_opt_cipher_str(""),
           m_tls_key(""),
           m_tls_crt(""),
-          m_tls_state(TLS_STATE_FREE),
+          m_tls_state(TLS_STATE_NONE),
           m_last_err(0)
           {
                 m_scheme = SCHEME_TLS;
@@ -111,7 +111,6 @@ public:
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING) ||
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING_WANT_READ) ||
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING_WANT_WRITE));};
-        bool is_free(void) { return (m_tls_state == TLS_STATE_FREE);}
 
 protected:
         // -------------------------------------------------
@@ -134,7 +133,8 @@ private:
         // ---------------------------------------
         typedef enum tls_state
         {
-                TLS_STATE_FREE = 0,
+                TLS_STATE_NONE,
+
                 TLS_STATE_LISTENING,
                 TLS_STATE_CONNECTING,
                 TLS_STATE_ACCEPTING,

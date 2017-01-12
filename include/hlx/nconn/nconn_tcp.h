@@ -56,8 +56,7 @@ public:
           m_sock_opt_recv_buf_size(),
           m_sock_opt_send_buf_size(),
           m_sock_opt_no_delay(false),
-          m_tcp_state(TCP_STATE_FREE)
-
+          m_tcp_state(TCP_STATE_NONE)
         {
                 m_scheme = SCHEME_TCP;
         };
@@ -67,7 +66,6 @@ public:
         bool is_listening(void) {return (m_tcp_state == TCP_STATE_LISTENING);};
         bool is_connecting(void) {return (m_tcp_state == TCP_STATE_CONNECTING);};
         bool is_accepting(void) {return (m_tcp_state == TCP_STATE_ACCEPTING);};
-        bool is_free(void) { return (m_tcp_state == TCP_STATE_FREE);}
 
 protected:
         // -------------------------------------------------
@@ -98,7 +96,7 @@ private:
         // ---------------------------------------
         typedef enum tcp_conn_state
         {
-                TCP_STATE_FREE = 0,
+                TCP_STATE_NONE,
                 TCP_STATE_LISTENING,
                 TCP_STATE_ACCEPTING,
                 TCP_STATE_CONNECTING,

@@ -675,13 +675,11 @@ int32_t nconn_tcp::nccleanup()
         }
         m_fd = -1;
         m_evr_loop = NULL;
-
+        m_tcp_state = TCP_STATE_NONE;
         // Reset all the values
         // TODO Make init function...
         // Set num use back to zero -we need reset method here?
-        m_tcp_state = TCP_STATE_FREE;
         m_num_reqs = 0;
-
         return NC_STATUS_OK;
 }
 

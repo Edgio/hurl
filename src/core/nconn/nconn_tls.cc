@@ -1037,15 +1037,12 @@ int32_t nconn_tls::nccleanup()
                 SSL_free(m_tls);
                 m_tls = NULL;
         }
-
         // Reset all the values
         // TODO Make init function...
         // Set num use back to zero -we need reset method here?
-        m_tls_state = TLS_STATE_FREE;
-
+        m_tls_state = TLS_STATE_NONE;
         // Super
         nconn_tcp::nccleanup();
-
         return NC_STATUS_OK;
 }
 

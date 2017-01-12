@@ -179,8 +179,10 @@ public:
         }
 
         // State
+        bool is_free(void) { return (m_nc_state == NC_STATE_FREE);}
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
         void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
+
         void bump_num_requested(void) {++m_num_reqs;}
         bool can_reuse(void);
 
@@ -206,7 +208,6 @@ public:
         virtual bool is_listening(void) = 0;
         virtual bool is_connecting(void) = 0;
         virtual bool is_accepting(void) = 0;
-        virtual bool is_free(void) = 0;
 
 protected:
         // -------------------------------------------------
