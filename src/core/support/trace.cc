@@ -23,11 +23,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/trace.h"
+#include "hurl/support/trace.h"
 #include <errno.h>
 #include <string.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: Externs
@@ -153,4 +153,4 @@ void trc_mem_display(FILE *a_file, const uint8_t* a_mem_buf, uint32_t a_length)
         }
 }
 
-} // namespace ns_hlx {
+} // namespace ns_hurl {

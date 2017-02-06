@@ -78,9 +78,9 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/hurl.1 DESTINATION ${CMAKE_INSTALL_PRE
 # build and install
 # ------------------------------------------------------------------------------
 add_executable(hurl_cmd ${HDRS} ${SRCS})
-add_dependencies(hurl_cmd hlxcore)
+add_dependencies(hurl_cmd hurlcore)
 SET_TARGET_PROPERTIES(hurl_cmd PROPERTIES OUTPUT_NAME "hurl")
-target_link_libraries(hurl_cmd ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+target_link_libraries(hurl_cmd ${CMAKE_BINARY_DIR}/src/core/libhurl.a ${LIBRARIES})
 
 install(TARGETS hurl_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/

@@ -87,4 +87,4 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 =head1 SEE ALSO
 
-Source code available at https://github.com/VerizonDigital/hlx
+Source code available at https://github.com/VerizonDigital/hurl

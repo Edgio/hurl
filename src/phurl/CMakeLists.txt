@@ -77,9 +77,9 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/phurl.1 DESTINATION ${CMAKE_INSTALL_PR
 # build and install
 # ------------------------------------------------------------------------------
 add_executable(phurl_cmd ${HDRS} ${SRCS})
-add_dependencies(phurl_cmd hlxcore)
+add_dependencies(phurl_cmd hurlcore)
 SET_TARGET_PROPERTIES(phurl_cmd PROPERTIES OUTPUT_NAME "phurl")
-target_link_libraries(phurl_cmd ${CMAKE_BINARY_DIR}/src/core/libhlxcore.a ${LIBRARIES})
+target_link_libraries(phurl_cmd ${CMAKE_BINARY_DIR}/src/core/libhurl.a ${LIBRARIES})
 
 install(TARGETS phurl_cmd
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/

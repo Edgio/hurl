@@ -26,7 +26,7 @@
 //: ----------------------------------------------------------------------------
 #include "evr_epoll.h"
 #include "ndebug.h"
-#include "hlx/status.h"
+#include "hurl/status.h"
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
@@ -35,7 +35,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -126,9 +126,9 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_ADD fd[%d] failed (%s)\n",
                            m_fd, a_fd, strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -149,9 +149,9 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_MOD fd[%d] failed (%s)\n",
                            m_fd, a_fd, strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -170,10 +170,10 @@ int evr_epoll::del(int a_fd)
                 {
                         //NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n",
                         //           m_fd, a_fd, strerror(errno));
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -191,10 +191,10 @@ int32_t evr_epoll::signal(void)
         if(l_write_status == -1)
         {
                 //NDBG_PRINT("l_write_status: %ld\n", l_write_status);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {
 

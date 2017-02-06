@@ -24,7 +24,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/time_util.h"
+#include "hurl/support/time_util.h"
 #include <unistd.h>
 #include <time.h>
 
@@ -39,7 +39,7 @@
 //: ----------------------------------------------------------------------------
 #define MAX_TIMER_RESOLUTION_US 10
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: global static
@@ -217,5 +217,5 @@ uint64_t get_delta_time_us(uint64_t a_start_time_us)
 	return get_time_us() - a_start_time_us;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {
 

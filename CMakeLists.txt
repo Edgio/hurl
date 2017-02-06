@@ -20,7 +20,7 @@
 # ------------------------------------------------------------------------------
 
 # Project setup
-project(hlx)
+project(hurl)
 cmake_minimum_required(VERSION 2.8.0)
 
 if (POLICY CMP0050)
@@ -278,7 +278,7 @@ if(NOT ${VERSION} MATCHES ^[0-9]+.[0-9]+)
         message(FATAL_ERROR "Most recent tag '${VERSION}' does not match required version regex: ^[0-9]+.[0-9]+
 Does it start with a number?")
 endif()
-add_definitions(-DHLX_VERSION="${VERSION}")
+add_definitions(-DHURL_VERSION="${VERSION}")
 
 # ------------------------------------------------------------------------------
 # Debian Package Support
@@ -288,8 +288,8 @@ if (BUILD_UBUNTU)
   SET(CPACK_GENERATOR "DEB")
   SET(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
   SET(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
-  SET(CPACK_PACKAGE_FILE_NAME "hlx_${CPACK_DEBIAN_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
-  SET(CPACK_DEBIAN_PACKAGE_NAME "hlx")
+  SET(CPACK_PACKAGE_FILE_NAME "hurl_${CPACK_DEBIAN_PACKAGE_VERSION}_${CPACK_DEBIAN_PACKAGE_ARCHITECTURE}")
+  SET(CPACK_DEBIAN_PACKAGE_NAME "hurl")
   SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Reed Morrison")
   SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "HTTP Server Utils.")
   SET(CPACK_PACKAGE_DESCRIPTION "HTTP Server Utils for EdgeCast Networks.")

@@ -26,11 +26,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/evr/evr.h"
+#include "hurl/evr/evr.h"
 #include <sys/select.h>
 #include <map>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -59,7 +59,7 @@ private:
         fd_set m_wfdset;
 };
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {
 
 #endif
 

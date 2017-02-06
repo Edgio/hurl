@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
-#include "hlx/support/nlru.h"
+#include "hurl/support/nlru.h"
 #include "catch/catch.hpp"
 
 //: ----------------------------------------------------------------------------
@@ -48,7 +48,7 @@ private:
         animal(const animal &);
 };
 
-typedef ns_hlx::nlru <animal> animal_lru_t;
+typedef ns_hurl::nlru <animal> animal_lru_t;
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO

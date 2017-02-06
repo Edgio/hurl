@@ -24,14 +24,14 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/status.h"
-#include "hlx/http/hmsg.h"
-#include "hlx/support/nbq.h"
+#include "hurl/status.h"
+#include "hurl/http/hmsg.h"
+#include "hurl/support/nbq.h"
 #include "ndebug.h"
 #include "http_parser/http_parser.h"
 #include <stdlib.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -155,7 +155,7 @@ nbq *hmsg::get_body_q(void)
         }
         int32_t l_s;
         l_s = m_q->split(&m_body_q, m_p_body.m_off);
-        if(l_s != HLX_STATUS_OK)
+        if(l_s != HURL_STATUS_OK)
         {
                 return NULL;
         }
@@ -180,8 +180,8 @@ uint64_t hmsg::get_body_len(void) const
 //: ----------------------------------------------------------------------------
 void hmsg::get_headers(kv_map_list_t *ao_headers) const
 {
-        ns_hlx::cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
-        ns_hlx::cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
+        ns_hurl::cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
+        ns_hurl::cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
         for(; i_k != m_p_h_list_key.end() &&
                     i_v != m_p_h_list_val.end();
             ++i_k, ++i_v)
@@ -201,11 +201,11 @@ void hmsg::get_headers(kv_map_list_t *ao_headers) const
                         free(l_h_v_b);
                         l_h_v_b = NULL;
                 }
-                ns_hlx::kv_map_list_t::iterator i_obj = ao_headers->find(l_h_k);
+                ns_hurl::kv_map_list_t::iterator i_obj = ao_headers->find(l_h_k);
                 if(i_obj != ao_headers->end()){
                         i_obj->second.push_back(l_h_v);
                 } else {
-                        ns_hlx::str_list_t l_list;
+                        ns_hurl::str_list_t l_list;
                         l_list.push_back(l_h_v);
                         (*ao_headers)[l_h_k] = l_list;
                 }
@@ -276,4 +276,4 @@ void hmsg::reset_body_q(void)
        m_p_body.m_off = 0;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

@@ -24,15 +24,15 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/dns/ai_cache.h"
-#include "hlx/dns/nresolver.h"
+#include "hurl/dns/ai_cache.h"
+#include "hurl/dns/nresolver.h"
 #include "ndebug.h"
-#include "hlx/dns/nlookup.h"
-#include "hlx/evr/evr.h"
-#include "hlx/nconn/host_info.h"
-#include "hlx/support/time_util.h"
-#include "hlx/status.h"
-#include "hlx/support/trace.h"
+#include "hurl/dns/nlookup.h"
+#include "hurl/evr/evr.h"
+#include "hurl/nconn/host_info.h"
+#include "hurl/support/time_util.h"
+#include "hurl/status.h"
+#include "hurl/support/trace.h"
 
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
@@ -49,7 +49,7 @@
 // for inet_pton
 #include <arpa/inet.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -112,7 +112,7 @@ int32_t nresolver::init(bool a_use_cache,
 {
         if(m_is_initd)
         {
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
         m_use_cache = a_use_cache;
         if(m_use_cache)
@@ -128,12 +128,12 @@ int32_t nresolver::init(bool a_use_cache,
         if (dns_init(NULL, 0) < 0)
         {
                 TRC_ERROR("unable to initialize dns library\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 #endif
 
         m_is_initd = true;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -157,7 +157,7 @@ int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
         if(!a_adns_ctx)
         {
                 TRC_ERROR("a_adns_ctx == NULL\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 #ifdef ASYNC_DNS_WITH_UDNS
         if(a_adns_ctx->m_fd > 0)
@@ -190,7 +190,7 @@ int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
                 }
                 a_adns_ctx->m_job_q.pop();
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 
@@ -206,7 +206,7 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         return NULL;
                 }
@@ -298,7 +298,7 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
         l_status = a_evr_loop->add_fd(l_fd,
                                       EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                       &l_adns_ctx->m_evr_fd);
-        if (l_status != HLX_STATUS_OK)
+        if (l_status != HURL_STATUS_OK)
         {
                 TRC_ERROR("add_fd failed\n");
                 delete l_adns_ctx;
@@ -339,9 +339,9 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
         // ---------------------------------------
@@ -366,7 +366,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         if(l_host_info)
         {
                 ao_host_info = *l_host_info;
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
         // Lookup inline
@@ -374,7 +374,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         {
                 return lookup_inline(a_host, a_port, ao_host_info);
         }
-        return HLX_STATUS_ERROR;
+        return HURL_STATUS_ERROR;
 }
 
 //: ----------------------------------------------------------------------------
@@ -387,25 +387,25 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         int32_t l_status;
         host_info *l_host_info = new host_info();
         l_status = nlookup(a_host, a_port, *l_host_info);
-        if(l_status != HLX_STATUS_OK)
+        if(l_status != HURL_STATUS_OK)
         {
                 delete l_host_info;
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         //show_host_info();
         if(m_use_cache && m_ai_cache)
         {
                 l_host_info = m_ai_cache->lookup(get_cache_key(a_host, a_port), l_host_info);
         }
-        int32_t l_retval = HLX_STATUS_OK;
+        int32_t l_retval = HURL_STATUS_OK;
         if(l_host_info)
         {
                 ao_host_info = *l_host_info;
-                l_retval = HLX_STATUS_OK;
+                l_retval = HURL_STATUS_OK;
         }
         else
         {
-                l_retval = HLX_STATUS_ERROR;
+                l_retval = HURL_STATUS_ERROR;
         }
         if(l_host_info && (!m_use_cache || !m_ai_cache))
         {
@@ -429,17 +429,17 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
 
         // tryfast lookup
         l_status = lookup_tryfast(a_host, a_port, ao_host_info);
-        if(l_status == HLX_STATUS_OK)
+        if(l_status == HURL_STATUS_OK)
         {
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
         return lookup_inline(a_host, a_port, ao_host_info);
 }
@@ -492,7 +492,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 {
                         int32_t l_status = 0;
                         l_status = l_job->m_cb(NULL, l_job->m_data);
-                        if(l_status != HLX_STATUS_OK)
+                        if(l_status != HURL_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error performing callback.\n");
                         }
@@ -551,7 +551,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         {
                 int32_t l_status = 0;
                 l_status = l_job->m_cb(l_host_info, l_job->m_data);
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing callback.\n");
                 }
@@ -608,21 +608,21 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
         if(!m_is_initd)
         {
                 l_status = init();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
         if(!a_adns_ctx)
         {
                 TRC_ERROR("a_adns_ctx == NULL\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 #ifdef ASYNC_DNS_WITH_UDNS
         dns_ctx *l_ctx = a_adns_ctx->m_udns_ctx;
         if(!l_ctx)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         if(!a_host.empty())
         {
@@ -658,7 +658,7 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 if (!l_job->m_dns_query)
                 {
                         TRC_ERROR("performing dns_submit_a4.  Last status: %d\n", dns_status(NULL));
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 l_job->m_dns_ctx = l_ctx;
                 l_job->m_start_time = get_time_s();
@@ -712,7 +712,7 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                                         &(a_adns_ctx->m_timer_obj)); // timer obj
                 }
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 
@@ -758,7 +758,7 @@ int32_t nresolver::evr_fd_writeable_cb(void *a_data)
 {
         //NDBG_PRINT("%sWRITEABLE%s\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF);
         TRC_ERROR("writeable cb for adns resolver");
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 
@@ -775,14 +775,14 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
         if(!l_adns_ctx)
         {
                 TRC_ERROR("a_ctx == NULL\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 #ifdef ASYNC_DNS_WITH_UDNS
         if(!l_adns_ctx->m_udns_ctx)
         {
                 // TODO REMOVE
                 TRC_ERROR("l_adns_ctx->m_udns_ctx == NULL.\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         dns_ioevent(l_adns_ctx->m_udns_ctx, 0);
 #endif
@@ -793,13 +793,13 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
                 int32_t l_s;
                 void *l_job;
                 l_s = l_adns_ctx->m_ctx->lookup_async(l_adns_ctx,l_unused,0,l_adns_ctx,&l_job);
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
                         TRC_ERROR("lookup_async.\n");
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 
@@ -813,7 +813,7 @@ int32_t nresolver::evr_fd_error_cb(void *a_data)
 {
         //NDBG_PRINT("%sERROR%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
         TRC_ERROR("evr_fd_error_cb\n");
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 
@@ -831,7 +831,7 @@ int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
         if(!l_adns_ctx)
         {
                 TRC_ERROR("a_ctx == NULL\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         if(l_adns_ctx->m_ctx)
         {
@@ -842,12 +842,12 @@ int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
                 void *l_job;
                 l_adns_ctx->m_timer_obj = NULL;
                 l_s = l_adns_ctx->m_ctx->lookup_async(l_adns_ctx,l_unused,0,l_adns_ctx,&l_job);
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 

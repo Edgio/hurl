@@ -28,10 +28,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/tls_util.h"
+#include "hurl/support/tls_util.h"
 #include "ndebug.h"
 #include "hostcheck/hostcheck.h"
-#include "hlx/status.h"
+#include "hurl/status.h"
 
 #include <pthread.h>
 #include <openssl/ssl.h>
@@ -52,7 +52,7 @@ struct CRYPTO_dynlock_value
         pthread_mutex_t mutex;
 };
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: Globals
@@ -401,7 +401,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 if(i_option == g_tls_options_map.end())
                 {
                         NDBG_PRINT("Error unrecognized ssl option: %s\n", l_token.c_str());
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 ao_val |= i_option->second;
         };
@@ -411,13 +411,13 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         if(i_option == g_tls_options_map.end())
         {
                 NDBG_PRINT("Error unrecognized ssl option: %s\n", l_token.c_str());
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         ao_val |= i_option->second;
 
         //NDBG_PRINT("ao_val: 0x%08lX\n", ao_val);
 
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -722,5 +722,5 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
         return 0;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {
 

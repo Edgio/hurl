@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/status.h"
-#include "hlx/support/nbq.h"
-#include "hlx/support/trace.h"
+#include "hurl/status.h"
+#include "hurl/support/nbq.h"
+#include "hurl/support/trace.h"
 #include "ndebug.h"
 #include "catch/catch.hpp"
 
@@ -65,7 +65,7 @@ char *create_buf(uint32_t a_size)
 //: ----------------------------------------------------------------------------
 //: Test helpers
 //: ----------------------------------------------------------------------------
-void nbq_write(ns_hlx::nbq &a_nbq, char *a_buf, uint32_t a_write_size, uint32_t a_write_per)
+void nbq_write(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_write_size, uint32_t a_write_per)
 {
         uint64_t l_write_size = a_write_size;
         uint64_t l_left = l_write_size;
@@ -86,7 +86,7 @@ void nbq_write(ns_hlx::nbq &a_nbq, char *a_buf, uint32_t a_write_size, uint32_t 
 //: ----------------------------------------------------------------------------
 //: Test helpers
 //: ----------------------------------------------------------------------------
-void nbq_read(ns_hlx::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
+void nbq_read(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
 {
         char *l_rd_buf = (char *)malloc(a_read_per);
         uint64_t l_read = 0;
@@ -99,7 +99,7 @@ void nbq_read(ns_hlx::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
                 if(l_s > 0)
                 {
                         l_read += l_s;
-                        //ns_hlx::mem_display((const uint8_t *)l_rd_buf, l_s);
+                        //ns_hurl::mem_display((const uint8_t *)l_rd_buf, l_s);
                 }
         }
         free(l_rd_buf);
@@ -108,7 +108,7 @@ void nbq_read(ns_hlx::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
 //: ----------------------------------------------------------------------------
 //: Verify contents of nbq
 //: ----------------------------------------------------------------------------
-int32_t verify_contents(ns_hlx::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
+int32_t verify_contents(ns_hurl::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
 {
         uint64_t l_read = 0;
         //NDBG_PRINT("a_nbq.read_avail(): %lu\n", a_nbq.read_avail());
@@ -123,22 +123,22 @@ int32_t verify_contents(ns_hlx::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
                 if(l_s != 1)
                 {
                         //NDBG_PRINT("error\n");
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 //NDBG_PRINT("l_cmp: %c l_char: %c -l_read: %lu\n", l_cmp, l_char, l_read);
                 if(l_cmp != l_char)
                 {
                         //NDBG_PRINT("error l_cmp: %c l_char: %c\n", l_cmp, l_char);
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 ++l_read;
         }
         if(l_read != a_len)
         {
                 //NDBG_PRINT("error l_read = %lu a_len = %lu\n", l_read, a_len);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -146,10 +146,10 @@ int32_t verify_contents(ns_hlx::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
 //: ----------------------------------------------------------------------------
 TEST_CASE( "nbq test", "[nbq]" ) {
 
-        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+        ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
 
         SECTION("writing then reading to new") {
-                ns_hlx::nbq l_nbq(BLOCK_SIZE);
+                ns_hurl::nbq l_nbq(BLOCK_SIZE);
                 char *l_buf = create_buf(888);
                 nbq_write(l_nbq, l_buf, 888, BLOCK_SIZE);
                 REQUIRE(( l_nbq.read_avail() == 888 ));
@@ -163,7 +163,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
         }
         SECTION("reset writing then reading to new") {
-                ns_hlx::nbq l_nbq(BLOCK_SIZE);
+                ns_hurl::nbq l_nbq(BLOCK_SIZE);
                 char *l_buf = create_buf(888);
                 l_nbq.reset_read();
                 REQUIRE(( l_nbq.read_avail() == 0 ));
@@ -185,7 +185,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
         }
         SECTION("reset writing then reading") {
-                ns_hlx::nbq l_nbq(BLOCK_SIZE);
+                ns_hurl::nbq l_nbq(BLOCK_SIZE);
                 char *l_buf = create_buf(888);
                 l_nbq.reset();
                 REQUIRE(( l_nbq.read_avail() == 0 ));
@@ -200,7 +200,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
         }
         SECTION("Reset Writing/Writing then Reading") {
-                ns_hlx::nbq l_nbq(BLOCK_SIZE);
+                ns_hurl::nbq l_nbq(BLOCK_SIZE);
                 char *l_buf = create_buf(888);
                 l_nbq.reset();
                 REQUIRE(( l_nbq.read_avail() == 0 ));
@@ -217,7 +217,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
         }
         SECTION("split") {
-                ns_hlx::nbq l_nbq(BLOCK_SIZE);
+                ns_hurl::nbq l_nbq(BLOCK_SIZE);
                 char *l_uni_buf = create_uniform_buf(703);
                 l_nbq.reset();
                 nbq_write(l_nbq, l_uni_buf, 703, 133);
@@ -225,35 +225,35 @@ TEST_CASE( "nbq test", "[nbq]" ) {
 
                 int32_t l_s;
                 l_s = verify_contents(l_nbq, 703, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 l_nbq.reset_read();
 
-                ns_hlx::nbq *l_nbq_tail;
+                ns_hurl::nbq *l_nbq_tail;
 
                 // split at > written offset -return nothing
                 l_s = l_nbq.split(&l_nbq_tail, 703);
-                REQUIRE(( l_s == HLX_STATUS_ERROR ));
+                REQUIRE(( l_s == HURL_STATUS_ERROR ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq.read_avail() == 703 ));
 
                 // split at 0 offset -return nothing
                 l_s = l_nbq.split(&l_nbq_tail, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq.read_avail() == 703 ));
 
                 l_s = l_nbq.split(&l_nbq_tail, 400);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 REQUIRE(( l_nbq_tail != NULL ));
                 REQUIRE(( l_nbq_tail->read_avail() == 303 ));
 
                 l_nbq.reset_read();
                 l_s = verify_contents(l_nbq, 400, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 303, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 if(l_nbq_tail)
                 {
@@ -267,29 +267,29 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
         }
         SECTION("join") {
-                ns_hlx::nbq *l_nbq = new ns_hlx::nbq(BLOCK_SIZE);
+                ns_hurl::nbq *l_nbq = new ns_hurl::nbq(BLOCK_SIZE);
                 char *l_uni_buf = create_uniform_buf(703);
                 l_nbq->reset();
                 nbq_write(*l_nbq, l_uni_buf, 703, 155);
                 REQUIRE(( l_nbq->read_avail() == 703 ));
 
-                ns_hlx::nbq *l_nbq_tail = new ns_hlx::nbq(BLOCK_SIZE);
+                ns_hurl::nbq *l_nbq_tail = new ns_hurl::nbq(BLOCK_SIZE);
                 nbq_write(*l_nbq_tail, l_uni_buf, 400, 200);
 
                 int32_t l_s;
                 l_s = l_nbq->join_ref(*l_nbq_tail);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 REQUIRE(( l_nbq->read_avail() == 1103 ));
 
                 l_nbq->reset_read();
 
                 // verify head
                 l_s = verify_contents(*l_nbq, 703, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 // verify tail
                 l_s = verify_contents(*l_nbq, 400, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 REQUIRE(( l_nbq->read_avail() == 0 ));
 
@@ -301,7 +301,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
 
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 400, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 if(l_uni_buf)
                 {
@@ -315,38 +315,38 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
         }
         SECTION("split and join") {
-                ns_hlx::nbq *l_nbq = new ns_hlx::nbq(BLOCK_SIZE);
+                ns_hurl::nbq *l_nbq = new ns_hurl::nbq(BLOCK_SIZE);
                 char *l_uni_buf = create_uniform_buf(703);
                 nbq_write(*l_nbq, l_uni_buf, 703, 133);
                 REQUIRE(( l_nbq->read_avail() == 703 ));
 
                 int32_t l_s;
                 l_s = verify_contents(*l_nbq, 703, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 l_nbq->reset_read();
 
-                ns_hlx::nbq *l_nbq_tail;
+                ns_hurl::nbq *l_nbq_tail;
 
                 // split at > written offset -return nothing
                 l_s = l_nbq->split(&l_nbq_tail, 703);
-                REQUIRE(( l_s == HLX_STATUS_ERROR ));
+                REQUIRE(( l_s == HURL_STATUS_ERROR ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq->read_avail() == 703 ));
 
                 // split at 0 offset -return nothing
                 l_s = l_nbq->split(&l_nbq_tail, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq->read_avail() == 703 ));
 
                 l_s = l_nbq->split(&l_nbq_tail, 400);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 REQUIRE(( l_nbq_tail != NULL ));
                 REQUIRE(( l_nbq_tail->read_avail() == 303 ));
 
                 l_nbq->reset_read();
                 l_s = verify_contents(*l_nbq, 400, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 if(l_nbq)
                 {
@@ -356,24 +356,24 @@ TEST_CASE( "nbq test", "[nbq]" ) {
 
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 303, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 // join to new
-                ns_hlx::nbq *l_nbq_1 = new ns_hlx::nbq(BLOCK_SIZE);
+                ns_hurl::nbq *l_nbq_1 = new ns_hurl::nbq(BLOCK_SIZE);
                 nbq_write(*l_nbq_1, l_uni_buf, 300, 155);
                 REQUIRE(( l_nbq_1->read_avail() == 300 ));
 
                 l_s = l_nbq_1->join_ref(*l_nbq_tail);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 REQUIRE(( l_nbq_1->read_avail() == 603 ));
 
                 // verify head
                 l_s = verify_contents(*l_nbq_1, 300, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 // verify tail
                 l_s = verify_contents(*l_nbq_1, 303, 0);
-                REQUIRE(( l_s == HLX_STATUS_OK ));
+                REQUIRE(( l_s == HURL_STATUS_OK ));
 
                 if(l_nbq_1)
                 {

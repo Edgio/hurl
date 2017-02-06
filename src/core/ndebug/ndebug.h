@@ -87,13 +87,13 @@
 #ifndef NDBG_HEXDUMP
 #define NDBG_HEXDUMP(buffer, len) \
         do { \
-                ns_hlx::mem_display(buffer, len); \
+                ns_hurl::mem_display(buffer, len); \
                 fflush(stdout); \
         } while(0)
 #endif
 
 #ifndef NDBG_PRINT_BT
-#define NDBG_PRINT_BT() ns_hlx::print_bt(__FILE__,__FUNCTION__,__LINE__)
+#define NDBG_PRINT_BT() ns_hurl::print_bt(__FILE__,__FUNCTION__,__LINE__)
 #endif
 
 //: ----------------------------------------------------------------------------
@@ -153,8 +153,8 @@
         } while(0)
 #endif
 
-// Namespace ns_hlx
-namespace ns_hlx {
+// Namespace ns_hurl
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: Forward Decls
@@ -200,6 +200,6 @@ inline int check_for_pod(int count, ...)
 void print_bt(const char * a_file, const char *a_func, const int a_line);
 void mem_display(const uint8_t *a_mem_buf, uint32_t a_length);
 
-} // namespace ns_hlx {
+} // namespace ns_hurl {
 
 #endif // NDEBUG_H_

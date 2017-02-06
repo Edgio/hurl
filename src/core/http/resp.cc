@@ -25,14 +25,14 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/http/cb.h"
-#include "hlx/support/nbq.h"
-#include "hlx/http/resp.h"
-#include "hlx/support/trace.h"
-#include "hlx/status.h"
+#include "hurl/http/cb.h"
+#include "hurl/support/nbq.h"
+#include "hurl/http/resp.h"
+#include "hurl/support/trace.h"
+#include "hurl/status.h"
 #include "http_parser/http_parser.h"
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -165,4 +165,4 @@ void resp::show(void)
         TRC_OUTPUT("\r\n");
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

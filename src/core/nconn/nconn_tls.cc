@@ -24,11 +24,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/time_util.h"
-#include "hlx/support/trace.h"
+#include "hurl/support/time_util.h"
+#include "hurl/support/trace.h"
 
-#include "hlx/nconn/nconn_tls.h"
-#include "hlx/support/tls_util.h"
+#include "hurl/nconn/nconn_tls.h"
+#include "hurl/support/tls_util.h"
 #include "ndebug.h"
 
 #include <errno.h>
@@ -49,7 +49,7 @@
 //: Macros
 //: ----------------------------------------------------------------------------
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -1087,4 +1087,4 @@ long nconn_get_last_SSL_err(nconn &a_nconn)
 
 
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

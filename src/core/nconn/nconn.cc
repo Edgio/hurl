@@ -25,17 +25,17 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/nconn/nconn.h"
-#include "hlx/status.h"
-#include "hlx/support/time_util.h"
-#include "hlx/support/trace.h"
-#include "hlx/support/nbq.h"
-#include "hlx/nconn/conn_status.h"
+#include "hurl/nconn/nconn.h"
+#include "hurl/status.h"
+#include "hurl/support/time_util.h"
+#include "hurl/support/trace.h"
+#include "hurl/support/nbq.h"
+#include "hurl/nconn/conn_status.h"
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -313,11 +313,11 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                 }
 
                 ao_read += l_status;
-                //ns_hlx::mem_display((uint8_t *)(l_buf), l_bytes_read);
+                //ns_hurl::mem_display((uint8_t *)(l_buf), l_bytes_read);
                 if(m_read_cb)
                 {
                         int32_t l_rcb_status = m_read_cb(m_read_cb_data, l_buf, l_status, a_in_q->get_cur_write_offset());
-                        if(l_rcb_status != HLX_STATUS_OK)
+                        if(l_rcb_status != HURL_STATUS_OK)
                         {
                                 //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
                                 return NC_STATUS_ERROR;
@@ -394,7 +394,7 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                 if(m_write_cb)
                 {
                         int32_t l_wcb_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_status, 0);
-                        if(l_wcb_status != HLX_STATUS_OK)
+                        if(l_wcb_status != HURL_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error performing m_write_cb\n");
                                 return NC_STATUS_ERROR;
@@ -444,11 +444,11 @@ int32_t nconn::nc_set_listening(int32_t a_val)
         l_status = ncset_listening(a_val);
         if(l_status != NC_STATUS_OK)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_LISTENING;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -463,11 +463,11 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
         l_status = ncset_listening_nb(a_val);
         if(l_status != NC_STATUS_OK)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_LISTENING;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -481,10 +481,10 @@ int32_t nconn::nc_set_accepting(int a_fd)
         l_status = ncset_accepting(a_fd);
         if(l_status != NC_STATUS_OK)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         m_nc_state = NC_STATE_ACCEPTING;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -498,10 +498,10 @@ int32_t nconn::nc_set_connected(void)
         l_status = ncset_connected();
         if(l_status != NC_STATUS_OK)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         m_nc_state = NC_STATE_CONNECTED;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -525,11 +525,11 @@ int32_t nconn::nc_cleanup()
         if(l_status != NC_STATUS_OK)
         {
                 TRC_ERROR("Error performing nccleanup.\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         m_data = NULL;
         m_host_info_is_set = false;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -616,4 +616,4 @@ void conn_stat_init(conn_stat_t &a_stat)
         bzero(&a_stat, sizeof(conn_stat_t));
 }
 
-} // ns_hlx
+} // ns_hurl

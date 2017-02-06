@@ -24,20 +24,20 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/http/http_status.h"
-#include "hlx/http/http_resp.h"
-#include "hlx/support/nbq.h"
-#include "hlx/support/string_util.h"
-#include "hlx/support/time_util.h"
-#include "hlx/http/api_resp.h"
-#include "hlx/http/rqst.h"
+#include "hurl/http/http_status.h"
+#include "hurl/http/http_resp.h"
+#include "hurl/support/nbq.h"
+#include "hurl/support/string_util.h"
+#include "hurl/support/time_util.h"
+#include "hurl/http/api_resp.h"
+#include "hurl/http/rqst.h"
 #include <string.h>
 #include <stdlib.h>
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <stdarg.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: response helpers
@@ -397,4 +397,4 @@ int32_t api_resp::serialize(nbq &ao_q)
         return 0;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

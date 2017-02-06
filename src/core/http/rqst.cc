@@ -25,18 +25,18 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/http/cb.h"
-#include "hlx/support/uri.h"
-#include "hlx/support/nbq.h"
-#include "hlx/http/rqst.h"
-#include "hlx/support/trace.h"
-#include "hlx/status.h"
+#include "hurl/http/cb.h"
+#include "hurl/support/uri.h"
+#include "hurl/support/nbq.h"
+#include "hurl/http/rqst.h"
+#include "hurl/support/trace.h"
+#include "hurl/status.h"
 #include "http_parser/http_parser.h"
 
 #include <string.h>
 #include <stdlib.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -119,7 +119,7 @@ const std::string &rqst::get_url()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         // return empty string
                         return l_empty_str;
@@ -138,7 +138,7 @@ const std::string &rqst::get_url_path()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -156,7 +156,7 @@ const std::string &rqst::get_url_query()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -174,7 +174,7 @@ const query_map_t &rqst::get_url_query_map()
         if(m_url_query_map.empty())
         {
                 int32_t l_status = parse_query(get_url_query(), m_url_query_map);
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -192,7 +192,7 @@ const std::string &rqst::get_url_fragment()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HLX_STATUS_OK)
+                if(l_status != HURL_STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -230,7 +230,7 @@ int32_t rqst::parse_uri()
 {
         if(m_url_parsed)
         {
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
         // Copy out the url...
@@ -262,7 +262,7 @@ int32_t rqst::parse_uri()
         {
                 TRC_ERROR("parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
@@ -306,7 +306,7 @@ int32_t rqst::parse_uri()
                 }
         }
         m_url_parsed = true;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -340,7 +340,7 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
                 }
                 else
                 {
-                        ns_hlx::str_list_t l_list;
+                        ns_hurl::str_list_t l_list;
                         l_list.push_back(l_val);
                         ao_query_map[l_key] = l_list;
                 }
@@ -376,4 +376,4 @@ void rqst::show(void)
         TRC_OUTPUT("\r\n");
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

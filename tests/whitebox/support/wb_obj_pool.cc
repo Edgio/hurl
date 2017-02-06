@@ -25,7 +25,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
-#include "hlx/support/obj_pool.h"
+#include "hurl/support/obj_pool.h"
 #include "catch/catch.hpp"
 
 //: ----------------------------------------------------------------------------
@@ -59,7 +59,7 @@ private:
         animal(const animal &);
         uint32_t m_idx;
 };
-typedef ns_hlx::obj_pool <animal> animal_pool_t;
+typedef ns_hurl::obj_pool <animal> animal_pool_t;
 
 //: ----------------------------------------------------------------------------
 //: Tests

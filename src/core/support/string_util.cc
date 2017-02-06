@@ -24,9 +24,9 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/string_util.h"
+#include "hurl/support/string_util.h"
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -154,4 +154,4 @@ std::string get_file_wo_ext(const std::string &a_filename)
         return fName.substr(0, pos);
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

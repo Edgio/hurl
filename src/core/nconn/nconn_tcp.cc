@@ -24,10 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/time_util.h"
-#include "hlx/support/trace.h"
+#include "hurl/support/time_util.h"
+#include "hurl/support/trace.h"
 
-#include "hlx/nconn/nconn_tcp.h"
+#include "hurl/nconn/nconn_tcp.h"
 #include "ndebug.h"
 
 // Fcntl and friends
@@ -66,7 +66,7 @@
                 } \
         } while(0)
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
@@ -704,4 +704,4 @@ int nconn_get_fd(nconn &a_nconn)
         return *l_fd;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

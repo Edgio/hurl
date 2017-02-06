@@ -24,10 +24,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/nconn/host_info.h"
-#include "hlx/dns/nresolver.h"
-#include "hlx/dns/ai_cache.h"
-#include "hlx/support/time_util.h"
+#include "hurl/nconn/host_info.h"
+#include "hurl/dns/nresolver.h"
+#include "hurl/dns/ai_cache.h"
+#include "hurl/support/time_util.h"
 #include "catch/catch.hpp"
 
 #include <unistd.h>
@@ -52,7 +52,7 @@ static uint32_t g_lkp_err = 0;
 //: ----------------------------------------------------------------------------
 //: Test helpers
 //: ----------------------------------------------------------------------------
-int32_t test_resolved_cb(const ns_hlx::host_info *a_host_info, void *a_data)
+int32_t test_resolved_cb(const ns_hurl::host_info *a_host_info, void *a_data)
 {
         --g_dns_reqs_qd;
         //printf("DEBUG: test_resolved_cb: a_host_info: %p a_data: %p g_dns_reqs_qd: %d\n", a_host_info, a_data, g_dns_reqs_qd);
@@ -86,7 +86,7 @@ TEST_CASE( "get cache key", "[get_cache_key]" )
         {
                 std::string l_host = "google.com";
                 uint16_t l_port = 7868;
-                std::string l_label = ns_hlx::get_cache_key(l_host, l_port);
+                std::string l_label = ns_hurl::get_cache_key(l_host, l_port);
                 REQUIRE((l_label == "google.com:7868"));
         }
 }
@@ -98,9 +98,9 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 {
         SECTION("Validate No cache")
         {
-                ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
+                ns_hurl::nresolver *l_nresolver = new ns_hurl::nresolver();
                 l_nresolver->init(false, "");
-                ns_hlx::host_info l_host_info;
+                ns_hurl::host_info l_host_info;
                 int32_t l_status;
                 l_status = l_nresolver->lookup_tryfast("google.com", 80, l_host_info);
                 REQUIRE(( l_status == -1 ));
@@ -109,16 +109,16 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_status = l_nresolver->lookup_tryfast("google.com", 80, l_host_info);
                 REQUIRE(( l_status == -1 ));
                 bool l_use_cache = l_nresolver->get_use_cache();
-                ns_hlx::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
+                ns_hurl::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
                 REQUIRE(( l_use_cache == false ));
                 REQUIRE(( l_ai_cache == NULL ));
                 delete l_nresolver;
         }
         SECTION("Validate cache")
         {
-                ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
+                ns_hurl::nresolver *l_nresolver = new ns_hurl::nresolver();
                 l_nresolver->init(true);
-                ns_hlx::host_info l_host_info;
+                ns_hurl::host_info l_host_info;
                 int32_t l_status;
                 l_status = l_nresolver->lookup_sync("google.com", 80, l_host_info);
                 REQUIRE(( l_status == 0 ));
@@ -129,7 +129,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_status = l_nresolver->lookup_tryfast("google.com", 80, l_host_info);
                 REQUIRE(( l_status == 0 ));
                 bool l_use_cache = l_nresolver->get_use_cache();
-                ns_hlx::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
+                ns_hurl::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
                 REQUIRE(( l_use_cache == true ));
                 REQUIRE(( l_ai_cache != NULL ));
                 delete l_nresolver;
@@ -141,7 +141,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 #if 0
         SECTION("Validate async")
         {
-                ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
+                ns_hurl::nresolver *l_nresolver = new ns_hurl::nresolver();
                 l_nresolver->add_resolver_host("8.8.8.8");
                 l_nresolver->set_retries(1);
                 l_nresolver->set_timeout_s(1);
@@ -149,13 +149,13 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 // Set up poller
                 // TODO
 
-                ns_hlx::nresolver::adns_ctx *l_adns_ctx = NULL;
+                ns_hurl::nresolver::adns_ctx *l_adns_ctx = NULL;
                 l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
                 REQUIRE((l_adns_ctx != NULL));
 
                 uint64_t l_active;
-                ns_hlx::nresolver::lookup_job_q_t l_lookup_job_q;
-                ns_hlx::nresolver::lookup_job_pq_t l_lookup_job_pq;
+                ns_hurl::nresolver::lookup_job_q_t l_lookup_job_q;
+                ns_hurl::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
                 void *l_job_handle = NULL;
 
@@ -199,8 +199,8 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
 
                 uint32_t l_timeout_s = 5;
-                uint64_t l_start_s = ns_hlx::get_time_s();
-                while(g_dns_reqs_qd && ((ns_hlx::get_time_s()) < (l_start_s + l_timeout_s)))
+                uint64_t l_start_s = ns_hurl::get_time_s();
+                while(g_dns_reqs_qd && ((ns_hurl::get_time_s()) < (l_start_s + l_timeout_s)))
                 {
                         int l_count;
                         l_count = poll(&l_pfd, 1, 1*1000);
@@ -218,7 +218,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                 break;
                         }
                 }
-                uint64_t l_end_s = ns_hlx::get_time_s();
+                uint64_t l_end_s = ns_hurl::get_time_s();
                 INFO("l_end_s:       " << l_end_s)
                 INFO("l_start_s:     " << l_start_s)
                 INFO("l_timeout_s:   " << l_timeout_s)
@@ -248,7 +248,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 #if 0
         SECTION("Validate async -bad resolver")
         {
-                ns_hlx::nresolver *l_nresolver = new ns_hlx::nresolver();
+                ns_hurl::nresolver *l_nresolver = new ns_hurl::nresolver();
 
                 // ---------------------------------------------------
                 // Set resolver to something far and slow hopefully?
@@ -263,7 +263,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 // Set up poller
                 // TODO
 
-                ns_hlx::nresolver::adns_ctx *l_adns_ctx = NULL;
+                ns_hurl::nresolver::adns_ctx *l_adns_ctx = NULL;
                 l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
                 REQUIRE((l_adns_ctx != NULL));
 
@@ -310,8 +310,8 @@ TEST_CASE( "nresolver test", "[nresolver]" )
 
 
                 uint32_t l_timeout_s = 5;
-                uint64_t l_start_s = ns_hlx::get_time_s();
-                while(g_dns_reqs_qd && ((ns_hlx::get_time_s()) < (l_start_s + l_timeout_s)))
+                uint64_t l_start_s = ns_hurl::get_time_s();
+                while(g_dns_reqs_qd && ((ns_hurl::get_time_s()) < (l_start_s + l_timeout_s)))
                 {
                         int l_count;
                         l_count = poll(&l_pfd, 1, 1*1000);
@@ -331,7 +331,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 }
 
 
-                uint64_t l_end_s = ns_hlx::get_time_s();
+                uint64_t l_end_s = ns_hurl::get_time_s();
                 INFO("l_end_s:       " << l_end_s)
                 INFO("l_start_s:     " << l_start_s)
                 INFO("l_timeout_s:   " << l_timeout_s)

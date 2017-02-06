@@ -25,11 +25,11 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/http/cb.h"
-#include "hlx/http/rqst.h"
-#include "hlx/http/resp.h"
-#include "hlx/support/trace.h"
-#include "hlx/status.h"
+#include "hurl/http/cb.h"
+#include "hurl/http/rqst.h"
+#include "hurl/http/resp.h"
+#include "hurl/support/trace.h"
+#include "hurl/status.h"
 #include <string.h>
 
 //: ----------------------------------------------------------------------------
@@ -48,11 +48,11 @@
 #define CHECK_FOR_NULL_ERROR(_data) \
         do {\
                 if(!_data) {\
-                        return HLX_STATUS_ERROR;\
+                        return HURL_STATUS_ERROR;\
                 }\
         } while(0);
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -80,9 +80,9 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
                 TRC_ERROR("Parse error.  Reason: %s: %s\n",
                            http_errno_name((enum http_errno)l_hmsg->m_http_parser->http_errno),
                            http_errno_description((enum http_errno)l_hmsg->m_http_parser->http_errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -257,4 +257,4 @@ int hp_on_message_complete(http_parser* a_parser)
         return 0;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

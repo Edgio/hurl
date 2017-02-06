@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # ------------------------------------------------------------------------------
-# Upstream HTTP Server for use with testing hlx.
+# Upstream HTTP Server for use with testing hurl.
 # Chunking bits copied from
 # https://gist.github.com/josiahcarlson/3250376
 # example notes:

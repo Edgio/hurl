@@ -20,7 +20,7 @@
 # ------------------------------------------------------------------------------
 
 # Project setup
-project(hlx)
+project(hurl)
 cmake_minimum_required(VERSION 2.6.0)
 
 # include paths
@@ -42,25 +42,25 @@ include_directories(
 # ------------------------------------------------
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     SET(UDNS_SRCS
-        ../../../ext/udns-0.4/dnsget.o
-        ../../../ext/udns-0.4/rblcheck.o
-        ../../../ext/udns-0.4/udns_codes.o
-        ../../../ext/udns-0.4/udns_dntosp.o
-        ../../../ext/udns-0.4/udns_jran.o
-        ../../../ext/udns-0.4/udns_parse.o
-        ../../../ext/udns-0.4/udns_rr_a.o
-        ../../../ext/udns-0.4/udns_rr_naptr.o
-        ../../../ext/udns-0.4/udns_rr_srv.o
-        ../../../ext/udns-0.4/udns_XtoX.o
-        ../../../ext/udns-0.4/ex-rdns.o
-        ../../../ext/udns-0.4/udns_bl.o
-        ../../../ext/udns-0.4/udns_dn.o
-        ../../../ext/udns-0.4/udns_init.o
-        ../../../ext/udns-0.4/udns_misc.o
-        ../../../ext/udns-0.4/udns_resolver.o
-        ../../../ext/udns-0.4/udns_rr_mx.o
-        ../../../ext/udns-0.4/udns_rr_ptr.o
-        ../../../ext/udns-0.4/udns_rr_txt.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/dnsget.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/rblcheck.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_codes.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_dntosp.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_jran.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_parse.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_rr_a.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_rr_naptr.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_rr_srv.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_XtoX.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/ex-rdns.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_bl.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_dn.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_init.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_misc.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_resolver.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_rr_mx.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_rr_ptr.o
+        ${CMAKE_SOURCE_DIR}/ext/udns-0.4/udns_rr_txt.o
     )
     string (REPLACE ";" " " UDNS_SRCS_FIXED "${UDNS_SRCS}")
     set (CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} ${UDNS_SRCS_FIXED}")
@@ -76,9 +76,9 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # Source files
 SET(SRCS
-    ../../ext/http_parser/http_parser.cc
-    ../../ext/hostcheck/hostcheck.cc
-    ../../ext/base64/base64.cc
+    ${CMAKE_SOURCE_DIR}/ext/http_parser/http_parser.cc
+    ${CMAKE_SOURCE_DIR}/ext/hostcheck/hostcheck.cc
+    ${CMAKE_SOURCE_DIR}/ext/base64/base64.cc
     
     ./ndebug/ndebug.cc
     
@@ -120,49 +120,49 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 # Headers
 SET(HDRS
-    ../../include/hlx/evr/evr.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/evr/evr.h
 
-    ../../include/hlx/support/atomic.h
-    ../../include/hlx/support/kv_map_list.h
-    ../../include/hlx/support/time_util.h
-    ../../include/hlx/support/trace.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/support/atomic.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/support/kv_map_list.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/support/time_util.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/support/trace.h
 
-    ../../include/hlx/nconn/scheme.h
-    ../../include/hlx/nconn/conn_status.h
-    ../../include/hlx/nconn/host_info.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/nconn/scheme.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/nconn/conn_status.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/nconn/host_info.h
 
-    ../../include/hlx/http/cr.h
-    ../../include/hlx/http/http_status.h
-    ../../include/hlx/http/hmsg.h
-    ../../include/hlx/http/rqst.h
-    ../../include/hlx/http/resp.h
-    ../../include/hlx/http/api_resp.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/http/cr.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/http/http_status.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/http/hmsg.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/http/rqst.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/http/resp.h
+    ${CMAKE_SOURCE_DIR}/include/hurl/http/api_resp.h
 
 )
 
-add_library(hlxcore STATIC ${HDRS} ${SRCS})
+add_library(hurlcore STATIC ${HDRS} ${SRCS})
 
 if(BUILD_UDNS)
-  add_dependencies(hlxcore ext_udns)
+  add_dependencies(hurlcore ext_udns)
 endif()
   
-target_link_libraries(hlxcore UDNS_OBJS_OBJECT)
+target_link_libraries(hurlcore UDNS_OBJS_OBJECT)
 
-# Create symlink for libhlxcore.so.<soversion>
-SET_TARGET_PROPERTIES(hlxcore
+# Create symlink for libhurlcore.so.<soversion>
+SET_TARGET_PROPERTIES(hurlcore
   PROPERTIES
   SOVERSION 0
 )
 
 # Add install target for the library
-install(TARGETS hlxcore
+install(TARGETS hurlcore
   ARCHIVE DESTINATION lib
   COMPONENT Libraries
 )
 
 # Add install target for header files
 install(FILES ${HDRS}
-  DESTINATION include/hlx
+  DESTINATION include/hurl
   COMPONENT Headers
 )
 
@@ -171,10 +171,10 @@ install(FILES ${HDRS}
 # ----------------------------------------------------------
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   add_custom_command(
-    TARGET hlxcore
+    TARGET hurlcore
     POST_BUILD
-    COMMAND ${CMAKE_SOURCE_DIR}/src/core/gen_mri.sh ${CMAKE_SOURCE_DIR} && ar -M < _libhlx.mri && mv libhlx.a libhlxcore.a
-    DEPENDS hlxcore udns
+    COMMAND ${CMAKE_SOURCE_DIR}/src/core/gen_mri.sh ${CMAKE_SOURCE_DIR} && ar -M < _libhlx.mri && mv libhlx.a libhurl.a
+    DEPENDS hurlcore udns
   )
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 

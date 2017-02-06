@@ -23,13 +23,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/nconn/host_info.h"
+#include "hurl/nconn/host_info.h"
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdio.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -79,4 +79,4 @@ void host_info::show(void)
         printf("+-------------------------------------\n");
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

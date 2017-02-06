@@ -25,10 +25,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
-#include "hlx/dns/nlookup.h"
-#include "hlx/nconn/host_info.h"
-#include "hlx/support/time_util.h"
-#include "hlx/status.h"
+#include "hurl/dns/nlookup.h"
+#include "hurl/nconn/host_info.h"
+#include "hurl/support/time_util.h"
+#include "hurl/status.h"
 
 #include <unistd.h>
 #include <netdb.h>
@@ -37,7 +37,7 @@
 // for inet_pton
 #include <arpa/inet.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: slow resolution
@@ -70,7 +70,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         {
                 //NDBG_PRINT("Error getaddrinfo '%s': %s\n",
                 //           a_host.c_str(), gai_strerror(l_gaierr));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Find the first IPv4 and IPv6 entries.
@@ -106,14 +106,14 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                                    a_host.c_str(),
                               (unsigned long) sizeof(ao_host_info.m_sa),
                               (unsigned long) l_addrinfo_v4->ai_addrlen);
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 ao_host_info.m_sock_family = l_addrinfo_v4->ai_family;
                 ao_host_info.m_sock_type = l_addrinfo_v4->ai_socktype;
                 ao_host_info.m_sock_protocol = l_addrinfo_v4->ai_protocol;
                 ao_host_info.m_sa_len = l_addrinfo_v4->ai_addrlen;
                 //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v4->ai_addrlen);
-                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr,
+                //ns_hurl::mem_display((const uint8_t *)l_addrinfo_v4->ai_addr,
                 //                   l_addrinfo_v4->ai_addrlen);
                 //show_host_info();
                 memmove(&(ao_host_info.m_sa),
@@ -131,14 +131,14 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                                    a_host.c_str(),
                               (unsigned long) sizeof(ao_host_info.m_sa),
                               (unsigned long) l_addrinfo_v6->ai_addrlen);
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 ao_host_info.m_sock_family = l_addrinfo_v6->ai_family;
                 ao_host_info.m_sock_type = l_addrinfo_v6->ai_socktype;
                 ao_host_info.m_sock_protocol = l_addrinfo_v6->ai_protocol;
                 ao_host_info.m_sa_len = l_addrinfo_v6->ai_addrlen;
                 //NDBG_PRINT("memmove: addrlen: %d\n", l_addrinfo_v6->ai_addrlen);
-                //ns_hlx::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr,
+                //ns_hurl::mem_display((const uint8_t *)l_addrinfo_v6->ai_addr,
                 //                    l_addrinfo_v6->ai_addrlen);
                 //show_host_info();
                 memmove(&ao_host_info.m_sa,
@@ -152,12 +152,12 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         {
                 NDBG_PRINT("Error no valid address found for host %s\n",
                            a_host.c_str());
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Set to 60min -cuz getaddr-info stinks...
         ao_host_info.m_expires_s = get_time_s() + 3600;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 }

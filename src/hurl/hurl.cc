@@ -25,26 +25,26 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "tinymt64.h"
-#include "hlx/dns/nlookup.h"
-#include "hlx/nconn/nconn.h"
-#include "hlx/nconn/nconn_tcp.h"
-#include "hlx/nconn/nconn_tls.h"
+#include "hurl/dns/nlookup.h"
+#include "hurl/nconn/nconn.h"
+#include "hurl/nconn/nconn_tcp.h"
+#include "hurl/nconn/nconn_tls.h"
 #include "ndebug.h"
-#include "hlx/http/cb.h"
-#include "hlx/support/obj_pool.h"
-#include "hlx/support/tls_util.h"
+#include "hurl/http/cb.h"
+#include "hurl/support/obj_pool.h"
+#include "hurl/support/tls_util.h"
 
-#include "hlx/status.h"
-#include "hlx/support/time_util.h"
-#include "hlx/support/trace.h"
-#include "hlx/support/string_util.h"
-#include "hlx/support/atomic.h"
-#include "hlx/support/nbq.h"
+#include "hurl/status.h"
+#include "hurl/support/time_util.h"
+#include "hurl/support/trace.h"
+#include "hurl/support/string_util.h"
+#include "hurl/support/atomic.h"
+#include "hurl/support/nbq.h"
 
-#include "hlx/evr/evr.h"
+#include "hurl/evr/evr.h"
 
-#include "hlx/http/resp.h"
-#include "hlx/http/api_resp.h"
+#include "hurl/http/resp.h"
+#include "hurl/http/api_resp.h"
 
 #include <string.h>
 
@@ -118,14 +118,14 @@
         do {\
                 if(!_data) {\
                         NDBG_PRINT("Error.\n");\
-                        return HLX_STATUS_ERROR;\
+                        return HURL_STATUS_ERROR;\
                 }\
         } while(0);
 
 #define CHECK_FOR_NULL_ERROR(_data) \
         do {\
                 if(!_data) {\
-                        return HLX_STATUS_ERROR;\
+                        return HURL_STATUS_ERROR;\
                 }\
         } while(0);
 
@@ -381,11 +381,11 @@ typedef struct range_struct {
 // -----------------------------------------------
 class request {
 public:
-        typedef int32_t (*completion_cb_t)(request &, ns_hlx::nconn &, ns_hlx::resp &);
-        typedef int32_t (*error_cb_t)(request &, ns_hlx::nconn *, ns_hlx::http_status_t, const char *);
+        typedef int32_t (*completion_cb_t)(request &, ns_hurl::nconn &, ns_hurl::resp &);
+        typedef int32_t (*error_cb_t)(request &, ns_hurl::nconn *, ns_hurl::http_status_t, const char *);
         request():
                 m_uid(0),
-                m_scheme(ns_hlx::SCHEME_TCP),
+                m_scheme(ns_hurl::SCHEME_TCP),
                 m_host(),
                 m_url(),
                 m_url_path(),
@@ -433,7 +433,7 @@ public:
 
         int set_header(const std::string &a_key, const std::string &a_val)
         {
-                ns_hlx::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
+                ns_hurl::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
                 if(i_obj != m_headers.end())
                 {
                         // Special handling for Host/User-agent/referer
@@ -465,24 +465,24 @@ public:
                 }
                 else
                 {
-                        ns_hlx::str_list_t l_list;
+                        ns_hurl::str_list_t l_list;
                         l_list.push_back(a_val);
                         m_headers[a_key] = l_list;
                 }
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
         // Initialize
         int32_t init_with_url(const std::string &a_url);
 
         uint64_t m_uid;
-        ns_hlx::scheme_t m_scheme;
+        ns_hurl::scheme_t m_scheme;
         std::string m_host;
         std::string m_url;
         std::string m_url_path;
         std::string m_url_query;
         std::string m_verb;
-        ns_hlx::kv_map_list_t m_headers;
+        ns_hurl::kv_map_list_t m_headers;
         char *m_body_data;
         uint32_t m_body_data_len;
         uint16_t m_port;
@@ -495,7 +495,7 @@ public:
         completion_cb_t m_completion_cb;
         error_cb_t m_error_cb;
 
-        ns_hlx::host_info m_host_info;
+        ns_hurl::host_info m_host_info;
         void *m_data;
 
         uint64_t m_start_time_ms;
@@ -568,7 +568,7 @@ void get_results_json(double a_elapsed_time,
                       std::string &ao_results);
 
 int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
-static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq);
+static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq);
 
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
@@ -589,7 +589,7 @@ void sig_handler(int signo)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-ns_hlx::uint64_atomic_t g_cur_subr_uid = 0;
+ns_hurl::uint64_atomic_t g_cur_subr_uid = 0;
 static inline uint64_t get_next_request_uuid(void)
 {
         return ++g_cur_subr_uid;
@@ -604,21 +604,21 @@ public:
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-        ns_hlx::nconn *m_nconn;
+        ns_hurl::nconn *m_nconn;
         t_hurl *m_t_hurl;
-        ns_hlx::evr_timer_t *m_timer_obj;
-        ns_hlx::resp *m_resp;
-        ns_hlx::nbq *m_in_q;
-        ns_hlx::nbq *m_out_q;
+        ns_hurl::evr_timer_t *m_timer_obj;
+        ns_hurl::resp *m_resp;
+        ns_hurl::nbq *m_in_q;
+        ns_hurl::nbq *m_out_q;
         request *m_request;
         uint64_t m_idx;
         // -------------------------------------------------
         // Public Static (class) methods
         // -------------------------------------------------
-        static int32_t evr_fd_readable_cb(void *a_data) {return run_state_machine(a_data, ns_hlx::EVR_MODE_READ);}
-        static int32_t evr_fd_writeable_cb(void *a_data){return run_state_machine(a_data, ns_hlx::EVR_MODE_WRITE);}
-        static int32_t evr_fd_error_cb(void *a_data) {return run_state_machine(a_data, ns_hlx::EVR_MODE_ERROR);}
-        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data){return run_state_machine(a_data, ns_hlx::EVR_MODE_TIMEOUT);}
+        static int32_t evr_fd_readable_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_READ);}
+        static int32_t evr_fd_writeable_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_WRITE);}
+        static int32_t evr_fd_error_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_ERROR);}
+        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -663,8 +663,8 @@ public:
         }
 
         int32_t cancel_timer(void *a_timer);
-        int32_t teardown(ns_hlx::http_status_t a_status);
-        int32_t request_error(ns_hlx::http_status_t a_status);
+        int32_t teardown(ns_hurl::http_status_t a_status);
+        int32_t request_error(ns_hurl::http_status_t a_status);
         uint64_t get_idx(void) {return m_idx;}
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
 #if 0
@@ -687,7 +687,7 @@ private:
         // -------------------------------------------------
         // Private Static (class) methods
         // -------------------------------------------------
-        static int32_t run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode);
+        static int32_t run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode);
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
@@ -706,8 +706,8 @@ public:
         // -------------------------------------------------
         // Types
         // -------------------------------------------------
-        typedef std::list <ns_hlx::nconn *> idle_nconn_list_t;
-        typedef ns_hlx::obj_pool <session> session_pool_t;
+        typedef std::list <ns_hurl::nconn *> idle_nconn_list_t;
+        typedef ns_hurl::obj_pool <session> session_pool_t;
 
         // -------------------------------------------------
         // Public methods
@@ -731,8 +731,8 @@ public:
                m_num_parallel_max(a_max_parallel),
                m_num_to_request(a_num_to_request)
         {
-                m_orphan_in_q = new ns_hlx::nbq(4096);
-                m_orphan_out_q = new ns_hlx::nbq(4096);
+                m_orphan_in_q = new ns_hurl::nbq(4096);
+                m_orphan_out_q = new ns_hurl::nbq(4096);
         }
         ~t_hurl()
         {
@@ -754,31 +754,31 @@ public:
         }
         int32_t init(void)
         {
-                if(m_is_initd) return HLX_STATUS_OK;
+                if(m_is_initd) return HURL_STATUS_OK;
                 // TODO -make loop configurable
 #if defined(__linux__)
-                m_evr_loop = new ns_hlx::evr_loop(ns_hlx::EVR_LOOP_EPOLL, 512);
+                m_evr_loop = new ns_hurl::evr_loop(ns_hurl::EVR_LOOP_EPOLL, 512);
 #elif defined(__FreeBSD__) || defined(__APPLE__)
-                m_evr_loop = new ns_hlx::evr_loop(ns_hlx::EVR_LOOP_SELECT, 512);
+                m_evr_loop = new ns_hurl::evr_loop(ns_hurl::EVR_LOOP_SELECT, 512);
 #else
-                m_evr_loop = new ns_hlx::evr_loop(ns_hlx::EVR_LOOP_SELECT, 512);
+                m_evr_loop = new ns_hurl::evr_loop(ns_hurl::EVR_LOOP_SELECT, 512);
 #endif
                 if(!m_evr_loop)
                 {
                         TRC_ERROR("m_evr_loop == NULL");
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 m_is_initd = true;
                 m_request.m_data = this;
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
         int run(void) {
                 int32_t l_pthread_error = 0;
                 l_pthread_error = pthread_create(&m_t_run_thread, NULL, t_run_static, this);
                 if (l_pthread_error != 0) {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         };
         void *t_run(void *a_nothing);
         void stop(void) {
@@ -787,13 +787,13 @@ public:
         }
         bool is_running(void) { return !m_stopped; }
         int32_t cancel_timer(void *a_timer) {
-                if(!m_evr_loop) return HLX_STATUS_ERROR;
-                if(!a_timer) return HLX_STATUS_OK;
-                ns_hlx::evr_timer_t *l_t = static_cast<ns_hlx::evr_timer_t *>(a_timer);
+                if(!m_evr_loop) return HURL_STATUS_ERROR;
+                if(!a_timer) return HURL_STATUS_OK;
+                ns_hurl::evr_timer_t *l_t = static_cast<ns_hurl::evr_timer_t *>(a_timer);
                 return m_evr_loop->cancel_timer(l_t);
         }
-        int32_t cleanup_session(session *a_ses, ns_hlx::nconn *a_nconn);
-        void add_stat_to_agg(const ns_hlx::conn_stat_t &a_conn_stat, uint16_t a_status_code);
+        int32_t cleanup_session(session *a_ses, ns_hurl::nconn *a_nconn);
+        void add_stat_to_agg(const ns_hurl::conn_stat_t &a_conn_stat, uint16_t a_status_code);
 
         // -------------------------------------------------
         // Public members
@@ -805,8 +805,8 @@ public:
         t_stat_cntr_t m_stat;
         status_code_count_map_t m_status_code_count_map;
         uint32_t m_num_in_progress;
-        ns_hlx::nbq *m_orphan_in_q;
-        ns_hlx::nbq *m_orphan_out_q;
+        ns_hurl::nbq *m_orphan_in_q;
+        ns_hurl::nbq *m_orphan_out_q;
         SSL_CTX *m_ctx;
 private:
         // -------------------------------------------------
@@ -821,14 +821,14 @@ private:
         {
                 return reinterpret_cast<t_hurl *>(a_context)->t_run(NULL);
         }
-        ns_hlx::nconn *create_new_nconn(void);
+        ns_hurl::nconn *create_new_nconn(void);
         int32_t request_start(void);
         int32_t request_dequeue(void);
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
         request m_request;
-        ns_hlx::evr_loop *m_evr_loop;
+        ns_hurl::evr_loop *m_evr_loop;
         bool m_is_initd;
         uint32_t m_num_parallel_max;
         int32_t m_num_to_request;
@@ -861,7 +861,7 @@ int32_t request::init_with_url(const std::string &a_url)
         {
                 NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Set no port
@@ -884,16 +884,16 @@ int32_t request::init_with_url(const std::string &a_url)
                                 //NDBG_PRINT("l_part: %s\n", l_part.c_str());
                                 if(l_part == "http")
                                 {
-                                        m_scheme = ns_hlx::SCHEME_TCP;
+                                        m_scheme = ns_hurl::SCHEME_TCP;
                                 }
                                 else if(l_part == "https")
                                 {
-                                        m_scheme = ns_hlx::SCHEME_TLS;
+                                        m_scheme = ns_hurl::SCHEME_TLS;
                                 }
                                 else
                                 {
                                         NDBG_PRINT("Error schema[%s] is unsupported\n", l_part.c_str());
-                                        return HLX_STATUS_ERROR;
+                                        return HURL_STATUS_ERROR;
                                 }
                                 break;
                         }
@@ -952,12 +952,12 @@ int32_t request::init_with_url(const std::string &a_url)
         {
                 switch(m_scheme)
                 {
-                case ns_hlx::SCHEME_TCP:
+                case ns_hurl::SCHEME_TCP:
                 {
                         m_port = 80;
                         break;
                 }
-                case ns_hlx::SCHEME_TLS:
+                case ns_hurl::SCHEME_TLS:
                 {
                         m_port = 443;
                         break;
@@ -972,14 +972,14 @@ int32_t request::init_with_url(const std::string &a_url)
         //m_num_to_req = m_path_vector.size();
         //NDBG_PRINT("Showing parsed url.\n");
         //m_url.show();
-        if (HLX_STATUS_OK != l_status)
+        if (HURL_STATUS_OK != l_status)
         {
                 // Failure
                 NDBG_PRINT("Error parsing url: %s.\n", l_url_fixed.c_str());
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1029,7 +1029,7 @@ bool session::request_complete(void)
         }
         bool l_complete = false;
 #if 0
-        m_request->m_end_time_ms = ns_hlx::get_time_ms();
+        m_request->m_end_time_ms = ns_hurl::get_time_ms();
 #endif
         // Get vars -completion -can delete subr object
         bool l_connect_only = m_request->m_connect_only;
@@ -1052,18 +1052,18 @@ bool session::request_complete(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t session::request_error(ns_hlx::http_status_t a_status)
+int32_t session::request_error(ns_hurl::http_status_t a_status)
 {
         request_log_status(a_status);
         if(!m_request)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 #if 0
-        m_request->m_end_time_ms = ns_hlx::get_time_ms();
+        m_request->m_end_time_ms = ns_hurl::get_time_ms();
         if(m_nconn && m_nconn->get_collect_stats_flag())
         {
-                m_nconn->set_stat_tt_completion_us(ns_hlx::get_delta_time_us(m_nconn->get_connect_start_time_us()));
+                m_nconn->set_stat_tt_completion_us(ns_hurl::get_delta_time_us(m_nconn->get_connect_start_time_us()));
                 m_nconn->reset_stats();
         }
 #endif
@@ -1078,7 +1078,7 @@ int32_t session::request_error(ns_hlx::http_status_t a_status)
                 l_error_cb(*(m_request), m_nconn, a_status, l_err_str);
                 // TODO Check status...
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1090,15 +1090,15 @@ int32_t session::cancel_timer(void *a_timer)
 {
         if(!m_t_hurl)
         {
-            return HLX_STATUS_ERROR;
+            return HURL_STATUS_ERROR;
         }
         int32_t l_s;
         l_s = m_t_hurl->cancel_timer(a_timer);
-        if(l_s != HLX_STATUS_OK)
+        if(l_s != HURL_STATUS_OK)
         {
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1106,9 +1106,9 @@ int32_t session::cancel_timer(void *a_timer)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t session::teardown(ns_hlx::http_status_t a_status)
+int32_t session::teardown(ns_hurl::http_status_t a_status)
 {
-        if(a_status != ns_hlx::HTTP_STATUS_OK)
+        if(a_status != ns_hurl::HTTP_STATUS_OK)
         {
                 if(m_resp)
                 {
@@ -1116,7 +1116,7 @@ int32_t session::teardown(ns_hlx::http_status_t a_status)
                 }
                 int32_t l_s;
                 l_s = request_error(a_status);
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
                         TRC_ERROR("performing subr_error\n");
                 }
@@ -1126,12 +1126,12 @@ int32_t session::teardown(ns_hlx::http_status_t a_status)
                 int32_t l_s;
                 l_s = m_t_hurl->cleanup_session(this, m_nconn);
                 m_nconn = NULL;
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 
@@ -1140,7 +1140,7 @@ int32_t session::teardown(ns_hlx::http_status_t a_status)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
+int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode)
 {
         //NDBG_PRINT("%sRUN%s a_conn_mode: %d a_data: %p\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, a_conn_mode, a_data);
         //NDBG_PRINT_BT();
@@ -1148,9 +1148,9 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
         // TODO -return OK for a_data == NULL
         if(!a_data)
         {
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
-        ns_hlx::nconn* l_nconn = static_cast<ns_hlx::nconn*>(a_data);
+        ns_hurl::nconn* l_nconn = static_cast<ns_hurl::nconn*>(a_data);
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_hurl *l_t_hurl = static_cast<t_hurl *>(l_nconn->get_ctx());
         session *l_ses = static_cast<session *>(l_nconn->get_data());
@@ -1158,20 +1158,20 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
         // -------------------------------------------------
         // ERROR
         // -------------------------------------------------
-        if(a_conn_mode == ns_hlx::EVR_MODE_ERROR)
+        if(a_conn_mode == ns_hurl::EVR_MODE_ERROR)
         {
                 // ignore errors for free connections
                 if(l_nconn->is_free())
                 {
                         TRC_ERROR("call back for free connection\n");
-                        return HLX_STATUS_OK;
+                        return HURL_STATUS_OK;
                 }
                 if(l_ses)
                 {
                         l_ses->cancel_timer(l_ses->m_timer_obj);
                         // TODO Check status
                         l_ses->m_timer_obj = NULL;
-                        return l_ses->teardown(ns_hlx::HTTP_STATUS_BAD_GATEWAY);
+                        return l_ses->teardown(ns_hurl::HTTP_STATUS_BAD_GATEWAY);
                 }
                 else
                 {
@@ -1182,20 +1182,20 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                         else
                         {
                                 // TODO log error???
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                 }
         }
         // -------------------------------------------------
         // TIMEOUT
         // -------------------------------------------------
-        else if(a_conn_mode == ns_hlx::EVR_MODE_TIMEOUT)
+        else if(a_conn_mode == ns_hurl::EVR_MODE_TIMEOUT)
         {
                 // ignore timeout for free connections
                 if(l_nconn->is_free())
                 {
                         TRC_ERROR("call back for free connection\n");
-                        return HLX_STATUS_OK;
+                        return HURL_STATUS_OK;
                 }
                 // calc time since last active
                 if(l_ses && l_t_hurl)
@@ -1204,7 +1204,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                         // timeout
                         // ---------------------------------
 #if 0
-                        uint64_t l_ct_ms = ns_hlx::get_time_ms();
+                        uint64_t l_ct_ms = ns_hurl::get_time_ms();
                         if(((uint32_t)(l_ct_ms - l_uss->get_last_active_ms())) >= l_uss->get_timeout_ms())
                         {
                                 ++(l_t_srvr->m_stat.m_upsv_errors);
@@ -1223,7 +1223,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                                                     l_nconn,
                                                     (void **)(&(l_uss->m_timer_obj)));
                                 // TODO check status
-                                return HLX_STATUS_OK;
+                                return HURL_STATUS_OK;
                         }
 #endif
                 }
@@ -1233,41 +1233,41 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                                         a_conn_mode,
                                         l_ses,
                                         l_t_hurl);
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
-        else if(a_conn_mode == ns_hlx::EVR_MODE_READ)
+        else if(a_conn_mode == ns_hurl::EVR_MODE_READ)
         {
                 // ignore readable for free connections
                 if(l_nconn->is_free())
                 {
                         TRC_ERROR("call back for free connection\n");
-                        return HLX_STATUS_OK;
+                        return HURL_STATUS_OK;
                 }
         }
         // -------------------------------------------------
         // TODO unknown conn mode???
         // -------------------------------------------------
-        else if((a_conn_mode != ns_hlx::EVR_MODE_READ) &&
-                (a_conn_mode != ns_hlx::EVR_MODE_WRITE))
+        else if((a_conn_mode != ns_hurl::EVR_MODE_READ) &&
+                (a_conn_mode != ns_hurl::EVR_MODE_WRITE))
         {
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
 #if 0
         // set last active
         if(l_ses)
         {
-                l_uss->set_last_active_ms(ns_hlx::get_time_ms());
+                l_uss->set_last_active_ms(ns_hurl::get_time_ms());
         }
 #endif
 
         // -------------------------------------------------
         // in/out q's
         // -------------------------------------------------
-        ns_hlx::nbq *l_in_q = NULL;
-        ns_hlx::nbq *l_out_q = NULL;
+        ns_hurl::nbq *l_in_q = NULL;
+        ns_hurl::nbq *l_out_q = NULL;
         if(l_ses && l_ses->m_in_q)
         {
                 l_in_q = l_ses->m_in_q;
@@ -1289,7 +1289,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
         // conn loop
         // -------------------------------------------------
         bool l_idle = false;
-        int32_t l_s = HLX_STATUS_OK;
+        int32_t l_s = HURL_STATUS_OK;
         do {
                 uint32_t l_read = 0;
                 uint32_t l_written = 0;
@@ -1306,8 +1306,8 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                 }
                 if(!l_ses ||
                    !l_ses->m_request ||
-                   (l_s == ns_hlx::nconn::NC_STATUS_EOF) ||
-                   (l_s == ns_hlx::nconn::NC_STATUS_ERROR) ||
+                   (l_s == ns_hurl::nconn::NC_STATUS_EOF) ||
+                   (l_s == ns_hurl::nconn::NC_STATUS_ERROR) ||
                    l_nconn->is_done())
                 {
                         goto check_conn_status;
@@ -1315,7 +1315,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                 // -----------------------------------------
                 // READABLE
                 // -----------------------------------------
-                if(a_conn_mode == ns_hlx::EVR_MODE_READ)
+                if(a_conn_mode == ns_hurl::EVR_MODE_READ)
                 {
                         // -----------------------------------------
                         // Handle completion
@@ -1346,7 +1346,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                                 // Get request time
                                 if(g_stats)
                                 {
-                                        l_nconn->set_stat_tt_completion_us(ns_hlx::get_delta_time_us(l_nconn->get_connect_start_time_us()));
+                                        l_nconn->set_stat_tt_completion_us(ns_hurl::get_delta_time_us(l_nconn->get_connect_start_time_us()));
 
                                 }
                                 if(l_ses->m_resp && l_t_hurl)
@@ -1366,7 +1366,7 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                                    !l_keepalive ||
                                    !l_hmsg_keep_alive))
                                 {
-                                        l_s = ns_hlx::nconn::NC_STATUS_EOF;
+                                        l_s = ns_hurl::nconn::NC_STATUS_EOF;
                                         goto check_conn_status;
                                 }
                                 // Give back rqst + in q
@@ -1386,9 +1386,9 @@ int32_t session::run_state_machine(void *a_data, ns_hlx::evr_mode_t a_conn_mode)
                 // -----------------------------------------
                 // STATUS_OK
                 // -----------------------------------------
-                else if(l_s == ns_hlx::nconn::NC_STATUS_OK)
+                else if(l_s == ns_hurl::nconn::NC_STATUS_OK)
                 {
-                        l_s = ns_hlx::nconn::NC_STATUS_BREAK;
+                        l_s = ns_hurl::nconn::NC_STATUS_BREAK;
                         //NDBG_PRINT("goto check_conn_status\n");
                         goto check_conn_status;
                 }
@@ -1397,7 +1397,7 @@ check_conn_status:
                 //NDBG_PRINT("goto check_conn_status\n");
                 if(l_nconn->is_free())
                 {
-                        return HLX_STATUS_OK;
+                        return HURL_STATUS_OK;
                 }
                 if(!l_ses)
                 {
@@ -1409,17 +1409,17 @@ check_conn_status:
                         else
                         {
                                 // TODO log error???
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                 }
                 switch(l_s)
                 {
-                case ns_hlx::nconn::NC_STATUS_BREAK:
+                case ns_hurl::nconn::NC_STATUS_BREAK:
                 {
                         //NDBG_PRINT("GOTO DONE!\n");
                         goto done;
                 }
-                case ns_hlx::nconn::NC_STATUS_EOF:
+                case ns_hurl::nconn::NC_STATUS_EOF:
                 {
                         // Connect only && done --early exit...
                         if(l_ses->m_request &&
@@ -1427,7 +1427,7 @@ check_conn_status:
                         {
                                 if(l_ses->m_resp)
                                 {
-                                        l_ses->m_resp->set_status(ns_hlx::HTTP_STATUS_OK);
+                                        l_ses->m_resp->set_status(ns_hurl::HTTP_STATUS_OK);
                                 }
                                 if(l_t_hurl)
                                 {
@@ -1438,17 +1438,17 @@ check_conn_status:
                         {
                                 l_ses->request_complete();
                         }
-                        return l_ses->teardown(ns_hlx::HTTP_STATUS_OK);
+                        return l_ses->teardown(ns_hurl::HTTP_STATUS_OK);
                 }
-                case ns_hlx::nconn::NC_STATUS_ERROR:
+                case ns_hurl::nconn::NC_STATUS_ERROR:
                 {
                         if(l_t_hurl)
                         {
                                 ++(l_t_hurl->m_stat.m_upsv_errors);
                         }
-                        l_ses->teardown(ns_hlx::HTTP_STATUS_BAD_GATEWAY);
+                        l_ses->teardown(ns_hurl::HTTP_STATUS_BAD_GATEWAY);
                         // TODO check/log status???
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 default:
                 {
@@ -1457,9 +1457,9 @@ check_conn_status:
                 }
                 if(l_nconn->is_done())
                 {
-                        return l_ses->teardown(ns_hlx::HTTP_STATUS_OK);
+                        return l_ses->teardown(ns_hurl::HTTP_STATUS_OK);
                 }
-        } while((l_s != ns_hlx::nconn::NC_STATUS_AGAIN) &&
+        } while((l_s != ns_hurl::nconn::NC_STATUS_AGAIN) &&
                 (l_t_hurl->is_running()));
 
 idle_check:
@@ -1472,10 +1472,10 @@ idle_check:
                 }
                 l_nconn->set_data(NULL);
                 // TODO start new subr???
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 done:
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1487,7 +1487,7 @@ void *t_hurl::t_run(void *a_nothing)
 {
         int32_t l_s;
         l_s = init();
-        if(l_s != HLX_STATUS_OK)
+        if(l_s != HURL_STATUS_OK)
         {
                 NDBG_PRINT("Error performing init.\n");
                 return NULL;
@@ -1504,13 +1504,13 @@ void *t_hurl::t_run(void *a_nothing)
         {
                 //NDBG_PRINT("Running.\n");
                 l_s = m_evr_loop->run();
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
                         // TODO log run failure???
                 }
                 // Subrequests
                 l_s = request_dequeue();
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing subr_try_deq.\n");
                         //return NULL;
@@ -1536,7 +1536,7 @@ int32_t t_hurl::request_dequeue(void)
         {
                 int32_t l_s;
                 l_s = request_start();
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
                         // Log error
                         NDBG_PRINT("%sERROR DEQUEUEING%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
@@ -1551,7 +1551,7 @@ int32_t t_hurl::request_dequeue(void)
         //                ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF,
         //                l_dq,
         //                m_num_in_progress, m_num_parallel_max);
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1559,17 +1559,17 @@ int32_t t_hurl::request_dequeue(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-ns_hlx::nconn *t_hurl::create_new_nconn(void)
+ns_hurl::nconn *t_hurl::create_new_nconn(void)
 {
-        ns_hlx::nconn *l_nconn = NULL;
-        if(m_request.m_scheme == ns_hlx::SCHEME_TLS)
+        ns_hurl::nconn *l_nconn = NULL;
+        if(m_request.m_scheme == ns_hurl::SCHEME_TLS)
         {
-                l_nconn = new ns_hlx::nconn_tls();
-                l_nconn->set_opt(ns_hlx::nconn_tls::OPT_TLS_CTX, m_ctx, sizeof(m_ctx));
+                l_nconn = new ns_hurl::nconn_tls();
+                l_nconn->set_opt(ns_hurl::nconn_tls::OPT_TLS_CTX, m_ctx, sizeof(m_ctx));
         }
-        else if(m_request.m_scheme == ns_hlx::SCHEME_TCP)
+        else if(m_request.m_scheme == ns_hurl::SCHEME_TCP)
         {
-                l_nconn = new ns_hlx::nconn_tcp();
+                l_nconn = new ns_hurl::nconn_tcp();
         }
         else
         {
@@ -1599,7 +1599,7 @@ int32_t t_hurl::request_start(void)
         //                m_subr.get_label().c_str(), m_subr.get_host().c_str());
         int32_t l_s;
         // Try get idle from proxy pool
-        ns_hlx::nconn *l_nconn = NULL;
+        ns_hurl::nconn *l_nconn = NULL;
         // try get from idle list
 
         if(m_idle_nconn_list.empty() ||
@@ -1616,7 +1616,7 @@ int32_t t_hurl::request_start(void)
         if(!l_nconn)
         {
                 // TODO fatal???
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         // Reset stats
         if(g_stats)
@@ -1659,18 +1659,18 @@ int32_t t_hurl::request_start(void)
         //                &a_nconn);
         if(!l_ses->m_resp)
         {
-                l_ses->m_resp = new ns_hlx::resp();
+                l_ses->m_resp = new ns_hurl::resp();
         }
         l_ses->m_resp->init(g_verbose);
         l_ses->m_resp->m_http_parser->data = l_ses->m_resp;
-        l_nconn->set_read_cb(ns_hlx::http_parse);
+        l_nconn->set_read_cb(ns_hurl::http_parse);
         l_nconn->set_read_cb_data(l_ses->m_resp);
         l_ses->m_resp->m_expect_resp_body_flag = m_request.m_expect_resp_body_flag;
 
         // setup q's
         if(!l_ses->m_in_q)
         {
-                l_ses->m_in_q = new ns_hlx::nbq(8*1024);
+                l_ses->m_in_q = new ns_hurl::nbq(8*1024);
                 l_ses->m_resp->set_q(l_ses->m_in_q);
         }
         else
@@ -1679,7 +1679,7 @@ int32_t t_hurl::request_start(void)
         }
         if(!l_ses->m_out_q)
         {
-                l_ses->m_out_q = new ns_hlx::nbq(8*1024);
+                l_ses->m_out_q = new ns_hurl::nbq(8*1024);
         }
         else
         {
@@ -1696,7 +1696,7 @@ int32_t t_hurl::request_start(void)
         if(!l_ses_reused || g_multipath)
         {
                 l_s = s_create_request(m_request, *(l_ses->m_out_q));
-                if(HLX_STATUS_OK != l_s)
+                if(HURL_STATUS_OK != l_s)
                 {
                         return session::evr_fd_error_cb(l_nconn);
                 }
@@ -1707,11 +1707,11 @@ int32_t t_hurl::request_start(void)
 
         if(g_stats)
         {
-                m_request.m_start_time_ms = ns_hlx::get_time_ms();
-                l_nconn->set_request_start_time_us(ns_hlx::get_time_us());
+                m_request.m_start_time_ms = ns_hurl::get_time_ms();
+                l_nconn->set_request_start_time_us(ns_hurl::get_time_us());
         }
 #if 0
-        l_uss->set_last_active_ms(ns_hlx::get_time_ms());
+        l_uss->set_last_active_ms(ns_hurl::get_time_ms());
         l_uss->set_timeout_ms(a_subr.get_timeout_ms());
 #endif
 
@@ -1724,7 +1724,7 @@ int32_t t_hurl::request_start(void)
                              ups_srvr_session::evr_fd_timeout_cb,
                              l_nconn,
                              (void **)&(l_uss->m_timer_obj));
-        if(l_s != HLX_STATUS_OK)
+        if(l_s != HURL_STATUS_OK)
         {
                 return ups_srvr_session::evr_fd_error_cb(l_nconn);
         }
@@ -1751,7 +1751,7 @@ int32_t t_hurl::request_start(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t t_hurl::cleanup_session(session *a_ses, ns_hlx::nconn *a_nconn)
+int32_t t_hurl::cleanup_session(session *a_ses, ns_hurl::nconn *a_nconn)
 {
         if(a_ses)
         {
@@ -1772,7 +1772,7 @@ int32_t t_hurl::cleanup_session(session *a_ses, ns_hlx::nconn *a_nconn)
                 delete a_nconn;
                 // TODO Log error???
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1780,7 +1780,7 @@ int32_t t_hurl::cleanup_session(session *a_ses, ns_hlx::nconn *a_nconn)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void t_hurl::add_stat_to_agg(const ns_hlx::conn_stat_t &a_conn_stat, uint16_t a_status_code)
+void t_hurl::add_stat_to_agg(const ns_hurl::conn_stat_t &a_conn_stat, uint16_t a_status_code)
 {
         update_stat(m_stat.m_upsv_stat_us_connect, a_conn_stat.m_tt_connect_us);
         update_stat(m_stat.m_upsv_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
@@ -1794,8 +1794,8 @@ void t_hurl::add_stat_to_agg(const ns_hlx::conn_stat_t &a_conn_stat, uint16_t a_
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 static int32_t s_completion_cb(request &a_request,
-                               ns_hlx::nconn &a_nconn,
-                               ns_hlx::resp &a_resp)
+                               ns_hurl::nconn &a_nconn,
+                               ns_hurl::resp &a_resp)
 {
         //pthread_mutex_lock(&g_completion_mutex);
         //++g_num_completed;
@@ -1836,7 +1836,7 @@ static int32_t s_pre_connect_cb(int a_fd)
                 printf("%s.%s.%d: Error performing bind. Reason: %s.\n",
                        __FILE__,__FUNCTION__,__LINE__,strerror(errno));
                 pthread_mutex_unlock(&g_addrx_mutex);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         ++g_addrx_addr_ipv4;
         if(g_addrx_addr_ipv4 >= g_addrx_addr_ipv4_max)
@@ -1844,7 +1844,7 @@ static int32_t s_pre_connect_cb(int a_fd)
                 g_addrx_addr_ipv4 = LOCAL_ADDR_V4_MIN;
         }
         pthread_mutex_unlock(&g_addrx_mutex);
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 #endif
 
@@ -1871,20 +1871,20 @@ static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_
         l_s = sscanf(l_expr, "[%x-%x]", &l_start, &l_end);
         if(2 == l_s) goto success;
 
-        return HLX_STATUS_ERROR;
+        return HURL_STATUS_ERROR;
 
 success:
         // Check range...
         if(l_start > l_end)
         {
-                printf("HLX_STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
-                return HLX_STATUS_ERROR;
+                printf("HURL_STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
+                return HURL_STATUS_ERROR;
         }
 
         // Successfully matched we outie
         ao_range.m_start = l_start;
         ao_range.m_end = l_end;
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1909,8 +1909,8 @@ int32_t parse_path(const char *a_path,
         {
                 if((l_range_end_pos = l_path.find("]", l_range_start_pos)) == std::string::npos)
                 {
-                        printf("HLX_STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
-                        return HLX_STATUS_ERROR;
+                        printf("HURL_STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
+                        return HURL_STATUS_ERROR;
                 }
 
                 // Push path back...
@@ -1927,12 +1927,12 @@ int32_t parse_path(const char *a_path,
                 //NDBG_PRINT("l_range_exp: %s\n", l_range_exp.c_str());
 
                 range_t l_range;
-                int l_s = HLX_STATUS_OK;
+                int l_s = HURL_STATUS_OK;
                 l_s = convert_exp_to_range(l_range_exp, l_range);
-                if(HLX_STATUS_OK != l_s)
+                if(HURL_STATUS_OK != l_s)
                 {
-                        printf("HLX_STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
-                        return HLX_STATUS_ERROR;
+                        printf("HURL_STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
+                        return HURL_STATUS_ERROR;
                 }
 
                 ao_range_vector.push_back(l_range);
@@ -1967,7 +1967,7 @@ int32_t parse_path(const char *a_path,
                 printf("RANGE: %u -- %u\n", i_range->m_start, i_range->m_end);
         }
 #endif
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -1985,7 +1985,7 @@ int32_t path_exploder(std::string a_path_part,
         if(a_substr_idx >= a_substr_vector.size())
         {
                 g_path_vector.push_back(a_path_part);
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
         a_path_part.append(a_substr_vector[a_substr_idx]);
@@ -1994,7 +1994,7 @@ int32_t path_exploder(std::string a_path_part,
         if(a_range_idx >= a_range_vector.size())
         {
                 g_path_vector.push_back(a_path_part);
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
         range_t l_range = a_range_vector[a_range_idx];
@@ -2007,7 +2007,7 @@ int32_t path_exploder(std::string a_path_part,
                 l_path.append(l_num_str);
                 path_exploder(l_path, a_substr_vector, a_substr_idx,a_range_vector,a_range_idx);
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -2035,8 +2035,8 @@ int32_t add_option(const char *a_key, const char *a_val)
                 }
                 else
                 {
-                        printf("HLX_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                        return HLX_STATUS_ERROR;
+                        printf("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                        return HURL_STATUS_ERROR;
                 }
         }
         //: ------------------------------------------------
@@ -2057,17 +2057,17 @@ int32_t add_option(const char *a_key, const char *a_val)
                 else if (l_val == "reuse") m_run_only_once_flag = false;
                 else
                 {
-                        NDBG_PRINT("HLX_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                        return HLX_STATUS_ERROR;
+                        NDBG_PRINT("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                        return HURL_STATUS_ERROR;
                 }
         }
 #endif
         else
         {
-                printf("HLX_STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
-                return HLX_STATUS_ERROR;
+                printf("HURL_STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
+                return HURL_STATUS_ERROR;
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -2089,7 +2089,7 @@ int32_t special_effects_parse(std::string &a_path)
         // Bail out if no path
         if(a_path.empty())
         {
-                return HLX_STATUS_OK;
+                return HURL_STATUS_OK;
         }
 
         // -------------------------------------------
@@ -2113,10 +2113,10 @@ int32_t special_effects_parse(std::string &a_path)
                 if(l_p)
                 {
                         l_s = parse_path(l_p, l_path_substr_vector, l_range_vector);
-                        if(l_s != HLX_STATUS_OK)
+                        if(l_s != HURL_STATUS_OK)
                         {
-                                printf("HLX_STATUS_ERROR: Performing parse_path(%s)\n", l_p);
-                                return HLX_STATUS_ERROR;
+                                printf("HURL_STATUS_ERROR: Performing parse_path(%s)\n", l_p);
+                                return HURL_STATUS_ERROR;
                         }
                 }
 
@@ -2124,10 +2124,10 @@ int32_t special_effects_parse(std::string &a_path)
                 if(l_range_vector.size())
                 {
                         l_s = path_exploder(std::string(""), l_path_substr_vector, 0, l_range_vector, 0);
-                        if(l_s != HLX_STATUS_OK)
+                        if(l_s != HURL_STATUS_OK)
                         {
-                                printf("HLX_STATUS_ERROR: Performing explode_path(%s)\n", l_p);
-                                return HLX_STATUS_ERROR;
+                                printf("HURL_STATUS_ERROR: Performing explode_path(%s)\n", l_p);
+                                return HURL_STATUS_ERROR;
                         }
                         // DEBUG show paths
                         //printf(" -- Displaying Paths --\n");
@@ -2164,9 +2164,9 @@ int32_t special_effects_parse(std::string &a_path)
                         char *l_v = strtok_r(NULL, SPECIAL_EFX_KV_SEPARATOR, &l_options_save_ptr);
                         int32_t l_add_option_status;
                         l_add_option_status = add_option(l_k, l_v);
-                        if(l_add_option_status != HLX_STATUS_OK)
+                        if(l_add_option_status != HURL_STATUS_OK)
                         {
-                                printf("HLX_STATUS_ERROR: Performing add_option(%s,%s)\n", l_k,l_v);
+                                printf("HURL_STATUS_ERROR: Performing add_option(%s,%s)\n", l_k,l_v);
                                 // Nuttin doing???
 
                         }
@@ -2176,7 +2176,7 @@ int32_t special_effects_parse(std::string &a_path)
                 l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         }
         //printf("a_path: %s\n", a_path.c_str());
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -2228,7 +2228,7 @@ const std::string &get_path(void *a_rand)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
+static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq)
 {
         // TODO grab from path...
         std::string l_path_ref = get_path(g_rand_ptr);
@@ -2248,7 +2248,7 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
         l_len = snprintf(l_buf, sizeof(l_buf),
                         "%s %s HTTP/1.1", a_request.m_verb.c_str(), l_path_ref.c_str());
 
-        ns_hlx::nbq_write_request_line(a_nbq, l_buf, l_len);
+        ns_hurl::nbq_write_request_line(a_nbq, l_buf, l_len);
 
         // -------------------------------------------
         // Add repo headers
@@ -2256,7 +2256,7 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
         bool l_specd_host = false;
 
         // Loop over reqlet map
-        for(ns_hlx::kv_map_list_t::const_iterator i_hl = a_request.m_headers.begin();
+        for(ns_hurl::kv_map_list_t::const_iterator i_hl = a_request.m_headers.begin();
             i_hl != a_request.m_headers.end();
             ++i_hl)
         {
@@ -2264,11 +2264,11 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
                 {
                         continue;
                 }
-                for(ns_hlx::str_list_t::const_iterator i_v = i_hl->second.begin();
+                for(ns_hurl::str_list_t::const_iterator i_v = i_hl->second.begin();
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
-                        ns_hlx::nbq_write_header(a_nbq, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
+                        ns_hurl::nbq_write_header(a_nbq, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
                         if (strcasecmp(i_hl->first.c_str(), "host") == 0)
                         {
                                 l_specd_host = true;
@@ -2281,7 +2281,7 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
         // -------------------------------------------
         if (!l_specd_host)
         {
-                ns_hlx::nbq_write_header(a_nbq,
+                ns_hurl::nbq_write_header(a_nbq,
                                          "Host", strlen("Host"),
                                          a_request.m_host.c_str(), a_request.m_host.length());
         }
@@ -2292,13 +2292,13 @@ static int32_t s_create_request(request &a_request, ns_hlx::nbq &a_nbq)
         if(a_request.m_body_data && a_request.m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                ns_hlx::nbq_write_body(a_nbq, a_request.m_body_data, a_request.m_body_data_len);
+                ns_hurl::nbq_write_body(a_nbq, a_request.m_body_data, a_request.m_body_data_len);
         }
         else
         {
-                ns_hlx::nbq_write_body(a_nbq, NULL, 0);
+                ns_hurl::nbq_write_body(a_nbq, NULL, 0);
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -2398,7 +2398,7 @@ void command_exec(void)
                 // Check for done
                 if(g_run_time_ms != -1)
                 {
-                        int32_t l_time_delta_ms = (int32_t)(ns_hlx::get_delta_time_ms(g_start_time_ms));
+                        int32_t l_time_delta_ms = (int32_t)(ns_hurl::get_delta_time_ms(g_start_time_ms));
                         if(l_time_delta_ms >= g_run_time_ms)
                         {
                                 g_test_finished = true;
@@ -2468,7 +2468,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         // print out the version information
         fprintf(a_stream, "hurl HTTP Load Tester.\n");
         fprintf(a_stream, "Copyright (C) 2016 Verizon Digital Media.\n");
-        fprintf(a_stream, "               Version: %s\n", HLX_VERSION);
+        fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
         exit(a_exit_code);
 }
 
@@ -2543,16 +2543,16 @@ int main(int argc, char** argv)
         std::string l_output_file = "";
 
         // Suppress errors
-        ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_NONE);
+        ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
 
         // Log all packets
-        //ns_hlx::trc_log_level_set(ns_hlx::TRC_LOG_LEVEL_ALL);
-        //ns_hlx::trc_log_file_open("/dev/stdout");
+        //ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ALL);
+        //ns_hurl::trc_log_file_open("/dev/stdout");
 
-        ns_hlx::tls_init();
+        ns_hurl::tls_init();
         SSL_CTX *l_ctx = NULL;
         std::string l_unused;
-        l_ctx = ns_hlx::tls_init_ctx(l_unused,   // ctx cipher list str
+        l_ctx = ns_hurl::tls_init_ctx(l_unused,   // ctx cipher list str
                                      0,          // ctx options
                                      l_unused,   // ctx ca file
                                      l_unused,   // ctx ca path
@@ -2581,7 +2581,7 @@ int main(int argc, char** argv)
 
         // Initialize rand...
         g_rand_ptr = (tinymt64_t*)calloc(1, sizeof(tinymt64_t));
-        tinymt64_init(g_rand_ptr, ns_hlx::get_time_us());
+        tinymt64_init(g_rand_ptr, ns_hurl::get_time_us());
 
         // Initialize mutex for sequential path requesting
         pthread_mutex_init(&g_path_vector_mutex, NULL);
@@ -2719,7 +2719,7 @@ int main(int argc, char** argv)
                                 if(l_s != 0)
                                 {
                                         printf("Error reading body data from file: %s\n", l_arg.c_str() + 1);
-                                        return HLX_STATUS_ERROR;
+                                        return HURL_STATUS_ERROR;
                                 }
                                 l_request->m_body_data = l_buf;
                                 l_request->m_body_data_len = l_len;
@@ -2767,7 +2767,7 @@ int main(int argc, char** argv)
                         if (l_num_parallel < 1)
                         {
                                 printf("Error num parallel must be at least 1\n");
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_num_parallel = l_num_parallel;
                         break;
@@ -2781,7 +2781,7 @@ int main(int argc, char** argv)
                         if (l_end_fetches < 1)
                         {
                                 printf("Error fetches must be at least 1\n");
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_num_to_request = l_end_fetches;
                         break;
@@ -2795,7 +2795,7 @@ int main(int argc, char** argv)
                         if(l_val < 1)
                         {
                                 printf("Error num-calls must be at least 1");
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_reqs_per_conn = l_val;
                         if (g_reqs_per_conn == 1)
@@ -2814,7 +2814,7 @@ int main(int argc, char** argv)
                         if (l_val < 0)
                         {
                                 printf("Error num-threads must be 0 or greater\n");
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_num_threads = l_val;
                         break;
@@ -2827,17 +2827,17 @@ int main(int argc, char** argv)
                         int32_t l_s;
                         std::string l_key;
                         std::string l_val;
-                        l_s = ns_hlx::break_header_string(l_arg, l_key, l_val);
+                        l_s = ns_hurl::break_header_string(l_arg, l_key, l_val);
                         if (l_s != 0)
                         {
                                 printf("Error breaking header string: %s -not in <HEADER>:<VAL> format?\n", l_arg.c_str());
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         l_s = l_request->set_header(l_key, l_val);
                         if (l_s != 0)
                         {
                                 printf("Error performing set_header: %s\n", l_arg.c_str());
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         break;
                 }
@@ -2849,7 +2849,7 @@ int main(int argc, char** argv)
                         if(l_arg.length() > 64)
                         {
                                 printf("Error verb string: %s too large try < 64 chars\n", l_arg.c_str());
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         l_request->m_verb = l_arg;
                         break;
@@ -2864,7 +2864,7 @@ int main(int argc, char** argv)
                         {
                                 printf("Error: rate must be at least 1\n");
                                 //print_usage(stdout, -1);
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_rate_delta_us = 1000000 / l_rate;
                         break;
@@ -2887,7 +2887,7 @@ int main(int argc, char** argv)
                         {
                                 printf("Error: Mode must be [roundrobin|sequential|random]\n");
                                 //print_usage(stdout, -1);
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         break;
                 }
@@ -2901,7 +2901,7 @@ int main(int argc, char** argv)
                         {
                                 printf("Error: seconds must be at least 1\n");
                                 //print_usage(stdout, -1);
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_run_time_ms = l_run_time_s*1000;
                         break;
@@ -2918,7 +2918,7 @@ int main(int argc, char** argv)
                         {
                                 printf("timeout must be > 0\n");
                                 //print_usage(stdout, -1);
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         l_request->m_timeout_ms = l_subreq_timeout_s*1000;
                         break;
@@ -3015,7 +3015,7 @@ int main(int argc, char** argv)
                         {
                                 printf("Error: Update interval must be > 0 ms\n");
                                 //print_usage(stdout, -1);
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                         g_interval_ms = l_interval_ms;
                         break;
@@ -3070,13 +3070,13 @@ int main(int argc, char** argv)
         if(l_s != 0)
         {
                 fprintf(stdout, "Error performing getrlimit. Reason: %s\n", strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         if(l_rlim.rlim_cur < (uint64_t)(g_num_threads*g_num_parallel))
         {
                 fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%u]\n",
                                 g_num_threads, g_num_parallel, (uint32_t)l_rlim.rlim_cur);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // -------------------------------------------
@@ -3085,7 +3085,7 @@ int main(int argc, char** argv)
         if (signal(SIGINT, sig_handler) == SIG_ERR)
         {
                 printf("Error: can't catch SIGINT\n");
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // -------------------------------------------
@@ -3097,7 +3097,7 @@ int main(int argc, char** argv)
         if(l_s != 0)
         {
                 printf("Error: performing init_with_url: %s\n", l_url.c_str());
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         l_request->m_completion_cb = s_completion_cb;
 
@@ -3110,10 +3110,10 @@ int main(int argc, char** argv)
         {
                 int32_t l_s;
                 l_s = special_effects_parse(l_raw_path);
-                if(l_s != HLX_STATUS_OK)
+                if(l_s != HURL_STATUS_OK)
                 {
                         printf("Error performing special_effects_parse with path: %s\n", l_raw_path.c_str());
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
                 if(g_path_vector.size() > 1)
                 {
@@ -3151,12 +3151,12 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // resolve
         // -------------------------------------------
-        ns_hlx::host_info l_host_info;
-        l_s = ns_hlx::nlookup(l_request->m_host, l_request->m_port, l_host_info);
-        if(l_s != HLX_STATUS_OK)
+        ns_hurl::host_info l_host_info;
+        l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info);
+        if(l_s != HURL_STATUS_OK)
         {
                 printf("Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         l_request->m_host_info = l_host_info;
 
@@ -3185,7 +3185,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Run
         // -------------------------------------------
-        g_start_time_ms = ns_hlx::get_time_ms();;
+        g_start_time_ms = ns_hurl::get_time_ms();;
         for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
             i_t != g_t_hurl_list.end();
             ++i_t)
@@ -3199,7 +3199,7 @@ int main(int argc, char** argv)
         // Run command exec
         // -------------------------------------------
         command_exec();
-        uint64_t l_end_time_ms = ns_hlx::get_time_ms() - g_start_time_ms;
+        uint64_t l_end_time_ms = ns_hurl::get_time_ms() - g_start_time_ms;
 
         // -------------------------------------------
         // Stop
@@ -3277,7 +3277,7 @@ int main(int argc, char** argv)
                 if(l_file_ptr == NULL)
                 {
                         printf("Error performing fopen. Reason: %s\n", strerror(errno));
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
 
                 // Write
@@ -3286,7 +3286,7 @@ int main(int argc, char** argv)
                 {
                         printf("Error performing fwrite. Reason: %s\n", strerror(errno));
                         fclose(l_file_ptr);
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
 
                 // Close
@@ -3294,7 +3294,7 @@ int main(int argc, char** argv)
                 if(l_s != 0)
                 {
                         printf("Error performing fclose. Reason: %s\n", strerror(errno));
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
 
@@ -3340,7 +3340,7 @@ void get_stat(t_stat_cntr_t &ao_total,
         static t_stat_cntr_t s_last;
         static uint64_t s_stat_last_time_ms = 0;
 
-        uint64_t l_cur_time_ms = ns_hlx::get_time_ms();
+        uint64_t l_cur_time_ms = ns_hurl::get_time_ms();
         uint64_t l_delta_ms = l_cur_time_ms - s_stat_last_time_ms;
 
         // ---------------------------------------
@@ -3501,7 +3501,7 @@ void display_responses_line(void)
                 if(g_color)
                 {
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
-                                                ((double)(ns_hlx::get_delta_time_ms(g_start_time_ms))) / 1000.0,
+                                                ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
                                                 l_total_calc.m_upsv_resp_s,
                                                 l_total.m_upsv_resp,
                                                 l_total.m_upsv_errors,
@@ -3513,7 +3513,7 @@ void display_responses_line(void)
                 else
                 {
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
-                                        ((double)(ns_hlx::get_delta_time_ms(g_start_time_ms))) / 1000.0,
+                                        ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
                                         l_total_calc.m_upsv_resp_s,
                                         l_total.m_upsv_resp,
                                         l_total.m_upsv_errors,
@@ -3553,7 +3553,7 @@ void display_responses_line(void)
                 if(g_color)
                 {
                                 printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
-                                                ((double)(ns_hlx::get_delta_time_ms(g_start_time_ms))) / 1000.0,
+                                                ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
                                                 l_total_calc.m_upsv_resp_s,
                                                 l_total.m_upsv_resp,
                                                 l_total.m_upsv_errors,
@@ -3565,7 +3565,7 @@ void display_responses_line(void)
                 else
                 {
                         printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
-                                        ((double)(ns_hlx::get_delta_time_ms(g_start_time_ms))) / 1000.0,
+                                        ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
                                         l_total_calc.m_upsv_resp_s,
                                         l_total.m_upsv_resp,
                                         l_total.m_upsv_errors,
@@ -3632,7 +3632,7 @@ void display_results_line(void)
                                         ANSI_COLOR_FG_MAGENTA, l_total.m_upsv_idle_killed, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_RED, l_total.m_upsv_errors, ANSI_COLOR_OFF,
                                         ANSI_COLOR_FG_YELLOW, l_total_calc.m_upsv_bytes_read_s/1024.0, ANSI_COLOR_OFF,
-                                        ((double)(ns_hlx::get_delta_time_ms(g_start_time_ms))) / 1000.0,
+                                        ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
                                         l_total_calc.m_upsv_req_s,
                                         l_total_calc.m_upsv_bytes_read_s/(1024.0*1024.0)
                                         );
@@ -3645,7 +3645,7 @@ void display_results_line(void)
                                 l_total.m_upsv_idle_killed,
                                 l_total.m_upsv_errors,
                                 ((double)(l_total.m_upsv_bytes_read))/(1024.0),
-                                ((double)(ns_hlx::get_delta_time_ms(g_start_time_ms)) / 1000.0),
+                                ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms)) / 1000.0),
                                 l_total_calc.m_upsv_req_s,
                                 l_total_calc.m_upsv_bytes_read_s/(1024.0*1024.0)
                                 );
@@ -3878,19 +3878,19 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 {
         // Check is a file
         struct stat l_stat;
-        int32_t l_s = HLX_STATUS_OK;
+        int32_t l_s = HURL_STATUS_OK;
         l_s = stat(a_file, &l_stat);
         if(l_s != 0)
         {
                 printf("Error performing stat on file: %s.  Reason: %s\n", a_file, strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Check if is regular file
         if(!(l_stat.st_mode & S_IFREG))
         {
                 printf("Error opening file: %s.  Reason: is NOT a regular file\n", a_file);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Open file...
@@ -3899,7 +3899,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         if (NULL == l_file)
         {
                 printf("Error opening file: %s.  Reason: %s\n", a_file, strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Read in file...
@@ -3912,15 +3912,15 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         {
                 printf("Error performing fread.  Reason: %s [%d:%d]\n",
                                 strerror(errno), l_read_size, l_size);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
 
         // Close file...
         l_s = fclose(l_file);
-        if (HLX_STATUS_OK != l_s)
+        if (HURL_STATUS_OK != l_s)
         {
                 printf("Error performing fclose.  Reason: %s\n", strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         return 0;
 }

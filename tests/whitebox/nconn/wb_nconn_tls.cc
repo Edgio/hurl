@@ -25,10 +25,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "catch/catch.hpp"
-#include "hlx/nconn/nconn_tls.h"
-#include "hlx/support/tls_util.h"
-#include "hlx/dns/nlookup.h"
-#include "hlx/support/nbq.h"
+#include "hurl/nconn/nconn_tls.h"
+#include "hurl/support/tls_util.h"
+#include "hurl/dns/nlookup.h"
+#include "hurl/support/nbq.h"
 #include <unistd.h>
 
 //: ----------------------------------------------------------------------------
@@ -46,33 +46,33 @@ TEST_CASE( "nconn tls test", "[nconn_tls]" )
         SECTION("Basic Connection Test")
         {
                 // TLS Init...
-                ns_hlx::tls_init();
-                SSL_CTX *l_ctx = ns_hlx::tls_init_ctx("",0,"","",false,"","");
+                ns_hurl::tls_init();
+                SSL_CTX *l_ctx = ns_hurl::tls_init_ctx("",0,"","",false,"","");
                 REQUIRE((l_ctx != NULL));
 
                 // TLS Setup...
                 int32_t l_s;
-                ns_hlx::nconn_tls l_c;
-                l_s = l_c.set_opt(ns_hlx::nconn_tls::OPT_TLS_CTX, l_ctx, sizeof(l_ctx));
-                REQUIRE((l_s == ns_hlx::nconn::NC_STATUS_OK));
+                ns_hurl::nconn_tls l_c;
+                l_s = l_c.set_opt(ns_hurl::nconn_tls::OPT_TLS_CTX, l_ctx, sizeof(l_ctx));
+                REQUIRE((l_s == ns_hurl::nconn::NC_STATUS_OK));
 
-                ns_hlx::host_info l_h;
-                l_s = ns_hlx::nlookup("google.com", 443, l_h);
+                ns_hurl::host_info l_h;
+                l_s = ns_hurl::nlookup("google.com", 443, l_h);
                 REQUIRE((l_s == 0));
                 l_c.set_host_info(l_h);
-                ns_hlx::nbq l_iq(16384);
-                ns_hlx::nbq l_oq(16384);
+                ns_hurl::nbq l_iq(16384);
+                ns_hurl::nbq l_oq(16384);
                 l_oq.write("GET\r\n\r\n", strlen("GET\r\n\r\n"));
                 do {
-                        l_s = l_c.nc_run_state_machine(NULL,ns_hlx::nconn::NC_MODE_WRITE, &l_iq, &l_oq);
-                        REQUIRE((l_s != ns_hlx::nconn::NC_STATUS_ERROR));
+                        l_s = l_c.nc_run_state_machine(NULL,ns_hurl::nconn::NC_MODE_WRITE, &l_iq, &l_oq);
+                        REQUIRE((l_s != ns_hurl::nconn::NC_STATUS_ERROR));
                         usleep(100000);
-                } while(l_s == ns_hlx::nconn::NC_STATUS_AGAIN);
+                } while(l_s == ns_hurl::nconn::NC_STATUS_AGAIN);
                 do {
-                        l_s = l_c.nc_run_state_machine(NULL,ns_hlx::nconn::NC_MODE_READ, &l_iq, &l_oq);
-                        REQUIRE((l_s != ns_hlx::nconn::NC_STATUS_ERROR));
+                        l_s = l_c.nc_run_state_machine(NULL,ns_hurl::nconn::NC_MODE_READ, &l_iq, &l_oq);
+                        REQUIRE((l_s != ns_hurl::nconn::NC_STATUS_ERROR));
                         usleep(100000);
-                } while(l_s == ns_hlx::nconn::NC_STATUS_AGAIN);
+                } while(l_s == ns_hurl::nconn::NC_STATUS_AGAIN);
                 char l_buf[256];
                 l_iq.read(l_buf, 256);
                 REQUIRE((strncmp(l_buf, "HTTP", 4) == 0));

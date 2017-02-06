@@ -27,12 +27,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hlx/support/uri.h"
+#include "hurl/support/uri.h"
 #include <string>
 #include <assert.h>
 #include <stdint.h>
 
-namespace ns_hlx
+namespace ns_hurl
 {
 //: ----------------------------------------------------------------------------
 //: Globals

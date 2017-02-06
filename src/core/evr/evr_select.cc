@@ -26,13 +26,13 @@
 //: ----------------------------------------------------------------------------
 #include "evr_select.h"
 #include "ndebug.h"
-#include "hlx/status.h"
+#include "hurl/status.h"
 
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -82,13 +82,13 @@ int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
         if (l_sstat < 0)
         {
                 //NDBG_PRINT("Error select() failed. Reason: %s\n", strerror(errno));
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         if (l_sstat > a_max_events)
         {
                 //NDBG_PRINT("Error select() returned too many events (got %d, expected <= %d)\n",
                 //                l_sstat, a_max_events);
-                return HLX_STATUS_ERROR;
+                return HURL_STATUS_ERROR;
         }
         int l_p = 0;
         for(conn_map_t::iterator i_conn = m_conn_map.begin(); i_conn != m_conn_map.end(); ++i_conn)
@@ -115,7 +115,7 @@ int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
                         if(l_p > l_sstat)
                         {
                                 //NDBG_PRINT("Error num events exceeds select result.\n");
-                                return HLX_STATUS_ERROR;
+                                return HURL_STATUS_ERROR;
                         }
                 }
         }
@@ -137,7 +137,7 @@ int evr_select::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         //           a_fd, a_attr_mask, a_data);
         m_conn_map[a_fd] = a_evr_fd_event;
         mod(a_fd, a_attr_mask, a_evr_fd_event);
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -157,7 +157,7 @@ int evr_select::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         if(a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       { FD_SET(a_fd, &m_rfdset); }
         if(a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          { FD_SET(a_fd, &m_rfdset); }
         if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) { FD_SET(a_fd, &m_rfdset); }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -173,7 +173,7 @@ int evr_select::del(int a_fd)
         m_conn_map.erase(a_fd);
         FD_CLR(a_fd, &m_rfdset);
         FD_CLR(a_fd, &m_wfdset);
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 
@@ -185,7 +185,7 @@ int evr_select::del(int a_fd)
 int evr_select::signal(void)
 {
         // TODO use a pipe for signalling...
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {

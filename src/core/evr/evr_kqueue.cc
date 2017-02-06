@@ -26,13 +26,13 @@
 //: ----------------------------------------------------------------------------
 #include "evr_kqueue.h"
 #include "ndebug.h"
-#include "hlx/status.h"
+#include "hurl/status.h"
 
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
 
-namespace ns_hlx {
+namespace ns_hurl {
 
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -85,7 +85,7 @@ int evr_kqueue::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
         }
         return l_ne;
 #endif
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                 EV_SET(&l_ke, a_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
                 if (kevent(m_fd, &l_ke, 1, NULL, 0, NULL) == -1)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
         if(a_attr_mask & AE_WRITABLE)
@@ -110,10 +110,10 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                 EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
                 if(kevent(m_fd, &l_ke, 1, NULL, 0, NULL) == -1)
                 {
-                        return HLX_STATUS_ERROR;
+                        return HURL_STATUS_ERROR;
                 }
         }
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 int evr_kqueue::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         // TODO -map attributes...
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -147,7 +147,7 @@ int evr_kqueue::del(int a_fd)
                 kevent(m_fd, &l_ke, 1, NULL, 0, NULL);
         }
 
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -158,8 +158,8 @@ int evr_kqueue::del(int a_fd)
 int32_t evr_kqueue::signal(void)
 {
         // TODO
-        return HLX_STATUS_OK;
+        return HURL_STATUS_OK;
 }
 
-} //namespace ns_hlx {
+} //namespace ns_hurl {
 
