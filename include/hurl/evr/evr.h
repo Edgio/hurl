@@ -211,6 +211,7 @@ public:
 private:
         evr_loop(const evr_loop&);
         evr_loop& operator=(const evr_loop&);
+        uint32_t handle_timeouts(void);
 
         // Timer priority queue -used as min heap
         evr_timer_pq_t m_timer_pq;

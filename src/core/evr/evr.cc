@@ -112,7 +112,7 @@ evr_loop::~evr_loop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::run(void)
+uint32_t evr_loop::handle_timeouts(void)
 {
         // -------------------------------------------
         // TODO:
@@ -120,7 +120,6 @@ int32_t evr_loop::run(void)
         // -------------------------------------------
         evr_timer_t *l_timer = NULL;
         uint32_t l_time_diff_ms = EVR_DEFAULT_TIME_WAIT_MS;
-
         // Pop events off pq until time > now
         while(!m_timer_pq.empty())
         {
@@ -150,18 +149,42 @@ int32_t evr_loop::run(void)
                         l_timer = NULL;
                 }
         }
+        return l_time_diff_ms;
+}
 
-        // -------------------------------------------
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_loop::run(void)
+{
+        // ---------------------------------------
         // Wait for events
-        // -------------------------------------------
+        // ---------------------------------------
+        uint32_t l_time_diff_ms = EVR_DEFAULT_TIME_WAIT_MS;
+        l_time_diff_ms = handle_timeouts();
+        // ---------------------------------------
+        // Wait for events
+        // ---------------------------------------
         int l_num_events = 0;
         //NDBG_PRINT("%sWAIT4_CONNECTIONS%s: l_time_diff_ms = %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_time_diff_ms);
         l_num_events = m_evr->wait(m_events, m_max_events, l_time_diff_ms);
         //NDBG_PRINT("%sSTART_CONNECTIONS%s: l_num_events = %d\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, l_num_events);
-
-        // -------------------------------------------
+        if(l_num_events < 0)
+        {
+                TRC_ERROR("performing wait.\n");
+                return HURL_STATUS_ERROR;
+        }
+        else if(l_num_events == 0)
+        {
+                l_time_diff_ms = handle_timeouts();
+                UNUSED(l_time_diff_ms);
+                return HURL_STATUS_OK;
+        }
+        // ---------------------------------------
         // Service them
-        // -------------------------------------------
+        // ---------------------------------------
         for (int i_event = 0; (i_event < l_num_events) && (!m_stopped); ++i_event)
         {
                 evr_fd_t* l_evr_fd = static_cast<evr_fd_t*>(m_events[i_event].data.ptr);
@@ -173,11 +196,13 @@ int32_t evr_loop::run(void)
                         continue;
                 }
                 uint32_t l_events = m_events[i_event].events;
-
                 //NDBG_PRINT("%sEVENTS%s: l_events %d/%d = 0x%08X\n",
                 //           ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF,
                 //           i_event, l_num_events, l_events);
                 // Service callbacks per type
+                // -------------------------------
+                // in
+                // -------------------------------
                 if((l_events & EVR_EV_IN) ||
                    (l_events & EVR_EV_RDHUP) ||
                    (l_events & EVR_EV_HUP) ||
@@ -201,6 +226,9 @@ int32_t evr_loop::run(void)
                                 continue;
                         }
                 }
+                // -------------------------------
+                // out
+                // -------------------------------
                 if(l_events & EVR_EV_OUT)
                 {
                         if(l_evr_fd->m_write_cb)
@@ -215,11 +243,13 @@ int32_t evr_loop::run(void)
                                 }
                         }
                 }
-                // -----------------------------------------
+                // -------------------------------
+                // errors
+                // -------------------------------
                 // TODO other errors???
-                // Currently "most" errors handled by read
-                // callbacks
-                // -----------------------------------------
+                // Currently "most" errors handled
+                // by read callbacks
+                // -------------------------------
                 //uint32_t l_other_events = l_events & (~(EPOLLIN | EPOLLOUT));
                 //if(l_events & EPOLLRDHUP)
                 //if(l_events & EPOLLERR)
