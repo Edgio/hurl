@@ -169,6 +169,7 @@ install(FILES ${HDRS}
 # ----------------------------------------------------------
 # Custom command to link archives together
 # ----------------------------------------------------------
+IF(BUILD_UDNS)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   add_custom_command(
     TARGET hurlcore
@@ -177,4 +178,5 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     DEPENDS hurlcore udns
   )
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+ENDIF()
 
