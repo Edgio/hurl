@@ -243,7 +243,6 @@ typedef std::queue<request *> request_queue_t;
 t_phurl_list_t g_t_phurl_list;
 bool g_conf_color = true;
 bool g_conf_verbose = false;
-bool g_conf_quiet = false;
 bool g_conf_show_summary = false;
 uint32_t g_conf_num_threads = 1;
 uint32_t g_conf_num_parallel = 100;
@@ -569,8 +568,6 @@ int32_t request::teardown(ns_hurl::http_status_t a_status)
         }
         return STATUS_OK;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -721,7 +718,6 @@ int32_t request::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                                 l_t_phurl->m_evr_loop->cancel_timer(l_rx->m_timer_obj);
                                 // TODO Check status
                                 l_rx->m_timer_obj = NULL;
-
                                 if(g_conf_verbose && l_rx->m_resp)
                                 {
                                         if(g_conf_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
@@ -814,7 +810,6 @@ check_conn_status:
 done:
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -857,7 +852,6 @@ void *t_phurl::t_run(void *a_nothing)
         m_stopped = true;
         return NULL;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -896,7 +890,6 @@ int32_t t_phurl::request_dequeue(void)
         //                m_num_in_progress, m_num_parallel_max);
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1059,12 +1052,8 @@ ns_hurl::nconn *t_phurl::create_new_nconn(const request &a_request)
                               request::evr_fd_writeable_cb,
                               request::evr_fd_error_cb);
         l_nconn->set_host_info(a_request.m_host_info);
-
-
-
         return l_nconn;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: create request callback
 //: \return:  TODO
@@ -1196,13 +1185,11 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 //: ----------------------------------------------------------------------------
 void display_status_line(void);
 void display_summary(void);
-
 std::string dump_all_responses(request_list_t &a_request_list,
                                bool a_color,
                                bool a_pretty,
                                output_type_t a_output_type,
                                int a_part_map);
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1248,7 +1235,6 @@ static int set_header(const std::string &a_key, const std::string &a_val)
         }
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Signal handler
 //: \return:  TODO
@@ -1271,7 +1257,6 @@ void sig_handler(int signo)
                 }
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1289,7 +1274,6 @@ int kbhit()
         select(STDIN_FILENO + 1, &l_fds, NULL, NULL, &l_tv);
         return FD_ISSET(STDIN_FILENO, &l_fds);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1314,7 +1298,6 @@ void nonblock(int state)
         //set the terminal attributes.
         tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1367,15 +1350,12 @@ int command_exec(bool a_send_stop)
                         }
                         }
                 }
-
                 // TODO add define...
                 usleep(500000);
-
-                if(!g_conf_quiet)
+                if(g_conf_show_summary)
                 {
                         display_status_line();
                 }
-
                 if(!g_runtime_finished)
                 {
                         g_runtime_finished = true;
@@ -1411,7 +1391,7 @@ int command_exec(bool a_send_stop)
         }
         //printf("%s.%s.%d: STOP\n", __FILE__,__FUNCTION__,__LINE__);
         // One more status for the lovers
-        if(!g_conf_quiet)
+        if(g_conf_show_summary)
         {
                 display_status_line();
         }
@@ -1673,7 +1653,6 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Print Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --no_color       Turn off colors\n");
-        fprintf(a_stream, "  -q, --quiet          Suppress output\n");
         fprintf(a_stream, "  -m, --show_summary   Show summary output\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Output Options: -defaults to line delimited\n");
@@ -1754,7 +1733,6 @@ int main(int argc, char** argv)
                 { "tls_ca_path",    1, 0, 'L' },
                 { "verbose",        0, 0, 'v' },
                 { "no_color",       0, 0, 'c' },
-                { "quiet",          0, 0, 'q' },
                 { "show_summary",   0, 0, 'm' },
                 { "output",         1, 0, 'o' },
                 { "line_delimited", 0, 0, 'l' },
@@ -1819,9 +1797,9 @@ int main(int argc, char** argv)
         // Args...
         // -------------------------------------------------
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:nkA:CQ:W:Rcqmo:ljPG:";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:nkA:CQ:W:Rcmo:ljPG:";
 #else
-        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:nkA:CQ:W:Rcqmo:ljP";
+        char l_short_arg_list[] = "hVvu:d:f:J:x:y:O:KNBMF:L:p:t:H:X:T:nkA:CQ:W:Rcmo:ljP";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -2154,14 +2132,6 @@ int main(int argc, char** argv)
                         break;
                 }
                 // ---------------------------------------
-                // quiet
-                // ---------------------------------------
-                case 'q':
-                {
-                        g_conf_quiet = true;
-                        break;
-                }
-                // ---------------------------------------
                 // show progress
                 // ---------------------------------------
                 case 'm':
@@ -2230,7 +2200,6 @@ int main(int argc, char** argv)
                 }
                 }
         }
-
         // Check for required url argument
         if(l_url.empty())
         {
@@ -2249,7 +2218,6 @@ int main(int argc, char** argv)
                 printf("Error performing init_with_url: url: %s\n", l_url.c_str());
                 return STATUS_ERROR;
         }
-
         // -------------------------------------------------
         // Get resource limits
         // -------------------------------------------------
@@ -2270,8 +2238,6 @@ int main(int argc, char** argv)
                 return STATUS_ERROR;
         }
 #endif
-
-
         // -------------------------------------------------
         // Host list processing
         // -------------------------------------------------
@@ -2588,7 +2554,7 @@ int main(int argc, char** argv)
                         }
                 }
                 // every 100ms
-                if(!g_conf_quiet &&
+                if(!g_conf_show_summary &&
                  (ns_hurl::get_delta_time_ms(l_last_time_ms) > 100))
                 {
                         uint32_t l_dns_num_errors = g_dns_num_errors;
@@ -2721,7 +2687,7 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Run command exec
         // -------------------------------------------
-        if(!g_conf_quiet)
+        if(g_conf_show_summary)
         {
                 display_status_line();
         }
@@ -2737,13 +2703,11 @@ int main(int argc, char** argv)
                 ProfilerStop();
         }
 #endif
-
         //uint64_t l_end_time_ms = get_time_ms() - l_start_time_ms;
-
         // -------------------------------------------
         // Results...
         // -------------------------------------------
-        if(!g_runtime_cancelled && !g_conf_quiet)
+        if(!g_runtime_cancelled)
         {
                 bool l_use_color = g_conf_color;
                 if(!l_output_file.empty()) l_use_color = false;
@@ -2787,7 +2751,6 @@ int main(int argc, char** argv)
                         }
                 }
         }
-
         // -------------------------------------------
         // Summary...
         // -------------------------------------------
@@ -2795,7 +2758,6 @@ int main(int argc, char** argv)
         {
                 display_summary();
         }
-
         // -------------------------------------------
         // Cleanup...
         // -------------------------------------------
