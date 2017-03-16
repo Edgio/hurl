@@ -2467,7 +2467,7 @@ void print_version(FILE* a_stream, int a_exit_code)
 
         // print out the version information
         fprintf(a_stream, "hurl HTTP Load Tester.\n");
-        fprintf(a_stream, "Copyright (C) 2016 Verizon Digital Media.\n");
+        fprintf(a_stream, "Copyright (C) 2017 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
         exit(a_exit_code);
 }
