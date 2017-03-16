@@ -110,8 +110,6 @@ TLS Settings:
 Print Options:
   -v, --verbose        Verbose logging
   -c, --no_color       Turn off colors
-  -q, --quiet          Suppress output
-  -s, --show_progress  Show progress
   -m, --show_summary   Show summary output
   
 Output Options: -defaults to line delimited
