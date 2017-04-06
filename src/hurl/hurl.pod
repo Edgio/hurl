@@ -69,9 +69,11 @@ B<-L>, B<--responses_per> display http(s) response codes per interval instead of
 
 B<-Y>, B<--http_load>     display in http load mode [MODE] -Legacy support
 
+B<-r>, B<--trace>         turn on tracing (error/warn/debug/verbose/all)
+
 =head1 EXAMPLE
 
-hurl "http://127.0.0.1/index.html" --threads=4 --num_calls=100 --parallel=100 -fetches=100000 -color
+hurl "http://127.0.0.1/index.html" --threads=4 --num_calls=100 --parallel=100 -fetches=100000
 
 =head1 NOTES
 
@@ -80,7 +82,7 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 =head1 COPYRIGHT
 
-Copyright (C) 2016 Verizon.  All Rights Reserved.
+Copyright (C) 2017 Verizon.  All Rights Reserved.
 Apache License: Version 2.0, January 2004 <http://www.apache.org/licenses/LICENSE-2.0>
 
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.

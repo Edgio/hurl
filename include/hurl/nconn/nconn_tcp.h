@@ -22,40 +22,39 @@
 //: ----------------------------------------------------------------------------
 #ifndef _NCONN_TCP_H
 #define _NCONN_TCP_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn.h"
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
 class nconn_tcp: public nconn
 {
 public:
-        // ---------------------------------------
+        // -------------------------------------------------
         // Options
-        // ---------------------------------------
+        // -------------------------------------------------
         typedef enum tcp_opt_enum
         {
                 OPT_TCP_RECV_BUF_SIZE = 0,
                 OPT_TCP_SEND_BUF_SIZE = 1,
                 OPT_TCP_NO_DELAY = 2,
-
+                OPT_TCP_NO_LINGER = 10,
                 OPT_TCP_FD = 100,
-
                 OPT_TCP_SENTINEL = 999
         } tcp_opt_t;
-
+        // -------------------------------------------------
+        // Public methods
+        // -------------------------------------------------
         nconn_tcp():
           nconn(),
           m_fd(-1),
           m_sock_opt_recv_buf_size(),
           m_sock_opt_send_buf_size(),
           m_sock_opt_no_delay(false),
+          m_sock_opt_no_linger(false),
           m_tcp_state(TCP_STATE_NONE)
         {
                 m_scheme = SCHEME_TCP;
@@ -66,7 +65,6 @@ public:
         bool is_listening(void) {return (m_tcp_state == TCP_STATE_LISTENING);};
         bool is_connecting(void) {return (m_tcp_state == TCP_STATE_CONNECTING);};
         bool is_accepting(void) {return (m_tcp_state == TCP_STATE_ACCEPTING);};
-
 protected:
         // -------------------------------------------------
         // Protected methods
@@ -81,7 +79,6 @@ protected:
         int32_t ncaccept();
         int32_t ncconnect();
         int32_t nccleanup();
-
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
@@ -89,11 +86,11 @@ protected:
         uint32_t m_sock_opt_recv_buf_size;
         uint32_t m_sock_opt_send_buf_size;
         bool m_sock_opt_no_delay;
-
+        bool m_sock_opt_no_linger;
 private:
-        // ---------------------------------------
+        // -------------------------------------------------
         // Connection state
-        // ---------------------------------------
+        // -------------------------------------------------
         typedef enum tcp_conn_state
         {
                 TCP_STATE_NONE,
@@ -105,22 +102,15 @@ private:
                 TCP_STATE_WRITING,
                 TCP_STATE_DONE
         } tcp_conn_state_t;
-
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         nconn_tcp& operator=(const nconn_tcp &);
         nconn_tcp(const nconn_tcp &);
-
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
         tcp_conn_state_t m_tcp_state;
 };
-
 } //namespace ns_hurl {
-
 #endif
-
-
-

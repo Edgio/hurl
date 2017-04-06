@@ -1181,7 +1181,7 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                         }
                         else
                         {
-                                // TODO log error???
+                                TRC_ERROR("l_t_hurl == NULL\n");
                                 return HURL_STATUS_ERROR;
                         }
                 }
@@ -1447,7 +1447,7 @@ check_conn_status:
                                 ++(l_t_hurl->m_stat.m_upsv_errors);
                         }
                         l_ses->teardown(ns_hurl::HTTP_STATUS_BAD_GATEWAY);
-                        // TODO check/log status???
+                        TRC_ERROR("ns_hurl::nconn::NC_STATUS_ERROR\n");
                         return HURL_STATUS_ERROR;
                 }
                 default:
@@ -1489,7 +1489,7 @@ void *t_hurl::t_run(void *a_nothing)
         l_s = init();
         if(l_s != HURL_STATUS_OK)
         {
-                NDBG_PRINT("Error performing init.\n");
+                TRC_ERROR("performing init.\n");
                 return NULL;
         }
         m_stopped = false;
@@ -1539,7 +1539,7 @@ int32_t t_hurl::request_dequeue(void)
                 if(l_s != HURL_STATUS_OK)
                 {
                         // Log error
-                        NDBG_PRINT("%sERROR DEQUEUEING%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
+                        TRC_ERROR("performing request_start\n");
                 }
                 else
                 {
@@ -1561,6 +1561,9 @@ int32_t t_hurl::request_dequeue(void)
 //: ----------------------------------------------------------------------------
 ns_hurl::nconn *t_hurl::create_new_nconn(void)
 {
+        // -------------------------------------------------
+        // get new connection
+        // -------------------------------------------------
         ns_hurl::nconn *l_nconn = NULL;
         if(m_request.m_scheme == ns_hurl::SCHEME_TLS)
         {
@@ -1575,6 +1578,14 @@ ns_hurl::nconn *t_hurl::create_new_nconn(void)
         {
                 return NULL;
         }
+        // -------------------------------------------------
+        // turn of linger -just for load tester
+        // -------------------------------------------------
+        bool l_val = true;
+        l_nconn->set_opt(ns_hurl::nconn_tcp::OPT_TCP_NO_LINGER, &l_val, sizeof(l_val));
+        // -------------------------------------------------
+        // set params
+        // -------------------------------------------------
         l_nconn->set_ctx(this);
         l_nconn->set_num_reqs_per_conn(g_reqs_per_conn);
         l_nconn->set_collect_stats(false);
@@ -1606,6 +1617,7 @@ int32_t t_hurl::request_start(void)
            (m_idle_nconn_list.front() == NULL))
         {
                 l_nconn = create_new_nconn();
+                l_nconn->set_label(m_request.m_host);
                 //NDBG_PRINT("%sCREATING NEW CONNECTION%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         }
         else
@@ -1616,6 +1628,7 @@ int32_t t_hurl::request_start(void)
         if(!l_nconn)
         {
                 // TODO fatal???
+                TRC_ERROR("l_nconn == NULL\n");
                 return HURL_STATUS_ERROR;
         }
         // Reset stats
@@ -1698,6 +1711,7 @@ int32_t t_hurl::request_start(void)
                 l_s = s_create_request(m_request, *(l_ses->m_out_q));
                 if(HURL_STATUS_OK != l_s)
                 {
+                        TRC_ERROR("performing s_create_request\n");
                         return session::evr_fd_error_cb(l_nconn);
                 }
         }
@@ -1743,7 +1757,13 @@ int32_t t_hurl::request_start(void)
         // start writing request
         // ---------------------------------------
         //NDBG_PRINT("%sSTARTING REQUEST...%s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF);
-        return session::evr_fd_writeable_cb(l_nconn);
+        l_s = session::evr_fd_writeable_cb(l_nconn);
+        if(l_s != HURL_STATUS_OK)
+        {
+                TRC_ERROR("performing evr_fd_writeable_cb\n");
+                return HURL_STATUS_ERROR;
+        }
+        return HURL_STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -2517,6 +2537,9 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -Z, --http_load_line Display results in http load mode on a single line -Legacy support\n");
         fprintf(a_stream, "  -o, --output         Output results to file <FILE> -default to stdout\n");
         fprintf(a_stream, "  \n");
+        fprintf(a_stream, "Debug Options:\n");
+        fprintf(a_stream, "  -r, --trace          Turn on tracing (error/warn/debug/verbose/all)\n");
+        fprintf(a_stream, "  \n");
 #ifdef ENABLE_PROFILER
         fprintf(a_stream, "Profile Options:\n");
         fprintf(a_stream, "  -G, --gprofile       Google profiler output file\n");
@@ -2536,23 +2559,15 @@ void print_usage(FILE* a_stream, int a_exit_code)
 int main(int argc, char** argv)
 {
         results_scheme_t l_results_scheme = RESULTS_SCHEME_STD;
-
         // TODO Make default definitions
         bool l_input_flag = false;
         bool l_wildcarding = true;
         std::string l_output_file = "";
-
-        // Suppress errors
         ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
-
-        // Log all packets
-        //ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ALL);
-        //ns_hurl::trc_log_file_open("/dev/stdout");
-
         ns_hurl::tls_init();
         SSL_CTX *l_ctx = NULL;
         std::string l_unused;
-        l_ctx = ns_hurl::tls_init_ctx(l_unused,   // ctx cipher list str
+        l_ctx = ns_hurl::tls_init_ctx(l_unused,  // ctx cipher list str
                                      0,          // ctx options
                                      l_unused,   // ctx ca file
                                      l_unused,   // ctx ca path
@@ -2560,12 +2575,10 @@ int main(int argc, char** argv)
                                      l_unused,   // tls key
                                      l_unused);  // tls crt
         // TODO check result...
-
         if(isatty(fileno(stdout)))
         {
                 g_color = true;
         }
-
         // -------------------------------------------------
         // Subrequest settings
         // -------------------------------------------------
@@ -2622,6 +2635,7 @@ int main(int argc, char** argv)
                 { "http_load_line", 0, 0, 'Z' },
                 { "output",         1, 0, 'o' },
                 { "update",         1, 0, 'U' },
+                { "trace",          1, 0, 'r' },
 #ifdef ENABLE_PROFILER
                 { "gprofile",       1, 0, 'G' },
 #endif
@@ -2640,13 +2654,16 @@ int main(int argc, char** argv)
 #endif
         bool is_opt = false;
 
-        for(int i_arg = 1; i_arg < argc; ++i_arg) {
-
-                if(argv[i_arg][0] == '-') {
+        for(int i_arg = 1; i_arg < argc; ++i_arg)
+        {
+                if(argv[i_arg][0] == '-')
+                {
                         // next arg is for the option
                         is_opt = true;
                 }
-                else if(argv[i_arg][0] != '-' && is_opt == false) {
+                else if((argv[i_arg][0] != '-') &&
+                        (is_opt == false))
+                {
                         // Stuff in url field...
                         l_url = std::string(argv[i_arg]);
                         //if(g_verbose)
@@ -2655,22 +2672,19 @@ int main(int argc, char** argv)
                         //}
                         l_input_flag = true;
                         break;
-                } else {
+                } else
+                {
                         // reset option flag
                         is_opt = false;
                 }
-
         }
-
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjYZo:U:G:";
+        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjYZo:U:r:G:";
 #else
-        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjYZo:U:";
+        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjYZo:U:r:";
 #endif
-
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
-
                 if (optarg)
                         l_arg = std::string(optarg);
                 else
@@ -2740,16 +2754,6 @@ int main(int argc, char** argv)
                         l_request->set_header("Content-Length", l_len_str);
                         break;
                 }
-#ifdef ENABLE_PROFILER
-                // ---------------------------------------
-                // Google Profiler Output File
-                // ---------------------------------------
-                case 'G':
-                {
-                        l_gprof_file = l_arg;
-                        break;
-                }
-#endif
                 // ---------------------------------------
                 // cipher
                 // ---------------------------------------
@@ -3020,6 +3024,41 @@ int main(int argc, char** argv)
                         g_interval_ms = l_interval_ms;
                         break;
                 }
+                // ---------------------------------------
+                // trace
+                // ---------------------------------------
+                case 'r':
+                {
+
+#define ELIF_TRACE_STR(_level) else if(strncasecmp(_level, l_arg.c_str(), sizeof(_level)) == 0)
+
+                        bool l_trace = false;
+                        if(0) {}
+                        ELIF_TRACE_STR("error") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR); l_trace = true; }
+                        ELIF_TRACE_STR("warn") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_WARN); l_trace = true; }
+                        ELIF_TRACE_STR("debug") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_DEBUG); l_trace = true; }
+                        ELIF_TRACE_STR("verbose") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_VERBOSE); l_trace = true; }
+                        ELIF_TRACE_STR("all") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ALL); l_trace = true; }
+                        else
+                        {
+                                ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
+                        }
+                        if(l_trace)
+                        {
+                                ns_hurl::trc_log_file_open("/dev/stdout");
+                        }
+                        break;
+                }
+#ifdef ENABLE_PROFILER
+                // ---------------------------------------
+                // Google Profiler Output File
+                // ---------------------------------------
+                case 'G':
+                {
+                        l_gprof_file = l_arg;
+                        break;
+                }
+#endif
                 // ---------------------------------------
                 // What???
                 // ---------------------------------------

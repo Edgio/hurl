@@ -414,6 +414,7 @@ int32_t nconn_tcp::ncsetup()
         // -------------------------------------------
         // TODO --set to REUSE????
         SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_REUSEADDR, 1);
+        SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_REUSEPORT, 1);
         if(m_sock_opt_send_buf_size)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_SNDBUF, m_sock_opt_send_buf_size);
@@ -671,6 +672,17 @@ int32_t nconn_tcp::nccleanup()
         }
         if(m_fd > 0)
         {
+                if(m_sock_opt_no_linger)
+                {
+#if defined(__linux__)
+                        shutdown(m_fd, SHUT_RDWR);
+                        struct linger l_l;
+                        l_l.l_onoff = 1;
+                        l_l.l_linger = 0;
+                        // TODO check error
+                        setsockopt(m_fd, SOL_SOCKET, SO_LINGER, (char *)&l_l, sizeof(linger));
+#endif
+                }
                 close(m_fd);
         }
         m_fd = -1;
