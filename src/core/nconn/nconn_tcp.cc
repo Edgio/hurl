@@ -414,7 +414,9 @@ int32_t nconn_tcp::ncsetup()
         // -------------------------------------------
         // TODO --set to REUSE????
         SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_REUSEADDR, 1);
+#ifdef SO_REUSEPORT
         SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_REUSEPORT, 1);
+#endif
         if(m_sock_opt_send_buf_size)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_SNDBUF, m_sock_opt_send_buf_size);
