@@ -96,6 +96,11 @@ int32_t nconn_tcp::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 m_sock_opt_no_delay = (bool)a_len;
                 break;
         }
+        case OPT_TCP_NO_LINGER:
+        {
+                m_sock_opt_no_linger = (bool)a_len;
+                break;
+        }
         default:
         {
                 //NDBG_PRINT("Error unsupported option: %d\n", a_opt);

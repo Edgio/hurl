@@ -594,7 +594,6 @@ static inline uint64_t get_next_request_uuid(void)
 {
         return ++g_cur_subr_uid;
 }
-
 //: ----------------------------------------------------------------------------
 //: session
 //: ----------------------------------------------------------------------------
@@ -637,14 +636,8 @@ public:
                 m_timeout_ms(10000)
 #endif
         {}
-
         ~session(void)
         {
-                if(m_nconn)
-                {
-                        delete m_nconn;
-                        m_nconn = NULL;
-                }
                 if(m_resp)
                 {
                         delete m_resp;
@@ -696,7 +689,6 @@ private:
         uint32_t m_timeout_ms;
 #endif
 };
-
 //: ----------------------------------------------------------------------------
 //: t_hurl
 //: ----------------------------------------------------------------------------
@@ -706,9 +698,9 @@ public:
         // -------------------------------------------------
         // Types
         // -------------------------------------------------
-        typedef std::list <ns_hurl::nconn *> idle_nconn_list_t;
+        typedef std::map <ns_hurl::nconn *, ns_hurl::nconn *> nconn_map_t;
+        typedef std::list <ns_hurl::nconn *> nconn_list_t;
         typedef ns_hurl::obj_pool <session> session_pool_t;
-
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -717,6 +709,7 @@ public:
                int32_t a_num_to_request):
                m_stopped(true),
                m_t_run_thread(),
+               m_active_nconn_map(),
                m_idle_nconn_list(),
                m_session_pool(),
                m_stat(),
@@ -746,6 +739,32 @@ public:
                         delete m_orphan_out_q;
                         m_orphan_out_q = NULL;
                 }
+                // clean up connections
+                for(nconn_list_t::iterator i_n = m_idle_nconn_list.begin();
+                    i_n != m_idle_nconn_list.end();
+                    ++i_n)
+                {
+                        if(*i_n)
+                        {
+                                (*i_n)->nc_cleanup();
+                        }
+                        delete (*i_n);
+                        (*i_n) = NULL;
+                }
+                m_idle_nconn_list.clear();
+                // clean up connections
+                for(nconn_map_t::iterator i_n = m_active_nconn_map.begin();
+                    i_n != m_active_nconn_map.end();
+                    ++i_n)
+                {
+                        if(i_n->second)
+                        {
+                                (i_n->second)->nc_cleanup();
+                        }
+                        delete (i_n->second);
+                        i_n->second = NULL;
+                }
+                m_active_nconn_map.clear();
                 if(m_evr_loop)
                 {
                         delete m_evr_loop;
@@ -800,7 +819,8 @@ public:
         // -------------------------------------------------
         sig_atomic_t m_stopped;
         pthread_t m_t_run_thread;
-        idle_nconn_list_t m_idle_nconn_list;
+        nconn_map_t m_active_nconn_map;
+        nconn_list_t m_idle_nconn_list;
         session_pool_t m_session_pool;
         t_stat_cntr_t m_stat;
         status_code_count_map_t m_status_code_count_map;
@@ -834,7 +854,6 @@ private:
         int32_t m_num_to_request;
 
 };
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -981,7 +1000,6 @@ int32_t request::init_with_url(const std::string &a_url)
         //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1014,7 +1032,6 @@ void session::request_log_status(uint16_t a_status)
         else if((l_status >= 400) && (l_status < 500)){++m_t_hurl->m_stat.m_upsv_resp_status_4xx;}
         else if((l_status >= 500) && (l_status < 600)){++m_t_hurl->m_stat.m_upsv_resp_status_5xx;}
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1046,7 +1063,6 @@ bool session::request_complete(void)
         }
         return l_complete;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1080,7 +1096,6 @@ int32_t session::request_error(ns_hurl::http_status_t a_status)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1100,7 +1115,6 @@ int32_t session::cancel_timer(void *a_timer)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1133,8 +1147,6 @@ int32_t session::teardown(ns_hurl::http_status_t a_status)
         }
         return HURL_STATUS_OK;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1469,6 +1481,7 @@ idle_check:
                 if(l_t_hurl)
                 {
                         l_t_hurl->m_idle_nconn_list.push_back(l_nconn);
+                        l_t_hurl->m_active_nconn_map.erase(l_nconn);
                 }
                 l_nconn->set_data(NULL);
                 // TODO start new subr???
@@ -1618,12 +1631,14 @@ int32_t t_hurl::request_start(void)
         {
                 l_nconn = create_new_nconn();
                 l_nconn->set_label(m_request.m_host);
+                m_active_nconn_map[l_nconn] = l_nconn;
                 //NDBG_PRINT("%sCREATING NEW CONNECTION%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         }
         else
         {
                 l_nconn = m_idle_nconn_list.front();
                 m_idle_nconn_list.pop_front();
+                m_active_nconn_map[l_nconn] = l_nconn;
         }
         if(!l_nconn)
         {
@@ -1788,6 +1803,7 @@ int32_t t_hurl::cleanup_session(session *a_ses, ns_hurl::nconn *a_nconn)
         }
         if(a_nconn)
         {
+                m_active_nconn_map.erase(a_nconn);
                 a_nconn->nc_cleanup();
                 delete a_nconn;
                 // TODO Log error???
