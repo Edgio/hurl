@@ -20,7 +20,6 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
@@ -31,7 +30,6 @@
 #include "hurl/support/trace.h"
 #include "hurl/status.h"
 #include <string.h>
-
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -53,7 +51,6 @@
         } while(0);
 
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -67,14 +64,13 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
         l_hmsg->m_cur_buf = a_buf;
         size_t l_parse_status = 0;
         //NDBG_PRINT("%sHTTP_PARSER%s: m_read_buf: %p, m_read_buf_idx: %d, l_bytes_read: %d\n",
-        //                ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
+        //                ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF,
         //                a_buf, (int)a_off, (int)a_len);
         l_parse_status = http_parser_execute(l_hmsg->m_http_parser,
                                              l_hmsg->m_http_parser_settings,
                                              a_buf,
                                              a_len);
         //NDBG_PRINT("STATUS: %lu\n", l_parse_status);
-        //m_read_buf_idx += l_bytes_read;
         if(l_parse_status < (size_t)a_len)
         {
                 TRC_ERROR("Parse error.  Reason: %s: %s\n",
@@ -84,7 +80,6 @@ int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -96,7 +91,6 @@ int hp_on_message_begin(http_parser* a_parser)
         CHECK_FOR_NULL_OK(l_hmsg);
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -114,7 +108,6 @@ int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length)
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -137,7 +130,6 @@ int hp_on_status(http_parser* a_parser, const char *a_at, size_t a_length)
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

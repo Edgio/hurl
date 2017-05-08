@@ -41,14 +41,6 @@ option(BUILD_ASAN        "Build with Address Sanitizer" OFF)
 option(BUILD_UBSAN       "Build with Undefined Behavior Sanitizer" OFF)
 option(BUILD_UDNS        "Build with udns (async dns support)" ON)
 option(BUILD_UBUNTU      "Build for Ubuntu" OFF)
-
-# ------------------------------------------------------------------------------
-# Compiler options
-# ------------------------------------------------------------------------------
-add_definitions(-std=c++0x)
-add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
-#add_definitions(-pedantic)
-
 # ------------------------------------------------------------------------------
 # Display the current settings
 # ------------------------------------------------------------------------------
@@ -301,7 +293,16 @@ if (BUILD_UBUNTU)
   message("")
   INCLUDE(CPack)
 endif()
-
+# ------------------------------------------------------------------------------
+# build nghttp2
+# ------------------------------------------------------------------------------
+add_subdirectory(ext/nghttp2/src)
+# ------------------------------------------------------------------------------
+# Compiler options
+# ------------------------------------------------------------------------------
+add_definitions(-std=c++0x)
+add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
+#add_definitions(-pedantic)
 # ------------------------------------------------------------------------------
 # include source and test directories
 # ------------------------------------------------------------------------------

@@ -22,22 +22,18 @@
 //: ----------------------------------------------------------------------------
 #ifndef _CB_H
 #define _CB_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "http_parser/http_parser.h"
 #include <stdint.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
-//: Callbacks
+//: http parse
 //: ----------------------------------------------------------------------------
 int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off);
-
 //: ----------------------------------------------------------------------------
-//: Callbacks
+//: parser callbacks
 //: ----------------------------------------------------------------------------
 int hp_on_message_begin(http_parser* a_parser);
 int hp_on_url(http_parser* a_parser, const char *a_at, size_t a_length);
@@ -47,13 +43,5 @@ int hp_on_header_value(http_parser* a_parser, const char *a_at, size_t a_length)
 int hp_on_headers_complete(http_parser* a_parser);
 int hp_on_body(http_parser* a_parser, const char *a_at, size_t a_length);
 int hp_on_message_complete(http_parser* a_parser);
-
 } // ns_hurl
-
 #endif
-
-
-
-
-
-

@@ -20,7 +20,6 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
@@ -34,9 +33,7 @@
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -55,15 +52,14 @@ state_top:
         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, this, m_nc_state, a_mode);
         switch (m_nc_state)
         {
-
         // -------------------------------------------------
         // STATE: FREE
         // -------------------------------------------------
         case NC_STATE_FREE:
         {
-                int32_t l_status;
-                l_status = ncsetup();
-                if(l_status != NC_STATUS_OK)
+                int32_t l_s;
+                l_s = ncsetup();
+                if(l_s != NC_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing ncsetup\n");
                         return NC_STATUS_ERROR;
@@ -79,33 +75,31 @@ state_top:
                 }
                 goto state_top;
         }
-
         // -------------------------------------------------
         // STATE: LISTENING
         // -------------------------------------------------
         case NC_STATE_LISTENING:
         {
-                int32_t l_status;
-                l_status = ncaccept();
-                if(l_status < 0)
+                int32_t l_s;
+                l_s = ncaccept();
+                if(l_s < 0)
                 {
                         //NDBG_PRINT("Error performing ncaccept\n");
                         return NC_STATUS_ERROR;
                 }
-                //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status);
+                //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_s);
                 // Returning client fd
-                return l_status;
+                return l_s;
         }
-
         // -------------------------------------------------
         // STATE: CONNECTING
         // -------------------------------------------------
         case NC_STATE_CONNECTING:
         {
-                int32_t l_status;
+                int32_t l_s;
                 //NDBG_PRINT("%sConnecting%s: host: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_label.c_str());
-                l_status = ncconnect();
-                if(l_status == NC_STATUS_ERROR)
+                l_s = ncconnect();
+                if(l_s == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing ncconnect for host: %s.\n", m_label.c_str());
                         return NC_STATUS_ERROR;
@@ -120,6 +114,15 @@ state_top:
                 // Returning client fd
                 // If OK -change state to connected???
                 m_nc_state = NC_STATE_CONNECTED;
+                if(m_connected_cb)
+                {
+                        l_s = m_connected_cb(this, m_data);
+                        if(l_s != HURL_STATUS_OK)
+                        {
+                                //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
+                                return NC_STATUS_ERROR;
+                        }
+                }
                 if(m_collect_stats_flag)
                 {
                         m_stat.m_tt_connect_us = get_delta_time_us(m_connect_start_time_us);
@@ -135,15 +138,14 @@ state_top:
                 }
                 goto state_top;
         }
-
         // -------------------------------------------------
         // STATE: ACCEPTING
         // -------------------------------------------------
         case NC_STATE_ACCEPTING:
         {
-                int32_t l_status;
-                l_status = ncaccept();
-                if(l_status == NC_STATUS_ERROR)
+                int32_t l_s;
+                l_s = ncaccept();
+                if(l_s == NC_STATUS_ERROR)
                 {
                         //NDBG_PRINT("Error performing ncaccept\n");
                         return NC_STATUS_ERROR;
@@ -156,7 +158,6 @@ state_top:
                 m_nc_state = NC_STATE_CONNECTED;
                 goto state_top;
         }
-
         // -------------------------------------------------
         // STATE: CONNECTED
         // -------------------------------------------------
@@ -166,8 +167,8 @@ state_top:
                 {
                 case EVR_MODE_READ:
                 {
-                        int32_t l_status = NC_STATUS_OK;
-                        l_status = nc_read(a_in_q, ao_read);
+                        int32_t l_s = NC_STATUS_OK;
+                        l_s = nc_read(a_in_q, ao_read);
                         if(m_collect_stats_flag && (ao_read > 0))
                         {
                                 m_stat.m_total_bytes += ao_read;
@@ -176,8 +177,8 @@ state_top:
                                         m_stat.m_tt_first_read_us = get_delta_time_us(m_request_start_time_us);
                                 }
                         }
-                        //NDBG_PRINT("l_status: %d\n", l_status);
-                        switch(l_status){
+                        //NDBG_PRINT("l_s: %d\n", l_s);
+                        switch(l_s){
                         case NC_STATUS_EOF:
                         {
                                 m_nc_state = NC_STATE_DONE;
@@ -186,20 +187,20 @@ state_top:
                         case NC_STATUS_AGAIN:
                         case NC_STATUS_OK:
                         {
-                                return l_status;
+                                return l_s;
                         }
                         default:
                         {
                                 break;
                         }
                         }
-                        return l_status;
+                        return l_s;
                 }
                 case EVR_MODE_WRITE:
                 {
-                        int32_t l_status = NC_STATUS_OK;
-                        l_status = nc_write(a_out_q, ao_written);
-                        switch(l_status){
+                        int32_t l_s = NC_STATUS_OK;
+                        l_s = nc_write(a_out_q, ao_written);
+                        switch(l_s){
                         case NC_STATUS_EOF:
                         {
                                 m_nc_state = NC_STATE_DONE;
@@ -208,7 +209,7 @@ state_top:
                         case NC_STATUS_AGAIN:
                         case NC_STATUS_OK:
                         {
-                                return l_status;
+                                return l_s;
                         }
 
                         default:
@@ -216,7 +217,7 @@ state_top:
                                 break;
                         }
                         }
-                        return l_status;
+                        return l_s;
                 }
                 default:
                 {
@@ -233,6 +234,9 @@ state_top:
                 //NDBG_PRINT("return EOF\n");
                 return NC_STATUS_EOF;
         }
+        // -------------------------------------------------
+        // default
+        // -------------------------------------------------
         default:
         {
                 return NC_STATUS_ERROR;
@@ -261,13 +265,13 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
         //   if size read == read_q free size
         //     add block to queue
         // -------------------------------------------------
-        int32_t l_status = 0;
+        int32_t l_s = 0;
         uint32_t l_read_size = 0;
         do {
                 if(a_in_q->b_write_avail() <= 0)
                 {
-                        int32_t l_status = a_in_q->b_write_add_avail();
-                        if(l_status <= 0)
+                        int32_t l_s = a_in_q->b_write_add_avail();
+                        if(l_s <= 0)
                         {
                                 //NDBG_PRINT("Error performing b_write_add_avail\n");
                                 return NC_STATUS_ERROR;
@@ -280,23 +284,23 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                 //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
                 //                l_buf,
                 //                l_read_size);
-                l_status = ncread(l_buf, l_read_size);
-                //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_bytes_read);
+                l_s = ncread(l_buf, l_read_size);
+                //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_s);
                 //NDBG_PRINT("%sTRY_READ%s: l_bytes_read: %d old_size: %d-error:%d: %s\n",
                 //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
-                //                l_bytes_read,
-                //                m_in_q->read_avail(),
+                //                l_s,
+                //                (int)a_in_q->read_avail(),
                 //                errno, strerror(errno));
-                if(l_status < 0)
+                if(l_s < 0)
                 {
-                        switch(l_status)
+                        switch(l_s)
                         {
                         case NC_STATUS_ERROR:
                         case NC_STATUS_AGAIN:
                         case NC_STATUS_OK:
                         case NC_STATUS_EOF:
                         {
-                                return l_status;
+                                return l_s;
                         }
                         default:
                         {
@@ -306,28 +310,28 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                         //???
                         continue;
                 }
-                else if(l_status == 0)
+                else if(l_s == 0)
                 {
                         //???
                         continue;
                 }
 
-                ao_read += l_status;
+                ao_read += l_s;
                 //ns_hurl::mem_display((uint8_t *)(l_buf), l_bytes_read);
                 if(m_read_cb)
                 {
-                        int32_t l_rcb_status = m_read_cb(m_read_cb_data, l_buf, l_status, a_in_q->get_cur_write_offset());
+                        int32_t l_rcb_status = m_read_cb(m_read_cb_data, l_buf, l_s, a_in_q->get_cur_write_offset());
                         if(l_rcb_status != HURL_STATUS_OK)
                         {
-                                //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
+                                TRC_ERROR("LABEL[%s]: performing m_read_cb\n", m_label.c_str());
                                 return NC_STATUS_ERROR;
                         }
                 }
-                a_in_q->b_write_incr(l_status);
+                a_in_q->b_write_incr(l_s);
 
         // Read as much as can...
-        } while((l_status > 0) &&
-                ((uint32_t)l_status <= l_read_size));
+        } while((l_s > 0) &&
+                ((uint32_t)l_s <= l_read_size));
 
         return NC_STATUS_OK;
 }
@@ -359,21 +363,21 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
         //   if size write == write_q free size
         //     add
         // -------------------------------------------------
-        int32_t l_status;
+        int32_t l_s;
         do {
                 //NDBG_PRINT("%sTRY_WRITE%s: m_out_q->b_read_ptr(): %p m_out_q->b_read_avail(): %d\n",
                 //                ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
                 //                a_out_q->b_read_ptr(),
                 //                a_out_q->b_read_avail());
-                l_status = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
+                l_s = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
                 //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
-                if(l_status < 0)
+                if(l_s < 0)
                 {
-                        switch(l_status)
+                        switch(l_s)
                         {
                         case NC_STATUS_AGAIN:
                         {
-                                return l_status;
+                                return l_s;
                         }
                         default:
                         {
@@ -384,16 +388,16 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                         //???
                         continue;
                 }
-                else if(l_status == 0)
+                else if(l_s == 0)
                 {
                         //???
                         continue;
                 }
 
-                ao_written += l_status;
+                ao_written += l_s;
                 if(m_write_cb)
                 {
-                        int32_t l_wcb_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_status, 0);
+                        int32_t l_wcb_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_s, 0);
                         if(l_wcb_status != HURL_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error performing m_write_cb\n");
@@ -401,10 +405,10 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                         }
                 }
                 // and not error?
-                a_out_q->b_read_incr(l_status);
+                a_out_q->b_read_incr(l_s);
                 a_out_q->shrink();
 
-        } while((l_status > 0) &&
+        } while((l_s > 0) &&
                 a_out_q->read_avail());
 
         return NC_STATUS_OK;
@@ -440,9 +444,9 @@ bool nconn::can_reuse(void)
 int32_t nconn::nc_set_listening(int32_t a_val)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
-        int32_t l_status;
-        l_status = ncset_listening(a_val);
-        if(l_status != NC_STATUS_OK)
+        int32_t l_s;
+        l_s = ncset_listening(a_val);
+        if(l_s != NC_STATUS_OK)
         {
                 return HURL_STATUS_ERROR;
         }
@@ -459,9 +463,9 @@ int32_t nconn::nc_set_listening(int32_t a_val)
 int32_t nconn::nc_set_listening_nb(int32_t a_val)
 {
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
-        int32_t l_status;
-        l_status = ncset_listening_nb(a_val);
-        if(l_status != NC_STATUS_OK)
+        int32_t l_s;
+        l_s = ncset_listening_nb(a_val);
+        if(l_s != NC_STATUS_OK)
         {
                 return HURL_STATUS_ERROR;
         }
@@ -477,9 +481,9 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_set_accepting(int a_fd)
 {
-        int32_t l_status;
-        l_status = ncset_accepting(a_fd);
-        if(l_status != NC_STATUS_OK)
+        int32_t l_s;
+        l_s = ncset_accepting(a_fd);
+        if(l_s != NC_STATUS_OK)
         {
                 return HURL_STATUS_ERROR;
         }
@@ -494,9 +498,9 @@ int32_t nconn::nc_set_accepting(int a_fd)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_set_connected(void)
 {
-        int32_t l_status;
-        l_status = ncset_connected();
-        if(l_status != NC_STATUS_OK)
+        int32_t l_s;
+        l_s = ncset_connected();
+        if(l_s != NC_STATUS_OK)
         {
                 return HURL_STATUS_ERROR;
         }
@@ -518,11 +522,11 @@ int32_t nconn::nc_cleanup()
         //                this);
         //NDBG_PRINT_BT();
         TRC_VERBOSE("tearing down: label: %s\n", m_label.c_str());
-        int32_t l_status;
-        l_status = nccleanup();
+        int32_t l_s;
+        l_s = nccleanup();
         m_nc_state = NC_STATE_FREE;
         m_num_reqs = 0;
-        if(l_status != NC_STATUS_OK)
+        if(l_s != NC_STATUS_OK)
         {
                 TRC_ERROR("Error performing nccleanup.\n");
                 return HURL_STATUS_ERROR;
@@ -561,6 +565,7 @@ nconn::nconn(void):
       m_id(0),
       m_idx(0),
       m_pool_id(0),
+      m_connected_cb(NULL),
       m_read_cb(NULL),
       m_read_cb_data(NULL),
       m_write_cb(NULL)

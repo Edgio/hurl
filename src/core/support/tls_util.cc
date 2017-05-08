@@ -20,18 +20,19 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //:                          OpenSSL Support
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/tls_util.h"
-#include "ndebug.h"
 #include "hostcheck/hostcheck.h"
+
+#include "hurl/support/tls_util.h"
 #include "hurl/status.h"
+#include "hurl/support/trace.h"
+
+#include "support/ndebug.h"
 
 #include <pthread.h>
 #include <openssl/ssl.h>
@@ -43,7 +44,6 @@
 
 #include <map>
 #include <algorithm>
-
 //: ----------------------------------------------------------------------------
 //:
 //: ----------------------------------------------------------------------------
@@ -51,15 +51,12 @@ struct CRYPTO_dynlock_value
 {
         pthread_mutex_t mutex;
 };
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
 static pthread_mutex_t *g_lock_cs;
 __thread char gts_last_tls_error[256] = "\0";
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -73,7 +70,6 @@ static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int 
         pthread_mutex_init(&value->mutex, NULL);
         return value;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -93,7 +89,6 @@ static void dyn_lock_function(int a_mode,
                 pthread_mutex_unlock(&a_l->mutex);
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -109,7 +104,6 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
                 free(a_l);
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -123,25 +117,20 @@ static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file
                         (mode&CRYPTO_LOCK)?"l":"u",
                                         (type&CRYPTO_READ)?"r":"w",a_file,a_line);
 #endif
-
 #if 0
         if (CRYPTO_LOCK_SSL_CERT == type)
                 fprintf(stdout,"(t,m,f,l) %ld %d %s %d\n",
                                 CRYPTO_thread_id(),
                                 a_mode,a_file,a_line);
 #endif
-
         if (a_mode & CRYPTO_LOCK)
         {
                 pthread_mutex_lock(&(g_lock_cs[a_type]));
         } else
         {
                 pthread_mutex_unlock(&(g_lock_cs[a_type]));
-
         }
-
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -155,7 +144,6 @@ static unsigned long pthreads_thread_id(void)
         return(ret);
 
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: OpenSSL can safely be used in multi-threaded applications provided
 //:           that at least two callback functions are set, locking_function and
@@ -178,7 +166,6 @@ static void tls_init_locking(void)
         CRYPTO_set_dynlock_lock_callback(dyn_lock_function);
         CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -188,24 +175,19 @@ void tls_init(void)
 {
         // Initialize the OpenSSL library
         SSL_library_init();
-
         // Bring in and register error messages
         ERR_load_crypto_strings();
         SSL_load_error_strings();
-
         // TODO Deprecated???
         //SSLeay_add_tls_algorithms();
         OpenSSL_add_all_algorithms();
-
         // Set up for thread safety
         tls_init_locking();
-
         // We MUST have entropy, or else there's no point to crypto.
         if (!RAND_poll())
         {
                 return;
         }
-
         // TODO Old method???
 #if 0
         // Random seed
@@ -218,7 +200,6 @@ void tls_init(void)
         }
 #endif
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Initialize OpenSSL
 //: \return:  ctx on success, NULL on failure
@@ -233,7 +214,6 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       const std::string &a_tls_crt_file)
 {
         SSL_CTX *l_ctx;
-
         // TODO Make configurable
         if(a_server_flag)
         {
@@ -243,24 +223,22 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
         {
                 l_ctx = SSL_CTX_new(SSLv23_client_method());
         }
-        if (l_ctx == NULL)
+        if(l_ctx == NULL)
         {
                 ERR_print_errors_fp(stderr);
-                NDBG_PRINT("SSL_CTX_new Error: %s\n", ERR_error_string(ERR_get_error(), NULL));
+                TRC_ERROR("SSL_CTX_new Error: %s\n", ERR_error_string(ERR_get_error(), NULL));
                 return NULL;
         }
-
-        if (!a_cipher_list.empty())
+        if(!a_cipher_list.empty())
         {
                 if (! SSL_CTX_set_cipher_list(l_ctx, a_cipher_list.c_str()))
                 {
-                        NDBG_PRINT("Error cannot set m_cipher list: %s\n", a_cipher_list.c_str());
+                        TRC_ERROR("cannot set m_cipher list: %s\n", a_cipher_list.c_str());
                         ERR_print_errors_fp(stderr);
                         //close_connection(con, nowP);
                         return NULL;
                 }
         }
-
         const char *l_ca_file = NULL;
         const char *l_ca_path = NULL;
         if(!a_ca_file.empty())
@@ -271,7 +249,6 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
         {
                 l_ca_path = a_ca_path.c_str();
         }
-
         int32_t l_status;
         if(l_ca_file || l_ca_path)
         {
@@ -279,7 +256,7 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                 if(1 != l_status)
                 {
                         ERR_print_errors_fp(stdout);
-                        NDBG_PRINT("Error performing SSL_CTX_load_verify_locations.  Reason: %s\n",
+                        TRC_ERROR("performing SSL_CTX_load_verify_locations.  Reason: %s\n",
                                         ERR_error_string(ERR_get_error(), NULL));
                         SSL_CTX_free(l_ctx);
                         return NULL;
@@ -289,56 +266,49 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                 if(1 != l_status)
                 {
                         ERR_print_errors_fp(stdout);
-                        NDBG_PRINT("Error performing SSL_CTX_set_default_verify_paths.  Reason: %s\n",
-                                        ERR_error_string(ERR_get_error(), NULL));
+                        TRC_ERROR("performing SSL_CTX_set_default_verify_paths.  Reason: %s\n",
+                                  ERR_error_string(ERR_get_error(), NULL));
                         SSL_CTX_free(l_ctx);
                         return NULL;
                 }
         }
-
         if(a_options)
         {
                 SSL_CTX_set_options(l_ctx, a_options);
                 // TODO Check return
                 //long l_results = SSL_CTX_set_options(l_ctx, a_options);
                 //NDBG_PRINT("Set SSL CTX options: 0x%08lX -set to: 0x%08lX \n", l_results, a_options);
-
         }
-
         if(!a_tls_crt_file.empty())
         {
                 // set the local certificate from CertFile
                 if(SSL_CTX_use_certificate_chain_file(l_ctx, a_tls_crt_file.c_str()) <= 0)
                 {
-                        NDBG_PRINT("Error performing SSL_CTX_use_certificate_file.\n");
+                        TRC_ERROR("performing SSL_CTX_use_certificate_file.\n");
                         ERR_print_errors_fp(stdout);
                         return NULL;
                 }
         }
-
         if(!a_tls_key_file.empty())
         {
                 // set the private key from KeyFile (may be the same as CertFile) */
                 if(SSL_CTX_use_PrivateKey_file(l_ctx, a_tls_key_file.c_str(), SSL_FILETYPE_PEM) <= 0)
                 {
-                        NDBG_PRINT("Error performing SSL_CTX_use_PrivateKey_file.\n");
+                        TRC_ERROR("performing SSL_CTX_use_PrivateKey_file.\n");
                         ERR_print_errors_fp(stdout);
                         return NULL;
                 }
                 // verify private key
                 if(!SSL_CTX_check_private_key(l_ctx))
                 {
-                        NDBG_PRINT("Error performing SSL_CTX_check_private_key.\n");
+                        TRC_ERROR("performing SSL_CTX_check_private_key. reason: private key does not match the public certificate.\n");
                         fprintf(stdout, "Private key does not match the public certificate\n");
                         return NULL;
                 }
         }
-
-
         //NDBG_PRINT("SSL_CTX_new success\n");
         return l_ctx;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -355,11 +325,9 @@ void ssl_kill_locks(void)
                         pthread_mutex_destroy(&(g_lock_cs[i]));
                 }
         }
-
         OPENSSL_free(g_lock_cs);
         g_lock_cs = NULL;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -369,9 +337,7 @@ typedef std::map <std::string, long>tls_options_map_t;
 tls_options_map_t g_tls_options_map;
 int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
 {
-
         std::string l_options_str = a_options_str;
-
         if(g_tls_options_map.empty())
         {
                 g_tls_options_map["SSL_OP_NO_SSLv2"] = SSL_OP_NO_SSLv2;
@@ -380,17 +346,13 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 g_tls_options_map["SSL_OP_NO_TLSv1_2"] = SSL_OP_NO_TLSv1_2;
                 g_tls_options_map["SSL_OP_NO_TLSv1_1"] = SSL_OP_NO_TLSv1_1;
         }
-
         // Remove whitespace
         l_options_str.erase( std::remove_if( l_options_str.begin(), l_options_str.end(), ::isspace ), l_options_str.end() );
-
         ao_val = 0;
-
         std::string l_token;
         std::string l_delim = "|";
         size_t l_start = 0U;
         size_t l_end = l_options_str.find(l_delim);
-
         while(l_end != std::string::npos)
         {
                 l_token = l_options_str.substr(l_start, l_end - l_start);
@@ -400,7 +362,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 tls_options_map_t::iterator i_option  = g_tls_options_map.find(l_token);
                 if(i_option == g_tls_options_map.end())
                 {
-                        NDBG_PRINT("Error unrecognized ssl option: %s\n", l_token.c_str());
+                        TRC_ERROR("unrecognized ssl option: %s\n", l_token.c_str());
                         return HURL_STATUS_ERROR;
                 }
                 ao_val |= i_option->second;
@@ -410,16 +372,13 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         tls_options_map_t::iterator i_option  = g_tls_options_map.find(l_token);
         if(i_option == g_tls_options_map.end())
         {
-                NDBG_PRINT("Error unrecognized ssl option: %s\n", l_token.c_str());
+                TRC_ERROR("unrecognized ssl option: %s\n", l_token.c_str());
                 return HURL_STATUS_ERROR;
         }
         ao_val |= i_option->second;
-
         //NDBG_PRINT("ao_val: 0x%08lX\n", ao_val);
-
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -433,7 +392,6 @@ const char *get_tls_info_cipher_str(SSL *a_ssl)
         }
         return SSL_get_cipher_name(a_ssl);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -452,7 +410,6 @@ int32_t get_tls_info_protocol_num(SSL *a_ssl)
         }
         return m_tls_session->ssl_version;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -497,8 +454,6 @@ const char *get_tls_info_protocol_str(int32_t a_version)
         }
         return NULL;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -532,7 +487,6 @@ int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
         }
         return ok;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -556,7 +510,6 @@ int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
         }
         return ok;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Return an array of (RFC 6125 coined) DNS-IDs and CN-IDs in a x509
 //:           certificate
@@ -566,47 +519,48 @@ int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
 bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
 {
         if (!x509)
-                return false;
-
-        // First, the DNS-IDs (dNSName entries in the subjectAltName extension)
-        GENERAL_NAMES* names =
-                (GENERAL_NAMES*)X509_get_ext_d2i(x509, NID_subject_alt_name, NULL, NULL);
-        if (names)
         {
-                std::string san;
-                for (int i = 0; i < sk_GENERAL_NAME_num(names); i++)
+                return false;
+        }
+        // First, the DNS-IDs (dNSName entries in the subjectAltName extension)
+        GENERAL_NAMES* l_names = (GENERAL_NAMES*)X509_get_ext_d2i(x509, NID_subject_alt_name, NULL, NULL);
+        if(l_names)
+        {
+                std::string l_san;
+                for (int i = 0; i < sk_GENERAL_NAME_num(l_names); ++i)
                 {
-                        GENERAL_NAME* name = sk_GENERAL_NAME_value(names, i);
-
-                        if (name->type == GEN_DNS)
+                        GENERAL_NAME* i_name = sk_GENERAL_NAME_value(l_names, i);
+                        if (i_name->type == GEN_DNS)
                         {
-                                san.assign(reinterpret_cast<char*>(ASN1_STRING_data(name->d.uniformResourceIdentifier)),
-                                           ASN1_STRING_length(name->d.uniformResourceIdentifier));
-                                if (!san.empty())
-                                        ids.push_back(san);
+                                l_san.assign(reinterpret_cast<char*>(ASN1_STRING_data(i_name->d.uniformResourceIdentifier)),
+                                           ASN1_STRING_length(i_name->d.uniformResourceIdentifier));
+                                if (!l_san.empty())
+                                {
+                                        ids.push_back(l_san);
+                                }
                         }
                 }
         }
-
-        if (names)
-                sk_GENERAL_NAME_pop_free(names, GENERAL_NAME_free);
-
-        // Second, the CN-IDs (commonName attributes in the subject DN)
-        X509_NAME* subj = X509_get_subject_name(x509);
-        int i = -1;
-        while ((i = X509_NAME_get_index_by_NID(subj, NID_commonName, i)) != -1)
+        if(l_names)
         {
-                ASN1_STRING* name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subj, i));
-
-                std::string dn(reinterpret_cast<char*>(ASN1_STRING_data(name)),
-                               ASN1_STRING_length(name));
-                if (!dn.empty())
-                        ids.push_back(dn);
+                sk_GENERAL_NAME_pop_free(l_names, GENERAL_NAME_free);
         }
+        // Second, the CN-IDs (commonName attributes in the subject DN)
+        X509_NAME* l_subj = X509_get_subject_name(x509);
+        int i = -1;
+        while ((i = X509_NAME_get_index_by_NID(l_subj, NID_commonName, i)) != -1)
+        {
+                ASN1_STRING* i_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(l_subj, i));
 
+                std::string l_dn(reinterpret_cast<char*>(ASN1_STRING_data(i_name)),
+                               ASN1_STRING_length(i_name));
+                if (!l_dn.empty())
+                {
+                        ids.push_back(l_dn);
+                }
+        }
         return ids.empty() ? false : true;
 }
-
 //: ----------------------------------------------------------------------------
 //: Check host name
 //: Based on example from:
@@ -618,7 +572,6 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
         typedef std::vector <std::string> cert_name_list_t;
         cert_name_list_t l_cert_name_list;
         bool l_get_ids_status = false;
-
         l_get_ids_status = tls_x509_get_ids(a_cert, l_cert_name_list);
         if(!l_get_ids_status)
         {
@@ -626,7 +579,6 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
                 //NDBG_PRINT("LABEL[%s]: tls_x509_get_ids returned no names.\n", a_host);
                 return -1;
         }
-
         for(uint32_t i_name = 0; i_name < l_cert_name_list.size(); ++i_name)
         {
                 if(Curl_cert_hostcheck(l_cert_name_list[i_name].c_str(), a_host))
@@ -634,11 +586,9 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
                         return 0;
                 }
         }
-
         //NDBG_PRINT("LABEL[%s]: Error hostname match failed.\n", a_host);
         return -1;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -717,10 +667,7 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                 return -1;
         }
 #endif
-
         // No errors return success(0)
         return 0;
 }
-
 } //namespace ns_hurl {
-

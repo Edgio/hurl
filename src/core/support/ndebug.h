@@ -22,16 +22,13 @@
 //: ----------------------------------------------------------------------------
 #ifndef _NDEBUG_H
 #define _NDEBUG_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>
-
 // For POD check
 #include <stdarg.h>
-
 //: ----------------------------------------------------------------------------
 //: ANSI Color Code Strings
 //:
@@ -57,13 +54,11 @@
 #define ANSI_COLOR_BG_CYAN      "\033[01;46m"
 #define ANSI_COLOR_BG_WHITE     "\033[01;47m"
 #define ANSI_COLOR_BG_DEFAULT   "\033[01;49m"
-
 //: ----------------------------------------------------------------------------
 //: Backtrace constants
 //: ----------------------------------------------------------------------------
 #define NDBG_NUM_BACKTRACE_IN_TAG 30
 #define NDBG_MAX_BACKTRACE_TAG_SIZE 8192
-
 //: ----------------------------------------------------------------------------
 //: debug macros
 //: ----------------------------------------------------------------------------
@@ -95,7 +90,6 @@
 #ifndef NDBG_PRINT_BT
 #define NDBG_PRINT_BT() ns_hurl::print_bt(__FILE__,__FUNCTION__,__LINE__)
 #endif
-
 //: ----------------------------------------------------------------------------
 //: POD
 //: ----------------------------------------------------------------------------
@@ -152,18 +146,7 @@
                 exit(1);\
         } while(0)
 #endif
-
-// Namespace ns_hurl
 namespace ns_hurl {
-
-//: ----------------------------------------------------------------------------
-//: Forward Decls
-//: ----------------------------------------------------------------------------
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: \details: Get the rdtsc value
 //: \return:  TODO
@@ -172,15 +155,11 @@ namespace ns_hurl {
 __inline__ uint64_t rdtsc()
 {
         uint32_t lo, hi;
-
         // We cannot use "=A", since this would use %rax on x86_64
         __asm__ __volatile__ ("rdtsc" : "=a" (lo), "=d" (hi));
         // output registers
-
         return (uint64_t) hi << 32 | lo;
-
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Define the macro to ensure a class is POD
 //: \return:  TODO
@@ -193,13 +172,10 @@ inline int check_for_pod(int count, ...)
     va_end(ap);
     return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-void print_bt(const char * a_file, const char *a_func, const int a_line);
-void mem_display(const uint8_t *a_mem_buf, uint32_t a_length);
-
+void print_bt(const char * a_file, const char *a_func, const int a_line, bool a_color);
+void mem_display(const uint8_t *a_mem_buf, uint32_t a_length, bool a_color);
 } // namespace ns_hurl {
-
 #endif // NDEBUG_H_

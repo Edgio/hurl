@@ -716,7 +716,7 @@ void nbq::b_display_written(void)
                 NDBG_OUTPUT("| Block: %d -> %p\n", i_block_num, (*i_b));
                 NDBG_OUTPUT("+------------------------------------+\n");
                 nb_t &l_b = *(*i_b);
-                mem_display((const uint8_t *)(l_b.data()), l_b.written());
+                mem_display((const uint8_t *)(l_b.data()), l_b.written(), false);
                 if(i_b == m_cur_write_block)
                 {
                         break;
@@ -742,7 +742,7 @@ void nbq::b_display_all(void)
                 NDBG_OUTPUT("| Block: %d -> %p\n", i_block_num, (*i_b));
                 NDBG_OUTPUT("+------------------------------------+\n");
                 nb_t &l_b = *(*i_b);
-                mem_display((const uint8_t *)(l_b.data()), l_b.size());
+                mem_display((const uint8_t *)(l_b.data()), l_b.size(), false);
         }
 }
 

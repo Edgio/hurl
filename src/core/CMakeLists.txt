@@ -27,7 +27,6 @@ cmake_minimum_required(VERSION 2.6.0)
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ../../ext
-    ./ndebug
     ./evr
     ./support
     ./nconn
@@ -80,11 +79,11 @@ SET(SRCS
     ${CMAKE_SOURCE_DIR}/ext/hostcheck/hostcheck.cc
     ${CMAKE_SOURCE_DIR}/ext/base64/base64.cc
     
-    ./ndebug/ndebug.cc
-    
     ./evr/evr.cc
     ./evr/evr_select.cc
     
+    ./support/ndebug.cc
+    ./support/file_util.cc
     ./support/string_util.cc
     ./support/time_util.cc
     ./support/tls_util.cc

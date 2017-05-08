@@ -1,8 +1,8 @@
 //: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
+//: Copyright (C) 2017 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    string_util.h
+//: \file:    file_util.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    02/07/2014
@@ -20,22 +20,16 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STRING_UTIL_H
-#define _STRING_UTIL_H
+#ifndef _FILE_UTIL_H
+#define _FILE_UTIL_H
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <string>
 #include <stdint.h>
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-int32_t break_header_string(const std::string &a_header_str, std::string &ao_header_key, std::string &ao_header_val);
-std::string get_file_wo_path(const std::string &a_filename);
-std::string get_file_path(const std::string &a_filename);
-std::string get_base_filename(const std::string &a_filename);
-std::string get_file_ext(const std::string &a_filename);
-std::string get_file_wo_ext(const std::string &a_filename);
+int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len);
 } //namespace ns_hurl {
 #endif

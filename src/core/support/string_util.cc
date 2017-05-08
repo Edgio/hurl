@@ -2,7 +2,7 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    util.cc
+//: \file:    string_util.cc
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    02/07/2014
@@ -20,14 +20,11 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hurl/support/string_util.h"
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
