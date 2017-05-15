@@ -40,10 +40,8 @@
 #include "hurl/evr/evr.h"
 #include "hurl/http/resp.h"
 #include "hurl/http/api_resp.h"
-// internal
 #include "support/ndebug.h"
 #include "support/file_util.h"
-
 #include <string.h>
 // getrlimit
 #include <sys/time.h>
@@ -92,65 +90,61 @@
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
+#define NB_ENABLE  1
+#define NB_DISABLE 0
 #define LOCAL_ADDR_V4_MIN 0x7f000001
 #define LOCAL_ADDR_V4_MAX 0x7ffffffe
-
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
 #define UNUSED(x) ( (void)(x) )
-
 #define CHECK_FOR_NULL_ERROR_DEBUG(_data) \
         do {\
                 if(!_data) {\
                         NDBG_PRINT("Error.\n");\
                         return HURL_STATUS_ERROR;\
                 }\
-        } while(0);
-
+        } while(0)
 #define CHECK_FOR_NULL_ERROR(_data) \
         do {\
                 if(!_data) {\
                         return HURL_STATUS_ERROR;\
                 }\
-        } while(0);
-
+        } while(0)
 //: ----------------------------------------------------------------------------
-//: Enums
+//: types
 //: ----------------------------------------------------------------------------
-// ---------------------------------------
-// Wildcard support
-// ---------------------------------------
-typedef enum path_order_enum {
-
-        EXPLODED_PATH_ORDER_SEQUENTIAL = 0,
-        EXPLODED_PATH_ORDER_RANDOM
-
-} path_order_t;
-
-// ---------------------------------------
-// Results scheme
-// ---------------------------------------
-typedef enum results_scheme_enum {
-
-        RESULTS_SCHEME_STD = 0,
-        RESULTS_SCHEME_HTTP_LOAD,
-        RESULTS_SCHEME_HTTP_LOAD_LINE,
-        RESULTS_SCHEME_JSON
-
-} results_scheme_t;
-
+typedef std::vector <std::string> path_substr_vector_t;
+typedef std::vector <std::string> path_vector_t;
 //: ----------------------------------------------------------------------------
-//:                                 S T A T S
+//: Globals
+//: ----------------------------------------------------------------------------
+static bool g_test_finished = false;
+static bool g_verbose = false;
+static bool g_color = false;
+static uint64_t g_rate_delta_us = 0;
+static uint32_t g_num_threads = 1;
+static int64_t g_reqs_per_conn = -1;
+static bool g_stats = true;
+static bool g_quiet = false;
+// -----------------------------------------------
+// Path vector support
+// -----------------------------------------------
+static bool g_path_multi = false;
+static tinymt64_t *g_path_rand_ptr = NULL;
+static path_vector_t g_path_vector;
+static std::string g_path;
+static uint32_t g_path_vector_last_idx = 0;
+static bool g_path_order_random = true;
+static pthread_mutex_t g_path_vector_mutex;
+static pthread_mutex_t g_completion_mutex;
+//: ----------------------------------------------------------------------------
+//:                               S T A T S
 //: ----------------------------------------------------------------------------
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
 typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
-
-// TODO DEBUG???
-//typedef std::map<std::string, void *> subr_pending_resolv_map_t;
-
 //: ----------------------------------------------------------------------------
 //: xstat
 //: ----------------------------------------------------------------------------
@@ -161,13 +155,11 @@ typedef struct xstat_struct
         double m_min;
         double m_max;
         uint64_t m_num;
-
         double min() const { return m_min; }
         double max() const { return m_max; }
         double mean() const { return (m_num > 0) ? m_sum_x / m_num : 0.0; }
         double var() const { return (m_num > 0) ? (m_sum_x2 - m_sum_x) / m_num : 0.0; }
         double stdev() const;
-
         xstat_struct():
                 m_sum_x(0.0),
                 m_sum_x2(0.0),
@@ -175,7 +167,6 @@ typedef struct xstat_struct
                 m_max(0.0),
                 m_num(0)
         {}
-
         void clear()
         {
                 m_sum_x = 0.0;
@@ -185,133 +176,120 @@ typedef struct xstat_struct
                 m_num = 0;
         };
 } xstat_t;
-
 //: ----------------------------------------------------------------------------
 //: counter stats
 //: ----------------------------------------------------------------------------
 typedef struct t_stat_cntr_struct
 {
         // Stats
-        xstat_t m_upsv_stat_us_connect;
-        xstat_t m_upsv_stat_us_first_response;
-        xstat_t m_upsv_stat_us_end_to_end;
-
+        xstat_t m_stat_us_connect;
+        xstat_t m_stat_us_first_response;
+        xstat_t m_stat_us_end_to_end;
         // Upstream stats
-        uint64_t m_upsv_conn_started;
-        uint64_t m_upsv_conn_completed;
-        uint64_t m_upsv_reqs;
-        uint64_t m_upsv_idle_killed;
-        uint64_t m_upsv_subr_queued;
-
+        uint64_t m_conn_started;
+        uint64_t m_conn_completed;
+        uint64_t m_reqs;
+        uint64_t m_idle_killed;
+        uint64_t m_subr_queued;
         // Upstream resp
-        uint64_t m_upsv_resp;
-        uint64_t m_upsv_resp_status_2xx;
-        uint64_t m_upsv_resp_status_3xx;
-        uint64_t m_upsv_resp_status_4xx;
-        uint64_t m_upsv_resp_status_5xx;
-
+        uint64_t m_resp;
+        uint64_t m_resp_status_2xx;
+        uint64_t m_resp_status_3xx;
+        uint64_t m_resp_status_4xx;
+        uint64_t m_resp_status_5xx;
         // clnt counts
-        uint64_t m_upsv_errors;
-        uint64_t m_upsv_bytes_read;
-        uint64_t m_upsv_bytes_written;
-
+        uint64_t m_errors;
+        uint64_t m_bytes_read;
+        uint64_t m_bytes_written;
         // Totals
         uint64_t m_total_run;
         uint64_t m_total_add_timer;
-
         t_stat_cntr_struct():
-                m_upsv_stat_us_connect(),
-                m_upsv_stat_us_first_response(),
-                m_upsv_stat_us_end_to_end(),
-
-                m_upsv_conn_started(0),
-                m_upsv_conn_completed(0),
-                m_upsv_reqs(0),
-                m_upsv_idle_killed(0),
-                m_upsv_subr_queued(0),
-                m_upsv_resp(0),
-                m_upsv_resp_status_2xx(0),
-                m_upsv_resp_status_3xx(0),
-                m_upsv_resp_status_4xx(0),
-                m_upsv_resp_status_5xx(0),
-                m_upsv_errors(0),
-                m_upsv_bytes_read(0),
-                m_upsv_bytes_written(0),
-
+                m_stat_us_connect(),
+                m_stat_us_first_response(),
+                m_stat_us_end_to_end(),
+                m_conn_started(0),
+                m_conn_completed(0),
+                m_reqs(0),
+                m_idle_killed(0),
+                m_subr_queued(0),
+                m_resp(0),
+                m_resp_status_2xx(0),
+                m_resp_status_3xx(0),
+                m_resp_status_4xx(0),
+                m_resp_status_5xx(0),
+                m_errors(0),
+                m_bytes_read(0),
+                m_bytes_written(0),
                 m_total_run(0),
                 m_total_add_timer(0)
         {}
         void clear()
         {
-                m_upsv_stat_us_connect.clear();
-                m_upsv_stat_us_connect.clear();
-                m_upsv_stat_us_first_response.clear();
-                m_upsv_stat_us_end_to_end.clear();
-
-                m_upsv_conn_started = 0;
-                m_upsv_conn_completed = 0;
-                m_upsv_reqs = 0;
-                m_upsv_idle_killed = 0;
-                m_upsv_subr_queued = 0;
-                m_upsv_resp = 0;
-                m_upsv_resp_status_2xx = 0;
-                m_upsv_resp_status_3xx = 0;
-                m_upsv_resp_status_4xx = 0;
-                m_upsv_resp_status_5xx = 0;
-                m_upsv_errors = 0;
-                m_upsv_bytes_read = 0;
-                m_upsv_bytes_written = 0;
-
+                m_stat_us_connect.clear();
+                m_stat_us_connect.clear();
+                m_stat_us_first_response.clear();
+                m_stat_us_end_to_end.clear();
+                m_conn_started = 0;
+                m_conn_completed = 0;
+                m_reqs = 0;
+                m_idle_killed = 0;
+                m_subr_queued = 0;
+                m_resp = 0;
+                m_resp_status_2xx = 0;
+                m_resp_status_3xx = 0;
+                m_resp_status_4xx = 0;
+                m_resp_status_5xx = 0;
+                m_errors = 0;
+                m_bytes_read = 0;
+                m_bytes_written = 0;
                 m_total_run = 0;
                 m_total_add_timer = 0;
         }
 } t_stat_cntr_t;
 typedef std::list <t_stat_cntr_t> t_stat_cntr_list_t;
-
 //: ----------------------------------------------------------------------------
 //: calculated stats
 //: ----------------------------------------------------------------------------
 typedef struct t_stat_calc_struct
 {
         // ups
-        uint64_t m_upsv_req_delta;
-        uint64_t m_upsv_resp_delta;
-        float m_upsv_req_s;
-        float m_upsv_resp_s;
-        float m_upsv_bytes_read_s;
-        float m_upsv_bytes_write_s;
-        float m_upsv_resp_status_2xx_pcnt;
-        float m_upsv_resp_status_3xx_pcnt;
-        float m_upsv_resp_status_4xx_pcnt;
-        float m_upsv_resp_status_5xx_pcnt;
-
+        uint64_t m_req_delta;
+        uint64_t m_resp_delta;
+        float m_req_s;
+        float m_resp_s;
+        float m_bytes_read_s;
+        float m_bytes_write_s;
+        float m_resp_status_2xx_pcnt;
+        float m_resp_status_3xx_pcnt;
+        float m_resp_status_4xx_pcnt;
+        float m_resp_status_5xx_pcnt;
         t_stat_calc_struct():
-                m_upsv_req_delta(0),
-                m_upsv_resp_delta(0),
-                m_upsv_req_s(0.0),
-                m_upsv_resp_s(0.0),
-                m_upsv_bytes_read_s(0.0),
-                m_upsv_bytes_write_s(0.0),
-                m_upsv_resp_status_2xx_pcnt(0.0),
-                m_upsv_resp_status_3xx_pcnt(0.0),
-                m_upsv_resp_status_4xx_pcnt(0.0),
-                m_upsv_resp_status_5xx_pcnt(0.0)
+                m_req_delta(0),
+                m_resp_delta(0),
+                m_req_s(0.0),
+                m_resp_s(0.0),
+                m_bytes_read_s(0.0),
+                m_bytes_write_s(0.0),
+                m_resp_status_2xx_pcnt(0.0),
+                m_resp_status_3xx_pcnt(0.0),
+                m_resp_status_4xx_pcnt(0.0),
+                m_resp_status_5xx_pcnt(0.0)
         {}
         void clear()
         {
-                m_upsv_resp_s = 0.0;
-                m_upsv_req_delta = 0;
-                m_upsv_resp_delta = 0;
-                m_upsv_req_s = 0.0;
-                m_upsv_bytes_read_s = 0.0;
-                m_upsv_bytes_write_s = 0.0;
-                m_upsv_resp_status_2xx_pcnt = 0.0;
-                m_upsv_resp_status_3xx_pcnt = 0.0;
-                m_upsv_resp_status_4xx_pcnt = 0.0;
-                m_upsv_resp_status_5xx_pcnt = 0.0;
+                m_resp_s = 0.0;
+                m_req_delta = 0;
+                m_resp_delta = 0;
+                m_req_s = 0.0;
+                m_bytes_read_s = 0.0;
+                m_bytes_write_s = 0.0;
+                m_resp_status_2xx_pcnt = 0.0;
+                m_resp_status_3xx_pcnt = 0.0;
+                m_resp_status_4xx_pcnt = 0.0;
+                m_resp_status_5xx_pcnt = 0.0;
         }
 } t_stat_calc_t;
-
 //: ----------------------------------------------------------------------------
 //: \details: Update stat with new value
 //: \return:  n/a
@@ -326,7 +304,6 @@ void update_stat(xstat_t &ao_stat, double a_val)
         if(a_val > ao_stat.m_max) ao_stat.m_max = a_val;
         if(a_val < ao_stat.m_min) ao_stat.m_min = a_val;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Add stats
 //: \return:  n/a
@@ -338,10 +315,8 @@ void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
         ao_stat.m_num += a_from_stat.m_num;
         ao_stat.m_sum_x += a_from_stat.m_sum_x;
         ao_stat.m_sum_x2 += a_from_stat.m_sum_x2;
-        if(a_from_stat.m_min < ao_stat.m_min)
-                ao_stat.m_min = a_from_stat.m_min;
-        if(a_from_stat.m_max > ao_stat.m_max)
-                ao_stat.m_max = a_from_stat.m_max;
+        if(a_from_stat.m_min < ao_stat.m_min) ao_stat.m_min = a_from_stat.m_min;
+        if(a_from_stat.m_max > ao_stat.m_max) ao_stat.m_max = a_from_stat.m_max;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -388,7 +363,6 @@ public:
                 m_host_info(),
                 m_data(NULL),
                 m_start_time_ms(0)
-
         {};
         request(const request &a_r):
                 m_uid(a_r.m_uid),
@@ -413,7 +387,6 @@ public:
                 m_data(a_r.m_data),
                 m_start_time_ms(a_r.m_start_time_ms)
         {}
-
         int set_header(const std::string &a_key, const std::string &a_val)
         {
                 ns_hurl::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
@@ -454,10 +427,8 @@ public:
                 }
                 return HURL_STATUS_OK;
         }
-
         // Initialize
         int32_t init_with_url(const std::string &a_url);
-
         uint64_t m_uid;
         ns_hurl::scheme_t m_scheme;
         std::string m_host;
@@ -470,72 +441,26 @@ public:
         uint32_t m_body_data_len;
         uint16_t m_port;
         bool m_expect_resp_body_flag;
-
         bool m_connect_only;
         bool m_keepalive;
         bool m_save;
         uint32_t m_timeout_ms;
         completion_cb_t m_completion_cb;
         error_cb_t m_error_cb;
-
         ns_hurl::host_info m_host_info;
         void *m_data;
-
         uint64_t m_start_time_ms;
-
 private:
         // Disallow copy/assign
         request& operator=(const request &);
 };
-typedef std::list <std::string> header_str_list_t;
-typedef std::vector <std::string> path_substr_vector_t;
-typedef std::vector <std::string> path_vector_t;
-typedef std::map<std::string, std::string> header_map_t;
 typedef std::vector <range_t> range_vector_t;
 class t_hurl;
 typedef std::list <t_hurl *> t_hurl_list_t;
 //: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
-static bool g_test_finished = false;
-static bool g_verbose = false;
-static bool g_color = false;
-static uint64_t g_rate_delta_us = 0;
-static uint32_t g_num_threads = 1;
-static int64_t g_num_to_request = -1;
-static int64_t g_reqs_per_conn = -1;
-static t_hurl_list_t g_t_hurl_list;
-static bool g_stats = true;
-static bool g_quiet = false;
-static bool g_show_response_codes = false;
-static bool g_show_per_interval = true;
-static bool g_multipath = false;
-static uint32_t g_interval_ms = 500;
-static uint32_t g_num_parallel = 100;
-static uint64_t g_start_time_ms = 0;
-static int32_t g_run_time_ms = -1;
-// -----------------------------------------------
-// Path vector support
-// -----------------------------------------------
-static tinymt64_t *g_rand_ptr = NULL;
-static path_vector_t g_path_vector;
-static std::string g_path;
-static uint32_t g_path_vector_last_idx = 0;
-static path_order_t g_path_order = EXPLODED_PATH_ORDER_RANDOM;
-static pthread_mutex_t g_path_vector_mutex;
-static pthread_mutex_t g_completion_mutex;
-//: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
-void get_stat(t_stat_cntr_t &ao_total, t_stat_calc_t &ao_total_calc, t_stat_cntr_list_t &ao_thread);
-void display_results_line_desc(void);
-void display_results_line(void);
-void display_responses_line_desc(void);
-void display_responses_line(void);
-void get_results(double a_elapsed_time, std::string &ao_results);
-void get_results_http_load(double a_elapsed_time, std::string &ao_results, bool a_one_line_flag = false);
-void get_results_json(double a_elapsed_time, std::string &ao_results);
-static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq);
+static int32_t create_request(request &a_request, ns_hurl::nbq &a_nbq);
 //: ----------------------------------------------------------------------------
 //: \details: sighandler
 //: \return:  TODO
@@ -549,7 +474,6 @@ void sig_handler(int signo)
                 g_test_finished = true;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -564,7 +488,6 @@ static inline uint64_t get_next_request_uuid(void)
 //: session
 //: ----------------------------------------------------------------------------
 class session {
-
 public:
         // -------------------------------------------------
         // Public members
@@ -777,7 +700,6 @@ public:
         }
         int32_t cleanup_session(session *a_ses, ns_hurl::nconn *a_nconn);
         void add_stat_to_agg(const ns_hurl::conn_stat_t &a_conn_stat, uint16_t a_status_code);
-
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
@@ -799,7 +721,6 @@ private:
         // Disallow copy/assign
         t_hurl& operator=(const t_hurl &);
         t_hurl(const t_hurl &);
-
         //Helper for pthreads
         static void *t_run_static(void *a_context)
         {
@@ -816,7 +737,6 @@ private:
         bool m_is_initd;
         uint32_t m_num_parallel_max;
         int32_t m_num_to_request;
-
 };
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -831,7 +751,6 @@ int32_t request::init_with_url(const std::string &a_url)
         {
                 l_url_fixed = "http://" + a_url;
         }
-
         //NDBG_PRINT("Parse url:           %s\n", a_url.c_str());
         //NDBG_PRINT("Parse a_wildcarding: %d\n", a_wildcarding);
         http_parser_url l_url;
@@ -846,10 +765,8 @@ int32_t request::init_with_url(const std::string &a_url)
                 // TODO get error msg from http_parser
                 return HURL_STATUS_ERROR;
         }
-
         // Set no port
         m_port = 0;
-
         for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
         {
                 //NDBG_PRINT("i_part: %d offset: %d len: %d\n", i_part, l_url.field_data[i_part].off, l_url.field_data[i_part].len);
@@ -929,7 +846,6 @@ int32_t request::init_with_url(const std::string &a_url)
                         }
                 }
         }
-
         // Default ports
         if(!m_port)
         {
@@ -976,7 +892,7 @@ void session::request_log_status(uint16_t a_status)
                 return;
         }
         // TODO log here???
-        //++(m_t_hurl->m_stat.m_upsv_resp);
+        //++(m_t_hurl->m_stat.m_resp);
         uint16_t l_status;
         if(m_resp)
         {
@@ -991,10 +907,10 @@ void session::request_log_status(uint16_t a_status)
                 l_status = HTTP_STATUS_INTERNAL_SERVER_ERROR;
         }
         if((l_status >= 100) && (l_status < 200)) {/* TODO log 1xx's? */}
-        else if((l_status >= 200) && (l_status < 300)){++m_t_hurl->m_stat.m_upsv_resp_status_2xx;}
-        else if((l_status >= 300) && (l_status < 400)){++m_t_hurl->m_stat.m_upsv_resp_status_3xx;}
-        else if((l_status >= 400) && (l_status < 500)){++m_t_hurl->m_stat.m_upsv_resp_status_4xx;}
-        else if((l_status >= 500) && (l_status < 600)){++m_t_hurl->m_stat.m_upsv_resp_status_5xx;}
+        else if((l_status >= 200) && (l_status < 300)){++m_t_hurl->m_stat.m_resp_status_2xx;}
+        else if((l_status >= 300) && (l_status < 400)){++m_t_hurl->m_stat.m_resp_status_3xx;}
+        else if((l_status >= 400) && (l_status < 500)){++m_t_hurl->m_stat.m_resp_status_4xx;}
+        else if((l_status >= 500) && (l_status < 600)){++m_t_hurl->m_stat.m_resp_status_5xx;}
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -1130,7 +1046,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
         CHECK_FOR_NULL_ERROR(l_nconn->get_ctx());
         t_hurl *l_t_hurl = static_cast<t_hurl *>(l_nconn->get_ctx());
         session *l_ses = static_cast<session *>(l_nconn->get_data());
-
         // -------------------------------------------------
         // ERROR
         // -------------------------------------------------
@@ -1183,8 +1098,8 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                         uint64_t l_ct_ms = ns_hurl::get_time_ms();
                         if(((uint32_t)(l_ct_ms - l_uss->get_last_active_ms())) >= l_uss->get_timeout_ms())
                         {
-                                ++(l_t_srvr->m_stat.m_upsv_errors);
-                                ++(l_t_srvr->m_stat.m_upsv_idle_killed);
+                                ++(l_t_srvr->m_stat.m_errors);
+                                ++(l_t_srvr->m_stat.m_idle_killed);
                                 return l_uss->teardown(HTTP_STATUS_GATEWAY_TIMEOUT);
                         }
                         // ---------------------------------
@@ -1230,7 +1145,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                 TRC_ERROR("unknown a_conn_mode: %d\n", a_conn_mode);
                 return HURL_STATUS_OK;
         }
-
 #if 0
         // set last active
         if(l_ses)
@@ -1238,7 +1152,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                 l_uss->set_last_active_ms(ns_hurl::get_time_ms());
         }
 #endif
-
         // -------------------------------------------------
         // in/out q's
         // -------------------------------------------------
@@ -1260,7 +1173,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
         {
                 l_out_q = l_t_hurl->m_orphan_out_q;
         }
-
         // -------------------------------------------------
         // conn loop
         // -------------------------------------------------
@@ -1273,8 +1185,8 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                 //NDBG_PRINT("l_nconn->nc_run_state_machine(%d): status: %d read: %u l_written: %u\n", a_conn_mode, l_s, l_read, l_written);
                 if(l_t_hurl)
                 {
-                        l_t_hurl->m_stat.m_upsv_bytes_read += l_read;
-                        l_t_hurl->m_stat.m_upsv_bytes_written += l_written;
+                        l_t_hurl->m_stat.m_bytes_read += l_read;
+                        l_t_hurl->m_stat.m_bytes_written += l_written;
                         if(!g_verbose && (l_written > 0))
                         {
                                 l_in_q->reset_write();
@@ -1309,16 +1221,14 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                                 if(l_t_hurl->m_num_in_progress)
                                 {
                                         --l_t_hurl->m_num_in_progress;
-                                        ++l_t_hurl->m_stat.m_upsv_resp;
+                                        ++l_t_hurl->m_stat.m_resp;
                                 }
-
                                 if(g_verbose)
                                 {
                                         if(g_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
                                         l_ses->m_resp->show();
                                         if(g_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                                 }
-
                                 // Get request time
                                 if(g_stats)
                                 {
@@ -1420,7 +1330,7 @@ check_conn_status:
                 {
                         if(l_t_hurl)
                         {
-                                ++(l_t_hurl->m_stat.m_upsv_errors);
+                                ++(l_t_hurl->m_stat.m_errors);
                         }
                         l_ses->teardown(ns_hurl::HTTP_STATUS_BAD_GATEWAY);
                         TRC_ERROR("ns_hurl::nconn::NC_STATUS_ERROR\n");
@@ -1437,7 +1347,6 @@ check_conn_status:
                 }
         } while((l_s != ns_hurl::nconn::NC_STATUS_AGAIN) &&
                 (l_t_hurl->is_running()));
-
 idle_check:
         //NDBG_PRINT("%sIDLE CONNECTION CHECK%s: l_idle: %d\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, l_idle);
         if(l_idle)
@@ -1476,7 +1385,7 @@ void *t_hurl::t_run(void *a_nothing)
         // Run server
         // -------------------------------------------------
         while((!m_stopped) &&
-              ((m_num_to_request < 0) || ((uint32_t)m_num_to_request > m_stat.m_upsv_resp)))
+              ((m_num_to_request < 0) || ((uint32_t)m_num_to_request > m_stat.m_resp)))
         {
                 //NDBG_PRINT("Running.\n");
                 l_s = m_evr_loop->run();
@@ -1496,7 +1405,6 @@ void *t_hurl::t_run(void *a_nothing)
         m_stopped = true;
         return NULL;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1508,7 +1416,7 @@ int32_t t_hurl::request_dequeue(void)
         while(!g_test_finished &&
               !m_stopped &&
               (m_num_in_progress < m_num_parallel_max) &&
-              ((m_num_to_request < 0) || ((uint32_t)m_num_to_request > m_stat.m_upsv_reqs)))
+              ((m_num_to_request < 0) || ((uint32_t)m_num_to_request > m_stat.m_reqs)))
         {
                 int32_t l_s;
                 l_s = request_start();
@@ -1529,7 +1437,6 @@ int32_t t_hurl::request_dequeue(void)
         //                m_num_in_progress, m_num_parallel_max);
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1573,7 +1480,6 @@ ns_hurl::nconn *t_hurl::create_new_nconn(void)
         l_nconn->set_host_info(m_request.m_host_info);
         return l_nconn;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1670,7 +1576,7 @@ int32_t t_hurl::request_start(void)
         }
         else
         {
-                if(l_ses_reused && !g_multipath)
+                if(l_ses_reused && !g_path_multi)
                 {
                         l_ses->m_out_q->reset_read();
                 }
@@ -1680,17 +1586,17 @@ int32_t t_hurl::request_start(void)
                 }
         }
         // create request
-        if(!l_ses_reused || g_multipath)
+        if(!l_ses_reused || g_path_multi)
         {
-                l_s = s_create_request(m_request, *(l_ses->m_out_q));
+                l_s = create_request(m_request, *(l_ses->m_out_q));
                 if(HURL_STATUS_OK != l_s)
                 {
-                        TRC_ERROR("performing s_create_request\n");
+                        TRC_ERROR("performing create_request\n");
                         return session::evr_fd_error_cb(l_nconn);
                 }
         }
         // stats
-        ++m_stat.m_upsv_reqs;
+        ++m_stat.m_reqs;
         if(g_stats)
         {
                 m_request.m_start_time_ms = ns_hurl::get_time_ms();
@@ -1735,7 +1641,6 @@ int32_t t_hurl::request_start(void)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1765,7 +1670,6 @@ int32_t t_hurl::cleanup_session(session *a_ses, ns_hurl::nconn *a_nconn)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1773,12 +1677,11 @@ int32_t t_hurl::cleanup_session(session *a_ses, ns_hurl::nconn *a_nconn)
 //: ----------------------------------------------------------------------------
 void t_hurl::add_stat_to_agg(const ns_hurl::conn_stat_t &a_conn_stat, uint16_t a_status_code)
 {
-        update_stat(m_stat.m_upsv_stat_us_connect, a_conn_stat.m_tt_connect_us);
-        update_stat(m_stat.m_upsv_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
-        update_stat(m_stat.m_upsv_stat_us_end_to_end, a_conn_stat.m_tt_completion_us);
+        update_stat(m_stat.m_stat_us_connect, a_conn_stat.m_tt_connect_us);
+        update_stat(m_stat.m_stat_us_first_response, a_conn_stat.m_tt_first_read_us);
+        update_stat(m_stat.m_stat_us_end_to_end, a_conn_stat.m_tt_completion_us);
         ++m_status_code_count_map[a_status_code];
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Completion callback
 //: \return:  TODO
@@ -1792,7 +1695,7 @@ static int32_t s_completion_cb(request &a_request,
         //++g_num_completed;
         //pthread_mutex_unlock(&g_completion_mutex);
 #if 0
-        if((g_num_to_request != -1) && (g_num_completed >= (uint64_t)g_num_to_request))
+        if((l_num_to_request != -1) && (g_num_completed >= (uint64_t)l_num_to_request))
         {
                 g_test_finished = true;
                 return 0;
@@ -1804,7 +1707,6 @@ static int32_t s_completion_cb(request &a_request,
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1838,7 +1740,6 @@ static int32_t s_pre_connect_cb(int a_fd)
         return HURL_STATUS_OK;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1847,23 +1748,17 @@ static int32_t s_pre_connect_cb(int a_fd)
 // Assumes expr in form [<val>-<val>] where val can be either int or hex
 static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_range)
 {
-
         char l_expr[64];
         strncpy(l_expr, a_range_exp.c_str(), 64);
-
         uint32_t l_start;
         uint32_t l_end;
         int32_t l_s;
-
         l_s = sscanf(l_expr, "[%u-%u]", &l_start, &l_end);
         if(2 == l_s) goto success;
-
         // Else lets try hex...
         l_s = sscanf(l_expr, "[%x-%x]", &l_start, &l_end);
         if(2 == l_s) goto success;
-
         return HURL_STATUS_ERROR;
-
 success:
         // Check range...
         if(l_start > l_end)
@@ -1871,13 +1766,11 @@ success:
                 printf("HURL_STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
                 return HURL_STATUS_ERROR;
         }
-
         // Successfully matched we outie
         ao_range.m_start = l_start;
         ao_range.m_end = l_end;
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1887,15 +1780,12 @@ int32_t parse_path(const char *a_path,
                    path_substr_vector_t &ao_substr_vector,
                    range_vector_t &ao_range_vector)
 {
-
         //NDBG_PRINT("a_path: %s\n", a_path);
-
         // If has range '[' char assume it's explodable path
         std::string l_path(a_path);
         size_t l_range_start_pos = 0;
         size_t l_range_end_pos = 0;
         size_t l_cur_str_pos = 0;
-
         while((l_range_start_pos = l_path.find("[", l_cur_str_pos)) != std::string::npos)
         {
                 if((l_range_end_pos = l_path.find("]", l_range_start_pos)) == std::string::npos)
@@ -1903,20 +1793,15 @@ int32_t parse_path(const char *a_path,
                         printf("HURL_STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
                         return HURL_STATUS_ERROR;
                 }
-
                 // Push path back...
                 std::string l_substr = l_path.substr(l_cur_str_pos, l_range_start_pos - l_cur_str_pos);
                 //NDBG_PRINT("l_substr: %s from %lu -- %lu\n", l_substr.c_str(), l_cur_str_pos, l_range_start_pos);
                 ao_substr_vector.push_back(l_substr);
-
                 // Convert to range
                 std::string l_range_exp = l_path.substr(l_range_start_pos, l_range_end_pos - l_range_start_pos + 1);
-
                 std::string::iterator end_pos = std::remove(l_range_exp.begin(), l_range_exp.end(), ' ');
                 l_range_exp.erase(end_pos, l_range_exp.end());
-
                 //NDBG_PRINT("l_range_exp: %s\n", l_range_exp.c_str());
-
                 range_t l_range;
                 int l_s = HURL_STATUS_OK;
                 l_s = convert_exp_to_range(l_range_exp, l_range);
@@ -1925,21 +1810,15 @@ int32_t parse_path(const char *a_path,
                         printf("HURL_STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
                         return HURL_STATUS_ERROR;
                 }
-
                 ao_range_vector.push_back(l_range);
-
                 l_cur_str_pos = l_range_end_pos + 1;
-
                 // Searching next at:
                 //NDBG_PRINT("Searching next at: %lu -- result: %lu\n", l_cur_str_pos, l_path.find("[", l_cur_str_pos));
-
         }
-
         // Get trailing string
         std::string l_substr = l_path.substr(l_cur_str_pos, l_path.length() - l_cur_str_pos);
         //NDBG_PRINT("l_substr: %s from %lu -- %lu\n", l_substr.c_str(), l_cur_str_pos, l_path.length());
         ao_substr_vector.push_back(l_substr);
-
 #if 0
         // -------------------------------------------
         // Explode the lists
@@ -1960,7 +1839,6 @@ int32_t parse_path(const char *a_path,
 #endif
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1978,16 +1856,13 @@ int32_t path_exploder(std::string a_path_part,
                 g_path_vector.push_back(a_path_part);
                 return HURL_STATUS_OK;
         }
-
         a_path_part.append(a_substr_vector[a_substr_idx]);
         ++a_substr_idx;
-
         if(a_range_idx >= a_range_vector.size())
         {
                 g_path_vector.push_back(a_path_part);
                 return HURL_STATUS_OK;
         }
-
         range_t l_range = a_range_vector[a_range_idx];
         ++a_range_idx;
         for(uint32_t i_r = l_range.m_start; i_r <= l_range.m_end; ++i_r)
@@ -2000,67 +1875,6 @@ int32_t path_exploder(std::string a_path_part,
         }
         return HURL_STATUS_OK;
 }
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t add_option(const char *a_key, const char *a_val)
-{
-        std::string l_key(a_key);
-        std::string l_val(a_val);
-        //NDBG_PRINT("%s: %s\n",a_key, a_val);
-        //: ------------------------------------------------
-        //:
-        //: ------------------------------------------------
-        if (l_key == "order")
-        {
-                if (l_val == "sequential")
-                {
-                        g_path_order = EXPLODED_PATH_ORDER_SEQUENTIAL;
-                }
-                else if (l_val == "random")
-                {
-                        g_path_order = EXPLODED_PATH_ORDER_RANDOM;
-                }
-                else
-                {
-                        printf("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                        return HURL_STATUS_ERROR;
-                }
-        }
-        //: ------------------------------------------------
-        //:
-        //: ------------------------------------------------
-        //else if (l_key == "tag")
-        //{
-        //        //NDBG_PRINT("HEADER: %s: %s\n", l_val.substr(0,l_pos).c_str(), l_val.substr(l_pos+1,l_val.length()).c_str());
-        //        m_label = l_val;
-        //}
-#if 0
-        //: ------------------------------------------------
-        //:
-        //: ------------------------------------------------
-        else if (l_key == "sampling")
-        {
-                if (l_val == "oneshot") m_run_only_once_flag = true;
-                else if (l_val == "reuse") m_run_only_once_flag = false;
-                else
-                {
-                        NDBG_PRINT("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                        return HURL_STATUS_ERROR;
-                }
-        }
-#endif
-        else
-        {
-                printf("HURL_STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
-                return HURL_STATUS_ERROR;
-        }
-        return HURL_STATUS_OK;
-}
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -2082,7 +1896,6 @@ int32_t special_effects_parse(std::string &a_path)
         {
                 return HURL_STATUS_OK;
         }
-
         // -------------------------------------------
         // TODO This seems hacky...
         // -------------------------------------------
@@ -2091,13 +1904,10 @@ int32_t special_effects_parse(std::string &a_path)
         char *l_save_ptr;
         strncpy(l_path, a_path.c_str(), 2048);
         char *l_p = strtok_r(l_path, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
-
         if( a_path.front() != *SPECIAL_EFX_OPT_SEPARATOR )
         {
                 // Rule out special cases that m_path only contains options
-                //
                 a_path = l_p;
-
                 int32_t l_s;
                 path_substr_vector_t l_path_substr_vector;
                 range_vector_t l_range_vector;
@@ -2110,7 +1920,6 @@ int32_t special_effects_parse(std::string &a_path)
                                 return HURL_STATUS_ERROR;
                         }
                 }
-
                 // If empty path explode
                 if(l_range_vector.size())
                 {
@@ -2134,42 +1943,65 @@ int32_t special_effects_parse(std::string &a_path)
                 {
                         g_path_vector.push_back(a_path);
                 }
-
                 l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         }
         else
         {
                 g_path.clear();
         }
-
         // Options...
         while (l_p)
         {
-                if(l_p)
+                if(!l_p)
                 {
-                        char l_options[1024];
-                        char *l_options_save_ptr;
-                        strncpy(l_options, l_p, 1024);
-                        //printf("Options: %s\n", l_options);
-                        char *l_k = strtok_r(l_options, SPECIAL_EFX_KV_SEPARATOR, &l_options_save_ptr);
-                        char *l_v = strtok_r(NULL, SPECIAL_EFX_KV_SEPARATOR, &l_options_save_ptr);
-                        int32_t l_add_option_status;
-                        l_add_option_status = add_option(l_k, l_v);
-                        if(l_add_option_status != HURL_STATUS_OK)
+                        l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
+                        continue;
+                }
+                char l_options[1024];
+                char *l_options_save_ptr;
+                strncpy(l_options, l_p, 1024);
+                //printf("Options: %s\n", l_options);
+                char *l_k = strtok_r(l_options, SPECIAL_EFX_KV_SEPARATOR, &l_options_save_ptr);
+                char *l_v = strtok_r(NULL, SPECIAL_EFX_KV_SEPARATOR, &l_options_save_ptr);
+                std::string l_key = l_k;
+                std::string l_val = l_v;
+                //printf("key: %s\n", l_key.c_str());
+                //printf("val: %s\n", l_val.c_str());
+                // ---------------------------------
+                //
+                // ---------------------------------
+                if (l_key == "order")
+                {
+                        if (l_val == "sequential") { g_path_order_random = false; }
+                        else if (l_val == "random"){ g_path_order_random = true; }
+                        else
                         {
-                                printf("HURL_STATUS_ERROR: Performing add_option(%s,%s)\n", l_k,l_v);
-                                // Nuttin doing???
-
+                                printf("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                                return HURL_STATUS_ERROR;
                         }
-                        //printf("Key: %s\n", l_k);
-                        //printf("Val: %s\n", l_v);
+                }
+#if 0
+                else if (l_key == "sampling")
+                {
+                        if (l_val == "oneshot") m_run_only_once_flag = true;
+                        else if (l_val) m_run_only_once_flag = false;
+                        else
+                        {
+                                NDBG_PRINT("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                                return HURL_STATUS_ERROR;
+                        }
+                }
+#endif
+                else
+                {
+                        printf("HURL_STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
+                        return HURL_STATUS_ERROR;
                 }
                 l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         }
         //printf("a_path: %s\n", a_path.c_str());
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -2178,52 +2010,47 @@ int32_t special_effects_parse(std::string &a_path)
 const std::string &get_path(void *a_rand)
 {
         // TODO -make this threadsafe -mutex per???
-        if(g_path_vector.size())
-        {
-                // Rollover..
-                if(g_path_order == EXPLODED_PATH_ORDER_SEQUENTIAL)
-                {
-                        pthread_mutex_lock(&g_path_vector_mutex);
-                        if(g_path_vector_last_idx >= g_path_vector.size())
-                        {
-                                g_path_vector_last_idx = 0;
-                        }
-                        uint32_t l_last_idx = g_path_vector_last_idx;
-                        ++g_path_vector_last_idx;
-                        pthread_mutex_unlock(&g_path_vector_mutex);
-                        return g_path_vector[l_last_idx];
-                }
-                else
-                {
-                        uint32_t l_rand_idx = 0;
-                        if(a_rand)
-                        {
-                                tinymt64_t *l_rand_ptr = (tinymt64_t*)a_rand;
-                                l_rand_idx = (uint32_t)(tinymt64_generate_uint64(l_rand_ptr) % g_path_vector.size());
-                        }
-                        else
-                        {
-                                l_rand_idx = (random() * g_path_vector.size()) / RAND_MAX;
-                        }
-                        return g_path_vector[l_rand_idx];
-                }
-        }
-        else
+        if(!g_path_vector.size())
         {
                 return g_path;
         }
+        // Rollover..
+        if(g_path_order_random == false)
+        {
+                pthread_mutex_lock(&g_path_vector_mutex);
+                if(g_path_vector_last_idx >= g_path_vector.size())
+                {
+                        g_path_vector_last_idx = 0;
+                }
+                uint32_t l_last_idx = g_path_vector_last_idx;
+                ++g_path_vector_last_idx;
+                pthread_mutex_unlock(&g_path_vector_mutex);
+                return g_path_vector[l_last_idx];
+        }
+        else
+        {
+                uint32_t l_rand_idx = 0;
+                if(a_rand)
+                {
+                        tinymt64_t *l_rand_ptr = (tinymt64_t*)a_rand;
+                        l_rand_idx = (uint32_t)(tinymt64_generate_uint64(l_rand_ptr) % g_path_vector.size());
+                }
+                else
+                {
+                        l_rand_idx = (random() * g_path_vector.size()) / RAND_MAX;
+                }
+                return g_path_vector[l_rand_idx];
+        }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: create request callback
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq)
+static int32_t create_request(request &a_request, ns_hurl::nbq &a_nbq)
 {
         // TODO grab from path...
-        std::string l_path_ref = get_path(g_rand_ptr);
-
+        std::string l_path_ref = get_path(g_path_rand_ptr);
         char l_buf[2048];
         int32_t l_len = 0;
         if(l_path_ref.empty())
@@ -2237,15 +2064,13 @@ static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq)
         }
         //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
         l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %s HTTP/1.1", a_request.m_verb.c_str(), l_path_ref.c_str());
-
+                        "%s %s HTTP/1.1",
+                        a_request.m_verb.c_str(), l_path_ref.c_str());
         ns_hurl::nbq_write_request_line(a_nbq, l_buf, l_len);
-
-        // -------------------------------------------
+        // -------------------------------------------------
         // Add repo headers
-        // -------------------------------------------
+        // -------------------------------------------------
         bool l_specd_host = false;
-
         // Loop over reqlet map
         for(ns_hurl::kv_map_list_t::const_iterator i_hl = a_request.m_headers.begin();
             i_hl != a_request.m_headers.end();
@@ -2266,20 +2091,18 @@ static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq)
                         }
                 }
         }
-
-        // -------------------------------------------
+        // -------------------------------------------------
         // Default Host if unspecified
-        // -------------------------------------------
+        // -------------------------------------------------
         if (!l_specd_host)
         {
                 ns_hurl::nbq_write_header(a_nbq,
                                          "Host", strlen("Host"),
                                          a_request.m_host.c_str(), a_request.m_host.length());
         }
-
-        // -------------------------------------------
+        // -------------------------------------------------
         // body
-        // -------------------------------------------
+        // -------------------------------------------------
         if(a_request.m_body_data && a_request.m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
@@ -2291,20 +2114,96 @@ static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq)
         }
         return HURL_STATUS_OK;
 }
-
-//: ----------------------------------------------------------------------------
-//: Command
-//: TODO Refactor
-//: ----------------------------------------------------------------------------
-#define NB_ENABLE  1
-#define NB_DISABLE 0
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int kbhit()
+void get_stat(t_stat_cntr_t &ao_total,
+              t_stat_calc_t &ao_total_calc,
+              t_stat_cntr_list_t &ao_thread,
+              t_hurl_list_t &a_hurl_list)
+{
+        // -------------------------------------------------
+        // store last values -for calc'd stats
+        // -------------------------------------------------
+        static t_stat_cntr_t s_last;
+        static uint64_t s_stat_last_time_ms = 0;
+        uint64_t l_cur_time_ms = ns_hurl::get_time_ms();
+        uint64_t l_delta_ms = l_cur_time_ms - s_stat_last_time_ms;
+        // -------------------------------------------------
+        // Aggregate
+        // -------------------------------------------------
+        ao_total.clear();
+        for(t_hurl_list_t::const_iterator i_t = a_hurl_list.begin();
+            i_t != a_hurl_list.end();
+           ++i_t)
+        {
+                ao_total.m_bytes_read += (*i_t)->m_stat.m_bytes_read;
+                ao_total.m_bytes_written += (*i_t)->m_stat.m_bytes_written;
+                ao_total.m_reqs += (*i_t)->m_stat.m_reqs;
+                ao_total.m_resp += (*i_t)->m_stat.m_resp;
+                ao_total.m_errors += (*i_t)->m_stat.m_errors;
+                // TODO
+                ao_total.m_idle_killed += 0;
+                ao_total.m_resp_status_2xx = (*i_t)->m_stat.m_resp_status_2xx;
+                ao_total.m_resp_status_3xx = (*i_t)->m_stat.m_resp_status_3xx;
+                ao_total.m_resp_status_4xx = (*i_t)->m_stat.m_resp_status_4xx;
+                ao_total.m_resp_status_5xx = (*i_t)->m_stat.m_resp_status_5xx;
+                add_stat(ao_total.m_stat_us_connect , (*i_t)->m_stat.m_stat_us_connect);
+                add_stat(ao_total.m_stat_us_first_response , (*i_t)->m_stat.m_stat_us_first_response);
+                add_stat(ao_total.m_stat_us_end_to_end , (*i_t)->m_stat.m_stat_us_end_to_end);
+        }
+        // -------------------------------------------------
+        // calc'd stats
+        // -------------------------------------------------
+        uint64_t l_delta_reqs = ao_total.m_reqs - s_last.m_reqs;
+        uint64_t l_delta_resp = ao_total.m_resp - s_last.m_resp;
+        //NDBG_PRINT("l_delta_resp: %lu\n", l_delta_resp);
+        if(l_delta_resp > 0)
+        {
+                ao_total_calc.m_resp_status_2xx_pcnt = 100.0*((float)(ao_total.m_resp_status_2xx - s_last.m_resp_status_2xx))/((float)l_delta_resp);
+                ao_total_calc.m_resp_status_3xx_pcnt = 100.0*((float)(ao_total.m_resp_status_3xx - s_last.m_resp_status_3xx))/((float)l_delta_resp);
+                ao_total_calc.m_resp_status_4xx_pcnt = 100.0*((float)(ao_total.m_resp_status_4xx - s_last.m_resp_status_4xx))/((float)l_delta_resp);
+                ao_total_calc.m_resp_status_5xx_pcnt = 100.0*((float)(ao_total.m_resp_status_5xx - s_last.m_resp_status_5xx))/((float)l_delta_resp);
+        }
+        if(l_delta_ms > 0)
+        {
+                ao_total_calc.m_req_s = ((float)l_delta_reqs*1000)/((float)l_delta_ms);
+                ao_total_calc.m_resp_s = ((float)l_delta_reqs*1000)/((float)l_delta_ms);
+                ao_total_calc.m_bytes_read_s = ((float)((ao_total.m_bytes_read - s_last.m_bytes_read)*1000))/((float)l_delta_ms);
+                ao_total_calc.m_bytes_write_s = ((float)((ao_total.m_bytes_written - s_last.m_bytes_written)*1000))/((float)l_delta_ms);
+        }
+        // copy
+        s_last = ao_total;
+        s_stat_last_time_ms = l_cur_time_ms;
+}
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static void get_status_codes(status_code_count_map_t &ao_map, t_hurl_list_t &a_t_hurl_list)
+{
+        for(t_hurl_list_t::iterator i_t = a_t_hurl_list.begin();
+            i_t != a_t_hurl_list.end();
+            ++i_t)
+        {
+                status_code_count_map_t i_m = (*i_t)->m_status_code_count_map;
+                for(status_code_count_map_t::iterator i_c = i_m.begin();
+                    i_c != i_m.end();
+                    ++i_c)
+                {
+                        ao_map[i_c->first] += i_c->second;
+                }
+        }
+}
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static int kbhit()
 {
         struct timeval l_tv;
         fd_set l_fds;
@@ -2316,18 +2215,16 @@ int kbhit()
         select(STDIN_FILENO + 1, &l_fds, NULL, NULL, &l_tv);
         return FD_ISSET(STDIN_FILENO, &l_fds);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void nonblock(int state)
+static void nonblock(int state)
 {
         struct termios ttystate;
         //get the terminal state
         tcgetattr(STDIN_FILENO, &ttystate);
-
         if (state == NB_ENABLE)
         {
                 //turn off canonical mode
@@ -2342,112 +2239,6 @@ void nonblock(int state)
         //set the terminal attributes.
         tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void command_exec(void)
-{
-        int i = 0;
-        char l_cmd = ' ';
-        bool l_first_time = true;
-        nonblock(NB_ENABLE);
-        // ---------------------------------------
-        // Loop forever until user quits
-        // ---------------------------------------
-        while (!g_test_finished)
-        {
-                i = kbhit();
-                if (i != 0)
-                {
-                        l_cmd = fgetc(stdin);
-                        switch (l_cmd)
-                        {
-                        // -------------------------------------------
-                        // Quit
-                        // -------------------------------------------
-                        case 'q':
-                        {
-                                g_test_finished = true;
-                                break;
-                        }
-                        // -------------------------------------------
-                        // default
-                        // -------------------------------------------
-                        default:
-                        {
-                                break;
-                        }
-                        }
-                }
-
-                // TODO add define...
-                usleep(g_interval_ms*1000);
-
-                // Check for done
-                if(g_run_time_ms != -1)
-                {
-                        int32_t l_time_delta_ms = (int32_t)(ns_hurl::get_delta_time_ms(g_start_time_ms));
-                        if(l_time_delta_ms >= g_run_time_ms)
-                        {
-                                g_test_finished = true;
-                        }
-                }
-
-                bool l_is_running = false;
-                for (t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
-                     i_t != g_t_hurl_list.end();
-                     ++i_t)
-                {
-                        if(!(*i_t)->m_stopped) l_is_running = true;
-                }
-                if(!l_is_running)
-                {
-                        g_test_finished = true;
-                }
-                if(!g_quiet && !g_verbose)
-                {
-                        if(g_show_response_codes)
-                        {
-                                if(l_first_time)
-                                {
-                                        display_responses_line_desc();
-                                        t_stat_cntr_t l_total;
-                                        t_stat_calc_t l_total_calc;
-                                        t_stat_cntr_list_t l_thread;
-                                        get_stat(l_total, l_total_calc, l_thread);
-                                        if(!g_test_finished)
-                                        {
-                                                usleep(g_interval_ms*1000+100);
-                                        }
-                                        l_first_time = false;
-                                }
-                                display_responses_line();
-                        }
-                        else
-                        {
-                                if(l_first_time)
-                                {
-                                        display_results_line_desc();
-                                        t_stat_cntr_t l_total;
-                                        t_stat_calc_t l_total_calc;
-                                        t_stat_cntr_list_t l_thread;
-                                        get_stat(l_total, l_total_calc, l_thread);
-                                        if(!g_test_finished)
-                                        {
-                                                usleep(g_interval_ms*1000+100);
-                                        }
-                                        l_first_time = false;
-                                }
-                                display_results_line();
-                        }
-                }
-        }
-        nonblock(NB_DISABLE);
-}
-
 //: ----------------------------------------------------------------------------
 //: \details: Print the version.
 //: \return:  TODO
@@ -2455,14 +2246,12 @@ void command_exec(void)
 //: ----------------------------------------------------------------------------
 void print_version(FILE* a_stream, int a_exit_code)
 {
-
         // print out the version information
         fprintf(a_stream, "hurl HTTP Load Tester.\n");
         fprintf(a_stream, "Copyright (C) 2017 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
         exit(a_exit_code);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Print the command line help.
 //: \return:  TODO
@@ -2504,8 +2293,6 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Results Options:\n");
         fprintf(a_stream, "  -j, --json           Display results in json\n");
-        fprintf(a_stream, "  -Y, --http_load      Display results in http load mode -Legacy support\n");
-        fprintf(a_stream, "  -Z, --http_load_line Display results in http load mode on a single line -Legacy support\n");
         fprintf(a_stream, "  -o, --output         Output results to file <FILE> -default to stdout\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Debug Options:\n");
@@ -2521,7 +2308,6 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "\n");
         exit(a_exit_code);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -2529,7 +2315,14 @@ void print_usage(FILE* a_stream, int a_exit_code)
 //: ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
-        results_scheme_t l_results_scheme = RESULTS_SCHEME_STD;
+        int64_t l_num_to_request = -1;
+        uint32_t l_interval_ms = 500;
+        uint32_t l_num_parallel = 100;
+        uint64_t l_start_time_ms = 0;
+        int32_t l_run_time_ms = -1;
+        bool l_show_response_codes = false;
+        bool l_show_per_interval = true;
+        bool l_display_results_json_flag = false;
         // TODO Make default definitions
         bool l_input_flag = false;
         bool l_wildcarding = true;
@@ -2556,26 +2349,21 @@ int main(int argc, char** argv)
         request *l_request = new request();
         l_request->m_uid = get_next_request_uuid();
         l_request->m_save = false;
-
         // Default headers
         l_request->set_header("User-Agent","hurl Server Load Tester");
         l_request->set_header("Accept","*/*");
         l_request->m_keepalive = true;
         //l_subr->set_num_reqs_per_conn(1);
-
         // Initialize rand...
-        g_rand_ptr = (tinymt64_t*)calloc(1, sizeof(tinymt64_t));
-        tinymt64_init(g_rand_ptr, ns_hurl::get_time_us());
-
+        g_path_rand_ptr = (tinymt64_t*)calloc(1, sizeof(tinymt64_t));
+        tinymt64_init(g_path_rand_ptr, ns_hurl::get_time_us());
         // Initialize mutex for sequential path requesting
         pthread_mutex_init(&g_path_vector_mutex, NULL);
-
         // Completion
         pthread_mutex_init(&g_completion_mutex, NULL);
-
-        // -------------------------------------------
+        // -------------------------------------------------
         // Get args...
-        // -------------------------------------------
+        // -------------------------------------------------
         char l_opt;
         std::string l_arg;
         int l_option_index = 0;
@@ -2602,8 +2390,6 @@ int main(int argc, char** argv)
                 { "responses",      0, 0, 'C' },
                 { "responses_per",  0, 0, 'L' },
                 { "json",           0, 0, 'j' },
-                { "http_load",      0, 0, 'Y' },
-                { "http_load_line", 0, 0, 'Z' },
                 { "output",         1, 0, 'o' },
                 { "update",         1, 0, 'U' },
                 { "trace",          1, 0, 'r' },
@@ -2613,18 +2399,16 @@ int main(int argc, char** argv)
                 // list sentinel
                 { 0, 0, 0, 0 }
         };
-
-        // -------------------------------------------
+        // -------------------------------------------------
         // Assume unspecified arg url...
         // TODO Unsure if good way to allow unspecified
         // arg...
-        // -------------------------------------------
+        // -------------------------------------------------
         std::string l_url;
 #ifdef ENABLE_PROFILER
         std::string l_gprof_file;
 #endif
         bool is_opt = false;
-
         for(int i_arg = 1; i_arg < argc; ++i_arg)
         {
                 if(argv[i_arg][0] == '-')
@@ -2650,9 +2434,9 @@ int main(int argc, char** argv)
                 }
         }
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjYZo:U:r:G:";
+        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjo:U:r:G:";
 #else
-        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjYZo:U:r:";
+        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xvcqCLjo:U:r:";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -2736,7 +2520,7 @@ int main(int argc, char** argv)
                                 printf("Error num parallel must be at least 1\n");
                                 return HURL_STATUS_ERROR;
                         }
-                        g_num_parallel = l_num_parallel;
+                        l_num_parallel = l_num_parallel;
                         break;
                 }
                 // -----------------------------------------
@@ -2750,7 +2534,7 @@ int main(int argc, char** argv)
                                 printf("Error fetches must be at least 1\n");
                                 return HURL_STATUS_ERROR;
                         }
-                        g_num_to_request = l_end_fetches;
+                        l_num_to_request = l_end_fetches;
                         break;
                 }
                 // -----------------------------------------
@@ -2842,14 +2626,8 @@ int main(int argc, char** argv)
                 case 'M':
                 {
                         std::string l_order = optarg;
-                        if(l_order == "sequential")
-                        {
-                                g_path_order = EXPLODED_PATH_ORDER_SEQUENTIAL;
-                        }
-                        else if(l_order == "random")
-                        {
-                                g_path_order = EXPLODED_PATH_ORDER_RANDOM;
-                        }
+                        if(l_order == "sequential") { g_path_order_random = false; }
+                        else if(l_order == "random"){ g_path_order_random = true;}
                         else
                         {
                                 printf("Error: Mode must be [roundrobin|sequential|random]\n");
@@ -2870,7 +2648,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return HURL_STATUS_ERROR;
                         }
-                        g_run_time_ms = l_run_time_s*1000;
+                        l_run_time_ms = l_run_time_s*1000;
                         break;
                 }
                 // -----------------------------------------
@@ -2928,7 +2706,7 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'C':
                 {
-                        g_show_response_codes = true;
+                        l_show_response_codes = true;
                         break;
                 }
                 // -----------------------------------------
@@ -2936,24 +2714,8 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'L':
                 {
-                        g_show_response_codes = true;
-                        g_show_per_interval = true;
-                        break;
-                }
-                // -----------------------------------------
-                // http_load
-                // -----------------------------------------
-                case 'Y':
-                {
-                        l_results_scheme = RESULTS_SCHEME_HTTP_LOAD;
-                        break;
-                }
-                // -----------------------------------------
-                // http_load_line
-                // -----------------------------------------
-                case 'Z':
-                {
-                        l_results_scheme = RESULTS_SCHEME_HTTP_LOAD_LINE;
+                        l_show_response_codes = true;
+                        l_show_per_interval = true;
                         break;
                 }
                 // -----------------------------------------
@@ -2961,7 +2723,7 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'j':
                 {
-                        l_results_scheme = RESULTS_SCHEME_JSON;
+                        l_display_results_json_flag = true;
                         break;
                 }
                 // -----------------------------------------
@@ -2984,7 +2746,7 @@ int main(int argc, char** argv)
                                 //print_usage(stdout, -1);
                                 return HURL_STATUS_ERROR;
                         }
-                        g_interval_ms = l_interval_ms;
+                        l_interval_ms = l_interval_ms;
                         break;
                 }
                 // -----------------------------------------
@@ -3071,10 +2833,10 @@ int main(int argc, char** argv)
                 fprintf(stdout, "Error performing getrlimit. Reason: %s\n", strerror(errno));
                 return HURL_STATUS_ERROR;
         }
-        if(l_rlim.rlim_cur < (uint64_t)(g_num_threads*g_num_parallel))
+        if(l_rlim.rlim_cur < (uint64_t)(g_num_threads*l_num_parallel))
         {
                 fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%u]\n",
-                                g_num_threads, g_num_parallel, (uint32_t)l_rlim.rlim_cur);
+                                g_num_threads, l_num_parallel, (uint32_t)l_rlim.rlim_cur);
                 return HURL_STATUS_ERROR;
         }
         // -------------------------------------------
@@ -3113,7 +2875,7 @@ int main(int argc, char** argv)
                 }
                 if(g_path_vector.size() > 1)
                 {
-                        g_multipath = true;
+                        g_path_multi = true;
                 }
         }
         else
@@ -3135,12 +2897,12 @@ int main(int argc, char** argv)
                 if(g_reqs_per_conn < 0)
                 {
                         fprintf(stdout, "Running %d threads %d parallel connections per thread with infinite requests per connection\n",
-                                g_num_threads, g_num_parallel);
+                                g_num_threads, l_num_parallel);
                 }
                 else
                 {
                         fprintf(stdout, "Running %d threads %d parallel connections per thread with %ld requests per connection\n",
-                                        g_num_threads, g_num_parallel, g_reqs_per_conn);
+                                        g_num_threads, l_num_parallel, g_reqs_per_conn);
                 }
         }
         // -------------------------------------------
@@ -3157,30 +2919,31 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // init
         // -------------------------------------------
+        static t_hurl_list_t l_t_hurl_list;
         for(uint32_t i_t = 0; i_t < g_num_threads; ++i_t)
         {
                 // Calculate num to request
-                int32_t l_num_to_request = -1;
-                if(g_num_to_request > 0)
+                int32_t l_num_to_request_per = -1;
+                if(l_num_to_request > 0)
                 {
                         // first thread gets remainder
-                        l_num_to_request = g_num_to_request / g_num_threads;
+                        l_num_to_request_per = l_num_to_request / g_num_threads;
                         if(i_t == 0)
                         {
-                                l_num_to_request += g_num_to_request % g_num_threads;
+                                l_num_to_request_per += l_num_to_request % g_num_threads;
                         }
                 }
-                t_hurl *l_t_hurl = new t_hurl(*l_request, g_num_parallel, l_num_to_request);
-                g_t_hurl_list.push_back(l_t_hurl);
+                t_hurl *l_t_hurl = new t_hurl(*l_request, l_num_parallel, l_num_to_request_per);
+                l_t_hurl_list.push_back(l_t_hurl);
                 l_t_hurl->init();
                 // TODO Check status
         }
         // -------------------------------------------
         // run
         // -------------------------------------------
-        g_start_time_ms = ns_hurl::get_time_ms();;
-        for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
-            i_t != g_t_hurl_list.end();
+        l_start_time_ms = ns_hurl::get_time_ms();;
+        for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
+            i_t != l_t_hurl_list.end();
             ++i_t)
         {
                 (*i_t)->m_ctx = l_ctx;
@@ -3188,15 +2951,207 @@ int main(int argc, char** argv)
                 // TODO Check status
         }
         // -------------------------------------------
-        // run command exec
+        // *******************************************
+        //              c o l o r s
+        // *******************************************
         // -------------------------------------------
-        command_exec();
-        uint64_t l_end_time_ms = ns_hurl::get_time_ms() - g_start_time_ms;
+        const char *l_c_fg_white = NULL;
+        const char *l_c_fg_red = NULL;
+        const char *l_c_fg_blue = NULL;
+        const char *l_c_fg_cyan = NULL;
+        const char *l_c_fg_magenta = NULL;
+        const char *l_c_fg_green = NULL;
+        const char *l_c_fg_yellow = NULL;
+        const char *l_c_off = NULL;
+        if(g_color)
+        {
+                l_c_fg_white = ANSI_COLOR_FG_WHITE;
+                l_c_fg_red = ANSI_COLOR_FG_RED;
+                l_c_fg_blue = ANSI_COLOR_FG_BLUE;
+                l_c_fg_cyan = ANSI_COLOR_FG_CYAN;
+                l_c_fg_magenta = ANSI_COLOR_FG_MAGENTA;
+                l_c_fg_green = ANSI_COLOR_FG_GREEN;
+                l_c_fg_yellow = ANSI_COLOR_FG_YELLOW;
+                l_c_off = ANSI_COLOR_OFF;
+        }
+        // -------------------------------------------
+        // *******************************************
+        //              command exec
+        // *******************************************
+        // -------------------------------------------
+        int i = 0;
+        char l_cmd = ' ';
+        bool l_first_time = true;
+        nonblock(NB_ENABLE);
+        // -------------------------------------------
+        // Loop forever until user quits
+        // -------------------------------------------
+        while (!g_test_finished)
+        {
+                i = kbhit();
+                if (i != 0)
+                {
+                        l_cmd = fgetc(stdin);
+                        switch (l_cmd)
+                        {
+                        // ---------------------------------
+                        // Quit
+                        // ---------------------------------
+                        case 'q':
+                        {
+                                g_test_finished = true;
+                                break;
+                        }
+                        // ---------------------------------
+                        // default
+                        // ---------------------------------
+                        default:
+                        {
+                                break;
+                        }
+                        }
+                }
+                // TODO add define...
+                usleep(l_interval_ms*1000);
+                // Check for done
+                if(l_run_time_ms != -1)
+                {
+                        int32_t l_time_delta_ms = (int32_t)(ns_hurl::get_delta_time_ms(l_start_time_ms));
+                        if(l_time_delta_ms >= l_run_time_ms)
+                        {
+                                g_test_finished = true;
+                        }
+                }
+                bool l_is_running = false;
+                for (t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
+                     i_t != l_t_hurl_list.end();
+                     ++i_t)
+                {
+                        if(!(*i_t)->m_stopped) l_is_running = true;
+                }
+                if(!l_is_running)
+                {
+                        g_test_finished = true;
+                }
+                if(g_quiet || g_verbose)
+                {
+                        // skip stats
+                        continue;
+                }
+                if(l_first_time)
+                {
+                if(l_show_response_codes)
+                {
+                printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
+                if(l_show_per_interval)
+                {
+                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                                l_c_fg_white, "Elapsed", l_c_off,
+                                l_c_fg_white, "Rsp/s", l_c_off,
+                                l_c_fg_white, "Cmpltd", l_c_off,
+                                l_c_fg_white, "Errors", l_c_off,
+                                l_c_fg_green, "200s %%", l_c_off,
+                                l_c_fg_cyan, "300s %%", l_c_off,
+                                l_c_fg_magenta, "400s %%", l_c_off,
+                                l_c_fg_red, "500s %%", l_c_off);
+                }
+                else
+                {
+                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
+                                l_c_fg_white, "Elapsed", l_c_off,
+                                l_c_fg_white, "Req/s", l_c_off,
+                                l_c_fg_white, "Cmpltd", l_c_off,
+                                l_c_fg_white, "Errors", l_c_off,
+                                l_c_fg_green, "200s", l_c_off,
+                                l_c_fg_cyan, "300s", l_c_off,
+                                l_c_fg_magenta, "400s", l_c_off,
+                                l_c_fg_red, "500s", l_c_off);
+                }
+                printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
+                }
+                else
+                {
+                printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+                printf("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
+                                l_c_fg_green, "Completed", l_c_off,
+                                l_c_fg_blue, "Requested", l_c_off,
+                                l_c_fg_magenta, "IdlKil", l_c_off,
+                                l_c_fg_red, "Errors", l_c_off,
+                                l_c_fg_yellow, "kBytes Recvd", l_c_off,
+                                "Elapsed",
+                                "Req/s",
+                                "MB/s");
+                printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+                }
+                }
+                // Get stats
+                t_stat_cntr_t l_total;
+                t_stat_calc_t l_total_calc;
+                t_stat_cntr_list_t l_thread;
+                get_stat(l_total, l_total_calc, l_thread, l_t_hurl_list);
+                // skip stat display first time
+                if(l_first_time) { l_first_time = false; continue; }
+                if(l_show_response_codes)
+                {
+                if(l_show_per_interval)
+                {
+                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
+                                ((double)(ns_hurl::get_delta_time_ms(l_start_time_ms))) / 1000.0,
+                                l_total_calc.m_resp_s,
+                                l_total.m_resp,
+                                l_total.m_errors,
+                                l_c_fg_green, l_total_calc.m_resp_status_2xx_pcnt, l_c_off,
+                                l_c_fg_cyan, l_total_calc.m_resp_status_3xx_pcnt, l_c_off,
+                                l_c_fg_magenta, l_total_calc.m_resp_status_4xx_pcnt, l_c_off,
+                                l_c_fg_red, l_total_calc.m_resp_status_5xx_pcnt, l_c_off);
+                }
+                else
+                {
+                // Aggregate over status code map
+                uint32_t l_responses[10] = {0};
+                status_code_count_map_t l_status_code_count_map;
+                get_status_codes(l_status_code_count_map, l_t_hurl_list);
+                for(status_code_count_map_t::iterator i_code = l_status_code_count_map.begin();
+                    i_code != l_status_code_count_map.end();
+                    ++i_code) {
+                        if(0) {}
+                        else if(i_code->first >= 200 && i_code->first <= 299) { l_responses[2] += i_code->second;}
+                        else if(i_code->first >= 300 && i_code->first <= 399) { l_responses[3] += i_code->second;}
+                        else if(i_code->first >= 400 && i_code->first <= 499) { l_responses[4] += i_code->second;}
+                        else if(i_code->first >= 500 && i_code->first <= 599) { l_responses[5] += i_code->second;}
+                }
+                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
+                                ((double)(ns_hurl::get_delta_time_ms(l_start_time_ms))) / 1000.0,
+                                l_total_calc.m_resp_s,
+                                l_total.m_resp,
+                                l_total.m_errors,
+                                l_c_fg_green, l_responses[2], l_c_off,
+                                l_c_fg_cyan, l_responses[3], l_c_off,
+                                l_c_fg_magenta, l_responses[4], l_c_off,
+                                l_c_fg_red, l_responses[5], l_c_off);
+                }
+                }
+                else
+                {
+                printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
+                                l_c_fg_green, l_total.m_resp, l_c_off,
+                                l_c_fg_blue, l_total.m_reqs, l_c_off,
+                                l_c_fg_magenta, l_total.m_idle_killed, l_c_off,
+                                l_c_fg_red, l_total.m_errors, l_c_off,
+                                l_c_fg_yellow, l_total_calc.m_bytes_read_s/1024.0, l_c_off,
+                                ((double)(ns_hurl::get_delta_time_ms(l_start_time_ms))) / 1000.0,
+                                l_total_calc.m_req_s,
+                                l_total_calc.m_bytes_read_s/(1024.0*1024.0)
+                                );
+                }
+        }
+        nonblock(NB_DISABLE);
+        uint64_t l_end_time_ms = ns_hurl::get_time_ms() - l_start_time_ms;
         // -------------------------------------------
         // stop
         // -------------------------------------------
-        for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
-            i_t != g_t_hurl_list.end();
+        for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
+            i_t != l_t_hurl_list.end();
             ++i_t)
         {
                 (*i_t)->stop();
@@ -3204,8 +3159,8 @@ int main(int argc, char** argv)
         // -------------------------------------------
         // Join all threads before exit
         // -------------------------------------------
-        for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
-            i_t != g_t_hurl_list.end();
+        for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
+            i_t != l_t_hurl_list.end();
             ++i_t)
         {
                 pthread_join(((*i_t)->m_t_run_thread), NULL);
@@ -3217,476 +3172,37 @@ int main(int argc, char** argv)
                 ProfilerStop();
         }
 #endif
-
         std::string l_out_str;
-        switch(l_results_scheme)
-        {
-        case RESULTS_SCHEME_STD:
-        {
-                get_results(((double)l_end_time_ms)/1000.0, l_out_str);
-                break;
-        }
-        case RESULTS_SCHEME_JSON:
-        {
-                get_results_json(((double)l_end_time_ms)/1000.0, l_out_str);
-                break;
-        }
-        case RESULTS_SCHEME_HTTP_LOAD:
-        {
-                get_results_http_load(((double)l_end_time_ms)/1000.0, l_out_str, false);
-                break;
-        }
-        case RESULTS_SCHEME_HTTP_LOAD_LINE:
-        {
-                get_results_http_load(((double)l_end_time_ms)/1000.0, l_out_str, true);
-                break;
-        }
-        default:
-        {
-                get_results(((double)l_end_time_ms)/1000.0, l_out_str);
-                break;
-        }
-        }
-
         // -------------------------------------------
-        // Write results...
-        // -------------------------------------------
-        if(l_output_file.empty())
-        {
-                if(!g_verbose)
-                {
-                        printf("%s\n", l_out_str.c_str());
-                }
-        }
-        else
-        {
-                int32_t l_num_bytes_written = 0;
-                int32_t l_s = 0;
-                // Open
-                FILE *l_file_ptr = fopen(l_output_file.c_str(), "w+");
-                if(l_file_ptr == NULL)
-                {
-                        printf("Error performing fopen. Reason: %s\n", strerror(errno));
-                        return HURL_STATUS_ERROR;
-                }
-
-                // Write
-                l_num_bytes_written = fwrite(l_out_str.c_str(), 1, l_out_str.length(), l_file_ptr);
-                if(l_num_bytes_written != (int32_t)l_out_str.length())
-                {
-                        printf("Error performing fwrite. Reason: %s\n", strerror(errno));
-                        fclose(l_file_ptr);
-                        return HURL_STATUS_ERROR;
-                }
-
-                // Close
-                l_s = fclose(l_file_ptr);
-                if(l_s != 0)
-                {
-                        printf("Error performing fclose. Reason: %s\n", strerror(errno));
-                        return HURL_STATUS_ERROR;
-                }
-        }
-
-        // -------------------------------------------
-        // Cleanup...
-        // -------------------------------------------
-        for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
-            i_t != g_t_hurl_list.end();
-            ++i_t)
-        {
-                if(*i_t)
-                {
-                        delete *i_t;
-                        *i_t = NULL;
-                }
-        }
-        g_t_hurl_list.clear();
-        if(l_request)
-        {
-                delete l_request;
-                l_request = NULL;
-        }
-        if(l_ctx)
-        {
-                SSL_CTX_free(l_ctx);
-                l_ctx = NULL;
-        }
-        return 0;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void get_stat(t_stat_cntr_t &ao_total,
-              t_stat_calc_t &ao_total_calc,
-              t_stat_cntr_list_t &ao_thread)
-{
-        // ---------------------------------------
-        // store last values -for calc'd stats
-        // ---------------------------------------
-        static t_stat_cntr_t s_last;
-        static uint64_t s_stat_last_time_ms = 0;
-
-        uint64_t l_cur_time_ms = ns_hurl::get_time_ms();
-        uint64_t l_delta_ms = l_cur_time_ms - s_stat_last_time_ms;
-
-        // ---------------------------------------
-        // Aggregate
-        // ---------------------------------------
-        ao_total.clear();
-        for(t_hurl_list_t::const_iterator i_t = g_t_hurl_list.begin();
-            i_t != g_t_hurl_list.end();
-           ++i_t)
-        {
-                ao_total.m_upsv_bytes_read += (*i_t)->m_stat.m_upsv_bytes_read;
-                ao_total.m_upsv_bytes_written += (*i_t)->m_stat.m_upsv_bytes_written;
-                ao_total.m_upsv_reqs += (*i_t)->m_stat.m_upsv_reqs;
-                ao_total.m_upsv_resp += (*i_t)->m_stat.m_upsv_resp;
-                ao_total.m_upsv_errors += (*i_t)->m_stat.m_upsv_errors;
-
-                // TODO
-                ao_total.m_upsv_idle_killed += 0;
-
-                ao_total.m_upsv_resp_status_2xx = (*i_t)->m_stat.m_upsv_resp_status_2xx;
-                ao_total.m_upsv_resp_status_3xx = (*i_t)->m_stat.m_upsv_resp_status_3xx;
-                ao_total.m_upsv_resp_status_4xx = (*i_t)->m_stat.m_upsv_resp_status_4xx;
-                ao_total.m_upsv_resp_status_5xx = (*i_t)->m_stat.m_upsv_resp_status_5xx;
-
-                add_stat(ao_total.m_upsv_stat_us_connect , (*i_t)->m_stat.m_upsv_stat_us_connect);
-                add_stat(ao_total.m_upsv_stat_us_first_response , (*i_t)->m_stat.m_upsv_stat_us_first_response);
-                add_stat(ao_total.m_upsv_stat_us_end_to_end , (*i_t)->m_stat.m_upsv_stat_us_end_to_end);
-        }
-
-        // ---------------------------------------
-        // calc'd stats
-        // ---------------------------------------
-        uint64_t l_delta_reqs = ao_total.m_upsv_reqs - s_last.m_upsv_reqs;
-        uint64_t l_delta_resp = ao_total.m_upsv_resp - s_last.m_upsv_resp;
-        //NDBG_PRINT("l_delta_resp: %lu\n", l_delta_resp);
-        if(l_delta_resp > 0)
-        {
-                ao_total_calc.m_upsv_resp_status_2xx_pcnt = 100.0*((float)(ao_total.m_upsv_resp_status_2xx - s_last.m_upsv_resp_status_2xx))/((float)l_delta_resp);
-                ao_total_calc.m_upsv_resp_status_3xx_pcnt = 100.0*((float)(ao_total.m_upsv_resp_status_3xx - s_last.m_upsv_resp_status_3xx))/((float)l_delta_resp);
-                ao_total_calc.m_upsv_resp_status_4xx_pcnt = 100.0*((float)(ao_total.m_upsv_resp_status_4xx - s_last.m_upsv_resp_status_4xx))/((float)l_delta_resp);
-                ao_total_calc.m_upsv_resp_status_5xx_pcnt = 100.0*((float)(ao_total.m_upsv_resp_status_5xx - s_last.m_upsv_resp_status_5xx))/((float)l_delta_resp);
-        }
-        if(l_delta_ms > 0)
-        {
-                ao_total_calc.m_upsv_req_s = ((float)l_delta_reqs*1000)/((float)l_delta_ms);
-                ao_total_calc.m_upsv_resp_s = ((float)l_delta_reqs*1000)/((float)l_delta_ms);
-                ao_total_calc.m_upsv_bytes_read_s = ((float)((ao_total.m_upsv_bytes_read - s_last.m_upsv_bytes_read)*1000))/((float)l_delta_ms);
-                ao_total_calc.m_upsv_bytes_write_s = ((float)((ao_total.m_upsv_bytes_written - s_last.m_upsv_bytes_written)*1000))/((float)l_delta_ms);
-        }
-
-        // -------------------------------------------------
-        // copy
-        // -------------------------------------------------
-        s_last = ao_total;
-        s_stat_last_time_ms = l_cur_time_ms;
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void display_responses_line_desc(void)
-{
-        printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
-        if(g_show_per_interval)
-        {
-                if(g_color)
-                {
-                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
-                                ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_WHITE, "Rsp/s", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_GREEN, "200s %%", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_CYAN, "300s %%", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_MAGENTA, "400s %%", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_RED, "500s %%", ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
-                                        "Elapsed",
-                                        "Req/s",
-                                        "Cmpltd",
-                                        "Errors",
-                                        "200s %%",
-                                        "300s %%",
-                                        "400s %%",
-                                        "500s %%");
-                }
-        }
-        else
-        {
-                if(g_color)
-                {
-                printf("| %s%9s%s / %s%11s%s / %s%9s%s / %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%9s%s | \n",
-                                ANSI_COLOR_FG_WHITE, "Elapsed", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_WHITE, "Req/s", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_WHITE, "Cmpltd", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_WHITE, "Errors", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_GREEN, "200s", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_CYAN, "300s", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_MAGENTA, "400s", ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_RED, "500s", ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        printf("| %9s / %11s / %9s / %9s | %9s | %9s | %9s | %9s | \n",
-                                        "Elapsed",
-                                        "Req/s",
-                                        "Cmpltd",
-                                        "Errors",
-                                        "200s",
-                                        "300s",
-                                        "400s",
-                                        "500s");
-                }
-        }
-        printf("+-----------+-------------+-----------+-----------+-----------+-----------+-----------+-----------+\n");
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static void get_status_codes(status_code_count_map_t &ao_map)
-{
-        for(t_hurl_list_t::iterator i_t = g_t_hurl_list.begin();
-            i_t != g_t_hurl_list.end();
-            ++i_t)
-        {
-                status_code_count_map_t i_m = (*i_t)->m_status_code_count_map;
-                for(status_code_count_map_t::iterator i_c = i_m.begin();
-                    i_c != i_m.end();
-                    ++i_c)
-                {
-                        ao_map[i_c->first] += i_c->second;
-                }
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void display_responses_line(void)
-{
         // Get stats
+        // -------------------------------------------
+        status_code_count_map_t l_status_code_count_map;
         t_stat_cntr_t l_total;
         t_stat_calc_t l_total_calc;
         t_stat_cntr_list_t l_thread;
-        get_stat(l_total, l_total_calc, l_thread);
-        if(g_show_per_interval)
+        get_stat(l_total, l_total_calc, l_thread, l_t_hurl_list);
+        uint64_t l_total_bytes = l_total.m_bytes_read + l_total.m_bytes_written;
+        get_status_codes(l_status_code_count_map, l_t_hurl_list);
+        double l_elapsed_time_s = ((double)l_end_time_ms)/1000.0;
+        // -------------------------------------------
+        // results str
+        // -------------------------------------------
+        if(!l_display_results_json_flag)
         {
-                if(g_color)
-                {
-                                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9.2f%s | %s%9.2f%s | %s%9.2f%s | %s%9.2f%s |\n",
-                                                ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
-                                                l_total_calc.m_upsv_resp_s,
-                                                l_total.m_upsv_resp,
-                                                l_total.m_upsv_errors,
-                                                ANSI_COLOR_FG_GREEN, l_total_calc.m_upsv_resp_status_2xx_pcnt, ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_CYAN, l_total_calc.m_upsv_resp_status_3xx_pcnt, ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_MAGENTA, l_total_calc.m_upsv_resp_status_4xx_pcnt, ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_RED, l_total_calc.m_upsv_resp_status_5xx_pcnt, ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9.2f | %9.2f | %9.2f | %9.2f |\n",
-                                        ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
-                                        l_total_calc.m_upsv_resp_s,
-                                        l_total.m_upsv_resp,
-                                        l_total.m_upsv_errors,
-                                        l_total_calc.m_upsv_resp_status_2xx_pcnt,
-                                        l_total_calc.m_upsv_resp_status_3xx_pcnt,
-                                        l_total_calc.m_upsv_resp_status_4xx_pcnt,
-                                        l_total_calc.m_upsv_resp_status_5xx_pcnt);
-                }
-        }
-        else
-        {
-                // Aggregate over status code map
-                uint32_t l_responses[10] = {0};
-                status_code_count_map_t l_status_code_count_map;
-                get_status_codes(l_status_code_count_map);
-                for(status_code_count_map_t::iterator i_code = l_status_code_count_map.begin();
-                    i_code != l_status_code_count_map.end();
-                    ++i_code)
-                {
-                        if(i_code->first >= 200 && i_code->first <= 299)
-                        {
-                                l_responses[2] += i_code->second;
-                        }
-                        else if(i_code->first >= 300 && i_code->first <= 399)
-                        {
-                                l_responses[3] += i_code->second;
-                        }
-                        else if(i_code->first >= 400 && i_code->first <= 499)
-                        {
-                                l_responses[4] += i_code->second;
-                        }
-                        else if(i_code->first >= 500 && i_code->first <= 599)
-                        {
-                                l_responses[5] += i_code->second;
-                        }
-                }
-                if(g_color)
-                {
-                                printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %s%9u%s | %s%9u%s | %s%9u%s | %s%9u%s |\n",
-                                                ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
-                                                l_total_calc.m_upsv_resp_s,
-                                                l_total.m_upsv_resp,
-                                                l_total.m_upsv_errors,
-                                                ANSI_COLOR_FG_GREEN, l_responses[2], ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_CYAN, l_responses[3], ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_MAGENTA, l_responses[4], ANSI_COLOR_OFF,
-                                                ANSI_COLOR_FG_RED, l_responses[5], ANSI_COLOR_OFF);
-                }
-                else
-                {
-                        printf("| %8.2fs / %10.2fs / %9" PRIu64 " / %9" PRIu64 " / %9u | %9u | %9u | %9u |\n",
-                                        ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
-                                        l_total_calc.m_upsv_resp_s,
-                                        l_total.m_upsv_resp,
-                                        l_total.m_upsv_errors,
-                                        l_responses[2],
-                                        l_responses[3],
-                                        l_responses[4],
-                                        l_responses[5]);
-                }
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void display_results_line_desc(void)
-{
-        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
-        if(g_color)
-        {
-        printf("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
-                        ANSI_COLOR_FG_GREEN, "Completed", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_BLUE, "Requested", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_MAGENTA, "IdlKil", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_RED, "Errors", ANSI_COLOR_OFF,
-                        ANSI_COLOR_FG_YELLOW, "kBytes Recvd", ANSI_COLOR_OFF,
-                        "Elapsed",
-                        "Req/s",
-                        "MB/s");
-        }
-        else
-        {
-                printf("| %9s / %9s | %9s | %9s | %12s | %9s | %11s | %9s |\n",
-                                "Completed",
-                                "Requested",
-                                "IdlKil",
-                                "Errors",
-                                "kBytes Recvd",
-                                "Elapsed",
-                                "Req/s",
-                                "MB/s");
-        }
-        printf("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void display_results_line(void)
-{
-        // Get stats
-        t_stat_cntr_t l_total;
-        t_stat_calc_t l_total_calc;
-        t_stat_cntr_list_t l_thread;
-        get_stat(l_total, l_total_calc, l_thread);
-        if(g_color)
-        {
-                        printf("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
-                                        ANSI_COLOR_FG_GREEN, l_total.m_upsv_resp, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_BLUE, l_total.m_upsv_reqs, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_MAGENTA, l_total.m_upsv_idle_killed, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_RED, l_total.m_upsv_errors, ANSI_COLOR_OFF,
-                                        ANSI_COLOR_FG_YELLOW, l_total_calc.m_upsv_bytes_read_s/1024.0, ANSI_COLOR_OFF,
-                                        ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms))) / 1000.0,
-                                        l_total_calc.m_upsv_req_s,
-                                        l_total_calc.m_upsv_bytes_read_s/(1024.0*1024.0)
-                                        );
-        }
-        else
-        {
-                printf("| %9" PRIu64 " / %9" PRIi64 " | %9" PRIu64 " | %9" PRIu64 " | %12.2f | %8.2fs | %10.2fs | %8.2fs |\n",
-                                l_total.m_upsv_resp,
-                                l_total.m_upsv_reqs,
-                                l_total.m_upsv_idle_killed,
-                                l_total.m_upsv_errors,
-                                ((double)(l_total.m_upsv_bytes_read))/(1024.0),
-                                ((double)(ns_hurl::get_delta_time_ms(g_start_time_ms)) / 1000.0),
-                                l_total_calc.m_upsv_req_s,
-                                l_total_calc.m_upsv_bytes_read_s/(1024.0*1024.0)
-                                );
-        }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-#define STR_PRINT(...) \
-        do { \
-                snprintf(l_buf,1024,__VA_ARGS__);\
-                ao_results+=l_buf;\
-        } while(0)
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void get_results(double a_elapsed_time,
-                 std::string &ao_results)
-{
-        // Get stats
-        t_stat_cntr_t l_total;
-        t_stat_calc_t l_total_calc;
-        t_stat_cntr_list_t l_thread;
-        get_stat(l_total, l_total_calc, l_thread);
-        std::string l_tag;
-        char l_buf[1024];
-        // TODO Fix elapse and max parallel
-        l_tag = "ALL";
-        uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
-        if(g_color)
-        {
-        STR_PRINT("| %sRESULTS%s:             %s%s%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_YELLOW, l_tag.c_str(), ANSI_COLOR_OFF);
-        }
-        else
-        {
-        STR_PRINT("| RESULTS:             %s\n", l_tag.c_str());
-        }
-        STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_upsv_resp);
-        STR_PRINT("| max parallel:        %u\n", g_num_parallel);
-        STR_PRINT("| bytes:               %e\n", (double)(l_total_bytes));
-        STR_PRINT("| seconds:             %f\n", a_elapsed_time);
-        STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_upsv_resp));
-        STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_upsv_resp)/(a_elapsed_time));
-        STR_PRINT("| bytes/sec:           %e\n", ((double)l_total_bytes)/a_elapsed_time);
-        // TODO Fix stdev/var calcs
+                std::string l_tag;
+                char l_buf[1024];
+                // TODO Fix elapse and max parallel
+                l_tag = "ALL";
+#define STR_PRINT(...) do { snprintf(l_buf,1024,__VA_ARGS__); l_out_str+=l_buf;} while(0)
+                STR_PRINT("| %sRESULTS%s:             %s%s%s\n", l_c_fg_cyan, l_c_off, l_c_fg_yellow, l_tag.c_str(), l_c_off);
+                STR_PRINT("| fetches:             %" PRIu64 "\n", l_total.m_resp);
+                STR_PRINT("| max parallel:        %u\n", l_num_parallel);
+                STR_PRINT("| bytes:               %e\n", (double)(l_total_bytes));
+                STR_PRINT("| seconds:             %f\n", l_elapsed_time_s);
+                STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_resp));
+                STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_resp)/(l_elapsed_time_s));
+                STR_PRINT("| bytes/sec:           %e\n", ((double)l_total_bytes)/l_elapsed_time_s);
+                // TODO Fix stdev/var calcs
 #if 0
 #define SHOW_XSTAT_LINE(_tag, stat)\
         do {\
@@ -3708,153 +3224,115 @@ void get_results(double a_elapsed_time,
                stat.min()/1000.0);\
         } while(0)
 #endif
-        SHOW_XSTAT_LINE("ms/connect:", l_total.m_upsv_stat_us_connect);
-        SHOW_XSTAT_LINE("ms/1st-response:", l_total.m_upsv_stat_us_first_response);
-        SHOW_XSTAT_LINE("ms/end2end:", l_total.m_upsv_stat_us_end_to_end);
-
-        if(g_color)
-        {
-        STR_PRINT("| %sHTTP response codes%s: \n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+                SHOW_XSTAT_LINE("ms/connect:", l_total.m_stat_us_connect);
+                SHOW_XSTAT_LINE("ms/1st-response:", l_total.m_stat_us_first_response);
+                SHOW_XSTAT_LINE("ms/end2end:", l_total.m_stat_us_end_to_end);
+                STR_PRINT("| %sHTTP response codes%s: \n", l_c_fg_green, l_c_off);
+                for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+                    i_status_code != l_status_code_count_map.end();
+                    ++i_status_code)
+                {
+                        STR_PRINT("| %s%3d%s -- %u\n", l_c_fg_magenta, i_status_code->first, l_c_off, i_status_code->second);
+                }
         }
         else
         {
-        STR_PRINT("| HTTP response codes: \n");
-        }
-        status_code_count_map_t l_status_code_count_map;
-        get_status_codes(l_status_code_count_map);
-        for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
-            i_status_code != l_status_code_count_map.end();
-            ++i_status_code)
-        {
-                if(g_color)
+                rapidjson::Document l_body;
+                l_body.SetObject();
+                rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
+#define ADD_MEMBER(_l, _v) l_body.AddMember(_l, _v, l_alloc)
+                ADD_MEMBER("fetches", l_total.m_resp);
+                ADD_MEMBER("max-parallel", l_num_parallel);
+                ADD_MEMBER("bytes", (double)(l_total_bytes));
+                ADD_MEMBER("seconds", l_elapsed_time_s);
+                ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_resp));
+                ADD_MEMBER("fetches-per-sec", ((double)l_total.m_resp)/(l_elapsed_time_s));
+                ADD_MEMBER("bytes-per-sec", ((double)l_total_bytes)/l_elapsed_time_s);
+                // TODO Fix stdev/var calcs
+                ADD_MEMBER("connect-ms-mean", l_total.m_stat_us_connect.mean()/1000.0);
+                ADD_MEMBER("connect-ms-max", l_total.m_stat_us_connect.max()/1000.0);
+                ADD_MEMBER("connect-ms-min", l_total.m_stat_us_connect.min()/1000.0);
+                ADD_MEMBER("1st-resp-ms-mean", l_total.m_stat_us_first_response.mean()/1000.0);
+                ADD_MEMBER("1st-resp-ms-max", l_total.m_stat_us_first_response.max()/1000.0);
+                ADD_MEMBER("1st-resp-ms-min", l_total.m_stat_us_first_response.min()/1000.0);
+                ADD_MEMBER("end2end-ms-mean", l_total.m_stat_us_end_to_end.mean()/1000.0);
+                ADD_MEMBER("end2end-ms-max", l_total.m_stat_us_end_to_end.max()/1000.0);
+                ADD_MEMBER("end2end-ms-min", l_total.m_stat_us_end_to_end.min()/1000.0);
+                if(l_status_code_count_map.size())
                 {
-                STR_PRINT("| %s%3d%s -- %u\n", ANSI_COLOR_FG_MAGENTA, i_status_code->first, ANSI_COLOR_OFF, i_status_code->second);
-                }
-                else
+                rapidjson::Value l_obj;
+                l_obj.SetObject();
+                for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
+                    i_status_code != l_status_code_count_map.end();
+                    ++i_status_code)
                 {
-                STR_PRINT("| %3d -- %u\n", i_status_code->first, i_status_code->second);
+                        char l_buf[16]; snprintf(l_buf,16,"%3d",i_status_code->first);
+                        l_obj.AddMember(rapidjson::Value(l_buf, l_alloc).Move(), i_status_code->second, l_alloc);
+                }
+                l_body.AddMember("response-codes", l_obj, l_alloc);
+                }
+                rapidjson::StringBuffer l_strbuf;
+                rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
+                l_body.Accept(l_writer);
+                l_out_str.assign(l_strbuf.GetString(), l_strbuf.GetSize());
+        }
+        // -------------------------------------------
+        // Write results...
+        // -------------------------------------------
+        if(l_output_file.empty())
+        {
+                if(!g_verbose)
+                {
+                        printf("%s\n", l_out_str.c_str());
                 }
         }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void get_results_http_load(double a_elapsed_time,
-                           std::string &ao_results,
-                           bool a_one_line_flag)
-{
-        // Get stats
-        t_stat_cntr_t l_total;
-        t_stat_calc_t l_total_calc;
-        t_stat_cntr_list_t l_thread;
-        get_stat(l_total, l_total_calc, l_thread);
-        std::string l_tag;
-        // Separator
-        std::string l_sep = "\n";
-        if(a_one_line_flag) l_sep = "||";
-
-        // TODO Fix elapse and max parallel
-        l_tag = "State";
-        char l_buf[1024];
-        uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
-        STR_PRINT("%s: ", l_tag.c_str());
-        STR_PRINT("%" PRIu64 " fetches, ", l_total.m_upsv_resp);
-        STR_PRINT("%u max parallel, ", g_num_parallel);
-        STR_PRINT("%e bytes, ", (double)(l_total_bytes));
-        STR_PRINT("in %f seconds, ", a_elapsed_time);
-        STR_PRINT("%s", l_sep.c_str());
-        STR_PRINT("%f mean bytes/connection, ", ((double)l_total_bytes)/((double)l_total.m_upsv_resp));
-        STR_PRINT("%s", l_sep.c_str());
-        STR_PRINT("%f fetches/sec, %e bytes/sec", ((double)l_total.m_upsv_resp)/(a_elapsed_time), ((double)l_total_bytes)/a_elapsed_time);
-        STR_PRINT("%s", l_sep.c_str());
-#define SHOW_XSTAT_LINE_LEGACY(_tag, stat)\
-        STR_PRINT("%s %.6f mean, %.6f max, %.6f min, %.6f stdev",\
-               _tag,                                          \
-               stat.mean()/1000.0,                            \
-               stat.max()/1000.0,                             \
-               stat.min()/1000.0,                             \
-               stat.stdev()/1000.0);                          \
-        printf("%s", l_sep.c_str())
-        SHOW_XSTAT_LINE_LEGACY("msecs/connect:", l_total.m_upsv_stat_us_connect);
-        SHOW_XSTAT_LINE_LEGACY("msecs/first-response:", l_total.m_upsv_stat_us_first_response);
-        SHOW_XSTAT_LINE_LEGACY("msecs/end2end:", l_total.m_upsv_stat_us_end_to_end);
-        STR_PRINT("HTTP response codes: ");
-        if(l_sep == "\n")
+        else
         {
-        STR_PRINT("%s", l_sep.c_str());
+                int32_t l_num_bytes_written = 0;
+                int32_t l_s = 0;
+                FILE *l_file_ptr = fopen(l_output_file.c_str(), "w+");
+                if(l_file_ptr == NULL)
+                {
+                        printf("Error performing fopen. Reason: %s\n", strerror(errno));
+                        return HURL_STATUS_ERROR;
+                }
+                l_num_bytes_written = fwrite(l_out_str.c_str(), 1, l_out_str.length(), l_file_ptr);
+                if(l_num_bytes_written != (int32_t)l_out_str.length())
+                {
+                        printf("Error performing fwrite. Reason: %s\n", strerror(errno));
+                        fclose(l_file_ptr);
+                        return HURL_STATUS_ERROR;
+                }
+                l_s = fclose(l_file_ptr);
+                if(l_s != 0)
+                {
+                        printf("Error performing fclose. Reason: %s\n", strerror(errno));
+                        return HURL_STATUS_ERROR;
+                }
         }
-        status_code_count_map_t l_status_code_count_map;
-        get_status_codes(l_status_code_count_map);
-        for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
-            i_status_code != l_status_code_count_map.end();
-            ++i_status_code)
+        // -------------------------------------------
+        // Cleanup...
+        // -------------------------------------------
+        for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
+            i_t != l_t_hurl_list.end();
+            ++i_t)
         {
-        STR_PRINT("code %d -- %u, ", i_status_code->first, i_status_code->second);
+                if(*i_t)
+                {
+                        delete *i_t;
+                        *i_t = NULL;
+                }
         }
-}
-
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-void get_results_json(double a_elapsed_time,
-                      std::string &ao_results)
-{
-        // Get stats
-        t_stat_cntr_t l_total;
-        t_stat_calc_t l_total_calc;
-        t_stat_cntr_list_t l_thread;
-        get_stat(l_total, l_total_calc, l_thread);
-        uint64_t l_total_bytes = l_total.m_upsv_bytes_read + l_total.m_upsv_bytes_written;
-        rapidjson::Document l_body;
-        l_body.SetObject();
-        rapidjson::Document::AllocatorType& l_alloc = l_body.GetAllocator();
-#define ADD_MEMBER(_l, _v) \
-        l_body.AddMember(_l, _v, l_alloc)
-
-        ADD_MEMBER("fetches", l_total.m_upsv_resp);
-        ADD_MEMBER("max-parallel", g_num_parallel);
-        ADD_MEMBER("bytes", (double)(l_total_bytes));
-        ADD_MEMBER("seconds", a_elapsed_time);
-        ADD_MEMBER("mean-bytes-per-conn", ((double)l_total_bytes)/((double)l_total.m_upsv_resp));
-        ADD_MEMBER("fetches-per-sec", ((double)l_total.m_upsv_resp)/(a_elapsed_time));
-        ADD_MEMBER("bytes-per-sec", ((double)l_total_bytes)/a_elapsed_time);
-
-        // TODO Fix stdev/var calcs
-        // Stats
-        ADD_MEMBER("connect-ms-mean", l_total.m_upsv_stat_us_connect.mean()/1000.0);
-        ADD_MEMBER("connect-ms-max", l_total.m_upsv_stat_us_connect.max()/1000.0);
-        ADD_MEMBER("connect-ms-min", l_total.m_upsv_stat_us_connect.min()/1000.0);
-
-        ADD_MEMBER("1st-resp-ms-mean", l_total.m_upsv_stat_us_first_response.mean()/1000.0);
-        ADD_MEMBER("1st-resp-ms-max", l_total.m_upsv_stat_us_first_response.max()/1000.0);
-        ADD_MEMBER("1st-resp-ms-min", l_total.m_upsv_stat_us_first_response.min()/1000.0);
-
-        ADD_MEMBER("end2end-ms-mean", l_total.m_upsv_stat_us_end_to_end.mean()/1000.0);
-        ADD_MEMBER("end2end-ms-max", l_total.m_upsv_stat_us_end_to_end.max()/1000.0);
-        ADD_MEMBER("end2end-ms-min", l_total.m_upsv_stat_us_end_to_end.min()/1000.0);
-
-        status_code_count_map_t l_status_code_count_map;
-        get_status_codes(l_status_code_count_map);
-        if(l_status_code_count_map.size())
+        l_t_hurl_list.clear();
+        if(l_request)
         {
-        rapidjson::Value l_obj;
-        l_obj.SetObject();
-        for(status_code_count_map_t::const_iterator i_status_code = l_status_code_count_map.begin();
-            i_status_code != l_status_code_count_map.end();
-            ++i_status_code)
+                delete l_request;
+                l_request = NULL;
+        }
+        if(l_ctx)
         {
-                char l_buf[16]; snprintf(l_buf,16,"%3d",i_status_code->first);
-                l_obj.AddMember(rapidjson::Value(l_buf, l_alloc).Move(), i_status_code->second, l_alloc);
+                SSL_CTX_free(l_ctx);
+                l_ctx = NULL;
         }
-        l_body.AddMember("response-codes", l_obj, l_alloc);
-        }
-        rapidjson::StringBuffer l_strbuf;
-        rapidjson::Writer<rapidjson::StringBuffer> l_writer(l_strbuf);
-        l_body.Accept(l_writer);
-        ao_results.assign(l_strbuf.GetString(), l_strbuf.GetSize());
+        return 0;
 }
