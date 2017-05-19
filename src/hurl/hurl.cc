@@ -2514,13 +2514,13 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'p':
                 {
-                        int32_t l_num_parallel = atoi(optarg);
-                        if (l_num_parallel < 1)
+                        int32_t l_val = atoi(optarg);
+                        if (l_val < 1)
                         {
                                 printf("Error num parallel must be at least 1\n");
                                 return HURL_STATUS_ERROR;
                         }
-                        l_num_parallel = l_num_parallel;
+                        l_num_parallel = l_val;
                         break;
                 }
                 // -----------------------------------------
@@ -2528,13 +2528,13 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'f':
                 {
-                        int32_t l_end_fetches = atoi(optarg);
-                        if (l_end_fetches < 1)
+                        int32_t l_val = atoi(optarg);
+                        if (l_val < 1)
                         {
                                 printf("Error fetches must be at least 1\n");
                                 return HURL_STATUS_ERROR;
                         }
-                        l_num_to_request = l_end_fetches;
+                        l_num_to_request = l_val;
                         break;
                 }
                 // -----------------------------------------
@@ -2610,14 +2610,14 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'A':
                 {
-                        int l_rate = atoi(optarg);
-                        if (l_rate < 1)
+                        int l_val = atoi(optarg);
+                        if (l_val < 1)
                         {
                                 printf("Error: rate must be at least 1\n");
                                 //print_usage(stdout, -1);
                                 return HURL_STATUS_ERROR;
                         }
-                        g_rate_delta_us = 1000000 / l_rate;
+                        g_rate_delta_us = 1000000 / l_val;
                         break;
                 }
                 // -----------------------------------------
@@ -2625,9 +2625,9 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'M':
                 {
-                        std::string l_order = optarg;
-                        if(l_order == "sequential") { g_path_order_random = false; }
-                        else if(l_order == "random"){ g_path_order_random = true;}
+                        std::string l_val = optarg;
+                        if(l_val == "sequential") { g_path_order_random = false; }
+                        else if(l_val == "random"){ g_path_order_random = true;}
                         else
                         {
                                 printf("Error: Mode must be [roundrobin|sequential|random]\n");
@@ -2641,14 +2641,14 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'l':
                 {
-                        int l_run_time_s = atoi(optarg);
-                        if (l_run_time_s < 1)
+                        int l_val = atoi(optarg);
+                        if (l_val < 1)
                         {
                                 printf("Error: seconds must be at least 1\n");
                                 //print_usage(stdout, -1);
                                 return HURL_STATUS_ERROR;
                         }
-                        l_run_time_ms = l_run_time_s*1000;
+                        l_run_time_ms = l_val*1000;
                         break;
                 }
                 // -----------------------------------------
@@ -2658,14 +2658,14 @@ int main(int argc, char** argv)
                 {
                         //NDBG_PRINT("arg: --fetches: %s\n", optarg);
                         //g_end_type = END_FETCHES;
-                        int l_subreq_timeout_s = atoi(optarg);
-                        if (l_subreq_timeout_s < 1)
+                        int l_val = atoi(optarg);
+                        if (l_val < 1)
                         {
                                 printf("timeout must be > 0\n");
                                 //print_usage(stdout, -1);
                                 return HURL_STATUS_ERROR;
                         }
-                        l_request->m_timeout_ms = l_subreq_timeout_s*1000;
+                        l_request->m_timeout_ms = l_val*1000;
                         break;
                 }
                 // -----------------------------------------
@@ -2739,14 +2739,14 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'U':
                 {
-                        int l_interval_ms = atoi(optarg);
-                        if (l_interval_ms < 1)
+                        int l_val = atoi(optarg);
+                        if (l_val < 1)
                         {
                                 printf("Error: Update interval must be > 0 ms\n");
                                 //print_usage(stdout, -1);
                                 return HURL_STATUS_ERROR;
                         }
-                        l_interval_ms = l_interval_ms;
+                        l_interval_ms = l_val;
                         break;
                 }
                 // -----------------------------------------
@@ -2757,18 +2757,18 @@ int main(int argc, char** argv)
 
 #define ELIF_TRACE_STR(_level) else if(strncasecmp(_level, l_arg.c_str(), sizeof(_level)) == 0)
 
-                        bool l_trace = false;
+                        bool l_val = false;
                         if(0) {}
-                        ELIF_TRACE_STR("error") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR); l_trace = true; }
-                        ELIF_TRACE_STR("warn") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_WARN); l_trace = true; }
-                        ELIF_TRACE_STR("debug") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_DEBUG); l_trace = true; }
-                        ELIF_TRACE_STR("verbose") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_VERBOSE); l_trace = true; }
-                        ELIF_TRACE_STR("all") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ALL); l_trace = true; }
+                        ELIF_TRACE_STR("error") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR); l_val = true; }
+                        ELIF_TRACE_STR("warn") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_WARN); l_val = true; }
+                        ELIF_TRACE_STR("debug") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_DEBUG); l_val = true; }
+                        ELIF_TRACE_STR("verbose") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_VERBOSE); l_val = true; }
+                        ELIF_TRACE_STR("all") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ALL); l_val = true; }
                         else
                         {
                                 ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
                         }
-                        if(l_trace)
+                        if(l_val)
                         {
                                 ns_hurl::trc_log_file_open("/dev/stdout");
                         }
