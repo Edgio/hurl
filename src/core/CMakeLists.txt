@@ -177,5 +177,13 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     DEPENDS hurlcore udns
   )
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  add_custom_command(
+    TARGET hurlcore
+    POST_BUILD
+    COMMAND cp libhurlcore.a libhurl.a
+    DEPENDS hurlcore udns
+  )
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 ENDIF()
 

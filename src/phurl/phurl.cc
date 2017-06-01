@@ -56,6 +56,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
+#include <errno.h>
 #include <termios.h>
 #include <signal.h>
 #include <sys/types.h>

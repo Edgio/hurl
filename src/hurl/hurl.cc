@@ -2901,7 +2901,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                        fprintf(stdout, "Running %d threads %d parallel connections per thread with %ld requests per connection\n",
+                        fprintf(stdout, "Running %d threads %d parallel connections per thread with %lld requests per connection\n",
                                         g_num_threads, l_num_parallel, g_reqs_per_conn);
                 }
         }
