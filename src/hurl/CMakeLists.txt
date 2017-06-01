@@ -55,7 +55,11 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/hurl.1 DESTINATION ${CMAKE_INSTALL_PRE
 add_executable(hurl_cmd ${HDRS} ${SRCS})
 add_dependencies(hurl_cmd hurlcore)
 SET_TARGET_PROPERTIES(hurl_cmd PROPERTIES OUTPUT_NAME "hurl")
-target_link_libraries(hurl_cmd ${CMAKE_BINARY_DIR}/src/core/libhurl.a ${LIBRARIES})
+target_link_libraries(hurl_cmd
+  ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
+  ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
+  ${LIBRARIES}
+)
 install(TARGETS hurl_cmd
   DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
   COMPONENT Executables

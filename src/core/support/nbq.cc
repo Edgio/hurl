@@ -31,6 +31,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdint.h>
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
+#endif
+#include <inttypes.h>
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: Macros
@@ -461,7 +466,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
         }
         if(a_offset >= m_cur_write_offset)
         {
-                TRC_ERROR("requested split at offset: %llu > write_offset: %llu\n", a_offset, m_cur_write_offset);
+                TRC_ERROR("requested split at offset: %" PRIu64 " > write_offset: %" PRIu64 "\n", a_offset, m_cur_write_offset);
                 return HURL_STATUS_ERROR;
         }
 
@@ -496,7 +501,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 nb_t &l_b = *(*i_b);
                 if(i_offset >= l_b.written())
                 {
-                        TRC_ERROR("i_offset: %llu >= l_b.written(): %u\n", i_offset, l_b.written());
+                        TRC_ERROR("i_offset: %" PRIu64 " >= l_b.written(): %u\n", i_offset, l_b.written());
                         return HURL_STATUS_ERROR;
                 }
                 // write the remainder

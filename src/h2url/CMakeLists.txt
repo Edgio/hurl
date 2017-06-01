@@ -64,8 +64,9 @@ SET_TARGET_PROPERTIES(h2url_cmd
   PROPERTIES OUTPUT_NAME "h2url"
 )
 target_link_libraries(h2url_cmd
-  ${CMAKE_BINARY_DIR}/src/core/libhurl.a
   ${CMAKE_BINARY_DIR}/ext/nghttp2/src/libnghttp2.a
+  ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
+  ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
   ${LIBRARIES}
 )
 install(TARGETS

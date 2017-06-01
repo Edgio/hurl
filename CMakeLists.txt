@@ -62,11 +62,12 @@ message("    Build with Undefined Behavior Sanitizer:   " "BUILD_UBSAN          
 message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
 message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU            " ${BUILD_UBUNTU})
 message("")
-
+# ------------------------------------------------------------------------------
+# fortify options
+# ------------------------------------------------------------------------------
 if (FORTIFY)
   add_definitions(-D_FORTIFY_SOURCE=2 -O1 -fstack-protector-all -Wl,-z,relro,-z,now)
 endif()
-
 # ------------------------------------------------------------------------------
 # \brief   Find ubuntu packages based on their (optional) include and (required) library test files
 # \details
@@ -121,7 +122,6 @@ macro(find_ubuntu_package output_var_prefix include_test_file
           LIST(APPEND CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST "${ubuntu_build_package}")
   endif()
 endmacro(find_ubuntu_package)
-
 # ------------------------------------------------------------------------------
 # ASAN
 # ------------------------------------------------------------------------------
@@ -141,16 +141,13 @@ elseif (BUILD_UBSAN)
   set(BUILD_PROFILER OFF)
   set(BUILD_TCMALLOC OFF)
 endif()
-
 # ------------------------------------------------------------------------------
 # Libraries options
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} pthread)
-
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(LIBRARIES ${LIBRARIES} rt)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-
 # ------------------------------------------------------------------------------
 # Mac OS X
 # ------------------------------------------------------------------------------
@@ -164,7 +161,6 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    INCLUDE_DIRECTORIES(/usr/local/opt/openssl/include)
    LINK_DIRECTORIES(/usr/local/opt/openssl/lib)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-
 # ------------------------------------------------------------------------------
 # Link OpenSSL
 # ------------------------------------------------------------------------------
@@ -175,7 +171,6 @@ if (BUILD_UBUNTU)
 else()
   set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
-
 # ------------------------------------------------------------------------------
 # Build PROFILER
 # ------------------------------------------------------------------------------
@@ -187,7 +182,6 @@ if (BUILD_PROFILER)
     set(LIBRARIES ${LIBRARIES} tcmalloc profiler)
   endif()
 endif()
-
 # ------------------------------------------------------------------------------
 # Build TCMALLOC
 # ------------------------------------------------------------------------------
@@ -201,7 +195,6 @@ if (BUILD_TCMALLOC)
     set(LIBRARIES ${LIBRARIES} tcmalloc)
   endif()
 endif()
-
 # ------------------------------------------------------------------------------
 # Build EFENCE
 # ------------------------------------------------------------------------------
@@ -212,7 +205,6 @@ if (BUILD_EFENCE)
     set(LIBRARIES ${LIBRARIES} efence)
   endif()
 endif()
-
 # ------------------------------------------------------------------------------
 # Build UDNS
 # ------------------------------------------------------------------------------
@@ -225,31 +217,30 @@ if(BUILD_UDNS)
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
     BINARY_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
     CONFIGURE_COMMAND "./configure"
-    BUILD_COMMAND make
+    BUILD_COMMAND $(MAKE) COMMAND $(MAKE)
     INSTALL_COMMAND ""
   )
   add_definitions(-DASYNC_DNS_WITH_UDNS=1)
 endif()
-
+# ------------------------------------------------------------------------------
+# package failures
+# ------------------------------------------------------------------------------
 if (FAILED_PACKAGES)
   LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
   string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
   message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
 endif()
-
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} dl)
 message(STATUS "Libraries: ${LIBRARIES}")
-
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------
 # make the cmake list variables into .deb-compatible strings
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST}")
-
 # ------------------------------------------------------------------------------
 # Optional flags
 # ------------------------------------------------------------------------------
@@ -261,7 +252,6 @@ endif()
 if (BUILD_SYMBOLS)
   add_definitions(-g3)
 endif()
-
 # ------------------------------------------------------------------------------
 # Version
 # ------------------------------------------------------------------------------
@@ -271,7 +261,6 @@ if(NOT ${VERSION} MATCHES ^[0-9]+.[0-9]+)
 Does it start with a number?")
 endif()
 add_definitions(-DHURL_VERSION="${VERSION}")
-
 # ------------------------------------------------------------------------------
 # Debian Package Support
 # ------------------------------------------------------------------------------
@@ -311,7 +300,6 @@ if (BUILD_TESTS)
   enable_testing()
   add_subdirectory(tests)
 endif()
-
 # ------------------------------------------------------------------------------
 # add uninstall target
 # ------------------------------------------------------------------------------
@@ -319,6 +307,5 @@ configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
   IMMEDIATE @ONLY)
-
 add_custom_target(uninstall
   COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake)

@@ -55,7 +55,11 @@ INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/phurl.1 DESTINATION ${CMAKE_INSTALL_PR
 add_executable(phurl_cmd ${HDRS} ${SRCS})
 add_dependencies(phurl_cmd hurlcore)
 SET_TARGET_PROPERTIES(phurl_cmd PROPERTIES OUTPUT_NAME "phurl")
-target_link_libraries(phurl_cmd ${CMAKE_BINARY_DIR}/src/core/libhurl.a ${LIBRARIES})
+target_link_libraries(phurl_cmd
+  ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
+  ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
+  ${LIBRARIES}
+)
 install(TARGETS phurl_cmd
   DESTINATION ${CMAKE_INSTALL_PREFIX}/bin/
   COMPONENT Executables
