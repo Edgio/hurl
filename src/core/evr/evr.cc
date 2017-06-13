@@ -46,8 +46,7 @@ evr_loop::evr_loop(evr_loop_type_t a_type,
         m_loop_type(a_type),
         m_events(NULL),
         m_stopped(false),
-        m_evr(NULL),
-        m_attr_mask(0)
+        m_evr(NULL)
 {
 
         // -------------------------------------------
@@ -56,7 +55,6 @@ evr_loop::evr_loop(evr_loop_type_t a_type,
         // -------------------------------------------
         m_events = (evr_event_t *)malloc(sizeof(evr_event_t)*m_max_events);
         //std::vector<struct epoll_event> l_epoll_event_vector(m_max_parallel_connections);
-
         // -------------------------------------------
         // Get the event handler...
         // -------------------------------------------
@@ -200,7 +198,7 @@ int32_t evr_loop::run(void)
                 if(l_events & EVR_EV_VAL_READABLE)
                 {
                         if(l_evr_fd->m_read_cb &&
-                          (m_attr_mask & EVR_FILE_ATTR_VAL_READABLE))
+                          (l_evr_fd->m_attr_mask & EVR_FILE_ATTR_VAL_READABLE))
                         {
                                 int32_t l_status;
                                 //NDBG_PRINT("%sEVENTS%s: %s%sREAD%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_RED, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
@@ -225,7 +223,7 @@ int32_t evr_loop::run(void)
                 if(l_events & EVR_EV_VAL_WRITEABLE)
                 {
                         if(l_evr_fd->m_write_cb &&
-                           (m_attr_mask & EVR_FILE_ATTR_VAL_WRITEABLE))
+                          (l_evr_fd->m_attr_mask & EVR_FILE_ATTR_VAL_WRITEABLE))
                         {
                                 int32_t l_status;
                                 //NDBG_PRINT("%sEVENTS%s: %s%sWRITE%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_BLUE, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
@@ -272,10 +270,14 @@ int32_t evr_loop::run(void)
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
+        if(!a_evr_fd_event)
+        {
+                return HURL_STATUS_ERROR;
+        }
         int l_status;
         //NDBG_PRINT("%sADD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
         l_status = m_evr->add(a_fd, a_attr_mask, a_evr_fd_event);
-        m_attr_mask = a_attr_mask;
+        a_evr_fd_event->m_attr_mask = a_attr_mask;
         return l_status;
 }
 //: ----------------------------------------------------------------------------
@@ -285,10 +287,14 @@ int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_even
 //: ----------------------------------------------------------------------------
 int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
+        if(!a_evr_fd_event)
+        {
+                return HURL_STATUS_ERROR;
+        }
         int l_status;
         //NDBG_PRINT("%sMOD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
         l_status = m_evr->mod(a_fd, a_attr_mask, a_evr_fd_event);
-        m_attr_mask = a_attr_mask;
+        a_evr_fd_event->m_attr_mask = a_attr_mask;
         return l_status;
 }
 //: ----------------------------------------------------------------------------

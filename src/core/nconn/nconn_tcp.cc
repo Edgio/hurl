@@ -358,7 +358,6 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
                 l_status,
                 ::strerror(errno));
         if(l_status > 0) TRC_ALL_MEM((const uint8_t*)(a_buf), (uint32_t)(l_status));
-
         //NDBG_PRINT("write: status: %d\n", l_status);
         if(l_status < 0)
         {

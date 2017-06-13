@@ -22,22 +22,19 @@
 //: ----------------------------------------------------------------------------
 #ifndef _EVR_H
 #define _EVR_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <stddef.h>
 #include <stdint.h>
-#include <queue> // for std::priority_queue
-
+// for std::priority_queue
+#include <queue>
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
 #define EVR_DEFAULT_TIME_WAIT_MS (-1)
 #define EVR_EVENT_FD_MAGIC 0xDEADF154
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
@@ -141,6 +138,7 @@ typedef struct evr_fd {
         evr_file_cb_t m_write_cb;
         evr_file_cb_t m_error_cb;
         void *m_data;
+        uint32_t m_attr_mask;
 } evr_fd_t;
 
 // Timer event
@@ -226,7 +224,6 @@ private:
         evr_event_t *m_events;
         bool m_stopped;
         evr* m_evr;
-        uint32_t m_attr_mask;
 };
 
 } //namespace ns_hurl {
