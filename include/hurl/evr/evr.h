@@ -67,6 +67,9 @@ typedef enum evr_file_attr
         EVR_FILE_ATTR_MASK_ET = 1 << 5
 } evr_file_attr_t;
 
+#define EVR_FILE_ATTR_VAL_READABLE  0x001D
+#define EVR_FILE_ATTR_VAL_WRITEABLE 0x0002
+
 typedef enum mode_enum {
         EVR_MODE_NONE = 0,
         EVR_MODE_READ,
@@ -111,6 +114,9 @@ typedef enum evr_event_types_enum
         EVR_EV_RDHUP = 0x2000,
 #define EVR_EV_RDHUP EVR_EV_RDHUP
 } evr_event_types_t;
+
+#define EVR_EV_VAL_READABLE  0x2019
+#define EVR_EV_VAL_WRITEABLE 0x0004
 
 //: ----------------------------------------------------------------------------
 //: Types
@@ -220,6 +226,7 @@ private:
         evr_event_t *m_events;
         bool m_stopped;
         evr* m_evr;
+        uint32_t m_attr_mask;
 };
 
 } //namespace ns_hurl {

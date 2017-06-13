@@ -1278,7 +1278,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                         //NDBG_PRINT("goto check_conn_status\n");
                         goto check_conn_status;
                 }
-
 check_conn_status:
                 //NDBG_PRINT("goto check_conn_status\n");
                 if(l_nconn->is_free())
@@ -1353,6 +1352,8 @@ idle_check:
         {
                 if(l_t_hurl)
                 {
+                        l_nconn->nc_set_connected();
+                        // TODO check status
                         l_t_hurl->m_idle_nconn_list.push_back(l_nconn);
                         l_t_hurl->m_active_nconn_map.erase(l_nconn);
                 }

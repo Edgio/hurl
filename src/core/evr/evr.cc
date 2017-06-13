@@ -20,7 +20,6 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
@@ -31,13 +30,10 @@
 #include "evr_select.h"
 #include "evr_epoll.h"
 #include "ndebug.h"
-
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -50,7 +46,8 @@ evr_loop::evr_loop(evr_loop_type_t a_type,
         m_loop_type(a_type),
         m_events(NULL),
         m_stopped(false),
-        m_evr(NULL)
+        m_evr(NULL),
+        m_attr_mask(0)
 {
 
         // -------------------------------------------
@@ -76,7 +73,6 @@ evr_loop::evr_loop(evr_loop_type_t a_type,
                 m_evr = new evr_select();
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -106,7 +102,6 @@ evr_loop::~evr_loop(void)
                 m_evr = NULL;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -151,7 +146,6 @@ uint32_t evr_loop::handle_timeouts(void)
         }
         return l_time_diff_ms;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -203,14 +197,13 @@ int32_t evr_loop::run(void)
                 // -------------------------------
                 // in
                 // -------------------------------
-                if((l_events & EVR_EV_IN) ||
-                   (l_events & EVR_EV_RDHUP) ||
-                   (l_events & EVR_EV_HUP) ||
-                   (l_events & EVR_EV_ERR))
+                if(l_events & EVR_EV_VAL_READABLE)
                 {
-                        if(l_evr_fd->m_read_cb)
+                        if(l_evr_fd->m_read_cb &&
+                          (m_attr_mask & EVR_FILE_ATTR_VAL_READABLE))
                         {
                                 int32_t l_status;
+                                //NDBG_PRINT("%sEVENTS%s: %s%sREAD%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_RED, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                                 l_status = l_evr_fd->m_read_cb(l_evr_fd->m_data);
                                 if(l_status != HURL_STATUS_OK)
                                 {
@@ -229,11 +222,13 @@ int32_t evr_loop::run(void)
                 // -------------------------------
                 // out
                 // -------------------------------
-                if(l_events & EVR_EV_OUT)
+                if(l_events & EVR_EV_VAL_WRITEABLE)
                 {
-                        if(l_evr_fd->m_write_cb)
+                        if(l_evr_fd->m_write_cb &&
+                           (m_attr_mask & EVR_FILE_ATTR_VAL_WRITEABLE))
                         {
                                 int32_t l_status;
+                                //NDBG_PRINT("%sEVENTS%s: %s%sWRITE%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_BLUE, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                                 l_status = l_evr_fd->m_write_cb(l_evr_fd->m_data);
                                 if(l_status != HURL_STATUS_OK)
                                 {
@@ -270,7 +265,6 @@ int32_t evr_loop::run(void)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -281,9 +275,9 @@ int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_even
         int l_status;
         //NDBG_PRINT("%sADD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
         l_status = m_evr->add(a_fd, a_attr_mask, a_evr_fd_event);
+        m_attr_mask = a_attr_mask;
         return l_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -294,9 +288,9 @@ int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_even
         int l_status;
         //NDBG_PRINT("%sMOD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
         l_status = m_evr->mod(a_fd, a_attr_mask, a_evr_fd_event);
+        m_attr_mask = a_attr_mask;
         return l_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -312,7 +306,6 @@ int32_t evr_loop::del_fd(int a_fd)
         l_status = m_evr->del(a_fd);
         return l_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -338,7 +331,6 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms,
         *ao_timer = l_timer;
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -360,7 +352,6 @@ int32_t evr_loop::cancel_timer(evr_timer_t *a_timer)
                 return HURL_STATUS_ERROR;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -375,6 +366,4 @@ int32_t evr_loop::signal(void)
         }
         return m_evr->signal();
 }
-
 } //namespace ns_hurl {
-
