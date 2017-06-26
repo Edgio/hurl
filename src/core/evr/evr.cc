@@ -105,12 +105,11 @@ evr_loop::~evr_loop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-uint32_t evr_loop::handle_timeouts(void)
+int32_t evr_loop::run(void)
 {
-        // -------------------------------------------
-        // TODO:
-        // EPOLL specific for now
-        // -------------------------------------------
+        // ---------------------------------------
+        // field timers/timeouts
+        // ---------------------------------------
         evr_timer_t *l_timer = NULL;
         uint32_t l_time_diff_ms = EVR_DEFAULT_TIME_WAIT_MS;
         // Pop events off pq until time > now
@@ -142,20 +141,6 @@ uint32_t evr_loop::handle_timeouts(void)
                         l_timer = NULL;
                 }
         }
-        return l_time_diff_ms;
-}
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t evr_loop::run(void)
-{
-        // ---------------------------------------
-        // Wait for events
-        // ---------------------------------------
-        uint32_t l_time_diff_ms = EVR_DEFAULT_TIME_WAIT_MS;
-        l_time_diff_ms = handle_timeouts();
         // ---------------------------------------
         // Wait for events
         // ---------------------------------------
@@ -170,8 +155,6 @@ int32_t evr_loop::run(void)
         }
         else if(l_num_events == 0)
         {
-                l_time_diff_ms = handle_timeouts();
-                UNUSED(l_time_diff_ms);
                 return HURL_STATUS_OK;
         }
         // ---------------------------------------

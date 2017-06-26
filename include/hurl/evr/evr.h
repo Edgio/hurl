@@ -38,6 +38,7 @@ namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
+// loop type
 typedef enum evr_loop_type
 {
 #if defined(__linux__)
@@ -47,13 +48,13 @@ typedef enum evr_loop_type
 #endif
         EVR_LOOP_SELECT
 } evr_loop_type_t;
-
+// timer state
 typedef enum evr_timer_state
 {
         EVR_TIMER_ACTIVE,
         EVR_TIMER_CANCELLED
 } evr_timer_state_t;
-
+// file attr
 typedef enum evr_file_attr
 {
         EVR_FILE_ATTR_MASK_READ = 1 << 0,
@@ -63,10 +64,7 @@ typedef enum evr_file_attr
         EVR_FILE_ATTR_MASK_HUP = 1 << 4,
         EVR_FILE_ATTR_MASK_ET = 1 << 5
 } evr_file_attr_t;
-
-#define EVR_FILE_ATTR_VAL_READABLE  0x001D
-#define EVR_FILE_ATTR_VAL_WRITEABLE 0x0002
-
+// evr mode
 typedef enum mode_enum {
         EVR_MODE_NONE = 0,
         EVR_MODE_READ,
@@ -74,7 +72,6 @@ typedef enum mode_enum {
         EVR_MODE_TIMEOUT,
         EVR_MODE_ERROR
 } evr_mode_t;
-
 //: ----------------------------------------------------------------------------
 //: \details: Types -copied from epoll
 //: ----------------------------------------------------------------------------
@@ -86,7 +83,6 @@ typedef union evr_data_union
         uint32_t u32;
         uint64_t u64;
 } evr_data_t;
-
 // event
 struct evr_event_struct
 {
@@ -94,7 +90,6 @@ struct evr_event_struct
         evr_data_t data;
 } __attribute__ ((__packed__));
 typedef evr_event_struct evr_event_t;
-
 //: ----------------------------------------------------------------------------
 //: \details: Event Types -copied from epoll
 //: ----------------------------------------------------------------------------
@@ -111,27 +106,29 @@ typedef enum evr_event_types_enum
         EVR_EV_RDHUP = 0x2000,
 #define EVR_EV_RDHUP EVR_EV_RDHUP
 } evr_event_types_t;
-
+//: ----------------------------------------------------------------------------
+//: event attributes crib'd from epoll
+//: ----------------------------------------------------------------------------
+// file attr
+#define EVR_FILE_ATTR_VAL_READABLE  0x001D
+#define EVR_FILE_ATTR_VAL_WRITEABLE 0x0002
+// event attr
 #define EVR_EV_VAL_READABLE  0x2019
 #define EVR_EV_VAL_WRITEABLE 0x0004
-
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
-
 // -----------------------------------------------
 // Callback Types
 // -----------------------------------------------
-// File callback
+// file callback
 typedef int32_t (*evr_file_cb_t)(void *);
-
-// Timer callback
+// timer callback
 typedef int32_t (*evr_timer_cb_t)(void *, void *);
-
 // -----------------------------------------------
 // Event Types
 // -----------------------------------------------
-// File event
+// file event
 typedef struct evr_fd {
         uint32_t m_magic;
         evr_file_cb_t m_read_cb;
@@ -140,8 +137,7 @@ typedef struct evr_fd {
         void *m_data;
         uint32_t m_attr_mask;
 } evr_fd_t;
-
-// Timer event
+// timer event
 typedef struct evr_timer {
         uint64_t m_time_ms;
         evr_timer_cb_t m_timer_cb;
@@ -149,7 +145,6 @@ typedef struct evr_timer {
         void *m_ctx;
         void *m_data;
 } evr_timer_t;
-
 //: ----------------------------------------------------------------------------
 //: Priority queue sorting
 //: ----------------------------------------------------------------------------
@@ -161,7 +156,6 @@ public:
         }
 };
 typedef std::priority_queue<evr_timer_t *, std::vector<evr_timer_t *>, evr_compare_timers> evr_timer_pq_t;
-
 //: ----------------------------------------------------------------------------
 //: \details: evr object -wraps OS specific implementations
 //: ----------------------------------------------------------------------------
@@ -176,7 +170,6 @@ public:
         virtual int del(int a_fd) = 0;
         virtual int signal(void) = 0;
 };
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
@@ -192,16 +185,13 @@ public:
         ~evr_loop();
         int32_t run(void);
         evr_loop_type get_loop_type(void) { return m_loop_type; }
-
         // -------------------------------------------
         // File events...
         // -------------------------------------------
         int32_t add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
         int32_t mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
         int32_t del_fd(int a_fd);
-
         uint64_t get_pq_size(void) { return m_timer_pq.size();};
-
         // -------------------------------------------
         // Timer events...
         // -------------------------------------------
@@ -215,8 +205,6 @@ public:
 private:
         evr_loop(const evr_loop&);
         evr_loop& operator=(const evr_loop&);
-        uint32_t handle_timeouts(void);
-
         // Timer priority queue -used as min heap
         evr_timer_pq_t m_timer_pq;
         uint32_t m_max_events;
@@ -225,8 +213,5 @@ private:
         bool m_stopped;
         evr* m_evr;
 };
-
 } //namespace ns_hurl {
-
 #endif
-
