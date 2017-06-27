@@ -49,7 +49,6 @@
 // internal
 #include "support/ndebug.h"
 #include "support/file_util.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -80,16 +79,13 @@
 //: ----------------------------------------------------------------------------
 #define NB_ENABLE  1
 #define NB_DISABLE 0
-
 #define MAX_READLINE_SIZE 1024
-
 #ifndef STATUS_OK
 #define STATUS_OK 0
 #endif
 #ifndef STATUS_ERROR
 #define STATUS_ERROR -1
 #endif
-
 //: ----------------------------------------------------------------------------
 //: Enums
 //: ----------------------------------------------------------------------------
@@ -100,7 +96,6 @@ typedef enum {
         OUTPUT_LINE_DELIMITED,
         OUTPUT_JSON
 } output_type_t;
-
 // ---------------------------------------
 // Output types
 // ---------------------------------------
@@ -111,7 +106,6 @@ typedef enum {
         PART_HEADERS = 1 << 3,
         PART_BODY = 1 << 4
 } output_part_t;
-
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -132,13 +126,11 @@ typedef enum {
                         return STATUS_ERROR;\
                 }\
         } while(0);
-
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
 class t_phurl;
 typedef std::list <t_phurl *> t_phurl_list_t;
-
 // -----------------------------------------------
 // request object/meta
 // -----------------------------------------------
@@ -172,10 +164,10 @@ public:
         static int32_t evr_fd_readable_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_READ);}
         static int32_t evr_fd_writeable_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_WRITE);}
         static int32_t evr_fd_error_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_ERROR);}
-        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
+        static int32_t evr_fd_timeout_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
         ns_hurl::nconn *m_nconn;
         t_phurl *m_t_phurl;
-        ns_hurl::evr_timer_t *m_timer_obj;
+        ns_hurl::evr_event_t *m_timer_obj;
         ns_hurl::resp *m_resp;
         ns_hurl::nbq *m_in_q;
         ns_hurl::nbq *m_out_q;
@@ -210,23 +202,18 @@ private:
         static int32_t run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode);
         // TODO -subr/rqst/resp/tls info?
 };
-
 //: ----------------------------------------------------------------------------
 //: Fwd decl's
 //: ----------------------------------------------------------------------------
 static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq);
-
 typedef std::list <request *> request_list_t;
 typedef std::queue<request *> request_queue_t;
-
 //: ----------------------------------------------------------------------------
 //: Globals
 //: ----------------------------------------------------------------------------
-
 // -----------------------------------------------
 // settings
 // -----------------------------------------------
-
 t_phurl_list_t g_t_phurl_list;
 bool g_conf_color = true;
 bool g_conf_verbose = false;
@@ -376,10 +363,9 @@ public:
         int32_t cancel_timer(void *a_timer) {
                 if(!m_evr_loop) return STATUS_ERROR;
                 if(!a_timer) return STATUS_OK;
-                ns_hurl::evr_timer_t *l_t = static_cast<ns_hurl::evr_timer_t *>(a_timer);
-                return m_evr_loop->cancel_timer(l_t);
+                ns_hurl::evr_event_t *l_t = static_cast<ns_hurl::evr_event_t *>(a_timer);
+                return m_evr_loop->cancel_event(l_t);
         }
-
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
@@ -423,7 +409,7 @@ int32_t request::teardown(ns_hurl::http_status_t a_status)
 {
         if(m_timer_obj)
         {
-                m_t_phurl->m_evr_loop->cancel_timer(m_timer_obj);
+                m_t_phurl->m_evr_loop->cancel_event(m_timer_obj);
                 m_timer_obj = NULL;
         }
         --(m_t_phurl->m_num_pending);
@@ -588,7 +574,7 @@ int32_t request::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                 }
                 if(l_rx)
                 {
-                        l_t_phurl->m_evr_loop->cancel_timer(l_rx->m_timer_obj);
+                        l_t_phurl->m_evr_loop->cancel_event(l_rx->m_timer_obj);
                         // TODO Check status
                         l_rx->m_timer_obj = NULL;
                         // TODO FIX!!!
@@ -698,7 +684,7 @@ int32_t request::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                            l_rx->m_resp->m_complete)
                         {
                                 // Cancel timer
-                                l_t_phurl->m_evr_loop->cancel_timer(l_rx->m_timer_obj);
+                                l_t_phurl->m_evr_loop->cancel_event(l_rx->m_timer_obj);
                                 // TODO Check status
                                 l_rx->m_timer_obj = NULL;
                                 if(g_conf_verbose && l_rx->m_resp)
@@ -943,9 +929,8 @@ int32_t t_phurl::request_start(request &a_request)
         // idle timer
         // ---------------------------------------
         // TODO ???
-        l_s = m_evr_loop->add_timer(g_conf_timeout_ms,
+        l_s = m_evr_loop->add_event(g_conf_timeout_ms,
                                     request::evr_fd_timeout_cb,
-                                    this,
                                     l_nconn,
                                     &(a_request.m_timer_obj));
         if(l_s != HURL_STATUS_OK)

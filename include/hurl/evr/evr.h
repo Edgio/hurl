@@ -48,12 +48,12 @@ typedef enum evr_loop_type
 #endif
         EVR_LOOP_SELECT
 } evr_loop_type_t;
-// timer state
-typedef enum evr_timer_state
+// event state
+typedef enum evr_event_state
 {
-        EVR_TIMER_ACTIVE,
-        EVR_TIMER_CANCELLED
-} evr_timer_state_t;
+        EVR_EVENT_ACTIVE,
+        EVR_EVENT_CANCELLED
+} evr_event_state_t;
 // file attr
 typedef enum evr_file_attr
 {
@@ -89,7 +89,7 @@ struct evr_event_struct
         uint32_t events;
         evr_data_t data;
 } __attribute__ ((__packed__));
-typedef evr_event_struct evr_event_t;
+typedef evr_event_struct evr_events_t;
 //: ----------------------------------------------------------------------------
 //: \details: Event Types -copied from epoll
 //: ----------------------------------------------------------------------------
@@ -122,40 +122,38 @@ typedef enum evr_event_types_enum
 // Callback Types
 // -----------------------------------------------
 // file callback
-typedef int32_t (*evr_file_cb_t)(void *);
-// timer callback
-typedef int32_t (*evr_timer_cb_t)(void *, void *);
+typedef int32_t (*evr_event_cb_t)(void *);
 // -----------------------------------------------
 // Event Types
 // -----------------------------------------------
 // file event
 typedef struct evr_fd {
         uint32_t m_magic;
-        evr_file_cb_t m_read_cb;
-        evr_file_cb_t m_write_cb;
-        evr_file_cb_t m_error_cb;
+        evr_event_cb_t m_read_cb;
+        evr_event_cb_t m_write_cb;
+        evr_event_cb_t m_error_cb;
         void *m_data;
         uint32_t m_attr_mask;
 } evr_fd_t;
-// timer event
-typedef struct evr_timer {
+// event
+typedef struct evr_event {
         uint64_t m_time_ms;
-        evr_timer_cb_t m_timer_cb;
-        evr_timer_state_t m_state;
-        void *m_ctx;
+        evr_event_cb_t m_cb;
+        evr_event_state_t m_state;
         void *m_data;
-} evr_timer_t;
+} evr_event_t;
 //: ----------------------------------------------------------------------------
 //: Priority queue sorting
 //: ----------------------------------------------------------------------------
-class evr_compare_timers {
+class evr_compare_events {
 public:
-        bool operator()(evr_timer_t* t1, evr_timer_t* t2) // Returns true if t1 is greater than t2
+        // Returns true if t1 is greater than t2
+        bool operator()(evr_event_t* t1, evr_event_t* t2)
         {
                 return (t1->m_time_ms > t2->m_time_ms);
         }
 };
-typedef std::priority_queue<evr_timer_t *, std::vector<evr_timer_t *>, evr_compare_timers> evr_timer_pq_t;
+typedef std::priority_queue<evr_event_t *, std::vector<evr_event_t *>, evr_compare_events> evr_event_pq_t;
 //: ----------------------------------------------------------------------------
 //: \details: evr object -wraps OS specific implementations
 //: ----------------------------------------------------------------------------
@@ -164,7 +162,7 @@ class evr
 public:
         evr() {};
         virtual ~evr() {};
-        virtual int wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec) = 0;
+        virtual int wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec) = 0;
         virtual int add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event) = 0;
         virtual int mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event) = 0;
         virtual int del(int a_fd) = 0;
@@ -191,25 +189,24 @@ public:
         int32_t add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
         int32_t mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event);
         int32_t del_fd(int a_fd);
-        uint64_t get_pq_size(void) { return m_timer_pq.size();};
+        uint64_t get_pq_size(void) { return m_event_pq.size();};
         // -------------------------------------------
         // Timer events...
         // -------------------------------------------
-        int32_t add_timer(uint32_t a_time_ms,
-                          evr_timer_cb_t a_timer_cb,
-                          void *a_ctx,
+        int32_t add_event(uint32_t a_time_ms,
+                          evr_event_cb_t a_cb,
                           void *a_data,
-                          evr_timer_t **ao_timer);
-        int32_t cancel_timer(evr_timer_t *a_timer);
+                          evr_event_t **ao_event);
+        int32_t cancel_event(evr_event_t *a_event);
         int32_t signal(void);
 private:
         evr_loop(const evr_loop&);
         evr_loop& operator=(const evr_loop&);
         // Timer priority queue -used as min heap
-        evr_timer_pq_t m_timer_pq;
+        evr_event_pq_t m_event_pq;
         uint32_t m_max_events;
         evr_loop_type_t m_loop_type;
-        evr_event_t *m_events;
+        evr_events_t *m_events;
         bool m_stopped;
         evr* m_evr;
 };

@@ -20,23 +20,19 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr_epoll.h"
 #include "ndebug.h"
 #include "hurl/status.h"
-
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -72,13 +68,12 @@ evr_epoll::evr_epoll(void):
         }
 
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_epoll::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
+int evr_epoll::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
 {
         //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
@@ -90,7 +85,6 @@ int evr_epoll::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
         //           l_epoll_status);
         return l_epoll_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -107,7 +101,6 @@ static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
         if(a_attr_mask & EVR_FILE_ATTR_MASK_ET)           l_attr |= EPOLLET;
         return l_attr;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -130,7 +123,6 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -153,7 +145,6 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -175,7 +166,6 @@ int evr_epoll::del(int a_fd)
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -195,6 +185,4 @@ int32_t evr_epoll::signal(void)
         }
         return HURL_STATUS_OK;
 }
-
 } //namespace ns_hurl {
-

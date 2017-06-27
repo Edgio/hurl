@@ -41,19 +41,18 @@ namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 evr_loop::evr_loop(evr_loop_type_t a_type,
                    uint32_t a_max_events):
-        m_timer_pq(),
+        m_event_pq(),
         m_max_events(a_max_events),
         m_loop_type(a_type),
         m_events(NULL),
         m_stopped(false),
         m_evr(NULL)
 {
-
         // -------------------------------------------
         // TODO:
         // EPOLL specific for now
         // -------------------------------------------
-        m_events = (evr_event_t *)malloc(sizeof(evr_event_t)*m_max_events);
+        m_events = (evr_events_t *)malloc(sizeof(evr_events_t)*m_max_events);
         //std::vector<struct epoll_event> l_epoll_event_vector(m_max_parallel_connections);
         // -------------------------------------------
         // Get the event handler...
@@ -79,15 +78,15 @@ evr_loop::evr_loop(evr_loop_type_t a_type,
 evr_loop::~evr_loop(void)
 {
         // Clean out timer q
-        while(!m_timer_pq.empty())
+        while(!m_event_pq.empty())
         {
-                evr_timer_t *l_timer = m_timer_pq.top();
+                evr_event_t *l_timer = m_event_pq.top();
                 if(l_timer)
                 {
                         delete l_timer;
                         l_timer = NULL;
                 }
-                m_timer_pq.pop();
+                m_event_pq.pop();
         }
         if(m_events)
         {
@@ -110,35 +109,33 @@ int32_t evr_loop::run(void)
         // ---------------------------------------
         // field timers/timeouts
         // ---------------------------------------
-        evr_timer_t *l_timer = NULL;
+        evr_event_t *l_event = NULL;
         uint32_t l_time_diff_ms = EVR_DEFAULT_TIME_WAIT_MS;
         // Pop events off pq until time > now
-        while(!m_timer_pq.empty())
+        while(!m_event_pq.empty())
         {
                 uint64_t l_now_ms = get_time_ms();
-                l_timer = m_timer_pq.top();
-                if((l_now_ms < l_timer->m_time_ms) && (l_timer->m_state != EVR_TIMER_CANCELLED))
+                l_event = m_event_pq.top();
+                if((l_now_ms < l_event->m_time_ms) && (l_event->m_state != EVR_EVENT_CANCELLED))
                 {
-                        l_time_diff_ms = l_timer->m_time_ms - l_now_ms;
+                        l_time_diff_ms = l_event->m_time_ms - l_now_ms;
                         break;
                 }
                 else
                 {
-                        // Delete
-                        m_timer_pq.pop();
-                        // If not cancelled
-                        if(l_timer->m_state != EVR_TIMER_CANCELLED)
+                        m_event_pq.pop();
+                        if(l_event->m_state != EVR_EVENT_CANCELLED)
                         {
                                 //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer,l_now_ms);
                                 int32_t l_s;
-                                l_s = l_timer->m_timer_cb(l_timer->m_ctx, l_timer->m_data);
-                                delete l_timer;
-                                l_timer = NULL;
-                                return l_s;
+                                l_s = l_event->m_cb(l_event->m_data);
+                                delete l_event;
+                                l_event = NULL;
+                                (void)l_s;
                         }
                         //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer);
-                        delete l_timer;
-                        l_timer = NULL;
+                        delete l_event;
+                        l_event = NULL;
                 }
         }
         // ---------------------------------------
@@ -300,24 +297,22 @@ int32_t evr_loop::del_fd(int a_fd)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::add_timer(uint32_t a_time_ms,
-                            evr_timer_cb_t a_timer_cb,
-                            void *a_ctx,
+int32_t evr_loop::add_event(uint32_t a_time_ms,
+                            evr_event_cb_t a_cb,
                             void *a_data,
-                            evr_timer_t **ao_timer)
+                            evr_event_t **ao_event)
 {
-        evr_timer_t *l_timer = new evr_timer_t();
-        l_timer->m_ctx = a_ctx;
-        l_timer->m_data = a_data;
-        l_timer->m_state = EVR_TIMER_ACTIVE;
-        l_timer->m_time_ms = get_time_ms() + a_time_ms;
-        l_timer->m_timer_cb = a_timer_cb;
+        evr_event_t *l_event = new evr_event_t();
+        l_event->m_data = a_data;
+        l_event->m_state = EVR_EVENT_ACTIVE;
+        l_event->m_time_ms = get_time_ms() + a_time_ms;
+        l_event->m_cb = a_cb;
         //NDBG_PRINT("%sADDING__%s[%p] TIMER: %p at %u ms --> %lu\n",
         //        ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF,
         //        a_data, l_timer,a_time_ms, l_timer->m_time_ms);
         //NDBG_PRINT_BT();
-        m_timer_pq.push(l_timer);
-        *ao_timer = l_timer;
+        m_event_pq.push(l_event);
+        *ao_event = l_event;
         return HURL_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
@@ -325,15 +320,15 @@ int32_t evr_loop::add_timer(uint32_t a_time_ms,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::cancel_timer(evr_timer_t *a_timer)
+int32_t evr_loop::cancel_event(evr_event_t *a_event)
 {
         //NDBG_PRINT("%sCANCEL__%s TIMER: %p\n",ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,a_timer);
         //NDBG_PRINT_BT();
         // TODO synchronization???
-        if(a_timer)
+        if(a_event)
         {
                 //printf("%sXXX%s: %p TIMER AT %24lu ms --> %24lu\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer,0,l_timer_event->m_time_ms);
-                a_timer->m_state = EVR_TIMER_CANCELLED;
+                a_event->m_state = EVR_EVENT_CANCELLED;
                 return HURL_STATUS_OK;
         }
         else

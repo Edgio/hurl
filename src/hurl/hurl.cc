@@ -500,7 +500,7 @@ public:
         // -------------------------------------------------
         ns_hurl::nconn *m_nconn;
         t_hurl *m_t_hurl;
-        ns_hurl::evr_timer_t *m_timer_obj;
+        ns_hurl::evr_event_t *m_timer_obj;
         ns_hurl::resp *m_resp;
         ns_hurl::nbq *m_in_q;
         ns_hurl::nbq *m_out_q;
@@ -560,7 +560,7 @@ public:
         static int32_t evr_fd_readable_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_READ);}
         static int32_t evr_fd_writeable_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_WRITE);}
         static int32_t evr_fd_error_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_ERROR);}
-        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
+        static int32_t evr_fd_timeout_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
 private:
         // -------------------------------------------------
         // Private methods
@@ -701,8 +701,8 @@ public:
         int32_t cancel_timer(void *a_timer) {
                 if(!m_evr_loop) return HURL_STATUS_ERROR;
                 if(!a_timer) return HURL_STATUS_OK;
-                ns_hurl::evr_timer_t *l_t = static_cast<ns_hurl::evr_timer_t *>(a_timer);
-                return m_evr_loop->cancel_timer(l_t);
+                ns_hurl::evr_event_t *l_t = static_cast<ns_hurl::evr_event_t *>(a_timer);
+                return m_evr_loop->cancel_event(l_t);
         }
         bool can_request(void)
         {

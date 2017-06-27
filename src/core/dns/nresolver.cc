@@ -20,7 +20,6 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
@@ -33,11 +32,9 @@
 #include "hurl/support/time_util.h"
 #include "hurl/status.h"
 #include "hurl/support/trace.h"
-
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
 #endif
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <netdb.h>
@@ -45,12 +42,9 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
-
 // for inet_pton
 #include <arpa/inet.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -64,7 +58,6 @@ std::string get_cache_key(const std::string &a_host, uint16_t a_port)
         l_cache_key = a_host + ":" + l_port_str;
         return l_cache_key;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -85,7 +78,6 @@ nresolver::nresolver():
 {
         pthread_mutex_init(&m_cache_mutex, NULL);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -101,7 +93,6 @@ nresolver::~nresolver()
         }
         pthread_mutex_destroy(&m_cache_mutex);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -123,7 +114,6 @@ int32_t nresolver::init(bool a_use_cache,
         {
                 m_ai_cache = NULL;
         }
-
 #ifdef ASYNC_DNS_WITH_UDNS
         if (dns_init(NULL, 0) < 0)
         {
@@ -131,11 +121,9 @@ int32_t nresolver::init(bool a_use_cache,
                 return HURL_STATUS_ERROR;
         }
 #endif
-
         m_is_initd = true;
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -145,7 +133,6 @@ void nresolver::add_resolver_host(const std::string a_server)
 {
         m_resolver_host_list.push_back(a_server);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -193,7 +180,6 @@ int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
         return HURL_STATUS_OK;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -233,7 +219,6 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                 pthread_mutex_unlock(&m_cache_mutex);
                 return NULL;
         }
-
         // Specified Name servers
         if(!m_resolver_host_list.empty())
         {
@@ -260,14 +245,12 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                         }
                 }
         }
-
         // set dns options
         // Note: PORT MUST be set before setting up m_sock
         // TODO make configurable
         dns_set_opt(l_adns_ctx->m_udns_ctx, DNS_OPT_TIMEOUT, m_timeout_s);
         dns_set_opt(l_adns_ctx->m_udns_ctx, DNS_OPT_NTRIES,  m_retries);
         dns_set_opt(l_adns_ctx->m_udns_ctx, DNS_OPT_PORT,    m_port);
-
         int l_fd;
         l_fd = dns_open(l_adns_ctx->m_udns_ctx);
         if (l_fd < 0)
@@ -277,7 +260,6 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                 pthread_mutex_unlock(&m_cache_mutex);
                 return NULL;
         }
-
         // Set non-blocking
         l_status = fcntl(l_fd, F_SETFL, O_NONBLOCK | O_RDWR);
         if (l_status == -1)
@@ -288,7 +270,6 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                 pthread_mutex_unlock(&m_cache_mutex);
                 return NULL;
         }
-
         // evr fd setup
         l_adns_ctx->m_evr_fd.m_data = l_adns_ctx;
         l_adns_ctx->m_evr_fd.m_magic = EVR_EVENT_FD_MAGIC;
@@ -311,7 +292,6 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
         return l_adns_ctx;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -322,7 +302,6 @@ static bool is_valid_ip_address(const char *a_str)
     struct sockaddr_in l_sa;
     return (inet_pton(AF_INET, a_str, &(l_sa.sin_addr)) != 0);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -376,7 +355,6 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         }
         return HURL_STATUS_ERROR;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: slow resolution
 //: \return:  TODO
@@ -414,7 +392,6 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         }
         return l_retval;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -434,7 +411,6 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
                         return HURL_STATUS_ERROR;
                 }
         }
-
         // tryfast lookup
         l_status = lookup_tryfast(a_host, a_port, ao_host_info);
         if(l_status == HURL_STATUS_OK)
@@ -443,7 +419,6 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
         }
         return lookup_inline(a_host, a_port, ao_host_info);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -455,7 +430,6 @@ const char *s_bytes_2_ip_str(const unsigned char *c)
         sprintf(b, "%u.%u.%u.%u", c[0], c[1], c[2], c[3]);
         return b;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: A query callback routine
 //: \return:  TODO
@@ -562,7 +536,6 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         }
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: A query callback routine
 //: \return:  TODO
@@ -587,7 +560,6 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
 //        return;
 //}
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -677,7 +649,6 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 //}
                 --l_submit;
         }
-
         // ???
         time_t l_now;
         l_now = time(NULL);
@@ -698,16 +669,14 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
         }
         // Get active number
         l_active = get_active(a_adns_ctx);
-
         // Add timer to handle timeouts
         if(l_active && !a_adns_ctx->m_timer_obj)
         {
                 evr_loop *l_el = a_adns_ctx->m_evr_loop;
                 if(l_el)
                 {
-                        l_el->add_timer(1000,                        // Timeout ms
+                        l_el->add_event(1000,                        // Timeout ms
                                         evr_fd_timeout_cb,           // timeout cb
-                                        NULL,                        // ctx * (unused)
                                         a_adns_ctx,                  // data *
                                         &(a_adns_ctx->m_timer_obj)); // timer obj
                 }
@@ -715,7 +684,6 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
         return HURL_STATUS_OK;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -747,7 +715,6 @@ int32_t nresolver::get_active(adns_ctx* a_adns_ctx)
 #endif
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -761,7 +728,6 @@ int32_t nresolver::evr_fd_writeable_cb(void *a_data)
         return HURL_STATUS_OK;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -802,7 +768,6 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
         return HURL_STATUS_OK;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -816,21 +781,20 @@ int32_t nresolver::evr_fd_error_cb(void *a_data)
         return HURL_STATUS_OK;
 }
 #endif
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
-int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
+int32_t nresolver::evr_fd_timeout_cb(void *a_data)
 {
         //NDBG_PRINT("%sTIMEOUT%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         // timeout cb
         adns_ctx *l_adns_ctx = static_cast<adns_ctx *>(a_data);
         if(!l_adns_ctx)
         {
-                TRC_ERROR("a_ctx == NULL\n");
+                TRC_ERROR("a_data == NULL\n");
                 return HURL_STATUS_ERROR;
         }
         if(l_adns_ctx->m_ctx)
@@ -850,5 +814,4 @@ int32_t nresolver::evr_fd_timeout_cb(void *a_ctx, void *a_data)
         return HURL_STATUS_OK;
 }
 #endif
-
 }

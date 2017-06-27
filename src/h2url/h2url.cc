@@ -212,7 +212,7 @@ public:
         static int32_t evr_fd_readable_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_READ);}
         static int32_t evr_fd_writeable_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_WRITE);}
         static int32_t evr_fd_error_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_ERROR);}
-        static int32_t evr_fd_timeout_cb(void *a_ctx, void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
+        static int32_t evr_fd_timeout_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
         // connected cb
         static int32_t connected_cb(ns_hurl::nconn *a_nconn, void *a_data);
         // -------------------------------------------------
@@ -233,7 +233,7 @@ public:
         SSL_CTX *m_tls_ctx;
         SSL *m_tls;
         ns_hurl::nconn *m_nconn;
-        ns_hurl::evr_timer_t *m_timer_obj;
+        ns_hurl::evr_event_t *m_timer_obj;
         ns_hurl::resp *m_resp;
         ns_hurl::nbq *m_in_q;
         ns_hurl::nbq *m_out_q;
@@ -971,7 +971,7 @@ int32_t request::teardown(ns_hurl::http_status_t a_status)
         // -------------------------------------------------
         if(m_timer_obj)
         {
-                m_evr_loop->cancel_timer(m_timer_obj);
+                m_evr_loop->cancel_event(m_timer_obj);
                 m_timer_obj = NULL;
         }
 #if 0
@@ -1125,7 +1125,7 @@ int32_t request::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                 }
                 if(l_rx)
                 {
-                        l_rx->m_evr_loop->cancel_timer(l_rx->m_timer_obj);
+                        l_rx->m_evr_loop->cancel_event(l_rx->m_timer_obj);
                         // TODO Check status
                         l_rx->m_timer_obj = NULL;
                         // TODO FIX!!!
@@ -1212,7 +1212,7 @@ int32_t request::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                            l_rx->m_resp->m_complete)
                         {
                                 // Cancel timer
-                                l_rx->m_evr_loop->cancel_timer(l_rx->m_timer_obj);
+                                l_rx->m_evr_loop->cancel_event(l_rx->m_timer_obj);
                                 // TODO Check status
                                 l_rx->m_timer_obj = NULL;
                                 // Get request time

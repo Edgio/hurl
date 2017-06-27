@@ -20,20 +20,16 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr_select.h"
 #include "ndebug.h"
 #include "hurl/status.h"
-
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -47,13 +43,12 @@ evr_select::evr_select(void) :
 	FD_ZERO(&m_rfdset);
 	FD_ZERO(&m_wfdset);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
+int evr_select::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
 {
         //NDBG_PRINT("%swait%s = %d a_max_events = %d\n",
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
@@ -67,7 +62,6 @@ int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
                 l_timeout.tv_usec = (a_timeout_msec % 1000L) * 1000L;
         }
         int l_sstat = 0;
-
         uint32_t l_fdsize = 1;
         if(m_conn_map.size())
         {
@@ -124,7 +118,6 @@ int evr_select::wait(evr_event_t* a_ev, int a_max_events, int a_timeout_msec)
         //           l_p);
         return l_p;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -139,7 +132,6 @@ int evr_select::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         mod(a_fd, a_attr_mask, a_evr_fd_event);
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -159,7 +151,6 @@ int evr_select::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) { FD_SET(a_fd, &m_rfdset); }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -175,8 +166,6 @@ int evr_select::del(int a_fd)
         FD_CLR(a_fd, &m_wfdset);
         return HURL_STATUS_OK;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -187,5 +176,4 @@ int evr_select::signal(void)
         // TODO use a pipe for signalling...
         return HURL_STATUS_OK;
 }
-
 } //namespace ns_hurl {

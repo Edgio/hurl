@@ -22,7 +22,6 @@
 //: ----------------------------------------------------------------------------
 #ifndef _NCONN_H
 #define _NCONN_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
@@ -165,9 +164,9 @@ public:
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
         void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
         void set_status(conn_status_t a_status) { m_conn_status = a_status;}
-        void setup_evr_fd(evr_file_cb_t a_read_cb,
-                          evr_file_cb_t a_write_cb,
-                          evr_file_cb_t a_error_cb)
+        void setup_evr_fd(evr_event_cb_t a_read_cb,
+                          evr_event_cb_t a_write_cb,
+                          evr_event_cb_t a_error_cb)
         {
                 m_evr_fd.m_magic = EVR_EVENT_FD_MAGIC;
                 m_evr_fd.m_read_cb = a_read_cb;
@@ -256,7 +255,6 @@ private:
                 NC_STATE_CONNECTED,
                 NC_STATE_DONE
         } nc_conn_state_t;
-
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
@@ -274,7 +272,5 @@ private:
         void *m_read_cb_data;
         nconn_cb_t m_write_cb;
 };
-
 } //namespace ns_hurl {
-
 #endif
