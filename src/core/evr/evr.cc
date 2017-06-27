@@ -104,7 +104,7 @@ evr_loop::~evr_loop(void)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t evr_loop::run(void)
+uint32_t evr_loop::dequeue_events(void)
 {
         // ---------------------------------------
         // field timers/timeouts
@@ -116,28 +116,52 @@ int32_t evr_loop::run(void)
         {
                 uint64_t l_now_ms = get_time_ms();
                 l_event = m_event_pq.top();
-                if((l_now_ms < l_event->m_time_ms) && (l_event->m_state != EVR_EVENT_CANCELLED))
-                {
-                        l_time_diff_ms = l_event->m_time_ms - l_now_ms;
-                        break;
-                }
-                else
+                if(!l_event)
                 {
                         m_event_pq.pop();
-                        if(l_event->m_state != EVR_EVENT_CANCELLED)
-                        {
-                                //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer,l_now_ms);
-                                int32_t l_s;
-                                l_s = l_event->m_cb(l_event->m_data);
-                                delete l_event;
-                                l_event = NULL;
-                                (void)l_s;
-                        }
+                        continue;
+                }
+                if(l_event->m_state == EVR_EVENT_CANCELLED)
+                {
                         //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer);
+                        m_event_pq.pop();
                         delete l_event;
                         l_event = NULL;
+                        continue;
                 }
+                uint64_t l_ev_time_ms = l_event->m_time_ms;
+                if(l_now_ms < l_ev_time_ms)
+                {
+                        l_time_diff_ms = l_ev_time_ms - l_now_ms;
+                        break;
+                }
+                // remove -service event
+                m_event_pq.pop();
+                if(l_event->m_cb)
+                {
+                        //NDBG_PRINT("%sRUNNING_%s TIMER: %p at %lu ms\n",ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,l_timer,l_now_ms);
+                        int32_t l_s;
+                        l_s = l_event->m_cb(l_event->m_data);
+                        (void)l_s;
+                }
+                //NDBG_PRINT("%sDELETING%s TIMER: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_timer);
+                delete l_event;
+                l_event = NULL;
         }
+        return l_time_diff_ms;
+}
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t evr_loop::run(void)
+{
+        // ---------------------------------------
+        // field timers/timeouts
+        // ---------------------------------------
+        uint32_t l_time_diff_ms;
+        l_time_diff_ms = dequeue_events();
         // ---------------------------------------
         // Wait for events
         // ---------------------------------------
@@ -152,6 +176,8 @@ int32_t evr_loop::run(void)
         }
         else if(l_num_events == 0)
         {
+                // dequeue any pending timeouts
+                l_time_diff_ms = dequeue_events();
                 return HURL_STATUS_OK;
         }
         // ---------------------------------------

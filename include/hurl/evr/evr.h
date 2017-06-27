@@ -202,6 +202,7 @@ public:
 private:
         evr_loop(const evr_loop&);
         evr_loop& operator=(const evr_loop&);
+        uint32_t dequeue_events(void);
         // Timer priority queue -used as min heap
         evr_event_pq_t m_event_pq;
         uint32_t m_max_events;
