@@ -20,16 +20,13 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hurl/support/time_util.h"
 #include "hurl/support/trace.h"
-
 #include "hurl/nconn/nconn_tcp.h"
 #include "ndebug.h"
-
 // Fcntl and friends
 #include <unistd.h>
 #include <fcntl.h>
@@ -38,7 +35,6 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
-
 // From wine msg groups
 // https://www.winehq.org/pipermail/wine-cvs/2007-March/030712.html
 #ifdef __MACH__
@@ -46,7 +42,6 @@
   #define SOL_TCP IPPROTO_TCP
   #endif
 #endif
-
 //: ----------------------------------------------------------------------------
 //: Macros
 //: ----------------------------------------------------------------------------
@@ -67,11 +62,6 @@
         } while(0)
 
 namespace ns_hurl {
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -109,7 +99,6 @@ int32_t nconn_tcp::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
         }
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -134,7 +123,6 @@ int32_t nconn_tcp::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -144,10 +132,8 @@ int32_t nconn_tcp::ncset_listening(int32_t a_val)
 {
         m_fd = a_val;
         m_tcp_state = TCP_STATE_LISTENING;
-
         int l_opt = 1;
         ioctl(m_fd, FIONBIO, &l_opt);
-
         // Add to event handler
         if(m_evr_loop)
         {
@@ -162,7 +148,6 @@ int32_t nconn_tcp::ncset_listening(int32_t a_val)
 
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -207,7 +192,6 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
         }
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -254,7 +238,6 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
         }
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -279,7 +262,6 @@ int32_t nconn_tcp::ncset_connected(void)
         }
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -331,7 +313,6 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
         }
         return l_bytes_read;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -389,7 +370,6 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
         }
         return l_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -474,7 +454,6 @@ int32_t nconn_tcp::ncsetup()
 
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -523,7 +502,6 @@ int32_t nconn_tcp::ncaccept()
         m_tcp_state = TCP_STATE_CONNECTED;
         return nconn::NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -657,7 +635,6 @@ state_top:
 
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -691,6 +668,7 @@ int32_t nconn_tcp::nccleanup()
                 }
                 close(m_fd);
         }
+        m_evr_fd.m_magic = 0;
         m_fd = -1;
         m_evr_loop = NULL;
         m_tcp_state = TCP_STATE_NONE;
@@ -700,7 +678,6 @@ int32_t nconn_tcp::nccleanup()
         m_num_reqs = 0;
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: nconn_utils
 //: ----------------------------------------------------------------------------
@@ -721,5 +698,4 @@ int nconn_get_fd(nconn &a_nconn)
         }
         return *l_fd;
 }
-
 } //namespace ns_hurl {

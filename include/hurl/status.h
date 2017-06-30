@@ -40,7 +40,11 @@
 #endif
 
 #ifndef HURL_STATUS_BUSY
-#define HURL_STATUS_BUSY -2
+#define HURL_STATUS_BUSY -3
+#endif
+
+#ifndef HURL_STATUS_DONE
+#define HURL_STATUS_DONE -4
 #endif
 
 #endif
