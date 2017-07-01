@@ -189,6 +189,10 @@ state_top:
                         {
                                 return l_s;
                         }
+                        case NC_STATUS_READ_UNAVAILABLE:
+                        {
+                                return l_s;
+                        }
                         default:
                         {
                                 break;
@@ -252,7 +256,7 @@ state_top:
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
 {
-        //NDBG_PRINT("%sTRY_READ%s: \n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+        //NDBG_PRINT("%sTRY_READ%s: a_in_q: %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_in_q);
         ao_read = 0;
         if(!a_in_q)
         {
@@ -268,6 +272,10 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
         int32_t l_s = 0;
         uint32_t l_read_size = 0;
         do {
+                if(a_in_q->read_avail_is_max_limit())
+                {
+                        return NC_STATUS_READ_UNAVAILABLE;
+                }
                 if(a_in_q->b_write_avail() <= 0)
                 {
                         int32_t l_s = a_in_q->b_write_add_avail();
@@ -280,7 +288,7 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                 l_read_size = a_in_q->b_write_avail();
                 //NDBG_PRINT("%sTRY_READ%s: l_read_size: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_read_size);
                 char *l_buf = a_in_q->b_write_ptr();
-                //NDBG_PRINT("%sTRY_READ%s: m_out_q->read_ptr(): %p m_out_q->read_avail(): %d\n",
+                //NDBG_PRINT("%sTRY_READ%s: m_out_q->read_ptr(): %p l_read_size: %d\n",
                 //                ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
                 //                l_buf,
                 //                l_read_size);
@@ -315,7 +323,6 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                         //???
                         continue;
                 }
-
                 ao_read += l_s;
                 //ns_hurl::mem_display((uint8_t *)(l_buf), l_bytes_read);
                 if(m_read_cb)
@@ -328,14 +335,11 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                         }
                 }
                 a_in_q->b_write_incr(l_s);
-
         // Read as much as can...
         } while((l_s > 0) &&
                 ((uint32_t)l_s <= l_read_size));
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -343,20 +347,18 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
 //: ----------------------------------------------------------------------------
 int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
 {
-        //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_out_q);
+        //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_out_q);
         ao_written = 0;
         if(!a_out_q)
         {
                 TRC_ERROR("a_out_q == NULL\n");
                 return NC_STATUS_ERROR;
         }
-
         if(!a_out_q->read_avail())
         {
                 //TRC_ERROR("Error a_out_q->read_avail() == 0\n");
                 return NC_STATUS_OK;
         }
-        //NDBG_PRINT("%sTRY_WRITE%s: l_write_size: %lu\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_out_q->read_avail());
         // -------------------------------------------------
         // while connection is writeable...
         //   wrtie up to next write size
@@ -370,7 +372,7 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                 //                a_out_q->b_read_ptr(),
                 //                a_out_q->b_read_avail());
                 l_s = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
-                //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_bytes_written);
+                //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
                 if(l_s < 0)
                 {
                         switch(l_s)
@@ -391,29 +393,25 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                 else if(l_s == 0)
                 {
                         //???
-                        continue;
+                        return NC_STATUS_OK;
                 }
-
                 ao_written += l_s;
                 if(m_write_cb)
                 {
                         int32_t l_wcb_status = m_write_cb(m_data, a_out_q->b_read_ptr(), l_s, 0);
                         if(l_wcb_status != HURL_STATUS_OK)
                         {
-                                //NDBG_PRINT("Error performing m_write_cb\n");
+                                TRC_ERROR("Error performing m_write_cb\n");
                                 return NC_STATUS_ERROR;
                         }
                 }
                 // and not error?
                 a_out_q->b_read_incr(l_s);
                 a_out_q->shrink();
-
         } while((l_s > 0) &&
                 a_out_q->read_avail());
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

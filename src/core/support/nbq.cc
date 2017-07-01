@@ -74,8 +74,7 @@ typedef struct nb_struct {
                 m_written(a_len),
                 m_read(0),
                 m_ref(true)
-        {
-        }
+        {}
         // -------------------------------------------------
         // destructor
         // -------------------------------------------------
@@ -101,20 +100,16 @@ typedef struct nb_struct {
         char *read_ptr(void) { return m_data + m_read; }
         void read_inc(uint32_t a_inc) { m_read += a_inc; }
         void read_reset(void) { m_read = 0; }
-
 private:
         // Disallow copy/assign
         nb_struct& operator=(const nb_struct &);
         nb_struct(const nb_struct &);
-
         char *m_data;
         uint32_t m_len;
         uint32_t m_written;
         uint32_t m_read;
         bool m_ref;
-
 } nb_t;
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -127,12 +122,12 @@ nbq::nbq(uint32_t a_bsize):
         m_cur_read_block(),
         m_idx(0),
         m_cur_write_offset(0),
-        m_total_read_avail(0)
+        m_total_read_avail(0),
+        m_max_read_queue(-1)
 {
         m_cur_write_block = m_q.end();
         m_cur_read_block = m_q.end();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -148,7 +143,6 @@ nbq::~nbq(void)
                 }
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -167,8 +161,7 @@ int64_t nbq::write(const char *a_buf, uint64_t a_len)
                         int32_t l_status = b_write_add_avail();
                         if(l_status <= 0)
                         {
-                                // TODO error...
-                                NDBG_PRINT("error performing b_write_add_avail\n");
+                                TRC_ERROR("error performing b_write_add_avail\n");
                                 return -1;
                         }
                 }
@@ -182,7 +175,6 @@ int64_t nbq::write(const char *a_buf, uint64_t a_len)
         }
         return l_written;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -230,7 +222,6 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
         }
         return l_written;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -269,7 +260,6 @@ int64_t nbq::write_q(nbq &a_q)
         }
         return l_written;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -283,7 +273,6 @@ char nbq::peek(void) const
         }
         return '\0';
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -314,7 +303,6 @@ int64_t nbq::read(char *a_buf, uint64_t a_len)
         }
         return l_read;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -325,7 +313,6 @@ uint64_t nbq::read_seek(uint64_t a_off)
         reset_read();
         return read(NULL, a_off);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -336,7 +323,6 @@ uint64_t nbq::read_from(uint64_t a_off, char *a_buf, uint64_t a_len)
         read_seek(a_off);
         return read(a_buf, a_len);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -355,7 +341,6 @@ void nbq::reset_read(void)
         }
         m_cur_read_block = m_q.begin();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -390,7 +375,6 @@ void nbq::reset_write(void)
         m_total_read_avail = 0;
         m_cur_write_offset = 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -414,8 +398,6 @@ void nbq::reset(void)
         m_cur_write_offset = 0;
         m_total_read_avail = 0;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: Free all read
 //: \return:  NA
@@ -425,13 +407,18 @@ void nbq::shrink(void)
 {
         while(m_q.begin() != m_cur_read_block)
         {
-                nb_t &l_nb = *(m_q.front());
+                nb_t *l_nb = m_q.front();
+                if(!l_nb)
+                {
+                        TRC_ERROR("l_nb == NULL\n");
+                        return;
+                }
                 m_q.pop_front();
-                m_cur_write_offset -= l_nb.size();
-                delete &l_nb;
+                m_cur_write_offset -= l_nb->size();
+                delete l_nb;
+                l_nb = NULL;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -451,7 +438,6 @@ void nbq::print(void)
         }
         reset_read();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -469,7 +455,6 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 TRC_ERROR("requested split at offset: %" PRIu64 " > write_offset: %" PRIu64 "\n", a_offset, m_cur_write_offset);
                 return HURL_STATUS_ERROR;
         }
-
         // ---------------------------------------
         // find block at offset
         // ---------------------------------------
@@ -491,7 +476,6 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 }
                 i_offset -= l_w;
         }
-
         // ---------------------------------------
         // create new nbq and append remainder
         // ---------------------------------------
@@ -510,7 +494,6 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 l_b.write_reset();
                 l_b.write_inc(i_offset);
         }
-
         // ---------------------------------------
         // add the tail
         // ---------------------------------------
@@ -525,24 +508,19 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 //NDBG_PRINT("adding tail block\n");
                 l_nbq->m_q.push_back(*i_b);
                 (*i_b)->read_reset();
-
                 //NDBG_PRINT("removing tail block\n");
                 m_cur_write_offset -= (*i_b)->written();
                 l_nbq->m_cur_write_offset += (*i_b)->written();
                 m_q.erase(i_b++);
         }
-
         l_nbq->m_cur_write_block = --(l_nbq->m_q.end());
         l_nbq->m_cur_read_block = l_nbq->m_q.begin();
         l_nbq->reset_read();
-
         m_cur_write_block = --m_q.end();
         reset_read();
-
         *ao_nbq_tail = l_nbq;
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -569,7 +547,6 @@ int32_t nbq::join_ref(const nbq &ao_nbq_tail)
         // Join nbq with reference nbq
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -583,7 +560,6 @@ char * nbq::b_write_ptr(void)
         }
         return (*m_cur_write_block)->write_ptr();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -597,7 +573,6 @@ uint32_t nbq::b_write_avail(void)
         }
         return (*m_cur_write_block)->write_avail();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -606,7 +581,6 @@ uint32_t nbq::b_write_avail(void)
 int32_t nbq::b_write_add_avail(void)
 {
         nb_t *l_block = new nb_struct(m_bsize);
-        //NDBG_PRINT("%s[[ADD_AVAIL]]%s: %u\n", ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF, m_bsize);
         m_q.push_back(l_block);
         if(m_q.size() == 1)
         {
@@ -621,10 +595,8 @@ int32_t nbq::b_write_add_avail(void)
                         ++m_cur_write_block;
                 }
         }
-        //NDBG_PRINT("write_avail: %u\n", (*m_cur_write_block)->write_avail());
         return (*m_cur_write_block)->write_avail();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -640,8 +612,12 @@ void nbq::b_write_incr(uint32_t a_len)
         {
                 ++m_cur_write_block;
         }
+        // check for cur read block
+        if((*m_cur_read_block)->read_avail() == 0)
+        {
+                ++m_cur_read_block;
+        }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -655,7 +631,6 @@ char *nbq::b_read_ptr(void) const
         }
         return (*m_cur_read_block)->read_ptr();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -676,7 +651,6 @@ int32_t nbq::b_read_avail(void) const
                 return (*m_cur_read_block)->read_avail();
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -693,7 +667,6 @@ void nbq::b_read_incr(uint32_t a_len)
                 ++m_cur_read_block;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -723,7 +696,6 @@ void nbq::b_display_written(void)
                 }
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -745,7 +717,6 @@ void nbq::b_display_all(void)
                 mem_display((const uint8_t *)(l_b.data()), l_b.size(), false);
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: Utils...
 //: ----------------------------------------------------------------------------
@@ -766,7 +737,6 @@ char *copy_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
         l_buf[a_len] = '\0';
         return l_buf;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -782,5 +752,4 @@ void print_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
                 l_buf = NULL;
         }
 }
-
 } // ns_hurl

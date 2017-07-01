@@ -89,7 +89,8 @@ public:
                 NC_STATUS_EOF = -6,
                 NC_STATUS_BREAK = -7,
                 NC_STATUS_IDLE = -8,
-                NC_STATUS_NONE = -9
+                NC_STATUS_READ_UNAVAILABLE = -9,
+                NC_STATUS_NONE = -10
         } status_t;
         // -------------------------------------------------
         // Successful read/write callbacks
