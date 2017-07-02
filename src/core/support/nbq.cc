@@ -418,6 +418,19 @@ void nbq::shrink(void)
                 delete l_nb;
                 l_nb = NULL;
         }
+        if(m_cur_read_block == m_cur_write_block)
+        {
+                nb_t *l_nb = (*m_cur_read_block);
+                if((l_nb->read_avail() == 0) &&
+                   (l_nb->write_avail() == 0))
+                {
+                        m_q.clear();
+                        m_cur_write_block = m_q.end();
+                        m_cur_read_block = m_q.end();
+                        m_cur_write_offset = 0;
+                        m_total_read_avail = 0;
+                }
+        }
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -613,7 +626,8 @@ void nbq::b_write_incr(uint32_t a_len)
                 ++m_cur_write_block;
         }
         // check for cur read block
-        if((*m_cur_read_block)->read_avail() == 0)
+        if((a_len > 0) &&
+           ((*m_cur_read_block)->read_avail() == 0))
         {
                 ++m_cur_read_block;
         }

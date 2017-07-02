@@ -429,6 +429,28 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 nbq_write(l_nbq, l_buf, 4*4096, 4096);
                 REQUIRE(( l_nbq.b_read_avail() == (4096)));
                 REQUIRE(( l_nbq.read_avail() == (4*4096)));
+                nbq_read(l_nbq, l_rbuf, 4096);
+                //ns_hurl::mem_display((const uint8_t *)l_rbuf, 4*4096, true);
+                l_s = verify_contents(l_rbuf, 4*4096, 0);
+                REQUIRE(( l_s == HURL_STATUS_OK ));
+                // -----------------------------------------
+                // shrink
+                // -----------------------------------------
+                l_nbq.shrink();
+                REQUIRE(( l_nbq.b_read_avail() == (0)));
+                REQUIRE(( l_nbq.read_avail() == (0)));
+                REQUIRE(( l_nbq.b_write_avail() == (0)));
+                REQUIRE(( l_nbq.b_read_avail() == (0)));
+                REQUIRE(( l_nbq.read_avail() == (0)));
+                // -----------------------------------------
+                // write after shrink
+                // -----------------------------------------
+                nbq_write(l_nbq, l_buf, 4*4096, 4096);
+                REQUIRE(( l_nbq.b_read_avail() == (4096)));
+                REQUIRE(( l_nbq.read_avail() == (4*4096)));
+                //l_nbq.b_display_all();
+                l_s = verify_contents(l_nbq, 4*4096, 0);
+                REQUIRE(( l_s == HURL_STATUS_OK ));
                 //l_nbq.b_display_all());
                 //nbq_read(l_nbq, l_buf, BLOCK_SIZE);
                 //REQUIRE(( l_nbq.read_avail() == 0 ));
