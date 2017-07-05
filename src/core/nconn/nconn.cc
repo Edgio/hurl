@@ -182,6 +182,7 @@ state_top:
                         case NC_STATUS_EOF:
                         {
                                 m_nc_state = NC_STATE_DONE;
+                                return l_s;
                         }
                         case NC_STATUS_ERROR:
                         case NC_STATUS_AGAIN:
@@ -195,6 +196,7 @@ state_top:
                         }
                         default:
                         {
+                                return l_s;
                                 break;
                         }
                         }
@@ -208,6 +210,7 @@ state_top:
                         case NC_STATUS_EOF:
                         {
                                 m_nc_state = NC_STATE_DONE;
+                                return l_s;
                         }
                         case NC_STATUS_ERROR:
                         case NC_STATUS_AGAIN:
