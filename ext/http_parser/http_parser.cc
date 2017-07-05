@@ -1205,6 +1205,12 @@ reexecute:
       /* minor HTTP version or end of request line */
       case s_req_http_minor:
       {
+        // Hack to support version strings with spaces after version number
+        // Reed P. Morrison 04/17/2016
+        if (ch == ' ') {
+          break;
+        }
+
         if (ch == CR) {
           UPDATE_STATE(s_req_line_almost_done);
           break;
