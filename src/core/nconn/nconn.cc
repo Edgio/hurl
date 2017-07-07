@@ -288,7 +288,15 @@ int32_t nconn::nc_read(nbq *a_in_q, uint32_t &ao_read)
                                 return NC_STATUS_ERROR;
                         }
                 }
-                l_read_size = a_in_q->b_write_avail();
+                if((a_in_q->get_max_read_queue() > 0) &&
+                   ((a_in_q->read_avail() + a_in_q->b_write_avail()) > (uint64_t)a_in_q->get_max_read_queue()))
+                {
+                        l_read_size = a_in_q->get_max_read_queue() - a_in_q->read_avail();
+                }
+                else
+                {
+                        l_read_size = a_in_q->b_write_avail();
+                }
                 //NDBG_PRINT("%sTRY_READ%s: l_read_size: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_read_size);
                 char *l_buf = a_in_q->b_write_ptr();
                 //NDBG_PRINT("%sTRY_READ%s: m_out_q->read_ptr(): %p l_read_size: %d\n",
