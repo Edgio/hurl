@@ -88,7 +88,7 @@
 #endif
 
 #ifndef NDBG_PRINT_BT
-#define NDBG_PRINT_BT() ns_hurl::print_bt(__FILE__,__FUNCTION__,__LINE__)
+#define NDBG_PRINT_BT() ns_hurl::print_bt(__FILE__,__FUNCTION__,__LINE__, true)
 #endif
 //: ----------------------------------------------------------------------------
 //: POD

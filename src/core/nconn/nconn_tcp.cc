@@ -138,7 +138,10 @@ int32_t nconn_tcp::ncset_listening(int32_t a_val)
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->add_fd(a_val,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP,
+                                            EVR_FILE_ATTR_MASK_READ |
+                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                            EVR_FILE_ATTR_MASK_HUP,
                                             &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket file descriptor\n");
@@ -183,7 +186,11 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->add_fd(a_val,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            EVR_FILE_ATTR_MASK_READ|
+                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                            EVR_FILE_ATTR_MASK_HUP |
+                                            EVR_FILE_ATTR_MASK_ET,
                                             &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket fd\n");
@@ -229,7 +236,11 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->add_fd(m_fd,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            EVR_FILE_ATTR_MASK_READ|
+                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                            EVR_FILE_ATTR_MASK_HUP |
+                                            EVR_FILE_ATTR_MASK_ET,
                                             &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket fd\n");
@@ -253,7 +264,11 @@ int32_t nconn_tcp::ncset_connected(void)
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            EVR_FILE_ATTR_MASK_READ|
+                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                            EVR_FILE_ATTR_MASK_HUP |
+                                            EVR_FILE_ATTR_MASK_ET,
                                             &m_evr_fd))
                 {
                         TRC_ERROR("Couldn't add socket fd\n");
@@ -348,7 +363,11 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
                         if(m_evr_loop)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                                            EVR_FILE_ATTR_MASK_WRITE|
+                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                                            EVR_FILE_ATTR_MASK_HUP |
+                                                            EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
                                         NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
@@ -566,7 +585,12 @@ state_top:
                         if(m_evr_loop)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|EVR_FILE_ATTR_MASK_ET,
+                                                            EVR_FILE_ATTR_MASK_READ |
+                                                            EVR_FILE_ATTR_MASK_WRITE |
+                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                                            EVR_FILE_ATTR_MASK_HUP |
+                                                            EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
                                         NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
@@ -623,7 +647,11 @@ state_top:
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                            EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
+                                            EVR_FILE_ATTR_MASK_READ|
+                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                            EVR_FILE_ATTR_MASK_HUP |
+                                            EVR_FILE_ATTR_MASK_ET,
                                             &m_evr_fd))
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,

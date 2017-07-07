@@ -20,37 +20,26 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hurl/support/time_util.h"
 #include "hurl/support/trace.h"
-
 #include "hurl/nconn/nconn_tls.h"
 #include "hurl/support/tls_util.h"
 #include "ndebug.h"
-
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
-
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
-
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/bio.h>
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include <openssl/x509v3.h>
-
-//: ----------------------------------------------------------------------------
-//: Macros
-//: ----------------------------------------------------------------------------
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -71,11 +60,8 @@ int32_t nconn_tls::init(void)
         }
         ::SSL_set_fd(m_tls, m_fd);
         // TODO Check for Errors
-
         const long l_tls_options = m_tls_opt_options;
-
         //NDBG_PRINT("l_tls_options: 0x%08lX\n", l_tls_options);
-
         if (l_tls_options)
         {
                 // clear all options and set specified options
@@ -87,7 +73,6 @@ int32_t nconn_tls::init(void)
                         //return NC_STATUS_ERROR;
                 }
         }
-
         if (!m_tls_opt_cipher_str.empty())
         {
                 if (1 != ::SSL_set_cipher_list(m_tls, m_tls_opt_cipher_str.c_str()))
@@ -96,7 +81,6 @@ int32_t nconn_tls::init(void)
                         return NC_STATUS_ERROR;
                 }
         }
-
         // Set tls sni extension
         if (m_tls_opt_sni && !m_tls_opt_hostname.empty())
         {
@@ -107,7 +91,6 @@ int32_t nconn_tls::init(void)
                         return NC_STATUS_ERROR;
                 }
         }
-
         // Set tls Cert verify callback ...
         if (m_tls_opt_verify)
         {
@@ -120,10 +103,8 @@ int32_t nconn_tls::init(void)
                         ::SSL_set_verify(m_tls, SSL_VERIFY_PEER, tls_cert_verify_callback);
                 }
         }
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -165,7 +146,6 @@ int32_t nconn_tls::tls_connect(void)
                         m_tls_state = TLS_STATE_TLS_CONNECTING_WANT_WRITE;
                         return NC_STATUS_AGAIN;
                 }
-
                 case SSL_ERROR_WANT_X509_LOOKUP:
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
@@ -173,7 +153,6 @@ int32_t nconn_tls::tls_connect(void)
                         //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
                 }
-
                 // look at error stack/return value/errno
                 case SSL_ERROR_SYSCALL:
                 {
@@ -214,7 +193,6 @@ int32_t nconn_tls::tls_connect(void)
                         break;
                 }
                 }
-
                 //ERR_print_errors_fp(stderr);
                 return NC_STATUS_ERROR;
         }
@@ -223,13 +201,9 @@ int32_t nconn_tls::tls_connect(void)
                 //NDBG_PRINT("CONNECTED\n");
                 m_tls_state = TLS_STATE_CONNECTED;
         }
-
         //did_connect = 1;
-
         return NC_STATUS_OK;
-
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -335,7 +309,6 @@ int32_t nconn_tls::tls_accept(void)
                         break;
                 }
                 }
-
                 //ERR_print_errors_fp(stderr);
                 //NDBG_PRINT("RETURNING ERROR\n");
                 return NC_STATUS_ERROR;
@@ -344,12 +317,9 @@ int32_t nconn_tls::tls_accept(void)
         {
                 m_tls_state = TLS_STATE_CONNECTED;
         }
-
         //did_connect = 1;
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -357,9 +327,7 @@ int32_t nconn_tls::tls_accept(void)
 //: ----------------------------------------------------------------------------
 int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
 {
-
         //NDBG_PRINT("HERE: a_opt: %d a_buf: %p\n", a_opt, a_buf);
-
         // TODO RUN SUPER
         int32_t l_status;
         l_status = nconn_tcp::set_opt(a_opt, a_buf, a_len);
@@ -371,7 +339,6 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
         {
                 return NC_STATUS_OK;
         }
-
         switch(a_opt)
         {
         case OPT_TLS_CIPHER_STR:
@@ -384,7 +351,6 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 memcpy(&m_tls_opt_options, a_buf, sizeof(long));
                 break;
         }
-
         case OPT_TLS_VERIFY:
         {
                 memcpy(&m_tls_opt_verify, a_buf, sizeof(bool));
@@ -441,10 +407,8 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
                 return NC_STATUS_UNSUPPORTED;
         }
         }
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -462,7 +426,6 @@ int32_t nconn_tls::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
         {
                 return NC_STATUS_OK;
         }
-
         switch(a_opt)
         {
         case OPT_TLS_TLS_KEY:
@@ -493,10 +456,8 @@ int32_t nconn_tls::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
                 return NC_STATUS_ERROR;
         }
         }
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -514,7 +475,6 @@ int32_t nconn_tls::ncset_listening(int32_t a_val)
         m_tls_state = TLS_STATE_LISTENING;
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -532,7 +492,6 @@ int32_t nconn_tls::ncset_listening_nb(int32_t a_val)
         m_tls_state = TLS_STATE_LISTENING;
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -546,24 +505,22 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
         {
                 return NC_STATUS_ERROR;
         }
-
         // setup tls
         init();
-
         // set connection socket to tls state
         SSL_set_fd(m_tls, a_fd);
         // TODO Check return status
-
         // set to accepting state
         m_tls_state = TLS_STATE_ACCEPTING;
-
         // Add to event handler
         if(m_evr_loop)
         {
                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                            EVR_FILE_ATTR_MASK_READ|
-                                            EVR_FILE_ATTR_MASK_RD_HUP|
-                                            EVR_FILE_ATTR_MASK_WRITE|
+                                            EVR_FILE_ATTR_MASK_READ |
+                                            EVR_FILE_ATTR_MASK_WRITE |
+                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                            EVR_FILE_ATTR_MASK_HUP |
                                             EVR_FILE_ATTR_MASK_ET,
                                             &m_evr_fd))
                 {
@@ -571,10 +528,8 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
                         return NC_STATUS_ERROR;
                 }
         }
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -590,7 +545,6 @@ int32_t nconn_tls::ncset_connected(void)
         }
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -620,8 +574,10 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
                         if(m_evr_loop)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_RD_HUP|
                                                             EVR_FILE_ATTR_MASK_READ|
+                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                                            EVR_FILE_ATTR_MASK_HUP |
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
@@ -637,6 +593,9 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
                                                             EVR_FILE_ATTR_MASK_WRITE|
+                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                                            EVR_FILE_ATTR_MASK_HUP |
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
@@ -673,11 +632,8 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
                         return NC_STATUS_ERROR;
                 }
         }
-
         return NC_STATUS_OK;
-
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -706,8 +662,10 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                         if(m_evr_loop)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_RD_HUP|
-                                                            EVR_FILE_ATTR_MASK_READ|
+                                                            EVR_FILE_ATTR_MASK_READ |
+                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                                            EVR_FILE_ATTR_MASK_HUP |
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
@@ -722,7 +680,10 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                         if(m_evr_loop)
                         {
                                 if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|
+                                                            EVR_FILE_ATTR_MASK_WRITE |
+                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                            EVR_FILE_ATTR_MASK_RD_HUP |
+                                                            EVR_FILE_ATTR_MASK_HUP |
                                                             EVR_FILE_ATTR_MASK_ET,
                                                             &m_evr_fd))
                                 {
@@ -740,7 +701,6 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
         }
         return l_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -762,7 +722,6 @@ int32_t nconn_tls::ncsetup()
         m_tls_state = TLS_STATE_CONNECTING;
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -803,8 +762,10 @@ ncaccept_state_top:
                                 if(m_evr_loop)
                                 {
                                         if (0 != m_evr_loop->mod_fd(m_fd,
-                                                                    EVR_FILE_ATTR_MASK_READ|
-                                                                    EVR_FILE_ATTR_MASK_RD_HUP|
+                                                                    EVR_FILE_ATTR_MASK_READ |
+                                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                                    EVR_FILE_ATTR_MASK_RD_HUP |
+                                                                    EVR_FILE_ATTR_MASK_HUP |
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     &m_evr_fd))
                                         {
@@ -820,8 +781,10 @@ ncaccept_state_top:
                                 if(m_evr_loop)
                                 {
                                         if (0 != m_evr_loop->mod_fd(m_fd,
-                                                                    EVR_FILE_ATTR_MASK_RD_HUP|
                                                                     EVR_FILE_ATTR_MASK_WRITE|
+                                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                                    EVR_FILE_ATTR_MASK_RD_HUP |
+                                                                    EVR_FILE_ATTR_MASK_HUP |
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     &m_evr_fd))
                                         {
@@ -845,7 +808,9 @@ ncaccept_state_top:
                 {
                         if (0 != m_evr_loop->mod_fd(m_fd,
                                                     EVR_FILE_ATTR_MASK_READ|
-                                                    EVR_FILE_ATTR_MASK_RD_HUP|
+                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                    EVR_FILE_ATTR_MASK_RD_HUP |
+                                                    EVR_FILE_ATTR_MASK_HUP |
                                                     EVR_FILE_ATTR_MASK_ET,
                                                     &m_evr_fd))
                         {
@@ -877,7 +842,6 @@ ncaccept_state_top:
 
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -932,7 +896,9 @@ ncconnect_state_top:
                                 {
                                         if (0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_READ|
-                                                                    EVR_FILE_ATTR_MASK_RD_HUP|
+                                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                                    EVR_FILE_ATTR_MASK_RD_HUP |
+                                                                    EVR_FILE_ATTR_MASK_HUP |
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     &m_evr_fd))
                                         {
@@ -949,7 +915,10 @@ ncconnect_state_top:
                                 if(m_evr_loop)
                                 {
                                         if (0 != m_evr_loop->mod_fd(m_fd,
-                                                                    EVR_FILE_ATTR_MASK_WRITE|
+                                                                    EVR_FILE_ATTR_MASK_WRITE |
+                                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                                    EVR_FILE_ATTR_MASK_RD_HUP |
+                                                                    EVR_FILE_ATTR_MASK_HUP |
                                                                     EVR_FILE_ATTR_MASK_ET,
                                                                     &m_evr_fd))
                                         {
@@ -967,15 +936,16 @@ ncconnect_state_top:
                 {
                         return NC_STATUS_ERROR;
                 }
-
                 // -------------------------------------------
                 // Add to event handler
                 // -------------------------------------------
                 if(m_evr_loop)
                 {
                         if (0 != m_evr_loop->mod_fd(m_fd,
-                                                    EVR_FILE_ATTR_MASK_READ|
-                                                    EVR_FILE_ATTR_MASK_RD_HUP|
+                                                    EVR_FILE_ATTR_MASK_READ |
+                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
+                                                    EVR_FILE_ATTR_MASK_RD_HUP |
+                                                    EVR_FILE_ATTR_MASK_HUP |
                                                     EVR_FILE_ATTR_MASK_ET,
                                                     &m_evr_fd))
                         {
@@ -1020,10 +990,8 @@ ncconnect_state_top:
                 return NC_STATUS_ERROR;
         }
         }
-
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1045,7 +1013,6 @@ int32_t nconn_tls::nccleanup()
         nconn_tcp::nccleanup();
         return NC_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: nconn_utils
 //: ----------------------------------------------------------------------------
@@ -1066,7 +1033,6 @@ SSL *nconn_get_SSL(nconn &a_nconn)
         }
         return l_ssl;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1084,7 +1050,4 @@ long nconn_get_last_SSL_err(nconn &a_nconn)
         }
         return l_err;
 }
-
-
-
 } //namespace ns_hurl {
