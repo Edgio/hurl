@@ -1,10 +1,12 @@
 #!/bin/bash
 # ==============================================================================
-# Run tests with nose
+# Run tests with pytest
 # ==============================================================================
+export CMAKE_BINARY_DIR=$1
 TESTS_LOCATION=$(dirname $0)
 if [ -n "$1" ]; then
-    nosetests -w ${TESTS_LOCATION} --nocapture --processes=1 --process-timeout=600 $1
+    pytest -v $1
 else
-    nosetests -w ${TESTS_LOCATION} --nocapture --processes=1 --process-timeout=600
+    #--durations=2 ==> find out which tests are the slowest. 
+    pytest -v --durations=2 ${TESTS_LOCATION}
 fi

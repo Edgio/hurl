@@ -18,11 +18,9 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-
 # Project setup
 project(hurl)
 cmake_minimum_required(VERSION 2.8.0)
-
 # ------------------------------------------------------------------------------
 # Resolve dependencies
 # ------------------------------------------------------------------------------
@@ -51,18 +49,15 @@ function(find_python_module module)
                 message(STATUS "Found Python module ${module} at ${_${module}_location}")
         endif()
 endfunction(find_python_module)
-
 # ------------------------------------------------------------------------------
 # Look for required python files
 # ------------------------------------------------------------------------------
-find_python_module(nose REQUIRED)
+find_python_module(pytest REQUIRED)
 find_python_module(requests REQUIRED)
-
 # ------------------------------------------------------------------------------
 # tests
 # ------------------------------------------------------------------------------
 #add_test(blackbox_examples_hurl  ${CMAKE_CURRENT_SOURCE_DIR}/run_tests.sh ${CMAKE_CURRENT_SOURCE_DIR}/apps/bb_test_hurl.py)
-
 add_custom_target(blackbox
         ${CMAKE_SOURCE_DIR}/tests/blackbox/run_tests.sh
         DEPENDS blackbox)
