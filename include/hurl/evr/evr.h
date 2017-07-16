@@ -34,6 +34,7 @@
 //: ----------------------------------------------------------------------------
 #define EVR_DEFAULT_TIME_WAIT_MS (-1)
 #define EVR_EVENT_FD_MAGIC 0xDEADF154
+#define EVR_EVENT_MAGIC 0xDEADCAFE
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: Enums
@@ -137,6 +138,7 @@ typedef struct evr_fd {
 } evr_fd_t;
 // event
 typedef struct evr_event {
+        uint32_t m_magic;
         uint64_t m_time_ms;
         evr_event_cb_t m_cb;
         evr_event_state_t m_state;

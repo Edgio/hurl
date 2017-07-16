@@ -116,8 +116,10 @@ uint32_t evr_loop::dequeue_events(void)
         {
                 uint64_t l_now_ms = get_time_ms();
                 l_event = m_event_pq.top();
-                if(!l_event)
+                if(!l_event ||
+                   (l_event->m_magic != EVR_EVENT_MAGIC))
                 {
+                        TRC_ERROR("bad event -ignoring.\n");
                         m_event_pq.pop();
                         continue;
                 }
@@ -329,6 +331,7 @@ int32_t evr_loop::add_event(uint32_t a_time_ms,
                             evr_event_t **ao_event)
 {
         evr_event_t *l_event = new evr_event_t();
+        l_event->m_magic = EVR_EVENT_MAGIC;
         l_event->m_data = a_data;
         l_event->m_state = EVR_EVENT_ACTIVE;
         l_event->m_time_ms = get_time_ms() + a_time_ms;
@@ -354,7 +357,10 @@ int32_t evr_loop::cancel_event(evr_event_t *a_event)
         if(a_event)
         {
                 //printf("%sXXX%s: %p TIMER AT %24lu ms --> %24lu\n",ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,a_timer,0,l_timer_event->m_time_ms);
+                a_event->m_cb = NULL;
                 a_event->m_state = EVR_EVENT_CANCELLED;
+                a_event->m_data = NULL;
+                a_event->m_cb = NULL;
                 return HURL_STATUS_OK;
         }
         else
