@@ -400,9 +400,16 @@ int32_t nconn_tcp::ncsetup()
         //           get_label().c_str(),
         //           m_host_info);
         // Make a socket.
+#ifdef __linux__
+        m_fd = ::socket(m_host_info.m_sock_family,
+                        m_host_info.m_sock_type | SOCK_CLOEXEC,
+                        m_host_info.m_sock_protocol);
+#else
         m_fd = ::socket(m_host_info.m_sock_family,
                         m_host_info.m_sock_type,
                         m_host_info.m_sock_protocol);
+        fcntl(m_fd, F_SETFD, FD_CLOEXEC);
+#endif
         //NDBG_PRINT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
         if (m_fd < 0)
         {
@@ -411,7 +418,6 @@ int32_t nconn_tcp::ncsetup()
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-
         // -------------------------------------------
         // Socket options
         // -------------------------------------------
@@ -424,17 +430,14 @@ int32_t nconn_tcp::ncsetup()
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_SNDBUF, m_sock_opt_send_buf_size);
         }
-
         if(m_sock_opt_recv_buf_size)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_RCVBUF, m_sock_opt_recv_buf_size);
         }
-
         if(m_sock_opt_no_delay)
         {
                 SET_SOCK_OPT(m_fd, SOL_TCP, TCP_NODELAY, 1);
         }
-
         // -------------------------------------------
         // Can set with set_sock_opt???
         // -------------------------------------------
@@ -470,7 +473,6 @@ int32_t nconn_tcp::ncsetup()
                         return NC_STATUS_ERROR;
                 }
         }
-
         return NC_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
@@ -488,16 +490,20 @@ int32_t nconn_tcp::ncaccept()
                 bzero(&m_remote_sa, m_remote_sa_len);
                 errno = 0;
 #ifdef __linux__
-                l_fd = accept4(m_fd, (struct sockaddr *)&m_remote_sa, &m_remote_sa_len, SOCK_NONBLOCK);
+                l_fd = accept4(m_fd,
+                               (struct sockaddr *)&m_remote_sa,
+                               &m_remote_sa_len,
+                               SOCK_NONBLOCK | SOCK_CLOEXEC);
 #else
-                l_fd = accept(m_fd, (struct sockaddr *)&m_remote_sa, &m_remote_sa_len);
+                l_fd = accept(m_fd,
+                              (struct sockaddr *)&m_remote_sa,
+                              &m_remote_sa_len);
 #endif
                 if (l_fd < 0)
                 {
                         TRC_ERROR("accept failed. Reason[%d]: %s\n", errno, ::strerror(errno));
                         return NC_STATUS_ERROR;
                 }
-
 #ifndef __linux__
                 int l_s;
                 errno = 0;
@@ -514,7 +520,8 @@ int32_t nconn_tcp::ncaccept()
                         TRC_ERROR("fcntl failed. Reason[%d]: %s\n", errno, ::strerror(errno));
                         return NC_STATUS_ERROR;
                 }
-
+                fcntl(l_fd, F_SETFD, FD_CLOEXEC);
+                // TODO check for errors
 #endif
                 return l_fd;
         }
