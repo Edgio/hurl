@@ -22,20 +22,16 @@
 //: ----------------------------------------------------------------------------
 #ifndef _NCONN_TLS_H
 #define _NCONN_TLS_H
-
 //: ----------------------------------------------------------------------------
-//: Includes
+//: includes
 //: ----------------------------------------------------------------------------
 #include "nconn_tcp.h"
-
 //: ----------------------------------------------------------------------------
-//: Ext Fwd Decl's
+//: ext fwd decl's
 //: ----------------------------------------------------------------------------
 typedef struct ssl_ctx_st SSL_CTX;
 typedef struct ssl_st SSL;
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
@@ -43,37 +39,53 @@ class nconn_tls: public nconn_tcp
 {
 public:
         // ---------------------------------------
+        // Connection state
+        // ---------------------------------------
+        typedef enum tls_state
+        {
+                TLS_STATE_NONE,
+                TLS_STATE_LISTENING,
+                TLS_STATE_CONNECTING,
+                TLS_STATE_ACCEPTING,
+                // Connecting
+                TLS_STATE_TLS_CONNECTING,
+                TLS_STATE_TLS_CONNECTING_WANT_READ,
+                TLS_STATE_TLS_CONNECTING_WANT_WRITE,
+                // Accepting
+                TLS_STATE_TLS_ACCEPTING,
+                TLS_STATE_TLS_ACCEPTING_WANT_READ,
+                TLS_STATE_TLS_ACCEPTING_WANT_WRITE,
+                TLS_STATE_CONNECTED,
+                TLS_STATE_READING,
+                TLS_STATE_WRITING,
+                TLS_STATE_DONE
+        } tls_state_t;
+        // ---------------------------------------
         // Options
         // ---------------------------------------
         typedef enum tls_opt_enum
         {
                 OPT_TLS_CTX = 1000,
-
                 // Settings
                 OPT_TLS_CIPHER_STR = 1001,
                 OPT_TLS_OPTIONS = 1002,
                 OPT_TLS_SSL = 1003,
                 OPT_TLS_SSL_LAST_ERR = 1004,
-
                 // Verify options
                 OPT_TLS_VERIFY = 1100,
                 OPT_TLS_SNI = 1102,
                 OPT_TLS_HOSTNAME = 1103,
                 OPT_TLS_VERIFY_ALLOW_SELF_SIGNED = 1105,
                 OPT_TLS_VERIFY_NO_HOST_CHECK = 1106,
-
                 // CA options
                 OPT_TLS_CA_FILE = 1201,
                 OPT_TLS_CA_PATH = 1202,
-
                 // Server config
                 OPT_TLS_TLS_KEY = 1301,
                 OPT_TLS_TLS_CRT = 1302,
-
+                // sentinel
                 OPT_TLS_SENTINEL = 1999
-
         } tls_opt_t;
-
         // ---------------------------------------
         // Public methods
         // ---------------------------------------
@@ -94,10 +106,9 @@ public:
           m_tls_crt(""),
           m_tls_state(TLS_STATE_NONE),
           m_last_err(0)
-          {
+        {
                 m_scheme = SCHEME_TLS;
-          };
-
+        };
         // Destructor
         ~nconn_tls() {};
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
@@ -111,10 +122,8 @@ public:
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING) ||
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING_WANT_READ) ||
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING_WANT_WRITE));};
-
-protected:
         // -------------------------------------------------
-        // Protected methods
+        // virtual methods
         // -------------------------------------------------
         int32_t ncsetup();
         int32_t ncread(char *a_buf, uint32_t a_buf_len);
@@ -126,45 +135,15 @@ protected:
         int32_t ncset_listening_nb(int32_t a_val);
         int32_t ncset_accepting(int a_fd);
         int32_t ncset_connected(void);
-
 private:
-        // ---------------------------------------
-        // Connection state
-        // ---------------------------------------
-        typedef enum tls_state
-        {
-                TLS_STATE_NONE,
-
-                TLS_STATE_LISTENING,
-                TLS_STATE_CONNECTING,
-                TLS_STATE_ACCEPTING,
-
-                // Connecting
-                TLS_STATE_TLS_CONNECTING,
-                TLS_STATE_TLS_CONNECTING_WANT_READ,
-                TLS_STATE_TLS_CONNECTING_WANT_WRITE,
-
-                // Accepting
-                TLS_STATE_TLS_ACCEPTING,
-                TLS_STATE_TLS_ACCEPTING_WANT_READ,
-                TLS_STATE_TLS_ACCEPTING_WANT_WRITE,
-
-                TLS_STATE_CONNECTED,
-                TLS_STATE_READING,
-                TLS_STATE_WRITING,
-                TLS_STATE_DONE
-        } tls_state_t;
-
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
         nconn_tls& operator=(const nconn_tls &);
         nconn_tls(const nconn_tls &);
-
         int32_t tls_connect(void);
         int32_t tls_accept(void);
         int32_t init(void);
-
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
@@ -183,8 +162,27 @@ private:
         std::string m_tls_crt;
         tls_state_t m_tls_state;
         long m_last_err;
+        // -------------------------------------------------
+        // Private static methods
+        // -------------------------------------------------
+        static int alpn_select_next_proto_cb(SSL *a_ssl,
+                                             unsigned char **a_out,
+                                             unsigned char *a_outlen,
+                                             const unsigned char *a_in,
+                                             unsigned int a_inlen,
+                                             void *a_arg);
 };
-
+//: ----------------------------------------------------------------------------
+//: \prototypes:
+//: ----------------------------------------------------------------------------
+SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
+                      long a_options = 0,
+                      const std::string &a_ca_file = "",
+                      const std::string &a_ca_path = "",
+                      bool a_server_flag = false,
+                      const std::string &a_tls_key_file = "",
+                      const std::string &a_tls_crt_file = "");
+int32_t show_tls_info(nconn *a_nconn);
 } //namespace ns_hurl {
 
 #endif

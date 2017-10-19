@@ -22,39 +22,27 @@
 //: ----------------------------------------------------------------------------
 #ifndef _SSL_UTIL_H
 #define _SSL_UTIL_H
-
 //: ----------------------------------------------------------------------------
-//: Includes
+//: includes
 //: ----------------------------------------------------------------------------
 #include <string>
 #include <vector>
-
 //: ----------------------------------------------------------------------------
-//: Ext Fwd Decl's
+//: ext fwd decl's
 //: ----------------------------------------------------------------------------
 typedef struct ssl_ctx_st SSL_CTX;
 typedef struct ssl_st SSL;
 typedef struct x509_store_ctx_st X509_STORE_CTX;
 typedef struct x509_st X509;
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
-//: Globals
+//: globals
 //: ----------------------------------------------------------------------------
 extern __thread char gts_last_tls_error[256];
-
 //: ----------------------------------------------------------------------------
-//: Prototypes
+//: prototypes
 //: ----------------------------------------------------------------------------
 void tls_init(void);
-SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
-		      long a_options = 0,
-		      const std::string &a_ca_file = "",
-		      const std::string &a_ca_path = "",
-	              bool a_server_flag = false,
-	              const std::string &a_tls_key_file = "",
-	              const std::string &a_tls_crt_file = "");
 void tls_kill_locks(void);
 int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val);
 const char *get_tls_info_cipher_str(SSL *a_ssl);
@@ -64,7 +52,5 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
 int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store);
 int tls_cert_verify_callback(int ok, X509_STORE_CTX* store);
 bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids);
-
 } //namespace ns_hurl {
-
 #endif

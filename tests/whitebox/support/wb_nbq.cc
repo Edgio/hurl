@@ -27,7 +27,7 @@
 #include "hurl/status.h"
 #include "hurl/support/nbq.h"
 #include "hurl/support/trace.h"
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include "catch/catch.hpp"
 //: ----------------------------------------------------------------------------
 //: Constants
@@ -88,12 +88,10 @@ void nbq_read(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
         while(a_nbq.read_avail())
         {
                 int32_t l_s = 0;
-                //NDBG_PRINT(": Try read: %u\n", l_per_read_size);
                 l_s = a_nbq.read((a_buf+l_read), l_per_read_size);
                 if(l_s > 0)
                 {
                         l_read += l_s;
-                        //ns_hurl::mem_display((const uint8_t *)(a_buf+l_read), l_s, true);
                 }
         }
 }
@@ -236,8 +234,8 @@ TEST_CASE( "nbq test", "[nbq]" ) {
         }
         SECTION("Reset Writing/Writing then Reading") {
                 ns_hurl::nbq l_nbq(BLOCK_SIZE);
-                char *l_buf = create_buf(888);
-                char *l_rbuf = (char *)malloc(888);
+                char *l_buf = create_buf(1776);
+                char *l_rbuf = (char *)malloc(1776);
                 l_nbq.reset();
                 REQUIRE(( l_nbq.read_avail() == 0 ));
                 nbq_write(l_nbq, l_buf, 888, BLOCK_SIZE);
@@ -411,7 +409,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
         SECTION("write read write on boundaries") {
                 ns_hurl::nbq l_nbq(4096);
                 char *l_buf = create_uniform_buf(4*4096);
-                char *l_rbuf = (char *)malloc(4096);
+                char *l_rbuf = (char *)malloc(4*4096);
                 nbq_write(l_nbq, l_buf, 4*4096, 4096);
                 REQUIRE(( l_nbq.b_read_avail() == (4096)));
                 REQUIRE(( l_nbq.read_avail() == (4*4096)));
@@ -461,8 +459,8 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
                 if(l_buf)
                 {
-                        free(l_rbuf);
-                        l_rbuf = NULL;
+                        free(l_buf);
+                        l_buf = NULL;
                 }
         }
 }

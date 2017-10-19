@@ -26,10 +26,10 @@
 #include "hurl/status.h"
 #include "hurl/support/time_util.h"
 #include "hurl/support/trace.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/evr/evr.h"
 #include "evr_select.h"
 #include "evr_epoll.h"
-#include "ndebug.h"
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -183,9 +183,9 @@ int32_t evr_loop::run(void)
                 return HURL_STATUS_OK;
         }
         // ---------------------------------------
-        // Service them
+        // service events
         // ---------------------------------------
-        for (int i_event = 0; (i_event < l_num_events) && (!m_stopped); ++i_event)
+        for(int i_event = 0; (i_event < l_num_events) && (!m_stopped); ++i_event)
         {
                 evr_fd_t* l_evr_fd = static_cast<evr_fd_t*>(m_events[i_event].data.ptr);
                 // Validity checks
@@ -211,9 +211,14 @@ int32_t evr_loop::run(void)
                                 int32_t l_status;
                                 //NDBG_PRINT("%sEVENTS%s: %s%sREAD%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_RED, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                                 l_status = l_evr_fd->m_read_cb(l_evr_fd->m_data);
+                                if(l_status == HURL_STATUS_DONE)
+                                {
+                                        // Skip handling more events for this fd
+                                        continue;
+                                }
                                 if(l_status != HURL_STATUS_OK)
                                 {
-                                        //NDBG_PRINT("Error\n");
+                                        TRC_ERROR("performing read_cb\n");
                                         // Skip handling more events for this fd
                                         continue;
                                 }
@@ -222,6 +227,7 @@ int32_t evr_loop::run(void)
                            (l_events & EVR_EV_ERR))
                         {
                                 // Skip handling more events for this fd
+                                TRC_ERROR("EVR_EV_HUP/EVR_EV_ERR\n");
                                 continue;
                         }
                 }
@@ -236,9 +242,14 @@ int32_t evr_loop::run(void)
                                 int32_t l_status;
                                 //NDBG_PRINT("%sEVENTS%s: %s%sWRITE%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_BLUE, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                                 l_status = l_evr_fd->m_write_cb(l_evr_fd->m_data);
+                                if(l_status == HURL_STATUS_DONE)
+                                {
+                                        // Skip handling more events for this fd
+                                        continue;
+                                }
                                 if(l_status != HURL_STATUS_OK)
                                 {
-                                        //NDBG_PRINT("Error\n");
+                                        TRC_ERROR("performing write_cb\n");
                                         // Skip handling more events for this fd
                                         continue;
                                 }
@@ -260,6 +271,11 @@ int32_t evr_loop::run(void)
                 //        {
                 //                int32_t l_status = HURL_STATUS_OK;
                 //                l_status = l_evr_event->m_error_cb(l_evr_event->m_data);
+                //                if(l_status == HURL_STATUS_DONE)
+                //                {
+                //                        // Skip handling more events for this fd
+                //                        continue;
+                //                }
                 //                if(l_status != HURL_STATUS_OK)
                 //                {
                 //                        //NDBG_PRINT("Error: l_status: %d\n", l_status);

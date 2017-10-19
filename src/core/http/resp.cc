@@ -20,20 +20,17 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/http/cb.h"
 #include "hurl/support/nbq.h"
 #include "hurl/http/resp.h"
 #include "hurl/support/trace.h"
 #include "hurl/status.h"
 #include "http_parser/http_parser.h"
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -48,7 +45,6 @@ resp::resp(void):
 {
         init(m_save);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -57,7 +53,6 @@ resp::resp(void):
 resp::~resp(void)
 {
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -67,7 +62,6 @@ void resp::clear(void)
 {
         init(m_save);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -110,7 +104,6 @@ void resp::init(bool a_save)
                 http_parser_init(m_http_parser, HTTP_RESPONSE);
         }
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Getters
 //: ----------------------------------------------------------------------------
@@ -123,7 +116,6 @@ uint16_t resp::get_status(void)
 {
         return m_status;
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Setters
 //: ----------------------------------------------------------------------------
@@ -136,7 +128,6 @@ void resp::set_status(http_status_t a_code)
 {
         m_status = a_code;
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Debug
 //: ----------------------------------------------------------------------------
@@ -164,5 +155,4 @@ void resp::show(void)
         print_part(*m_q, m_p_body.m_off, m_p_body.m_len);
         TRC_OUTPUT("\r\n");
 }
-
 } //namespace ns_hurl {

@@ -25,7 +25,7 @@
 //: ----------------------------------------------------------------------------
 #include "hurl/dns/ai_cache.h"
 #include "hurl/dns/nresolver.h"
-#include "ndebug.h"
+#include "hurl/support/time_util.h"
 #include "hurl/dns/nlookup.h"
 #include "hurl/evr/evr.h"
 #include "hurl/nconn/host_info.h"
@@ -188,11 +188,11 @@ int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
 #ifdef ASYNC_DNS_SUPPORT
 nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_cb a_cb)
 {
-        int32_t l_status;
+        int32_t l_s;
         if(!m_is_initd)
         {
-                l_status = init();
-                if(l_status != HURL_STATUS_OK)
+                l_s = init();
+                if(l_s != HURL_STATUS_OK)
                 {
                         return NULL;
                 }
@@ -211,8 +211,8 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                 pthread_mutex_unlock(&m_cache_mutex);
                 return NULL;
         }
-        l_status = dns_init(l_adns_ctx->m_udns_ctx, 0);
-        if(l_status < 0)
+        l_s = dns_init(l_adns_ctx->m_udns_ctx, 0);
+        if(l_s < 0)
         {
                 TRC_ERROR("performing dns_init\n");
                 delete l_adns_ctx;
@@ -223,8 +223,8 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
         if(!m_resolver_host_list.empty())
         {
                 // reset nameserver list
-                l_status = dns_add_serv(l_adns_ctx->m_udns_ctx, NULL);
-                if(l_status < 0)
+                l_s = dns_add_serv(l_adns_ctx->m_udns_ctx, NULL);
+                if(l_s < 0)
                 {
                         TRC_ERROR("performing dns_add_serv\n");
                         delete l_adns_ctx;
@@ -235,8 +235,8 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                     i_s != m_resolver_host_list.end();
                     ++i_s)
                 {
-                        l_status = dns_add_serv(l_adns_ctx->m_udns_ctx, i_s->c_str());
-                        if(l_status < 0)
+                        l_s = dns_add_serv(l_adns_ctx->m_udns_ctx, i_s->c_str());
+                        if(l_s < 0)
                         {
                                 TRC_ERROR("performing dns_add_serv\n");
                                 delete l_adns_ctx;
@@ -261,8 +261,8 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
                 return NULL;
         }
         // Set non-blocking
-        l_status = fcntl(l_fd, F_SETFL, O_NONBLOCK | O_RDWR);
-        if (l_status == -1)
+        l_s = fcntl(l_fd, F_SETFL, O_NONBLOCK | O_RDWR);
+        if (l_s == -1)
         {
                 TRC_ERROR("fcntl(FD_CLOEXEC) failed: %s\n", strerror(errno));
                 delete l_adns_ctx;
@@ -276,10 +276,10 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
         l_adns_ctx->m_evr_fd.m_read_cb = evr_fd_readable_cb;
         l_adns_ctx->m_evr_fd.m_write_cb = evr_fd_writeable_cb;
         l_adns_ctx->m_evr_fd.m_error_cb = NULL;
-        l_status = a_evr_loop->add_fd(l_fd,
+        l_s = a_evr_loop->add_fd(l_fd,
                                       EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                       &l_adns_ctx->m_evr_fd);
-        if (l_status != HURL_STATUS_OK)
+        if (l_s != HURL_STATUS_OK)
         {
                 TRC_ERROR("add_fd failed\n");
                 delete l_adns_ctx;
@@ -314,11 +314,11 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
         //           a_host.c_str(), a_port);
-        int32_t l_status;
+        int32_t l_s;
         if(!m_is_initd)
         {
-                l_status = init();
-                if(l_status != HURL_STATUS_OK)
+                l_s = init();
+                if(l_s != HURL_STATUS_OK)
                 {
                         return HURL_STATUS_ERROR;
                 }
@@ -327,13 +327,11 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         // cache lookup
         // ---------------------------------------
         host_info *l_host_info = NULL;
-
         // Create a cache key
         char l_port_str[8];
         snprintf(l_port_str, 8, "%d", a_port);
         std::string l_cache_key;
         l_cache_key = a_host + ":" + l_port_str;
-
         // Lookup in map
         if(m_use_cache && m_ai_cache)
         {
@@ -341,13 +339,11 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
                 l_host_info = m_ai_cache->lookup(l_cache_key);
                 pthread_mutex_unlock(&m_cache_mutex);
         }
-
         if(l_host_info)
         {
                 ao_host_info = *l_host_info;
                 return HURL_STATUS_OK;
         }
-
         // Lookup inline
         if(is_valid_ip_address(a_host.c_str()))
         {
@@ -362,10 +358,10 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
 //: ----------------------------------------------------------------------------
 int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
-        int32_t l_status;
+        int32_t l_s;
         host_info *l_host_info = new host_info();
-        l_status = nlookup(a_host, a_port, *l_host_info);
-        if(l_status != HURL_STATUS_OK)
+        l_s = nlookup(a_host, a_port, *l_host_info);
+        if(l_s != HURL_STATUS_OK)
         {
                 delete l_host_info;
                 return HURL_STATUS_ERROR;
@@ -402,18 +398,18 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
         //           ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
         //           a_host.c_str(), a_port);
-        int32_t l_status;
+        int32_t l_s;
         if(!m_is_initd)
         {
-                l_status = init();
-                if(l_status != HURL_STATUS_OK)
+                l_s = init();
+                if(l_s != HURL_STATUS_OK)
                 {
                         return HURL_STATUS_ERROR;
                 }
         }
         // tryfast lookup
-        l_status = lookup_tryfast(a_host, a_port, ao_host_info);
-        if(l_status == HURL_STATUS_OK)
+        l_s = lookup_tryfast(a_host, a_port, ao_host_info);
+        if(l_s == HURL_STATUS_OK)
         {
                 return HURL_STATUS_OK;
         }
@@ -449,7 +445,7 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         }
         if(!l_job->m_nresolver)
         {
-                if (a_result)
+                if(a_result)
                 {
                         free(a_result);
                 }
@@ -464,9 +460,9 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 //                dns_strerror(dns_status(a_ctx)));
                 if(l_job->m_cb)
                 {
-                        int32_t l_status = 0;
-                        l_status = l_job->m_cb(NULL, l_job->m_data);
-                        if(l_status != HURL_STATUS_OK)
+                        int32_t l_s = 0;
+                        l_s = l_job->m_cb(NULL, l_job->m_data);
+                        if(l_s != HURL_STATUS_OK)
                         {
                                 //NDBG_PRINT("Error performing callback.\n");
                         }
@@ -477,7 +473,6 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 }
                 return;
         }
-
         if(l_job->m_complete)
         {
                 if (a_result)
@@ -492,7 +487,6 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         //           a_result->dnsa4_qname,
         //           a_result->dnsa4_nrr,
         //           s_bytes_2_ip_str((unsigned char *) &(a_result->dnsa4_addr->s_addr)));
-
         // Create host_info_t
         host_info *l_host_info = NULL;
         l_host_info = new host_info();
@@ -502,16 +496,13 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         l_sockaddr_in->sin_family = AF_INET;
         l_sockaddr_in->sin_addr = a_result->dnsa4_addr[0];
         l_sockaddr_in->sin_port = htons(l_job->m_port);
-
         l_host_info->m_sa_len = sizeof(sockaddr_in);
-
         uint64_t l_ttl_s = a_result->dnsa4_ttl;
         if(l_ttl_s < S_MIN_TTL_S)
         {
                 l_ttl_s = 10;
         }
         l_host_info->m_expires_s = get_time_s() + l_ttl_s;
-
         if(l_job->m_nresolver->m_use_cache && l_job->m_nresolver->get_ai_cache())
         {
                 std::string l_cache_key = get_cache_key(l_job->m_host, l_job->m_port);
@@ -519,18 +510,17 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                 l_host_info = l_job->m_nresolver->get_ai_cache()->lookup(l_cache_key, l_host_info);
                 pthread_mutex_unlock(&(l_job->m_nresolver->m_cache_mutex));
         }
-
         // Add to cache
         if(l_job->m_cb)
         {
-                int32_t l_status = 0;
-                l_status = l_job->m_cb(l_host_info, l_job->m_data);
-                if(l_status != HURL_STATUS_OK)
+                int32_t l_s = 0;
+                l_s = l_job->m_cb(l_host_info, l_job->m_data);
+                if(l_s != HURL_STATUS_OK)
                 {
                         //NDBG_PRINT("Error performing callback.\n");
                 }
         }
-        if (a_result)
+        if(a_result)
         {
                 free(a_result);
         }
@@ -576,11 +566,11 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
         //           ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF,
         //           a_host.c_str(),
         //           a_adns_ctx);
-        int32_t l_status;
+        int32_t l_s;
         if(!m_is_initd)
         {
-                l_status = init();
-                if(l_status != HURL_STATUS_OK)
+                l_s = init();
+                if(l_s != HURL_STATUS_OK)
                 {
                         return HURL_STATUS_ERROR;
                 }

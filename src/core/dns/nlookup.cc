@@ -20,25 +20,20 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
+#include "hurl/support/time_util.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/dns/nlookup.h"
 #include "hurl/nconn/host_info.h"
-#include "hurl/support/time_util.h"
 #include "hurl/status.h"
-
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
-
 // for inet_pton
 #include <arpa/inet.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: slow resolution
 //: \return:  TODO
@@ -159,5 +154,4 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         ao_host_info.m_expires_s = get_time_s() + 3600;
         return HURL_STATUS_OK;
 }
-
 }

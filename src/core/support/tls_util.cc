@@ -27,13 +27,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hostcheck/hostcheck.h"
-
 #include "hurl/support/tls_util.h"
 #include "hurl/status.h"
 #include "hurl/support/trace.h"
-
-#include "support/ndebug.h"
-
+#include "hurl/support/ndebug.h"
 #include <pthread.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -41,7 +38,6 @@
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include <openssl/x509v3.h>
-
 #include <map>
 #include <algorithm>
 //: ----------------------------------------------------------------------------
@@ -199,115 +195,6 @@ void tls_init(void)
                 RAND_seed(bytes, sizeof(bytes));
         }
 #endif
-}
-//: ----------------------------------------------------------------------------
-//: \details: Initialize OpenSSL
-//: \return:  ctx on success, NULL on failure
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
-                      long a_options,
-                      const std::string &a_ca_file,
-                      const std::string &a_ca_path,
-                      bool a_server_flag,
-                      const std::string &a_tls_key_file,
-                      const std::string &a_tls_crt_file)
-{
-        SSL_CTX *l_ctx;
-        // TODO Make configurable
-        if(a_server_flag)
-        {
-                l_ctx = SSL_CTX_new(SSLv23_server_method());
-        }
-        else
-        {
-                l_ctx = SSL_CTX_new(SSLv23_client_method());
-        }
-        if(l_ctx == NULL)
-        {
-                ERR_print_errors_fp(stderr);
-                TRC_ERROR("SSL_CTX_new Error: %s\n", ERR_error_string(ERR_get_error(), NULL));
-                return NULL;
-        }
-        if(!a_cipher_list.empty())
-        {
-                if (! SSL_CTX_set_cipher_list(l_ctx, a_cipher_list.c_str()))
-                {
-                        TRC_ERROR("cannot set m_cipher list: %s\n", a_cipher_list.c_str());
-                        ERR_print_errors_fp(stderr);
-                        //close_connection(con, nowP);
-                        return NULL;
-                }
-        }
-        const char *l_ca_file = NULL;
-        const char *l_ca_path = NULL;
-        if(!a_ca_file.empty())
-        {
-                l_ca_file = a_ca_file.c_str();
-        }
-        else if(!a_ca_path.empty())
-        {
-                l_ca_path = a_ca_path.c_str();
-        }
-        int32_t l_status;
-        if(l_ca_file || l_ca_path)
-        {
-                l_status = SSL_CTX_load_verify_locations(l_ctx, l_ca_file, l_ca_path);
-                if(1 != l_status)
-                {
-                        ERR_print_errors_fp(stdout);
-                        TRC_ERROR("performing SSL_CTX_load_verify_locations.  Reason: %s\n",
-                                        ERR_error_string(ERR_get_error(), NULL));
-                        SSL_CTX_free(l_ctx);
-                        return NULL;
-                }
-
-                l_status = SSL_CTX_set_default_verify_paths(l_ctx);
-                if(1 != l_status)
-                {
-                        ERR_print_errors_fp(stdout);
-                        TRC_ERROR("performing SSL_CTX_set_default_verify_paths.  Reason: %s\n",
-                                  ERR_error_string(ERR_get_error(), NULL));
-                        SSL_CTX_free(l_ctx);
-                        return NULL;
-                }
-        }
-        if(a_options)
-        {
-                SSL_CTX_set_options(l_ctx, a_options);
-                // TODO Check return
-                //long l_results = SSL_CTX_set_options(l_ctx, a_options);
-                //NDBG_PRINT("Set SSL CTX options: 0x%08lX -set to: 0x%08lX \n", l_results, a_options);
-        }
-        if(!a_tls_crt_file.empty())
-        {
-                // set the local certificate from CertFile
-                if(SSL_CTX_use_certificate_chain_file(l_ctx, a_tls_crt_file.c_str()) <= 0)
-                {
-                        TRC_ERROR("performing SSL_CTX_use_certificate_file.\n");
-                        ERR_print_errors_fp(stdout);
-                        return NULL;
-                }
-        }
-        if(!a_tls_key_file.empty())
-        {
-                // set the private key from KeyFile (may be the same as CertFile) */
-                if(SSL_CTX_use_PrivateKey_file(l_ctx, a_tls_key_file.c_str(), SSL_FILETYPE_PEM) <= 0)
-                {
-                        TRC_ERROR("performing SSL_CTX_use_PrivateKey_file.\n");
-                        ERR_print_errors_fp(stdout);
-                        return NULL;
-                }
-                // verify private key
-                if(!SSL_CTX_check_private_key(l_ctx))
-                {
-                        TRC_ERROR("performing SSL_CTX_check_private_key. reason: private key does not match the public certificate.\n");
-                        fprintf(stdout, "Private key does not match the public certificate\n");
-                        return NULL;
-                }
-        }
-        //NDBG_PRINT("SSL_CTX_new success\n");
-        return l_ctx;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO

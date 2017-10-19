@@ -20,7 +20,6 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
@@ -36,9 +35,7 @@
 #define __STDC_FORMAT_MACROS 1
 #include <inttypes.h>
 #include <stdarg.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: response helpers
 //: ----------------------------------------------------------------------------
@@ -52,7 +49,6 @@ const char *get_resp_status_str(http_status_t a_status)
         }
         return l_err_str;
 }
-
 //: ----------------------------------------------------------------------------
 //: nbq utilities
 //: ----------------------------------------------------------------------------
@@ -67,7 +63,6 @@ int32_t nbq_write_request_line(nbq &ao_q, const char *a_buf, uint32_t a_len)
         ao_q.write("\r\n", strlen("\r\n"));
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -91,7 +86,6 @@ int32_t nbq_write_status(nbq &ao_q, http_status_t a_status)
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -107,7 +101,6 @@ int32_t nbq_write_header(nbq &ao_q,
         ao_q.write("\r\n", 2);
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -120,7 +113,6 @@ int32_t nbq_write_header(nbq &ao_q,
         nbq_write_header(ao_q, a_key_buf, strlen(a_key_buf), a_val_buf, strlen(a_val_buf));
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -132,7 +124,6 @@ int32_t nbq_write_body(nbq &ao_q, const char *a_buf, uint32_t a_len)
         ao_q.write(a_buf, a_len);
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -158,7 +149,6 @@ void create_json_resp_str(http_status_t a_status, std::string &ao_resp_str)
         ao_resp_str += "\"}],";
         ao_resp_str += " \"success\": false}\r\n";
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -172,7 +162,6 @@ api_resp::api_resp():
 {
 
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -186,7 +175,6 @@ api_resp::~api_resp()
                 m_body_data_len = 0;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //:                                  Getters
 //: ----------------------------------------------------------------------------
@@ -199,7 +187,6 @@ const kv_map_list_t &api_resp::get_headers(void)
 {
         return m_headers;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -209,7 +196,6 @@ http_status_t api_resp::get_status(void)
 {
         return m_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -230,7 +216,6 @@ void api_resp::add_std_headers(http_status_t a_status,
         sprintf(l_length_str, "%" PRIu64 "", a_len);
         set_header("Content-Length", l_length_str);
 }
-
 //: ----------------------------------------------------------------------------
 //:                            Set Response
 //: ----------------------------------------------------------------------------
@@ -243,7 +228,6 @@ void api_resp::set_status(http_status_t a_status)
 {
         m_status = a_status;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -268,7 +252,6 @@ int api_resp::set_header(const std::string &a_header)
                 return -1;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -289,7 +272,6 @@ int api_resp::set_header(const std::string &a_key, const std::string &a_val)
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -299,7 +281,6 @@ void api_resp::set_headers(const kv_map_list_t &a_headers_list)
 {
         m_headers = a_headers_list;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -322,11 +303,8 @@ int api_resp::set_headerf(const std::string &a_key, const char* fmt, ...)
                 return -1;
         }
         // success
-
         return set_header(a_key, std::string(val, res));
-
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -337,7 +315,6 @@ void api_resp::set_body_data(const char *a_ptr, uint32_t a_len)
         m_body_data = a_ptr;
         m_body_data_len = a_len;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -347,7 +324,6 @@ void api_resp::clear_headers(void)
 {
         m_headers.clear();
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: Serialize to q for sending.
 //: \return:  TODO
@@ -396,5 +372,4 @@ int32_t api_resp::serialize(nbq &ao_q)
         }
         return 0;
 }
-
 } //namespace ns_hurl {

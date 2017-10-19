@@ -20,11 +20,10 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/http/cb.h"
 #include "hurl/support/uri.h"
 #include "hurl/support/nbq.h"
@@ -32,12 +31,9 @@
 #include "hurl/support/trace.h"
 #include "hurl/status.h"
 #include "http_parser/http_parser.h"
-
 #include <string.h>
 #include <stdlib.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -57,7 +53,6 @@ rqst::rqst(void):
 {
         init(true);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -67,7 +62,6 @@ rqst::~rqst(void)
 {
 
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -104,7 +98,6 @@ void rqst::init(bool a_save)
                 m_http_parser->data = this;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Getters
 //: ----------------------------------------------------------------------------
@@ -127,7 +120,6 @@ const std::string &rqst::get_url()
         }
         return m_url;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -145,7 +137,6 @@ const std::string &rqst::get_url_path()
         }
         return m_url_path;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -163,7 +154,6 @@ const std::string &rqst::get_url_query()
         }
         return m_url_query;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -181,7 +171,6 @@ const query_map_t &rqst::get_url_query_map()
         }
         return m_url_query_map;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -199,7 +188,6 @@ const std::string &rqst::get_url_fragment()
         }
         return m_url_fragment;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -215,12 +203,9 @@ const char *rqst::get_method_str()
         // -------------------------------------------------
         return http_method_str((enum http_method)m_method);
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Setters
 //: ----------------------------------------------------------------------------
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -245,7 +230,6 @@ int32_t rqst::parse_uri()
                         free(l_path);
                 }
         }
-
         std::string l_url_fixed = m_url;
         // Find scheme prefix "://"
         if(m_url.find("://", 0) == std::string::npos)
@@ -264,7 +248,6 @@ int32_t rqst::parse_uri()
                 // TODO get error msg from http_parser
                 return HURL_STATUS_ERROR;
         }
-
         for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
         {
                 //NDBG_PRINT("i_part: %d offset: %d len: %d\n", i_part, l_url.field_data[i_part].off, l_url.field_data[i_part].len);
@@ -308,7 +291,6 @@ int32_t rqst::parse_uri()
         m_url_parsed = true;
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -348,7 +330,6 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
         } while(l_pos != std::string::npos);
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Debug
 //: ----------------------------------------------------------------------------
@@ -375,5 +356,4 @@ void rqst::show(void)
         print_part(*m_q, m_p_body.m_off, m_p_body.m_len);
         TRC_OUTPUT("\r\n");
 }
-
 } //namespace ns_hurl {

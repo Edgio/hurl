@@ -24,7 +24,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr_select.h"
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/status.h"
 #include <string.h>
 #include <errno.h>

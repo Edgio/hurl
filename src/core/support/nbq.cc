@@ -23,8 +23,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
 #include "hurl/status.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/support/trace.h"
 #include "hurl/support/nbq.h"
 #include <string.h>

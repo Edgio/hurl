@@ -27,7 +27,7 @@
 #include "hurl/support/trace.h"
 #include "hurl/nconn/nconn_tls.h"
 #include "hurl/support/tls_util.h"
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -39,7 +39,268 @@
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include <openssl/x509v3.h>
+//: ----------------------------------------------------------------------------
+//: constants
+//: ----------------------------------------------------------------------------
+#define _HURL_EX_DATA_IDX 0
+//: ****************************************************************************
+//: ************************ A L P N  S U P P O R T ****************************
+//: ****************************************************************************
+//: ----------------------------------------------------------------------------
+//: ALPN/NPN support borrowed from curl...
+//: ----------------------------------------------------------------------------
+#define ALPN_HTTP_1_1_LENGTH 8
+#define ALPN_HTTP_1_1 "http/1.1"
+// Check for OpenSSL 1.0.2 which has ALPN support.
+#undef HAS_ALPN
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L \
+    && !defined(OPENSSL_NO_TLSEXT)
+#  define HAS_ALPN 1
+#endif
+// Check for OpenSSL 1.0.1 which has NPN support.
+#undef HAS_NPN
+#if OPENSSL_VERSION_NUMBER >= 0x10001000L \
+    && !defined(OPENSSL_NO_TLSEXT) \
+    && !defined(OPENSSL_NO_NEXTPROTONEG)
+#  define HAS_NPN 1
+#endif
+//: ****************************************************************************
+//: example taken from nghttp2
+//: ****************************************************************************
+#define HTTP_1_1_ALPN "\x8http/1.1"
+#define HTTP_1_1_ALPN_LEN (sizeof(HTTP_1_1_ALPN) - 1)
+#define PROTO_ALPN "\x2h2"
+#define PROTO_ALPN_LEN (sizeof(PROTO_ALPN) - 1)
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static int select_next_protocol(unsigned char **out,
+                                unsigned char *outlen,
+                                const unsigned char *in,
+                                unsigned int inlen,
+                                const char *key,
+                                unsigned int keylen)
+{
+        unsigned int i;
+        for(i = 0;
+            i + keylen <= inlen;
+            i += (unsigned int) (in[i] + 1))
+        {
+                if(memcmp(&in[i], key, keylen) == 0)
+                {
+                        *out = (unsigned char *) &in[i + 1];
+                        *outlen = in[i];
+                        return 0;
+                }
+        }
+        return -1;
+}
+//: ----------------------------------------------------------------------------
+//: \details: NPN TLS extension client callback. We check that server advertised
+//:           the HTTP/2 protocol the nghttp2 library supports. If not, exit
+//:           the program.
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+static int alpn_select_next_proto_cb(SSL *a_ssl,
+                                     unsigned char **a_out,
+                                     unsigned char *a_outlen,
+                                     const unsigned char *a_in,
+                                     unsigned int a_inlen,
+                                     void *a_arg)
+{
+        // get ex data
+        ns_hurl::nconn *l_nconn = (ns_hurl::nconn *)SSL_get_ex_data(a_ssl, _HURL_EX_DATA_IDX);
+        if(!l_nconn)
+        {
+                return SSL_TLSEXT_ERR_ALERT_FATAL;
+        }
+        l_nconn->set_alpn_result((char *)a_in, a_inlen);
+        if(select_next_protocol(a_out, a_outlen, a_in, a_inlen, PROTO_ALPN, PROTO_ALPN_LEN) == 0)
+        {
+                l_nconn->set_alpn(ns_hurl::nconn::ALPN_HTTP_VER_V2);
+                return SSL_TLSEXT_ERR_OK;
+        }
+        else if(select_next_protocol(a_out, a_outlen, a_in, a_inlen, HTTP_1_1_ALPN, HTTP_1_1_ALPN_LEN) == 0)
+        {
+                l_nconn->set_alpn(ns_hurl::nconn::ALPN_HTTP_VER_V1_1);
+                return SSL_TLSEXT_ERR_OK;
+        }
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
+}
 namespace ns_hurl {
+//: ----------------------------------------------------------------------------
+//: \details: Initialize OpenSSL
+//: \return:  ctx on success, NULL on failure
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
+                      long a_options,
+                      const std::string &a_ca_file,
+                      const std::string &a_ca_path,
+                      bool a_server_flag,
+                      const std::string &a_tls_key_file,
+                      const std::string &a_tls_crt_file)
+{
+        SSL_CTX *l_ctx;
+        // TODO Make configurable
+        if(a_server_flag)
+        {
+                l_ctx = SSL_CTX_new(SSLv23_server_method());
+        }
+        else
+        {
+                l_ctx = SSL_CTX_new(SSLv23_client_method());
+        }
+        if(l_ctx == NULL)
+        {
+                ERR_print_errors_fp(stderr);
+                TRC_ERROR("SSL_CTX_new Error: %s\n", ERR_error_string(ERR_get_error(), NULL));
+                return NULL;
+        }
+        if(!a_cipher_list.empty())
+        {
+                if(! SSL_CTX_set_cipher_list(l_ctx, a_cipher_list.c_str()))
+                {
+                        TRC_ERROR("cannot set m_cipher list: %s\n", a_cipher_list.c_str());
+                        ERR_print_errors_fp(stderr);
+                        //close_connection(con, nowP);
+                        return NULL;
+                }
+        }
+        const char *l_ca_file = NULL;
+        const char *l_ca_path = NULL;
+        if(!a_ca_file.empty())
+        {
+                l_ca_file = a_ca_file.c_str();
+        }
+        else if(!a_ca_path.empty())
+        {
+                l_ca_path = a_ca_path.c_str();
+        }
+        int32_t l_status;
+        if(l_ca_file || l_ca_path)
+        {
+                l_status = SSL_CTX_load_verify_locations(l_ctx, l_ca_file, l_ca_path);
+                if(1 != l_status)
+                {
+                        ERR_print_errors_fp(stdout);
+                        TRC_ERROR("performing SSL_CTX_load_verify_locations.  Reason: %s\n",
+                                        ERR_error_string(ERR_get_error(), NULL));
+                        SSL_CTX_free(l_ctx);
+                        return NULL;
+                }
+
+                l_status = SSL_CTX_set_default_verify_paths(l_ctx);
+                if(1 != l_status)
+                {
+                        ERR_print_errors_fp(stdout);
+                        TRC_ERROR("performing SSL_CTX_set_default_verify_paths.  Reason: %s\n",
+                                  ERR_error_string(ERR_get_error(), NULL));
+                        SSL_CTX_free(l_ctx);
+                        return NULL;
+                }
+        }
+        if(a_options)
+        {
+                SSL_CTX_set_options(l_ctx, a_options);
+                // TODO Check return
+                //long l_results = SSL_CTX_set_options(l_ctx, a_options);
+                //NDBG_PRINT("Set SSL CTX options: 0x%08lX -set to: 0x%08lX \n", l_results, a_options);
+        }
+        if(!a_tls_crt_file.empty())
+        {
+                // set the local certificate from CertFile
+                if(SSL_CTX_use_certificate_chain_file(l_ctx, a_tls_crt_file.c_str()) <= 0)
+                {
+                        TRC_ERROR("performing SSL_CTX_use_certificate_file.\n");
+                        ERR_print_errors_fp(stdout);
+                        return NULL;
+                }
+        }
+        if(!a_tls_key_file.empty())
+        {
+                // set the private key from KeyFile (may be the same as CertFile) */
+                if(SSL_CTX_use_PrivateKey_file(l_ctx, a_tls_key_file.c_str(), SSL_FILETYPE_PEM) <= 0)
+                {
+                        TRC_ERROR("performing SSL_CTX_use_PrivateKey_file.\n");
+                        ERR_print_errors_fp(stdout);
+                        return NULL;
+                }
+                // verify private key
+                if(!SSL_CTX_check_private_key(l_ctx))
+                {
+                        TRC_ERROR("performing SSL_CTX_check_private_key. reason: private key does not match the public certificate.\n");
+                        fprintf(stdout, "Private key does not match the public certificate\n");
+                        return NULL;
+                }
+        }
+#ifdef HAS_NPN
+        // set npn callback
+        SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
+#endif
+        // ???
+        SSL_CTX_set_mode(l_ctx, SSL_MODE_AUTO_RETRY);
+        SSL_CTX_set_mode(l_ctx, SSL_MODE_RELEASE_BUFFERS);
+        //NDBG_PRINT("SSL_CTX_new success\n");
+        return l_ctx;
+}
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: ----------------------------------------------------------------------------
+int32_t show_tls_info(nconn *a_nconn)
+{
+        //NDBG_PRINT("%sconnected%s...\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
+        if(!a_nconn)
+        {
+                TRC_ERROR("a_nconn == NULL\n");
+                return HURL_STATUS_ERROR;
+        }
+        SSL *l_tls = nconn_get_SSL(*(a_nconn));
+        if(!l_tls)
+        {
+                return HURL_STATUS_OK;
+        }
+        char *l_alpn_result;
+        uint32_t l_alpn_result_len = 0;
+        a_nconn->get_alpn_result(&l_alpn_result, l_alpn_result_len);
+        TRC_OUTPUT("%s", ANSI_COLOR_FG_WHITE);
+        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
+        TRC_OUTPUT("|                             T L S   A L P N                                  |\n");
+        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
+        TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+        mem_display((const uint8_t *)l_alpn_result, l_alpn_result_len, true);
+        X509* l_cert = NULL;
+        l_cert = SSL_get_peer_certificate(l_tls);
+        if(l_cert == NULL)
+        {
+                NDBG_PRINT("SSL_get_peer_certificate error.  tls: %p\n", l_tls);
+                return HURL_STATUS_ERROR;
+        }
+        TRC_OUTPUT("%s", ANSI_COLOR_FG_MAGENTA);
+        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
+        TRC_OUTPUT("| *************** T L S   S E R V E R   C E R T I F I C A T E **************** |\n");
+        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
+        TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+        X509_print_fp(stdout, l_cert);
+        SSL_SESSION *m_tls_session = SSL_get_session(l_tls);
+        TRC_OUTPUT("%s", ANSI_COLOR_FG_YELLOW);
+        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
+        TRC_OUTPUT("|                      T L S   S E S S I O N   I N F O                         |\n");
+        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
+        TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+        SSL_SESSION_print_fp(stdout, m_tls_session);
+        //int32_t l_protocol_num = get_tls_info_protocol_num(l_tls);
+        //std::string l_cipher = get_tls_info_cipher_str(l_tls);
+        //std::string l_protocol = get_tls_info_protocol_str(l_protocol_num);
+        //printf(" cipher:     %s\n", l_cipher.c_str());
+        //printf(" l_protocol: %s\n", l_protocol.c_str());
+        return HURL_STATUS_OK;
+}
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -60,41 +321,44 @@ int32_t nconn_tls::init(void)
         }
         ::SSL_set_fd(m_tls, m_fd);
         // TODO Check for Errors
+        ::SSL_set_ex_data(m_tls, _HURL_EX_DATA_IDX, this);
+        // TODO Check for Errors
         const long l_tls_options = m_tls_opt_options;
         //NDBG_PRINT("l_tls_options: 0x%08lX\n", l_tls_options);
-        if (l_tls_options)
+        if(l_tls_options)
         {
                 // clear all options and set specified options
                 ::SSL_clear_options(m_tls, 0x11111111L);
                 long l_result = ::SSL_set_options(m_tls, l_tls_options);
-                if (l_tls_options != l_result)
+                if(l_tls_options != l_result)
                 {
                         //NDBG_PRINT("Failed to set tls options: 0x%08lX -set to: 0x%08lX \n", l_result, l_tls_options);
                         //return NC_STATUS_ERROR;
                 }
         }
-        if (!m_tls_opt_cipher_str.empty())
+        if(!m_tls_opt_cipher_str.empty())
         {
-                if (1 != ::SSL_set_cipher_list(m_tls, m_tls_opt_cipher_str.c_str()))
+                if(1 != ::SSL_set_cipher_list(m_tls, m_tls_opt_cipher_str.c_str()))
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: Failed to set tls cipher list: %s\n", m_label.c_str(), m_tls_opt_cipher_str.c_str());
                         return NC_STATUS_ERROR;
                 }
         }
         // Set tls sni extension
-        if (m_tls_opt_sni && !m_tls_opt_hostname.empty())
+        if(m_tls_opt_sni &&
+           !m_tls_opt_hostname.empty())
         {
                 // const_cast to work around SSL's use of arg -this call does not change buffer argument
-                if (1 != ::SSL_set_tlsext_host_name(m_tls, m_tls_opt_hostname.c_str()))
+                if(1 != ::SSL_set_tlsext_host_name(m_tls, m_tls_opt_hostname.c_str()))
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: Failed to set tls hostname: %s\n", m_label.c_str(), m_tls_opt_hostname.c_str());
                         return NC_STATUS_ERROR;
                 }
         }
         // Set tls Cert verify callback ...
-        if (m_tls_opt_verify)
+        if(m_tls_opt_verify)
         {
-                if (m_tls_opt_verify_allow_self_signed)
+                if(m_tls_opt_verify_allow_self_signed)
                 {
                         ::SSL_set_verify(m_tls, SSL_VERIFY_PEER, tls_cert_verify_callback_allow_self_signed);
                 }
@@ -115,21 +379,25 @@ int32_t nconn_tls::tls_connect(void)
         int l_status;
         m_tls_state = TLS_STATE_TLS_CONNECTING;
         l_status = SSL_connect(m_tls);
-        if (l_status <= 0)
+        //NDBG_PRINT("l_status: %d\n", l_status);
+        if(l_status <= 0)
         {
-                int l_tls_error = SSL_get_error(m_tls, l_status);
+                int l_tls_error = 0;
+                l_tls_error = SSL_get_error(m_tls, l_status);
+                //NDBG_PRINT("l_tls_error: %d\n", l_tls_error);
                 switch(l_tls_error) {
                 case SSL_ERROR_SSL:
                 {
                         m_last_err = ERR_get_error();
-                        if(gts_last_tls_error[0] != '\0')
+                        char *l_buf = gts_last_tls_error;
+                        l_buf = ERR_error_string(m_last_err, l_buf);
+                        if(l_buf)
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR: %s.\n", m_label.c_str(), gts_last_tls_error);
-                                gts_last_tls_error[0] = '\0';
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR[%ld]: %s.\n", m_label.c_str(), m_last_err, l_buf);
                         }
                         else
                         {
-                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR: OTHER.\n",m_label.c_str());
+                                NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: TLS_ERROR[%ld]: OTHER.\n",m_label.c_str(), m_last_err);
                         }
                         break;
                 }
@@ -214,7 +482,7 @@ int32_t nconn_tls::tls_accept(void)
         int l_status;
         m_tls_state = TLS_STATE_TLS_ACCEPTING;
         l_status = SSL_accept(m_tls);
-        if (l_status <= 0)
+        if(l_status <= 0)
         {
                 //NDBG_PRINT("SSL connection failed - %d\n", l_status);
                 int l_tls_error = ::SSL_get_error(m_tls, l_status);
@@ -515,7 +783,7 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
         // Add to event handler
         if(m_evr_loop)
         {
-                if (0 != m_evr_loop->mod_fd(m_fd,
+                if(0 != m_evr_loop->mod_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ |
                                             EVR_FILE_ATTR_MASK_WRITE |
                                             EVR_FILE_ATTR_MASK_STATUS_ERROR |
@@ -571,38 +839,12 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
                 //                l_tls_error);
                 if(l_tls_error == SSL_ERROR_WANT_READ)
                 {
-                        if(m_evr_loop)
-                        {
-                                if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_READ|
-                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                            EVR_FILE_ATTR_MASK_RD_HUP |
-                                                            EVR_FILE_ATTR_MASK_HUP |
-                                                            EVR_FILE_ATTR_MASK_ET,
-                                                            &m_evr_fd))
-                                {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                                        return NC_STATUS_ERROR;
-                                }
-                        }
+                        // ...
                         return NC_STATUS_AGAIN;
                 }
                 else if(l_tls_error == SSL_ERROR_WANT_WRITE)
                 {
-                        if(m_evr_loop)
-                        {
-                                if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE|
-                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                            EVR_FILE_ATTR_MASK_RD_HUP |
-                                                            EVR_FILE_ATTR_MASK_HUP |
-                                                            EVR_FILE_ATTR_MASK_ET,
-                                                            &m_evr_fd))
-                                {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                                        return NC_STATUS_ERROR;
-                                }
-                        }
+                        // ...
                         return NC_STATUS_AGAIN;
                 }
         }
@@ -659,38 +901,12 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
                 //                l_tls_error);
                 if(l_tls_error == SSL_ERROR_WANT_READ)
                 {
-                        if(m_evr_loop)
-                        {
-                                if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_READ |
-                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                            EVR_FILE_ATTR_MASK_RD_HUP |
-                                                            EVR_FILE_ATTR_MASK_HUP |
-                                                            EVR_FILE_ATTR_MASK_ET,
-                                                            &m_evr_fd))
-                                {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                                        return NC_STATUS_ERROR;
-                                }
-                        }
+                        // ...
                         return NC_STATUS_AGAIN;
                 }
                 else if(l_tls_error == SSL_ERROR_WANT_WRITE)
                 {
-                        if(m_evr_loop)
-                        {
-                                if (0 != m_evr_loop->mod_fd(m_fd,
-                                                            EVR_FILE_ATTR_MASK_WRITE |
-                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                            EVR_FILE_ATTR_MASK_RD_HUP |
-                                                            EVR_FILE_ATTR_MASK_HUP |
-                                                            EVR_FILE_ATTR_MASK_ET,
-                                                            &m_evr_fd))
-                                {
-                                        NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL, "LABEL[%s]: Error: Couldn't add socket file descriptor\n", m_label.c_str());
-                                        return NC_STATUS_ERROR;
-                                }
-                        }
+                        // ...
                         return NC_STATUS_AGAIN;
                 }
                 else
@@ -761,7 +977,7 @@ ncaccept_state_top:
                         {
                                 if(m_evr_loop)
                                 {
-                                        if (0 != m_evr_loop->mod_fd(m_fd,
+                                        if(0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_READ |
                                                                     EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                                                     EVR_FILE_ATTR_MASK_RD_HUP |
@@ -780,7 +996,7 @@ ncaccept_state_top:
                         {
                                 if(m_evr_loop)
                                 {
-                                        if (0 != m_evr_loop->mod_fd(m_fd,
+                                        if(0 != m_evr_loop->mod_fd(m_fd,
                                                                     EVR_FILE_ATTR_MASK_WRITE|
                                                                     EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                                                     EVR_FILE_ATTR_MASK_RD_HUP |
@@ -802,11 +1018,10 @@ ncaccept_state_top:
                         //NDBG_PRINT("Returning ERROR\n");
                         return NC_STATUS_ERROR;
                 }
-
                 // Add to event handler
                 if(m_evr_loop)
                 {
-                        if (0 != m_evr_loop->mod_fd(m_fd,
+                        if(0 != m_evr_loop->mod_fd(m_fd,
                                                     EVR_FILE_ATTR_MASK_READ|
                                                     EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                                     EVR_FILE_ATTR_MASK_RD_HUP |
@@ -892,43 +1107,11 @@ ncconnect_state_top:
                 {
                         if(TLS_STATE_TLS_CONNECTING_WANT_READ == m_tls_state)
                         {
-                                if(m_evr_loop)
-                                {
-                                        if (0 != m_evr_loop->mod_fd(m_fd,
-                                                                    EVR_FILE_ATTR_MASK_READ|
-                                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                                    EVR_FILE_ATTR_MASK_RD_HUP |
-                                                                    EVR_FILE_ATTR_MASK_HUP |
-                                                                    EVR_FILE_ATTR_MASK_ET,
-                                                                    &m_evr_fd))
-                                        {
-                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
-                                                            "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
-                                                            m_label.c_str());
-                                                //NDBG_PRINT("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
-                                                return NC_STATUS_ERROR;
-                                        }
-                                }
+                                // ...
                         }
                         else if(TLS_STATE_TLS_CONNECTING_WANT_WRITE == m_tls_state)
                         {
-                                if(m_evr_loop)
-                                {
-                                        if (0 != m_evr_loop->mod_fd(m_fd,
-                                                                    EVR_FILE_ATTR_MASK_WRITE |
-                                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                                    EVR_FILE_ATTR_MASK_RD_HUP |
-                                                                    EVR_FILE_ATTR_MASK_HUP |
-                                                                    EVR_FILE_ATTR_MASK_ET,
-                                                                    &m_evr_fd))
-                                        {
-                                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
-                                                            "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
-                                                            m_label.c_str());
-                                                //NDBG_PRINT("LABEL[%s]: Error: Couldn't add socket file descriptor", m_label.c_str());
-                                                return NC_STATUS_ERROR;
-                                        }
-                                }
+                                // ...
                         }
                         return NC_STATUS_OK;
                 }
@@ -936,25 +1119,7 @@ ncconnect_state_top:
                 {
                         return NC_STATUS_ERROR;
                 }
-                // -------------------------------------------
-                // Add to event handler
-                // -------------------------------------------
-                if(m_evr_loop)
-                {
-                        if (0 != m_evr_loop->mod_fd(m_fd,
-                                                    EVR_FILE_ATTR_MASK_READ |
-                                                    EVR_FILE_ATTR_MASK_STATUS_ERROR |
-                                                    EVR_FILE_ATTR_MASK_RD_HUP |
-                                                    EVR_FILE_ATTR_MASK_HUP |
-                                                    EVR_FILE_ATTR_MASK_ET,
-                                                    &m_evr_fd))
-                        {
-                                NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
-                                            "LABEL[%s]: Error: Couldn't add socket file descriptor\n",
-                                            m_label.c_str());
-                                return NC_STATUS_ERROR;
-                        }
-                }
+                // ...
                 goto ncconnect_state_top;
         }
         // -------------------------------------------------

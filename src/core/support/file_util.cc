@@ -24,8 +24,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hurl/status.h"
-#include "support/file_util.h"
-
+#include "hurl/support/file_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -33,7 +32,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
-
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: TODO

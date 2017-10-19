@@ -25,6 +25,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
+#include "hurl/status.h"
 #include "hurl/nconn/scheme.h"
 #include "hurl/nconn/conn_status.h"
 #include "hurl/nconn/host_info.h"
@@ -56,6 +57,7 @@ namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 class nbq;
 struct host_info;
+#if 0
 //: ----------------------------------------------------------------------------
 //: Types
 //: ----------------------------------------------------------------------------
@@ -71,12 +73,21 @@ typedef struct conn_stat_struct
         int32_t m_error;
 } conn_stat_t;
 void conn_stat_init(conn_stat_t &a_stat);
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
 class nconn
 {
 public:
+        // -------------------------------------------------
+        // alpn
+        // -------------------------------------------------
+        typedef enum {
+                ALPN_HTTP_VER_V1_0 = 0,
+                ALPN_HTTP_VER_V1_1,
+                ALPN_HTTP_VER_V2
+        } alpn_t;
         // -------------------------------------------------
         // connection status
         // -------------------------------------------------
@@ -93,10 +104,17 @@ public:
                 NC_STATUS_NONE = -10
         } status_t;
         // -------------------------------------------------
-        // Successful read/write callbacks
+        // Connection state
         // -------------------------------------------------
-        typedef int32_t (*nconn_cb_t)(void *, char *, uint32_t, uint64_t);
-        typedef int32_t (*nconn_data_cb_t)(nconn *, void *);
+        typedef enum nc_conn_state
+        {
+                NC_STATE_FREE = 0,
+                NC_STATE_LISTENING,
+                NC_STATE_ACCEPTING,
+                NC_STATE_CONNECTING,
+                NC_STATE_CONNECTED,
+                NC_STATE_DONE
+        } nc_conn_state_t;
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
@@ -108,7 +126,7 @@ public:
         void set_ctx(void * a_data) {m_ctx = a_data;}
         void *get_ctx(void) {return m_ctx;}
         // -------------------------------------------------
-        // Data
+        // data
         // -------------------------------------------------
         void set_data(void * a_data) {m_data = a_data;}
         void *get_data(void) {return m_data;}
@@ -117,11 +135,13 @@ public:
         // -------------------------------------------------
         void set_evr_loop(evr_loop * a_evr_loop) {m_evr_loop = a_evr_loop;}
         evr_loop *get_evr_loop(void) {return m_evr_loop;}
+#if 0
         // -------------------------------------------------
         // Stats
         // -------------------------------------------------
         void reset_stats(void) { conn_stat_init(m_stat); }
         const conn_stat_t &get_stats(void) const { return m_stat;}
+#endif
         // -------------------------------------------------
         // Getters
         // -------------------------------------------------
@@ -130,20 +150,36 @@ public:
         uint32_t get_pool_id(void) {return m_pool_id;}
         const std::string &get_label(void) {return m_label;}
         scheme_t get_scheme(void) {return m_scheme;}
+#if 0
         bool get_collect_stats_flag(void) {return m_collect_stats_flag;}
         uint64_t get_request_start_time_us(void) {return m_request_start_time_us;}
         uint64_t get_stat_tt_connect_us(void) {return m_stat.m_tt_connect_us;}
         uint64_t get_connect_start_time_us(void) {return m_connect_start_time_us;}
         bool get_connect_only(void) { return m_connect_only;}
+#endif
         const std::string &get_last_error(void) { return m_last_error;}
         conn_status_t get_status(void) { return m_conn_status;}
-        host_info get_host_info(void) {return m_host_info;}
-        bool get_host_info_is_set(void) {return m_host_info_is_set;}
+        void *get_host_data(void) { return m_host_data;}
+        host_info get_host_info(void) { return m_host_info;}
+        bool get_host_info_is_set(void) { return m_host_info_is_set;}
         void get_remote_sa(sockaddr_storage &ao_sa, socklen_t &ao_sa_len)
         {
                 memcpy(&ao_sa, &m_remote_sa, m_remote_sa_len);
                 ao_sa_len = m_remote_sa_len;
         };
+        alpn_t get_alpn(void) { return m_alpn;}
+        int32_t get_alpn_result(char **ao_buf, uint32_t &ao_buf_len)
+        {
+                if(!ao_buf)
+                {
+                        // TODO TRC_ERROR ???
+                        return HURL_STATUS_ERROR;
+                }
+                *ao_buf = m_alpn_buf;
+                ao_buf_len = m_alpn_buf_len;
+                return HURL_STATUS_OK;
+        }
+        evr_event_t *get_timer_obj(void) { return m_timer_obj;}
         // -------------------------------------------------
         // Setters
         // -------------------------------------------------
@@ -151,8 +187,10 @@ public:
         void set_id(uint64_t a_id) {m_id = a_id;}
         void set_idx(uint32_t a_id) {m_idx = a_id;}
         void set_pool_id(uint32_t a_id) {m_pool_id = a_id;}
+        void set_host_data(void *a_host_data) { m_host_data = a_host_data;}
         void set_host_info(const host_info &a_host_info) {m_host_info = a_host_info; m_host_info_is_set = true;}
         void set_num_reqs_per_conn(int64_t a_n) {m_num_reqs_per_conn = a_n;}
+#if 0
         void set_collect_stats(bool a_flag) {m_collect_stats_flag = a_flag;}
         void set_connect_only(bool a_flag) {m_connect_only = a_flag;}
         void set_connected_cb(nconn_data_cb_t a_cb) {m_connected_cb = a_cb;}
@@ -164,6 +202,7 @@ public:
         void set_stat_tt_completion_us(uint64_t a_val){ m_stat.m_tt_completion_us = a_val;}
         void set_stat_tt_connect_us(uint64_t a_val){ m_stat.m_tt_connect_us = a_val;}
         void set_connect_start_time_us(uint64_t a_val) {m_connect_start_time_us = a_val;}
+#endif
         void set_status(conn_status_t a_status) { m_conn_status = a_status;}
         void setup_evr_fd(evr_event_cb_t a_read_cb,
                           evr_event_cb_t a_write_cb,
@@ -175,9 +214,25 @@ public:
                 m_evr_fd.m_error_cb = a_error_cb;
                 m_evr_fd.m_data = this;
         }
+        void set_alpn(alpn_t a_alpn) { m_alpn = a_alpn;}
+        int32_t set_alpn_result(char *a_buf, uint32_t a_buf_len)
+        {
+                if(m_alpn_buf)
+                {
+                        free(m_alpn_buf);
+                        m_alpn_buf_len = 0;
+                }
+                m_alpn_buf = (char *)malloc(a_buf_len);
+                memcpy(m_alpn_buf, a_buf, a_buf_len);
+                m_alpn_buf_len = a_buf_len;
+                return HURL_STATUS_OK;
+        }
+        void set_timer_obj(evr_event_t *a_timer_obj) { m_timer_obj = a_timer_obj;}
         // -------------------------------------------------
         // State
         // -------------------------------------------------
+        nc_conn_state_t get_state(void) { return m_nc_state; }
+        void set_state(nc_conn_state_t a_state) { m_nc_state = a_state; }
         bool is_free(void) { return (m_nc_state == NC_STATE_FREE);}
         bool is_done(void) { return (m_nc_state == NC_STATE_DONE);}
         void set_state_done(void) { m_nc_state = NC_STATE_DONE; }
@@ -186,12 +241,7 @@ public:
         // -------------------------------------------------
         // Running
         // -------------------------------------------------
-        int32_t nc_run_state_machine(evr_mode_t a_mode,
-                                     nbq *a_in_q,
-                                     uint32_t &ao_read,
-                                     nbq *a_out_q,
-                                     uint32_t &ao_written);
-        int32_t nc_read(nbq *a_in_q, uint32_t &ao_read);
+        int32_t nc_read(nbq *a_in_q, char **ao_buf, uint32_t &ao_read);
         int32_t nc_write(nbq *a_out_q, uint32_t &ao_written);
         int32_t nc_set_listening(int32_t a_val);
         int32_t nc_set_listening_nb(int32_t a_val);
@@ -200,16 +250,6 @@ public:
         int32_t nc_cleanup();
         // -------------------------------------------------
         // Virtual Methods
-        // -------------------------------------------------
-        virtual int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len) = 0;
-        virtual int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len) = 0;
-        virtual bool is_listening(void) = 0;
-        virtual bool is_connecting(void) = 0;
-        virtual bool is_accepting(void) = 0;
-
-protected:
-        // -------------------------------------------------
-        // Protected Virtual methods
         // -------------------------------------------------
         virtual int32_t ncsetup() = 0;
         virtual int32_t ncread(char *a_buf, uint32_t a_buf_len) = 0;
@@ -221,6 +261,11 @@ protected:
         virtual int32_t ncset_listening_nb(int32_t a_val) = 0;
         virtual int32_t ncset_accepting(int a_fd) = 0;
         virtual int32_t ncset_connected(void) = 0;
+        virtual int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len) = 0;
+        virtual int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len) = 0;
+        virtual bool is_listening(void) = 0;
+        virtual bool is_connecting(void) = 0;
+        virtual bool is_accepting(void) = 0;
         // -------------------------------------------------
         // Protected members
         // -------------------------------------------------
@@ -228,34 +273,29 @@ protected:
         evr_fd_t m_evr_fd;
         scheme_t m_scheme;
         std::string m_label;
+#if 0
         conn_stat_t m_stat;
         bool m_collect_stats_flag;
+#endif
         void *m_ctx;
         void *m_data;
+#if 0
         uint64_t m_connect_start_time_us;
         uint64_t m_request_start_time_us;
+#endif
         conn_status_t m_conn_status;
         std::string m_last_error;
+        void *m_host_data;
         host_info m_host_info;
         bool m_host_info_is_set;
         int64_t m_num_reqs_per_conn;
         int64_t m_num_reqs;
+#if 0
         bool m_connect_only;
+#endif
         sockaddr_storage m_remote_sa;
         socklen_t m_remote_sa_len;
 private:
-        // ---------------------------------------
-        // Connection state
-        // ---------------------------------------
-        typedef enum nc_conn_state
-        {
-                NC_STATE_FREE = 0,
-                NC_STATE_LISTENING,
-                NC_STATE_ACCEPTING,
-                NC_STATE_CONNECTING,
-                NC_STATE_CONNECTED,
-                NC_STATE_DONE
-        } nc_conn_state_t;
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
@@ -268,10 +308,10 @@ private:
         uint64_t m_id;
         uint32_t m_idx;
         uint32_t m_pool_id;
-        nconn_data_cb_t m_connected_cb;
-        nconn_cb_t m_read_cb;
-        void *m_read_cb_data;
-        nconn_cb_t m_write_cb;
+        alpn_t m_alpn;
+        char *m_alpn_buf;
+        uint32_t m_alpn_buf_len;
+        evr_event_t *m_timer_obj;
 };
 } //namespace ns_hurl {
 #endif

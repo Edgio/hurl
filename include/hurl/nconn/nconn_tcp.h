@@ -34,6 +34,20 @@ class nconn_tcp: public nconn
 {
 public:
         // -------------------------------------------------
+        // Connection state
+        // -------------------------------------------------
+        typedef enum tcp_conn_state
+        {
+                TCP_STATE_NONE,
+                TCP_STATE_LISTENING,
+                TCP_STATE_ACCEPTING,
+                TCP_STATE_CONNECTING,
+                TCP_STATE_CONNECTED,
+                TCP_STATE_READING,
+                TCP_STATE_WRITING,
+                TCP_STATE_DONE
+        } tcp_conn_state_t;
+        // -------------------------------------------------
         // Options
         // -------------------------------------------------
         typedef enum tcp_opt_enum
@@ -65,9 +79,8 @@ public:
         bool is_listening(void) {return (m_tcp_state == TCP_STATE_LISTENING);};
         bool is_connecting(void) {return (m_tcp_state == TCP_STATE_CONNECTING);};
         bool is_accepting(void) {return (m_tcp_state == TCP_STATE_ACCEPTING);};
-protected:
         // -------------------------------------------------
-        // Protected methods
+        // virtual methods
         // -------------------------------------------------
         int32_t ncset_listening(int32_t a_val);
         int32_t ncset_listening_nb(int32_t a_val);
@@ -88,20 +101,6 @@ protected:
         bool m_sock_opt_no_delay;
         bool m_sock_opt_no_linger;
 private:
-        // -------------------------------------------------
-        // Connection state
-        // -------------------------------------------------
-        typedef enum tcp_conn_state
-        {
-                TCP_STATE_NONE,
-                TCP_STATE_LISTENING,
-                TCP_STATE_ACCEPTING,
-                TCP_STATE_CONNECTING,
-                TCP_STATE_CONNECTED,
-                TCP_STATE_READING,
-                TCP_STATE_WRITING,
-                TCP_STATE_DONE
-        } tcp_conn_state_t;
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------

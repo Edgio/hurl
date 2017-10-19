@@ -20,23 +20,20 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hurl/dns/ai_cache.h"
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
+#include "hurl/support/time_util.h"
 #include "hurl/nconn/host_info.h"
 #include "hurl/status.h"
-#include "hurl/support/time_util.h"
 #include "base64/base64.h"
-
 // json support
 //#pragma GCC diagnostic push
 //#pragma GCC diagnostic ignored "-Werror"
 #include "rapidjson/document.h"
 //#pragma GCC diagnostic pop
-
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
@@ -46,9 +43,7 @@
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -68,7 +63,6 @@ ai_cache::ai_cache(const std::string &a_ai_cache_file):
                 }
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -97,7 +91,6 @@ ai_cache::~ai_cache()
                 }
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -127,7 +120,6 @@ host_info *ai_cache::lookup(const std::string a_label)
         }
         return l_host_info;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -147,7 +139,6 @@ host_info *ai_cache::lookup(const std::string a_label, host_info *a_host_info)
         }
         return l_host_info;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -166,7 +157,6 @@ void ai_cache::add(const std::string a_label, host_info *a_host_info)
         }
         m_ai_cache_map[a_label] = a_host_info;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -210,7 +200,6 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
         }
         return HURL_STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -322,5 +311,4 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         }
         return HURL_STATUS_OK;
 }
-
 }

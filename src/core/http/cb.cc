@@ -23,7 +23,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include "hurl/http/cb.h"
 #include "hurl/http/rqst.h"
 #include "hurl/http/resp.h"
@@ -51,35 +51,6 @@
         } while(0);
 
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-int32_t http_parse(void *a_data, char *a_buf, uint32_t a_len, uint64_t a_off)
-{
-        CHECK_FOR_NULL_ERROR(a_data);
-        hmsg *l_hmsg = static_cast<hmsg *>(a_data);
-        l_hmsg->m_cur_off = a_off;
-        l_hmsg->m_cur_buf = a_buf;
-        size_t l_parse_status = 0;
-        //NDBG_PRINT("%sHTTP_PARSER%s: m_read_buf: %p, m_read_buf_idx: %d, l_bytes_read: %d\n",
-        //                ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF,
-        //                a_buf, (int)a_off, (int)a_len);
-        l_parse_status = http_parser_execute(l_hmsg->m_http_parser,
-                                             l_hmsg->m_http_parser_settings,
-                                             a_buf,
-                                             a_len);
-        //NDBG_PRINT("STATUS: %lu\n", l_parse_status);
-        if(l_parse_status < (size_t)a_len)
-        {
-                TRC_ERROR("Parse error.  Reason: %s: %s\n",
-                           http_errno_name((enum http_errno)l_hmsg->m_http_parser->http_errno),
-                           http_errno_description((enum http_errno)l_hmsg->m_http_parser->http_errno));
-                return HURL_STATUS_ERROR;
-        }
-        return HURL_STATUS_OK;
-}
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

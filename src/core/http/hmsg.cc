@@ -20,19 +20,16 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hurl/status.h"
 #include "hurl/http/hmsg.h"
 #include "hurl/support/nbq.h"
-#include "ndebug.h"
+#include "hurl/support/ndebug.h"
 #include "http_parser/http_parser.h"
 #include <stdlib.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -62,7 +59,6 @@ hmsg::hmsg(void):
         m_http_parser = (http_parser *)calloc(1, sizeof(http_parser));
         init(false);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -87,7 +83,6 @@ hmsg::~hmsg(void)
                 free(m_http_parser);
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -114,7 +109,6 @@ void hmsg::init(bool a_save)
                 m_body_q = NULL;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Getters
 //: ----------------------------------------------------------------------------
@@ -127,7 +121,6 @@ hmsg::type_t hmsg::get_type(void) const
 {
         return m_type;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -137,7 +130,6 @@ nbq *hmsg::get_q(void) const
 {
         return m_q;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -161,7 +153,6 @@ nbq *hmsg::get_body_q(void)
         }
         return m_body_q;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -171,7 +162,6 @@ uint64_t hmsg::get_body_len(void) const
 {
         return m_p_body.m_len;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -212,8 +202,6 @@ void hmsg::get_headers(kv_map_list_t *ao_headers) const
         }
         return;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -229,8 +217,6 @@ const kv_map_list_t &hmsg::get_headers()
         }
         return *m_headers;
 }
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -240,7 +226,6 @@ uint64_t hmsg::get_idx(void) const
 {
         return m_idx;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -250,7 +235,6 @@ void hmsg::set_idx(uint64_t a_idx)
 {
         m_idx = a_idx;
 }
-
 //: ----------------------------------------------------------------------------
 //:                               Setters
 //: ----------------------------------------------------------------------------
@@ -263,7 +247,6 @@ void hmsg::set_q(nbq *a_q)
 {
         m_q = a_q;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -275,5 +258,4 @@ void hmsg::reset_body_q(void)
        m_p_body.m_len = 0;
        m_p_body.m_off = 0;
 }
-
 } //namespace ns_hurl {

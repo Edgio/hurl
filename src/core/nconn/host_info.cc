@@ -28,7 +28,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdio.h>
-
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: TODO
