@@ -5,7 +5,7 @@
 A few utilities for testing and curling from http servers.
 
 ## *hurl* HTTP Server Load Tester
-*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for multithreading, parallelism, ssl, url ranges, and an api-server for querying the running performance statistics.  *hurl* is primarily useful for benchmarking http server applications.
+*hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for tls, http2, multithreading, parallelism, url ranges.  *hurl* is primarily useful for benchmarking http server applications.
 
 * **A little more about URLs Ranges**:
 *hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
@@ -23,38 +23,35 @@ Options are:
   -h, --help           Display this help and exit.
   -V, --version        Display the version number and exit.
   
-Input Options:
+Run Options:
   -w, --no_wildcards   Don't wildcard the url.
   -M, --mode           Request mode -if multipath [random(default) | sequential].
   -d, --data           HTTP body data -supports curl style @ file specifier
-  
-Settings:
   -p, --parallel       Num parallel. Default: 100.
   -f, --fetches        Num fetches.
-  -N, --num_calls      Number of requests per connection
+  -N, --calls          Number of requests per connection (or stream if H2)
   -t, --threads        Number of parallel threads. Default: 1
   -H, --header         Request headers -can add multiple ie -H<> -H<>...
   -X, --verb           Request command -HTTP verb to use -GET/PUT/etc. Default GET
   -l, --seconds        Run for <N> seconds .
-  -A, --rate           Max Request Rate.
+  -A, --rate           Max Request Rate -per sec.
   -T, --timeout        Timeout (seconds).
   -x, --no_stats       Don't collect stats -faster.
+  -I, --addr_seq       Sequence over local address range.
   
-Print Options:
+Display Options:
   -v, --verbose        Verbose logging
   -c, --no_color       Turn off colors
-  -q, --quiet          Suppress progress output
   -C, --responses      Display http(s) response codes instead of request statistics
   -L, --responses_per  Display http(s) response codes per interval instead of request statistics
-  
-Stat Options:
   -U, --update         Update output every N ms. Default 500ms.
   
 Results Options:
   -j, --json           Display results in json
-  -Y, --http_load      Display results in http load mode -Legacy support
-  -Z, --http_load_line Display results in http load mode on a single line -Legacy support
   -o, --output         Output results to file <FILE> -default to stdout
+  
+Debug Options:
+  -r, --trace          Turn on tracing (error/warn/debug/verbose/all)
   
 Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
