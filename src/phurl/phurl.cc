@@ -137,78 +137,6 @@ typedef enum {
 //: ----------------------------------------------------------------------------
 class t_phurl;
 typedef std::list <t_phurl *> t_phurl_list_t;
-#if 0
-// -----------------------------------------------
-// request object/meta
-// -----------------------------------------------
-class request {
-public:
-        request():
-                m_nconn(NULL),
-                m_t_phurl(NULL),
-                m_timer_obj(NULL),
-                m_resp(NULL),
-                m_in_q(NULL),
-                m_out_q(NULL),
-                m_host(),
-                m_hostname(),
-                m_id(),
-                m_where(),
-                m_url(),
-                m_port(0),
-                m_tls_info_cipher_str(),
-                m_tls_info_protocol_str(),
-                m_error_str(),
-#ifdef ASYNC_DNS_SUPPORT
-                m_adns_lookup_job_handle(NULL),
-#endif
-                m_host_info(),
-                m_host_resolved(false)
-        {};
-        // -------------------------------------------------
-        // Public Static (class) methods
-        // -------------------------------------------------
-        static int32_t evr_fd_readable_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_READ);}
-        static int32_t evr_fd_writeable_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_WRITE);}
-        static int32_t evr_fd_error_cb(void *a_data) {return run_state_machine(a_data, ns_hurl::EVR_MODE_ERROR);}
-        static int32_t evr_fd_timeout_cb(void *a_data){return run_state_machine(a_data, ns_hurl::EVR_MODE_TIMEOUT);}
-        ns_hurl::nconn *m_nconn;
-        t_phurl *m_t_phurl;
-        ns_hurl::evr_event_t *m_timer_obj;
-        ns_hurl::resp *m_resp;
-        ns_hurl::nbq *m_in_q;
-        ns_hurl::nbq *m_out_q;
-        // User defined...
-        std::string m_host;
-        std::string m_hostname;
-        std::string m_id;
-        std::string m_where;
-        std::string m_url;
-        uint16_t m_port;
-        std::string m_tls_info_cipher_str;
-        std::string m_tls_info_protocol_str;
-        std::string m_error_str;
-        // address resolution
-#ifdef ASYNC_DNS_SUPPORT
-        void *m_adns_lookup_job_handle;
-#endif
-        ns_hurl::host_info m_host_info;
-        bool m_host_resolved;
-private:
-        // -------------------------------------------------
-        // Private methods
-        // -------------------------------------------------
-        // Disallow copy/assign
-        request& operator=(const request &);
-        request(const request &);
-        int32_t teardown(ns_hurl::http_status_t a_status);
-        // -------------------------------------------------
-        // Private Static (class) methods
-        // -------------------------------------------------
-        static int32_t run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode);
-        // TODO -subr/rqst/resp/tls info?
-};
-#endif
 //: ----------------------------------------------------------------------------
 //: request object/meta
 //: ----------------------------------------------------------------------------
@@ -725,6 +653,7 @@ pthread_mutex_t g_sum_info_mutex;
 summary_map_t g_sum_info_tls_protocols;
 summary_map_t g_sum_info_tls_ciphers;
 summary_map_t g_sum_info_alpn;
+summary_map_t g_sum_info_alpn_full;
 //: ----------------------------------------------------------------------------
 //: t_phurl
 //: ----------------------------------------------------------------------------
@@ -1842,27 +1771,24 @@ int32_t session::teardown(ns_hurl::http_status_t a_status)
                                 pthread_mutex_lock(&g_sum_info_mutex);
                                 ++(g_sum_info_alpn[l_p]);
                                 pthread_mutex_unlock(&g_sum_info_mutex);
-                                if(m_host->m_alpn_str.empty())
+                                m_host->m_alpn_str += l_p;
+                                if(i_c + l_len < l_alpn_result_len)
                                 {
-                                        m_host->m_alpn_str += l_p;
-                                }
-                                else
-                                {
-                                        m_host->m_alpn_str += l_p;
-                                        if(i_c + l_len < l_alpn_result_len)
-                                        {
-                                                m_host->m_alpn_str += ",";
-                                        }
+                                        m_host->m_alpn_str += ",";
                                 }
                                 i_c += l_len;
                         }
                 }
                 else
                 {
+                        m_host->m_alpn_str = "NA";
                         pthread_mutex_lock(&g_sum_info_mutex);
                         ++(g_sum_info_alpn["NA"]);
                         pthread_mutex_unlock(&g_sum_info_mutex);
                 }
+                pthread_mutex_lock(&g_sum_info_mutex);
+                ++(g_sum_info_alpn_full[m_host->m_alpn_str]);
+                pthread_mutex_unlock(&g_sum_info_mutex);
         }
         --(m_t_phurl->m_num_pending);
         --(m_t_phurl->m_num_in_progress);
@@ -2847,77 +2773,6 @@ int32_t t_phurl::session_cleanup(session *a_ses, ns_hurl::nconn *a_nconn)
         }
         return HURL_STATUS_OK;
 }
-#if 0
-//: ----------------------------------------------------------------------------
-//: \details: create request callback
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
-static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq)
-{
-        // TODO grab from path...
-        char l_buf[2048];
-        //if(!(a_request.m_url_query.empty()))
-        //{
-        //        l_path_ref += "?";
-        //        l_path_ref += a_request.m_url_query;
-        //}
-        //NDBG_PRINT("HOST: %s PATH: %s\n", a_reqlet.m_url.m_host.c_str(), l_path_ref.c_str());
-        int l_len;
-        l_len = snprintf(l_buf, sizeof(l_buf),
-                        "%s %s?%s HTTP/1.1",
-                        g_conf_verb.c_str(),
-                        g_conf_url_path.c_str(),
-                        g_conf_url_query.c_str());
-        ns_hurl::nbq_write_request_line(a_nbq, l_buf, l_len);
-        // -------------------------------------------
-        // Add repo headers
-        // -------------------------------------------
-        bool l_specd_host = false;
-        // Loop over reqlet map
-        for(ns_hurl::kv_map_list_t::const_iterator i_hl = g_conf_headers.begin();
-            i_hl != g_conf_headers.end();
-            ++i_hl)
-        {
-                if(i_hl->first.empty() || i_hl->second.empty())
-                {
-                        continue;
-                }
-                for(ns_hurl::str_list_t::const_iterator i_v = i_hl->second.begin();
-                    i_v != i_hl->second.end();
-                    ++i_v)
-                {
-                        ns_hurl::nbq_write_header(a_nbq, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
-                        if (strcasecmp(i_hl->first.c_str(), "host") == 0)
-                        {
-                                l_specd_host = true;
-                        }
-                }
-        }
-        // -------------------------------------------
-        // Default Host if unspecified
-        // -------------------------------------------
-        if (!l_specd_host)
-        {
-                ns_hurl::nbq_write_header(a_nbq,
-                                         "Host", strlen("Host"),
-                                         a_request.m_host.c_str(), a_request.m_host.length());
-        }
-        // -------------------------------------------
-        // body
-        // -------------------------------------------
-        if(g_conf_body_data && g_conf_body_data_len)
-        {
-                //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                ns_hurl::nbq_write_body(a_nbq, g_conf_body_data, g_conf_body_data_len);
-        }
-        else
-        {
-                ns_hurl::nbq_write_body(a_nbq, NULL, 0);
-        }
-        return STATUS_OK;
-}
-#endif
 //: ----------------------------------------------------------------------------
 //: Prototypes
 //: ----------------------------------------------------------------------------
@@ -4361,9 +4216,15 @@ void display_summary(void)
         // Sort
         typedef std::map<uint32_t, std::string> _sorted_map_t;
         _sorted_map_t l_sorted_map;
-        TRC_OUTPUT("+--------------- %sHTTP PROTOCOLS%s --------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
+        TRC_OUTPUT("+--------------- %sALPN PROTOCOLS%s --------------- \n", l_protocol_str.c_str(), l_off_color.c_str());
         l_sorted_map.clear();
         for(summary_map_t::iterator i_s = g_sum_info_alpn.begin(); i_s != g_sum_info_alpn.end(); ++i_s)
+        l_sorted_map[i_s->second] = i_s->first;
+        for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
+        TRC_OUTPUT("| %-32s %12u\n", i_s->second.c_str(), i_s->first);
+        TRC_OUTPUT("+--------------- %sALPN STRING%s ------------------ \n", l_protocol_str.c_str(), l_off_color.c_str());
+        l_sorted_map.clear();
+        for(summary_map_t::iterator i_s = g_sum_info_alpn_full.begin(); i_s != g_sum_info_alpn_full.end(); ++i_s)
         l_sorted_map[i_s->second] = i_s->first;
         for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
         TRC_OUTPUT("| %-32s %12u\n", i_s->second.c_str(), i_s->first);
