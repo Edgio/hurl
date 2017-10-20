@@ -32,12 +32,12 @@
 #include "hurl/support/trace.h"
 #include "hurl/support/ndebug.h"
 #include <pthread.h>
-#include <openssl/ssl.h>
-#include <openssl/err.h>
-#include <openssl/bio.h>
-#include <openssl/rand.h>
-#include <openssl/crypto.h>
-#include <openssl/x509v3.h>
+#include "openssl/ssl.h"
+#include "openssl/err.h"
+#include "openssl/bio.h"
+#include "openssl/rand.h"
+#include "openssl/crypto.h"
+#include "openssl/x509v3.h"
 #include <map>
 #include <algorithm>
 //: ----------------------------------------------------------------------------
@@ -290,12 +290,16 @@ int32_t get_tls_info_protocol_num(SSL *a_ssl)
         {
             return -1;
         }
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         SSL_SESSION *m_tls_session = SSL_get_session(a_ssl);
         if(!m_tls_session)
         {
                 return -1;
         }
         return m_tls_session->ssl_version;
+#else
+        return SSL_version(a_ssl);
+#endif
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -409,6 +413,7 @@ bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
         {
                 return false;
         }
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         // First, the DNS-IDs (dNSName entries in the subjectAltName extension)
         GENERAL_NAMES* l_names = (GENERAL_NAMES*)X509_get_ext_d2i(x509, NID_subject_alt_name, NULL, NULL);
         if(l_names)
@@ -447,6 +452,10 @@ bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
                 }
         }
         return ids.empty() ? false : true;
+#else
+        // TODO FIX!!!
+        return false;
+#endif
 }
 //: ----------------------------------------------------------------------------
 //: Check host name

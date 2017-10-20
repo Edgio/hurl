@@ -18,29 +18,31 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-
+# ------------------------------------------------------------------------------
 # Project setup
+# ------------------------------------------------------------------------------
 project(hurl)
 cmake_minimum_required(VERSION 2.8.0)
-
 if (POLICY CMP0050)
     cmake_policy(SET CMP0050 OLD)
 endif()
-
+# ------------------------------------------------------------------------------
 # Build options
-option(GCC_OPTIONS       "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
-option(FORTIFY           "Fortify Source GCC options" OFF)
-option(DEBUG_MODE        "Compile in debug mode." OFF)
-option(BUILD_APPS        "Build hurl/phurl/fsurve" ON)
-option(BUILD_TESTS       "Build the unit tests." OFF)
-option(BUILD_TCMALLOC    "Build with tcmalloc" OFF)
-option(BUILD_PROFILER    "Enable google cpu and heap profiler support" OFF)
-option(BUILD_SYMBOLS     "Build with Symbols" OFF)
-option(BUILD_EFENCE      "Build with efence" OFF)
-option(BUILD_ASAN        "Build with Address Sanitizer" OFF)
-option(BUILD_UBSAN       "Build with Undefined Behavior Sanitizer" OFF)
-option(BUILD_UDNS        "Build with udns (async dns support)" ON)
-option(BUILD_UBUNTU      "Build for Ubuntu" OFF)
+# ------------------------------------------------------------------------------
+option(GCC_OPTIONS          "Command line options passed to gcc or 'native' to compile for this hardware" OFF)
+option(FORTIFY              "Fortify Source GCC options" OFF)
+option(DEBUG_MODE           "Compile in debug mode." OFF)
+option(BUILD_APPS           "Build hurl/phurl/fsurve" ON)
+option(BUILD_TESTS          "Build the unit tests." OFF)
+option(BUILD_TCMALLOC       "Build with tcmalloc" OFF)
+option(BUILD_PROFILER       "Enable google cpu and heap profiler support" OFF)
+option(BUILD_SYMBOLS        "Build with Symbols" OFF)
+option(BUILD_EFENCE         "Build with efence" OFF)
+option(BUILD_ASAN           "Build with Address Sanitizer" OFF)
+option(BUILD_UBSAN          "Build with Undefined Behavior Sanitizer" OFF)
+option(BUILD_UDNS           "Build with udns (async dns support)" ON)
+option(BUILD_UBUNTU         "Build for Ubuntu" OFF)
+option(BUILD_CUSTOM_OPENSSL "Build for Ubuntu" OFF)
 # ------------------------------------------------------------------------------
 # Display the current settings
 # ------------------------------------------------------------------------------
@@ -61,6 +63,7 @@ message("    Build with Address Sanitizer:              " "BUILD_ASAN           
 message("    Build with Undefined Behavior Sanitizer:   " "BUILD_UBSAN             " ${BUILD_UBSAN})
 message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
 message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU            " ${BUILD_UBUNTU})
+message("    Build for custom OpenSSL:                  " "BUILD_CUSTOM_OPENSSL    " ${BUILD_CUSTOM_OPENSSL})
 message("")
 # ------------------------------------------------------------------------------
 # fortify options
@@ -164,7 +167,13 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # ------------------------------------------------------------------------------
 # Link OpenSSL
 # ------------------------------------------------------------------------------
-if (BUILD_UBUNTU)
+if(BUILD_UBUNTU AND BUILD_CUSTOM_OPENSSL)
+  INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
+  set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libssl.a")
+  set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libcrypto.a")
+  find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
+  add_definitions(-DBUILD_CUSTOM_OPENSSL=1)
+elseif(BUILD_UBUNTU)
   find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a libssl1.0.0 libssl-dev)
   find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
