@@ -3017,6 +3017,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "phurl HTTP Parallel Curl.\n");
         fprintf(a_stream, "Copyright (C) 2017 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
+        fprintf(a_stream, "       OpenSSL Version: 0x%lX\n", OPENSSL_VERSION_NUMBER);
         exit(a_exit_code);
 }
 
@@ -4142,12 +4143,21 @@ int main(int argc, char** argv)
                 delete l_resolver;
                 l_resolver = NULL;
         }
-#if 0
+        if(l_request->m_scheme == ns_hurl::SCHEME_TLS)
+        {
+                int32_t l_s;
+                l_s = ns_hurl::tls_cleanup();
+                if(l_s != HURL_STATUS_OK)
+                {
+                        TRC_ERROR("performing tls_cleanup.\n");
+                }
+        }
         if(l_request)
         {
                 delete l_request;
                 l_request = NULL;
         }
+#if 0
         for(t_phurl_list_t::iterator i_t = g_t_phurl_list.begin();
             i_t != g_t_phurl_list.end();
             ++i_t)

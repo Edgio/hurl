@@ -3252,6 +3252,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "hurl HTTP Load Tester.\n");
         fprintf(a_stream, "Copyright (C) 2017 Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
+        fprintf(a_stream, "       OpenSSL Version: 0x%lX\n", OPENSSL_VERSION_NUMBER);
         exit(a_exit_code);
 }
 //: ----------------------------------------------------------------------------
@@ -4344,13 +4345,22 @@ int main(int argc, char** argv)
                 }
         }
         l_t_hurl_list.clear();
+        if(l_request->m_scheme == ns_hurl::SCHEME_TLS)
+        {
+                int32_t l_s;
+                l_s = ns_hurl::tls_cleanup();
+                if(l_s != HURL_STATUS_OK)
+                {
+                        TRC_ERROR("performing tls_cleanup.\n");
+                }
+        }
         if(l_request)
         {
                 delete l_request;
                 l_request = NULL;
         }
-        // TODO delete SSL_CTX...
 #if 0
+        // TODO delete SSL_CTX...
         if(l_ctx)
         {
                 SSL_CTX_free(l_ctx);

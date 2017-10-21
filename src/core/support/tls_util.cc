@@ -58,6 +58,7 @@ __thread char gts_last_tls_error[256] = "\0";
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int a_line)
 {
         struct CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
@@ -66,11 +67,13 @@ static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int 
         pthread_mutex_init(&value->mutex, NULL);
         return value;
 }
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void dyn_lock_function(int a_mode,
                               struct CRYPTO_dynlock_value* a_l,
                               const char* a_file,
@@ -85,11 +88,13 @@ static void dyn_lock_function(int a_mode,
                 pthread_mutex_unlock(&a_l->mutex);
         }
 }
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
                                  const char* a_file,
                                  int a_line)
@@ -100,11 +105,13 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
                 free(a_l);
         }
 }
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file, int a_line)
 {
 #if 0
@@ -127,19 +134,20 @@ static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file
                 pthread_mutex_unlock(&(g_lock_cs[a_type]));
         }
 }
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 static unsigned long pthreads_thread_id(void)
 {
         unsigned long ret;
-
         ret=(unsigned long)pthread_self();
         return(ret);
-
 }
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: OpenSSL can safely be used in multi-threaded applications provided
 //:           that at least two callback functions are set, locking_function and
@@ -156,11 +164,13 @@ static void tls_init_locking(void)
         {
                 pthread_mutex_init(&(g_lock_cs[i]),NULL);
         }
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         CRYPTO_set_id_callback(pthreads_thread_id);
         CRYPTO_set_locking_callback(pthreads_locking_callback);
         CRYPTO_set_dynlock_create_callback(dyn_create_function);
         CRYPTO_set_dynlock_lock_callback(dyn_lock_function);
         CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
+#endif
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -565,5 +575,22 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
 #endif
         // No errors return success(0)
         return 0;
+}
+//: ----------------------------------------------------------------------------
+//: \details: TODO
+//: \return:  TODO
+//: \param:   TODO
+//: \notes:   Example from tor
+//: ----------------------------------------------------------------------------
+int32_t tls_cleanup(void)
+{
+        EVP_cleanup();
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
+        ERR_remove_thread_state(NULL);
+#endif
+        ERR_free_strings();
+        CRYPTO_cleanup_all_ex_data();
+        // TODO -clean mutexes???
+        return HURL_STATUS_OK;
 }
 } //namespace ns_hurl {

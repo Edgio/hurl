@@ -44,6 +44,7 @@ extern __thread char gts_last_tls_error[256];
 //: ----------------------------------------------------------------------------
 void tls_init(void);
 void tls_kill_locks(void);
+int32_t tls_cleanup(void);
 int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val);
 const char *get_tls_info_cipher_str(SSL *a_ssl);
 const char *get_tls_info_protocol_str(int32_t a_version);
