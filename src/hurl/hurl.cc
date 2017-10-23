@@ -3328,8 +3328,9 @@ int main(int argc, char** argv)
         bool l_input_flag = false;
         bool l_wildcarding = true;
         std::string l_output_file = "";
-        ns_hurl::trc_log_file_open("/dev/stdout");
-        ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR);
+        //ns_hurl::trc_log_file_open("/dev/stdout");
+        //ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR);
+        ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
         ns_hurl::tls_init();
         // TODO check result...
         if(isatty(fileno(stdout)))
