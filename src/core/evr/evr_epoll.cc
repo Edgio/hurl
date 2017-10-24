@@ -50,12 +50,8 @@ evr_epoll::evr_epoll(void):
                 printf("Error: epoll_create() failed: %s\n", strerror(errno));
                 exit(-1);
         }
-        int l_flags = EFD_NONBLOCK;
-#ifdef EPOLLEXCLUSIVE
-        l_flags |= EPOLLEXCLUSIVE;
-#endif
         // Create ctrl fd
-        m_ctrl_fd = eventfd(0, l_flags);
+        m_ctrl_fd = eventfd(0, EFD_NONBLOCK);
         if (m_ctrl_fd == -1)
         {
                 printf("Error: eventfd() failed: %s\n", strerror(errno));
