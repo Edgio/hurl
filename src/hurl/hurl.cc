@@ -1644,6 +1644,22 @@ int32_t h2_session::sconnected(void)
         nghttp2_session_callbacks_set_on_begin_headers_callback(l_cb, ngxxx_begin_headers_cb);
         nghttp2_session_client_new(&(m_ngxxx_session), l_cb, this);
         nghttp2_session_callbacks_del(l_cb);
+        // -------------------------------------------------
+        // send SETTINGS
+        // -------------------------------------------------
+        nghttp2_settings_entry l_iv[1] = {
+                { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 1000 }
+        };
+        int32_t l_s;
+        // client 24 bytes magic string will be sent by nghttp2 library
+        //NDBG_PRINT("SUBMIT_SETTINGS\n");
+        l_s = nghttp2_submit_settings(m_ngxxx_session, NGHTTP2_FLAG_NONE, l_iv, ARRLEN(l_iv));
+        if(l_s != 0)
+        {
+                TRC_ERROR("performing nghttp2_submit_settings.  Reason: %s\n", nghttp2_strerror(l_s));
+                return HURL_STATUS_ERROR;
+        }
+        return HURL_STATUS_OK;
 #if 0
         int rv;
 
@@ -1689,24 +1705,6 @@ int32_t h2_session::sconnected(void)
 
         client_->signal_write();
 #endif
-#if 0
-        // -----------------------------------------
-        // send connection header
-        // -----------------------------------------
-        nghttp2_settings_entry l_iv[1] = {
-                { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 1000 }
-        };
-        int32_t l_s;
-        // client 24 bytes magic string will be sent by nghttp2 library
-        //NDBG_PRINT("SUBMIT_SETTINGS\n");
-        l_s = nghttp2_submit_settings(l_ses->m_ngxxx_session, NGHTTP2_FLAG_NONE, l_iv, ARRLEN(l_iv));
-        if(l_s != 0)
-        {
-                TRC_ERROR("performing nghttp2_submit_settings.  Reason: %s\n", nghttp2_strerror(l_s));
-                return NULL;
-        }
-#endif
-        return HURL_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
