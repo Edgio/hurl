@@ -11,12 +11,12 @@ A few utilities for testing and curling from http servers.
 *hurl* has support for range expansion in urls which is useful for testing a server's capability to serve from many files. *hurl* will expand the ranges specified in the wildcards and perform requests in user configurable orders (see the "--mode" option in help).
 eg: "http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html".
 
-####An example
+#### An example
 ```bash
 hurl "http://127.0.0.1/index.html" --num_calls=100 -p100 -f100000 -c
 ```
 
-####Options
+#### Options
 ```bash
 Usage: hurl [http[s]://]hostname[:port]/path [options]
 Options are:
@@ -60,12 +60,12 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ## *phurl* Parallel Curl
 *phurl* is a parallel curling utility useful for pulling a single url from many different hosts. *phurl* supports reading line delimited hosts from stdin, a shell command string, or a file.
 
-####An example
+#### An example
 ```bash
 printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"https://bloop.com/" -s -c -T5
 ```
 
-####Options
+#### Options
 ```bash
 Usage: phurl -u [http[s]://]hostname[:port]/path [options]
 Options are:
@@ -122,20 +122,20 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 ## Building
 
-##OS requirements:
+## OS requirements:
 Linux/OS X (kqueue support coming soon-ish)
 
-###Install dependencies:
+### Install dependencies:
 Library requirements:
 * libssl/libcrypto (OpenSSL)
 
-###OS X Build requirements (brew)
+### OS X Build requirements (brew)
 ```bash
 brew install cmake
 brew install openssl
 ```
 
-###Building the tools
+### Building the tools
 ```bash
 ./build_simple.sh
 ```
