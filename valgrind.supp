@@ -1,0 +1,192 @@
+{
+   <OPENSSL_init_library>
+   Memcheck:Leak
+   ...
+   fun:OPENSSL_init_library
+}
+
+{
+   <OPENSSL_init_library_main>
+   Memcheck:Leak
+   ...
+   fun:OPENSSL_init_library
+   fun:__libc_csu_init
+   fun:(below main)
+}
+
+{
+   <OPENSSL_init_library_init>
+   Memcheck:Leak
+   ...
+   fun:OPENSSL_init_library
+   fun:__libc_csu_init
+}
+
+{
+   <ERR_load_strings>
+   Memcheck:Leak
+   ...
+   fun:ERR_load_strings
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <ERR_load_crypto_strings>
+   Memcheck:Leak
+   ...
+   fun:ERR_load_crypto_strings
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <ERR_load_SSL_strings>
+   Memcheck:Leak
+   ...
+   fun:ERR_load_SSL_strings
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <OpenSSL_add_all_digests>
+   Memcheck:Leak
+   ...
+   fun:OpenSSL_add_all_digests
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <ERR_load_CMS_strings>
+   Memcheck:Leak
+   ...
+   fun:ERR_load_CMS_strings
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <_ZN6ns_hlxL16tls_init_lockingEv>
+   Memcheck:Leak
+   ...
+   fun:_ZN6ns_hlxL16tls_init_lockingEv
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <SSL_library_init>
+   Memcheck:Leak
+   ...
+   fun:SSL_library_init
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <SSL_CTX_new>
+   Memcheck:Leak
+   ...
+   fun:SSL_CTX_new
+   fun:_ZN6ns_hlx12tls_init_ctxERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEElS7_S7_bS7_S7_
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <OPENSSL_add_all_algorithms_noconf>
+   Memcheck:Leak
+   ...
+   fun:OPENSSL_add_all_algorithms_noconf
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <FIPS_mode_set>
+   Memcheck:Leak
+   ...
+   fun:FIPS_mode_set
+}
+
+{
+   <EVP_SignFinal>
+   Memcheck:Leak
+   ...
+   fun:EVP_SignFinal
+}
+
+{
+   <EVP_add_digest_main>
+   Memcheck:Leak
+   ...
+   fun:EVP_add_digest
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <FIPS_mode_set>
+   Memcheck:Leak
+   ...
+   fun:FIPS_mode_set
+}
+
+{
+   <EVP_SignFinal>
+   Memcheck:Leak
+   ...
+   fun:EVP_SignFinal
+}
+
+{
+   <EVP_add_digest_main>
+   Memcheck:Leak
+   ...
+   fun:OBJ_NAME_add
+   fun:EVP_add_digest
+   fun:_ZN6ns_hlx8tls_initEv
+   fun:_ZN6ns_hlx4srvr4initEv
+   fun:_ZN6ns_hlx4srvr8init_runEv
+   fun:_ZN6ns_hlx4srvr3runEv
+   fun:main
+}
+
+{
+   <fips_pkey_signature_test>
+   Memcheck:Leak
+   ...
+   fun:fips_pkey_signature_test
+}
+

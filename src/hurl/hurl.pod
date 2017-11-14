@@ -1,0 +1,92 @@
+=encoding utf8
+
+=head1 NAME
+
+hurl - HTTP(S) Load Tester
+
+=head1 SYNOPSIS
+
+ hurl [URL] [OPTION]
+
+=head1 DESCRIPTION
+
+http server load tester with support for mulithreading, parallelism, ssl, url ranges, and an api-server for querying performance statistics. Primarily useful for benchmarking http server applications.
+
+=head1 URLs and PATHS(S)
+
+The URL can take the form:
+B<[http[s]://]hostname[:port]/path]>
+In the B<no_wildcards> option B<isn't> enabled the path can have range specifiers like:
+B<[1-100]/my_[1-9]_file.html>
+
+A example of a URL with range specifiers:
+
+B<http://127.0.0.1:8089/[1-100]/my_[1-9]_file.html>
+
+hurl will iterate over the ranges randomly unless the B<mode> option specifies sequential iteration.
+
+=head1 OPTIONS
+
+B<-h>, B<--help>          display this help and exit
+
+B<-v>, B<--version>       display this version and exit
+
+B<-w>, B<--no_wildcards>  don't expand ranges in the url path.
+
+B<-M>, B<--mode>          request mode -if multipath [random(default) | sequential].
+
+B<-d>, B<--data>          HTTP body data -supports bodies up to -supports curl style @ <file> specifier.
+
+B<-p>, B<--parallel>      number of parallel requests. Default: 100.
+
+B<-f>, B<--fetches>       number of requests to run before exiting (defaults to infinite).
+
+B<-N>, B<--num_calls>     number of requests per connection
+
+B<-t>, B<--threads>       number of parallel threads. Default: 1
+
+B<-H>, B<--header>        request headers -can add multiple ie -H <> -H <>...
+
+B<-X>, B<--verb>          request command -HTTP verb to use -GET/PUT/etc. Default GET
+
+B<-l>, B<--seconds>       run for <N> seconds .
+
+B<-A>, B<--rate>          max number of requests per second.
+
+B<-T>, B<--timeout>       timeout (seconds).
+
+B<-x>, B<--no_stats>      don't collect stats -faster.
+
+B<-v>, B<--verbose>       verbose logging
+
+B<-c>, B<--no_color>      turn off colors
+
+B<-q>, B<--quiet>         suppress progress output
+
+B<-C>, B<--responses>     display http(s) response codes instead of request statistics
+
+B<-L>, B<--responses_per> display http(s) response codes per interval instead of request statistics
+
+B<-Y>, B<--http_load>     display in http load mode [MODE] -Legacy support
+
+B<-r>, B<--trace>         turn on tracing (error/warn/debug/verbose/all)
+
+=head1 EXAMPLE
+
+hurl "http://127.0.0.1/index.html" --threads=4 --num_calls=100 --parallel=100 -fetches=100000
+
+=head1 NOTES
+
+If running long jobs consider enabling tcp_tw_reuse -eg:
+echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
+
+=head1 COPYRIGHT
+
+Copyright (C) 2017 Verizon.  All Rights Reserved.
+Apache License: Version 2.0, January 2004 <http://www.apache.org/licenses/LICENSE-2.0>
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+=head1 SEE ALSO
+
+Source code available at https://github.com/VerizonDigital/hurl

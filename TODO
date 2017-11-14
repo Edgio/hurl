@@ -1,0 +1,5 @@
+a. evr_kqueue + eventfd analog.
+b. fix stats stdev/var.
+c. rqst splitting (test with pipelined requests)
+d. set separate timeouts resolve/connect/idle
+
