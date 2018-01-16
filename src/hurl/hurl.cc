@@ -1368,9 +1368,9 @@ if(i_hdr != m_request->m_headers.end()) { \
             i_hl != m_request->m_headers.end();
             ++i_hl)
         {
-                if(STRN_CASE_CMP("host", i_hdr->first.c_str()) ||
-                   STRN_CASE_CMP("accept", i_hdr->first.c_str()) ||
-                   STRN_CASE_CMP("user-agent", i_hdr->first.c_str()))
+                if(STRN_CASE_CMP("host", i_hl->first.c_str()) ||
+                   STRN_CASE_CMP("accept", i_hl->first.c_str()) ||
+                   STRN_CASE_CMP("user-agent", i_hl->first.c_str()))
                 {
                         continue;
                 }
