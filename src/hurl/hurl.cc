@@ -376,7 +376,7 @@ public:
                 m_conf_tls_cipher_list(),
                 m_conf_tls_options(),
                 m_conf_tls_verify(),
-                m_conf_tls_sni(),
+                m_conf_tls_sni(true),
                 m_conf_tls_self_ok(),
                 m_conf_tls_no_host_check(),
                 m_conf_tls_ca_file(),
@@ -2663,6 +2663,13 @@ ns_hurl::nconn *t_hurl::create_conn(void)
                 l_nconn->set_opt(ns_hurl::nconn_tls::OPT_TLS_CTX,
                                  m_request.m_tls_ctx,
                                  sizeof(m_request.m_tls_ctx));
+                bool l_t = true;
+                l_nconn->set_opt(ns_hurl::nconn_tls::OPT_TLS_SNI,
+                                 &l_t,
+                                 sizeof(l_t));
+                l_nconn->set_opt(ns_hurl::nconn_tls::OPT_TLS_HOSTNAME,
+                                 m_request.m_host.c_str(),
+                                 m_request.m_host.length());
         }
         else if(m_request.m_scheme == ns_hurl::SCHEME_TCP)
         {
