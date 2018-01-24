@@ -29,9 +29,9 @@
 #include <config.h>
 #endif /* HAVE_CONFIG_H */
 
-//#ifdef HAVE_ARPA_INET_H
+#ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
-//#endif /* HAVE_ARPA_INET_H */
+#endif /* HAVE_ARPA_INET_H */
 
 #ifdef HAVE_NETINET_IN_H
 #include <netinet/in.h>
