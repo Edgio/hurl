@@ -386,6 +386,7 @@ public:
                 m_connect_only(false),
                 m_keepalive(false),
                 m_save(false),
+                m_h1(false),
                 m_timeout_ms(10000),
                 m_host_info(),
                 m_data(NULL),
@@ -414,6 +415,7 @@ public:
                 m_connect_only(a_r.m_connect_only),
                 m_keepalive(a_r.m_keepalive),
                 m_save(a_r.m_save),
+                m_h1(a_r.m_h1),
                 m_timeout_ms(a_r.m_timeout_ms),
                 m_host_info(a_r.m_host_info),
                 m_data(a_r.m_data),
@@ -483,6 +485,7 @@ public:
         bool m_connect_only;
         bool m_keepalive;
         bool m_save;
+        bool m_h1;
         uint32_t m_timeout_ms;
         ns_hurl::host_info m_host_info;
         void *m_data;
@@ -2716,7 +2719,8 @@ session *t_hurl::session_create(ns_hurl::nconn *a_nconn)
         // setup session
         // -------------------------------------------------
         session *l_ses = NULL;
-        if(a_nconn->get_alpn() == ns_hurl::nconn::ALPN_HTTP_VER_V2)
+        if((a_nconn->get_alpn() == ns_hurl::nconn::ALPN_HTTP_VER_V2) &&
+           (!m_request.m_h1))
         {
                 l_ses = new h2_session();
         }
@@ -3279,6 +3283,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -p, --parallel       Num parallel. Default: 100.\n");
         fprintf(a_stream, "  -f, --fetches        Num fetches.\n");
         fprintf(a_stream, "  -N, --calls          Number of requests per connection (or stream if H2)\n");
+        fprintf(a_stream, "  -1, --h1             Force http 1.x\n");
         // TODO FIX!!!
 #if 0
         fprintf(a_stream, "  -s, --streams        Number of streams per connection (H2 option)\n");
@@ -3390,6 +3395,7 @@ int main(int argc, char** argv)
                 { "parallel",       1, 0, 'p' },
                 { "fetches",        1, 0, 'f' },
                 { "calls",          1, 0, 'N' },
+                { "h1",             0, 0, '1' },
                 { "streams",        1, 0, 's' },
                 { "threads",        1, 0, 't' },
                 { "header",         1, 0, 'H' },
@@ -3449,9 +3455,9 @@ int main(int argc, char** argv)
                 }
         }
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xI:vcCLjo:U:r:G:";
+        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:vcCLjo:U:r:G:";
 #else
-        char l_short_arg_list[] = "hVwd:p:f:N:t:H:X:A:M:l:T:xI:vcCLjo:U:r:";
+        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:vcCLjo:U:r:";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -3569,6 +3575,13 @@ int main(int argc, char** argv)
                                 l_request->m_keepalive = false;
                         }
                         break;
+                }
+                // -----------------------------------------
+                // force client to use http 1.x
+                // -----------------------------------------
+                case '1':
+                {
+                       l_request->m_h1 = true;
                 }
                 // -----------------------------------------
                 // number of streams per connection
