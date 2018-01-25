@@ -76,7 +76,6 @@
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-#if 0
 static int select_next_protocol(unsigned char **out,
                                 unsigned char *outlen,
                                 const unsigned char *in,
@@ -98,7 +97,6 @@ static int select_next_protocol(unsigned char **out,
         }
         return -1;
 }
-#endif
 //: ----------------------------------------------------------------------------
 //: \details: NPN TLS extension client callback. We check that server advertised
 //:           the HTTP/2 protocol the nghttp2 library supports. If not, exit
@@ -106,7 +104,6 @@ static int select_next_protocol(unsigned char **out,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-#if 0
 static int alpn_select_next_proto_cb(SSL *a_ssl,
                                      unsigned char **a_out,
                                      unsigned char *a_outlen,
@@ -133,7 +130,6 @@ static int alpn_select_next_proto_cb(SSL *a_ssl,
         }
         return SSL_TLSEXT_ERR_ALERT_FATAL;
 }
-#endif
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: Initialize OpenSSL
@@ -242,10 +238,8 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                 }
         }
         SSL_CTX_set_default_verify_paths(l_ctx);
-#if 0
         // set npn callback
-        //SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
-#endif
+        SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
 #define _ALPN_PROTO_ADV "\x2h2\x5h2-16\x5h2-14"
         int l_s;
