@@ -76,6 +76,7 @@
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if 0
 static int select_next_protocol(unsigned char **out,
                                 unsigned char *outlen,
                                 const unsigned char *in,
@@ -97,6 +98,7 @@ static int select_next_protocol(unsigned char **out,
         }
         return -1;
 }
+#endif
 //: ----------------------------------------------------------------------------
 //: \details: NPN TLS extension client callback. We check that server advertised
 //:           the HTTP/2 protocol the nghttp2 library supports. If not, exit
@@ -104,6 +106,7 @@ static int select_next_protocol(unsigned char **out,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
+#if 0
 static int alpn_select_next_proto_cb(SSL *a_ssl,
                                      unsigned char **a_out,
                                      unsigned char *a_outlen,
@@ -130,6 +133,7 @@ static int alpn_select_next_proto_cb(SSL *a_ssl,
         }
         return SSL_TLSEXT_ERR_ALERT_FATAL;
 }
+#endif
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: Initialize OpenSSL
@@ -237,10 +241,18 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                         return NULL;
                 }
         }
-#ifdef HAS_NPN
+        SSL_CTX_set_default_verify_paths(l_ctx);
+#if 0
         // set npn callback
-        SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
+        //SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
 #endif
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+#define _ALPN_PROTO_ADV "\x2h2\x5h2-16\x5h2-14"
+        int l_s;
+        l_s = SSL_CTX_set_alpn_protos(l_ctx, (unsigned char *)_ALPN_PROTO_ADV, strlen(_ALPN_PROTO_ADV));
+        UNUSED(l_s);
+        //TODO -check error
+#endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
         // ???
         SSL_CTX_set_mode(l_ctx, SSL_MODE_AUTO_RETRY);
         SSL_CTX_set_mode(l_ctx, SSL_MODE_RELEASE_BUFFERS);
@@ -1143,6 +1155,24 @@ ncconnect_state_top:
                                 gts_last_tls_error[0] = '\0';
                                 return NC_STATUS_ERROR;
                         }
+                }
+                // -----------------------------------------
+                // get negotiated alpn...
+                // -----------------------------------------
+                const char *l_alpn = NULL;
+                uint32_t l_alpn_len;
+                SSL_get0_alpn_selected(m_tls, (const unsigned char**)&l_alpn, &l_alpn_len);
+                //NDBG_PRINT("showing alpn\n");
+                //mem_display((const uint8_t *)l_alpn, l_alpn_len, true);
+                if((strncmp("h2",    l_alpn, l_alpn_len) == 0) ||
+                   (strncmp("h2-16", l_alpn, l_alpn_len) == 0) ||
+                   (strncmp("h2-14", l_alpn, l_alpn_len) == 0))
+                {
+                        set_alpn(ns_hurl::nconn::ALPN_HTTP_VER_V2);
+                }
+                else
+                {
+                        set_alpn(ns_hurl::nconn::ALPN_HTTP_VER_V1_1);
                 }
                 break;
         }
