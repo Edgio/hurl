@@ -1159,6 +1159,7 @@ ncconnect_state_top:
                 // -----------------------------------------
                 // get negotiated alpn...
                 // -----------------------------------------
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
                 const char *l_alpn = NULL;
                 uint32_t l_alpn_len;
                 SSL_get0_alpn_selected(m_tls, (const unsigned char**)&l_alpn, &l_alpn_len);
@@ -1174,6 +1175,7 @@ ncconnect_state_top:
                 {
                         set_alpn(ns_hurl::nconn::ALPN_HTTP_VER_V1_1);
                 }
+#endif
                 break;
         }
         // -------------------------------------------------
