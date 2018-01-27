@@ -1454,7 +1454,6 @@ setup_resp:
 int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 {
         ns_hurl::hmsg *l_hmsg = static_cast<ns_hurl::hmsg *>(m_resp);
-        l_hmsg->m_cur_off = a_off;
         l_hmsg->m_cur_buf = reinterpret_cast<char *>(const_cast<uint8_t *>(a_buf));
         size_t l_parse_status = 0;
         //NDBG_PRINT("%sHTTP_PARSER%s: m_read_buf: %p, m_read_buf_idx: %d, l_bytes_read: %d\n",
@@ -1472,6 +1471,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                            http_errno_description((enum http_errno)l_hmsg->m_http_parser->http_errno));
                 return HURL_STATUS_ERROR;
         }
+        l_hmsg->m_cur_off = a_off;
         if(m_resp->m_complete)
         {
                 // ---------------------------------
