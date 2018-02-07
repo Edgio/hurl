@@ -46,7 +46,7 @@
 #define CHECK_FOR_NULL_ERROR(_data) \
         do {\
                 if(!_data) {\
-                        return HURL_STATUS_ERROR;\
+                        return STATUS_ERROR;\
                 }\
         } while(0);
 

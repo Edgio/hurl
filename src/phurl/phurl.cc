@@ -334,7 +334,7 @@ int32_t request::init_with_url(const std::string &a_url)
         {
                 NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // Set no port
         m_port = 0;
@@ -364,7 +364,7 @@ int32_t request::init_with_url(const std::string &a_url)
                                 else
                                 {
                                         NDBG_PRINT("Error schema[%s] is unsupported\n", l_part.c_str());
-                                        return HURL_STATUS_ERROR;
+                                        return STATUS_ERROR;
                                 }
                                 break;
                         }
@@ -1145,7 +1145,7 @@ int32_t http_session::srequest(void)
         if(!m_t_phurl)
         {
                 TRC_ERROR("m_t_phurl == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         ++m_t_phurl->m_num_in_progress;
         m_out_q->reset_read();
@@ -1283,7 +1283,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 TRC_ERROR("Parse error.  Reason: %s: %s\n",
                            http_errno_name((enum http_errno)l_hmsg->m_http_parser->http_errno),
                            http_errno_description((enum http_errno)l_hmsg->m_http_parser->http_errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         l_hmsg->m_cur_off = a_off;
         if(m_resp->m_complete)
@@ -1306,7 +1306,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing request_complete\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 m_goaway = true;
         }
@@ -1466,7 +1466,7 @@ int32_t h2_session::sconnected(void)
         if(l_s != 0)
         {
                 TRC_ERROR("performing nghttp2_submit_settings.  Reason: %s\n", nghttp2_strerror(l_s));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 #if 0
@@ -1642,7 +1642,7 @@ int32_t h2_session::srequest(void)
         if (l_id < 0)
         {
                 TRC_ERROR("performing nghttp2_submit_request.  Reason: %s\n", nghttp2_strerror(l_id));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         //printf("[INFO] Stream ID = %d\n", l_id);
         // TODO FIX!!!
@@ -1659,7 +1659,7 @@ int32_t h2_session::srequest(void)
                 TRC_ERROR("performing nghttp2_session_send.  Reason: %s\n", nghttp2_strerror(l_s));
                 // TODO
                 // delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(l_ngxxx_headers)
         {
@@ -1710,7 +1710,7 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 TRC_ERROR("performing nghttp2_session_mem_recv: %s", nghttp2_strerror((int) l_rl));;
                 // TODO
                 //delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #if 0
         NDBG_PRINT("nghttp2_session_send\n");
@@ -1720,7 +1720,7 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 TRC_ERROR("performing nghttp2_session_send: %s", nghttp2_strerror((int) l_s));;
                 // TODO
                 //delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #endif
         return STATUS_OK;
@@ -1740,7 +1740,7 @@ int32_t h2_session::swrite(void)
                 TRC_ERROR("performing nghttp2_session_send: %s", nghttp2_strerror((int) l_s));;
                 // TODO
                 //delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -1756,7 +1756,7 @@ int32_t h2_session::sdone(void)
         if(l_rv != 0)
         {
                 TRC_ERROR("performing nghttp2_session_terminate_session\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -1772,7 +1772,7 @@ int32_t session::teardown(ns_hurl::http_status_t a_status)
         if(l_s != STATUS_OK)
         {
                 TRC_ERROR("performing sdone\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(m_nconn->get_timer_obj())
         {
@@ -1983,12 +1983,12 @@ int32_t session::request_complete(void)
         if(!m_t_phurl)
         {
                 TRC_ERROR("m_t_phurl == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(!m_nconn)
         {
                 TRC_ERROR("m_t_phurl == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -2045,7 +2045,7 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                         l_ses = NULL;
                         // TODO ... -cleanup connection???
                         // TODO record???
-                        return HURL_STATUS_DONE;
+                        return STATUS_DONE;
                 }
                 else
                 {
@@ -2119,7 +2119,7 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                         delete l_ses;
                         l_ses = NULL;
                 }
-                return HURL_STATUS_DONE;
+                return STATUS_DONE;
         }
         // -------------------------------------------------
         // READ
@@ -2172,7 +2172,7 @@ state_top:
                 if(l_s != ns_hurl::nconn::NC_STATUS_OK)
                 {
                         TRC_ERROR("performing ncsetup\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_nconn->set_state(ns_hurl::nconn::NC_STATE_CONNECTING);
                 // TODO FIX!!!
@@ -2204,7 +2204,7 @@ state_top:
                         l_s = l_ses->sconnected();
                         l_ses->teardown(ns_hurl::HTTP_STATUS_BAD_GATEWAY);
                         delete l_ses;
-                        return HURL_STATUS_DONE;
+                        return STATUS_DONE;
                 }
                 if(l_nconn->is_connecting())
                 {
@@ -2226,7 +2226,7 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing show_tls_info\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 }
                 // -----------------------------------------
@@ -2242,7 +2242,7 @@ state_top:
                 if(!l_ses)
                 {
                         TRC_ERROR("performing session_create for host: %s.\n", l_nconn->get_label().c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_ses->m_host = l_host;
                 l_nconn->set_data(l_ses);
@@ -2253,7 +2253,7 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing m_connected_cb for host: %s.\n", l_nconn->get_label().c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // -----------------------------------------
                 // bail out if connect only
@@ -2271,7 +2271,7 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing request_create for host: %s.\n", l_nconn->get_label().c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 a_conn_mode = ns_hurl::EVR_MODE_WRITE;
                 // TODO FIX!!!
@@ -2371,7 +2371,7 @@ state_top:
                         case ns_hurl::nconn::NC_STATUS_READ_UNAVAILABLE:
                         {
                                 // TODO TRACE
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         // ---------------------------------
                         // NC_STATUS_OK
@@ -2380,7 +2380,7 @@ state_top:
                         {
                                 if(!l_ses)
                                 {
-                                        return HURL_STATUS_ERROR;
+                                        return STATUS_ERROR;
                                 }
                                 ns_hurl::nbq *l_out_q = NULL;
                                 if(l_ses &&
@@ -2426,10 +2426,10 @@ state_top:
                         // ---------------------------------
                         default:
                         {
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         }
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // -----------------------------------------
                 // write...
@@ -2446,7 +2446,7 @@ state_top:
                         if(l_s != STATUS_OK)
                         {
                                 TRC_ERROR("performing swrite\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         ns_hurl::nbq *l_out_q = NULL;
                         if(l_ses &&
@@ -2511,20 +2511,20 @@ state_top:
                         default:
                         {
                                 // TODO???
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         }
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // -----------------------------------------
                 // TODO
                 // -----------------------------------------
                 default:
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 }
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // -------------------------------------------------
         // STATE: DONE
@@ -2539,11 +2539,11 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing teardown\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 delete l_ses;
                 l_ses = NULL;
-                return HURL_STATUS_DONE;
+                return STATUS_DONE;
         }
         // -------------------------------------------------
         // default
@@ -2552,7 +2552,7 @@ state_top:
         {
                 //NDBG_PRINT("default\n");
                 TRC_ERROR("unexpected conn state %d\n", l_nconn->get_state());
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         }
         return STATUS_OK;
@@ -2661,7 +2661,7 @@ int32_t t_phurl::host_start(host_t *a_host)
         if(l_s != STATUS_OK)
         {
                 TRC_ERROR("performing evr_fd_writeable_cb\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // -------------------------------------------------
         // idle timer

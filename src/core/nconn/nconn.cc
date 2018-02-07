@@ -434,7 +434,7 @@ int32_t nconn::nc_set_listening(int32_t a_val)
         l_s = ncset_listening(a_val);
         if(l_s != NC_STATUS_OK)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_LISTENING;
@@ -453,7 +453,7 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
         l_s = ncset_listening_nb(a_val);
         if(l_s != NC_STATUS_OK)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 
         m_nc_state = NC_STATE_LISTENING;
@@ -471,7 +471,7 @@ int32_t nconn::nc_set_accepting(int a_fd)
         l_s = ncset_accepting(a_fd);
         if(l_s != NC_STATUS_OK)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         m_nc_state = NC_STATE_ACCEPTING;
         return STATUS_OK;
@@ -488,7 +488,7 @@ int32_t nconn::nc_set_connected(void)
         l_s = ncset_connected();
         if(l_s != NC_STATUS_OK)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         m_nc_state = NC_STATE_CONNECTED;
         return STATUS_OK;
@@ -515,7 +515,7 @@ int32_t nconn::nc_cleanup()
         if(l_s != NC_STATUS_OK)
         {
                 TRC_ERROR("Error performing nccleanup.\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         m_data = NULL;
         m_host_info_is_set = false;

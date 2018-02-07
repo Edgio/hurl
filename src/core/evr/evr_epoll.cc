@@ -118,7 +118,7 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_ADD fd[%d] failed (%s)\n",
                            m_fd, a_fd, strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -140,7 +140,7 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         {
                 NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_MOD fd[%d] failed (%s)\n",
                            m_fd, a_fd, strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -160,7 +160,7 @@ int evr_epoll::del(int a_fd)
                 {
                         //NDBG_PRINT("Error: epoll_fd[%d] EPOLL_CTL_DEL fd[%d] failed (%s)\n",
                         //           m_fd, a_fd, strerror(errno));
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         return STATUS_OK;
@@ -180,7 +180,7 @@ int32_t evr_epoll::signal(void)
         if(l_write_status == -1)
         {
                 //NDBG_PRINT("l_write_status: %ld\n", l_write_status);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }

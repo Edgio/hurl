@@ -174,7 +174,7 @@ int32_t evr_loop::run(void)
         if(l_num_events < 0)
         {
                 TRC_ERROR("performing wait.\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         else if(l_num_events == 0)
         {
@@ -211,7 +211,7 @@ int32_t evr_loop::run(void)
                                 int32_t l_status;
                                 //NDBG_PRINT("%sEVENTS%s: %s%sREAD%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_RED, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                                 l_status = l_evr_fd->m_read_cb(l_evr_fd->m_data);
-                                if(l_status == HURL_STATUS_DONE)
+                                if(l_status == STATUS_DONE)
                                 {
                                         // Skip handling more events for this fd
                                         continue;
@@ -242,7 +242,7 @@ int32_t evr_loop::run(void)
                                 int32_t l_status;
                                 //NDBG_PRINT("%sEVENTS%s: %s%sWRITE%s\n", ANSI_COLOR_FG_CYAN, ANSI_COLOR_OFF, ANSI_COLOR_FG_BLUE, ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
                                 l_status = l_evr_fd->m_write_cb(l_evr_fd->m_data);
-                                if(l_status == HURL_STATUS_DONE)
+                                if(l_status == STATUS_DONE)
                                 {
                                         // Skip handling more events for this fd
                                         continue;
@@ -271,7 +271,7 @@ int32_t evr_loop::run(void)
                 //        {
                 //                int32_t l_status = STATUS_OK;
                 //                l_status = l_evr_event->m_error_cb(l_evr_event->m_data);
-                //                if(l_status == HURL_STATUS_DONE)
+                //                if(l_status == STATUS_DONE)
                 //                {
                 //                        // Skip handling more events for this fd
                 //                        continue;
@@ -296,7 +296,7 @@ int32_t evr_loop::add_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_even
 {
         if(!a_evr_fd_event)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         int l_status;
         //NDBG_PRINT("%sADD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
@@ -313,7 +313,7 @@ int32_t evr_loop::mod_fd(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_even
 {
         if(!a_evr_fd_event)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         int l_status;
         //NDBG_PRINT("%sMOD_FD%s: fd[%d], mask: 0x%08X\n", ANSI_COLOR_FG_WHITE, ANSI_COLOR_OFF, a_fd, a_attr_mask);
@@ -381,7 +381,7 @@ int32_t evr_loop::cancel_event(evr_event_t *a_event)
         }
         else
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 }
 //: ----------------------------------------------------------------------------
@@ -394,7 +394,7 @@ int32_t evr_loop::signal(void)
         //NDBG_PRINT("%sSIGNAL%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
         if(!m_evr)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return m_evr->signal();
 }

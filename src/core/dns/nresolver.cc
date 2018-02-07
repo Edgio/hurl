@@ -118,7 +118,7 @@ int32_t nresolver::init(bool a_use_cache,
         if (dns_init(NULL, 0) < 0)
         {
                 TRC_ERROR("unable to initialize dns library\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #endif
         m_is_initd = true;
@@ -144,7 +144,7 @@ int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
         if(!a_adns_ctx)
         {
                 TRC_ERROR("a_adns_ctx == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #ifdef ASYNC_DNS_WITH_UDNS
         if(a_adns_ctx->m_fd > 0)
@@ -320,7 +320,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
                 l_s = init();
                 if(l_s != STATUS_OK)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         // ---------------------------------------
@@ -349,7 +349,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         {
                 return lookup_inline(a_host, a_port, ao_host_info);
         }
-        return HURL_STATUS_ERROR;
+        return STATUS_ERROR;
 }
 //: ----------------------------------------------------------------------------
 //: \details: slow resolution
@@ -364,7 +364,7 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         if(l_s != STATUS_OK)
         {
                 delete l_host_info;
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         //show_host_info();
         if(m_use_cache && m_ai_cache)
@@ -379,7 +379,7 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         }
         else
         {
-                l_retval = HURL_STATUS_ERROR;
+                l_retval = STATUS_ERROR;
         }
         if(l_host_info && (!m_use_cache || !m_ai_cache))
         {
@@ -404,7 +404,7 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
                 l_s = init();
                 if(l_s != STATUS_OK)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         // tryfast lookup
@@ -572,19 +572,19 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 l_s = init();
                 if(l_s != STATUS_OK)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         if(!a_adns_ctx)
         {
                 TRC_ERROR("a_adns_ctx == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #ifdef ASYNC_DNS_WITH_UDNS
         dns_ctx *l_ctx = a_adns_ctx->m_udns_ctx;
         if(!l_ctx)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(!a_host.empty())
         {
@@ -620,7 +620,7 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 if (!l_job->m_dns_query)
                 {
                         TRC_ERROR("performing dns_submit_a4.  Last status: %d\n", dns_status(NULL));
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_job->m_dns_ctx = l_ctx;
                 l_job->m_start_time = get_time_s();
@@ -731,14 +731,14 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
         if(!l_adns_ctx)
         {
                 TRC_ERROR("a_ctx == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #ifdef ASYNC_DNS_WITH_UDNS
         if(!l_adns_ctx->m_udns_ctx)
         {
                 // TODO REMOVE
                 TRC_ERROR("l_adns_ctx->m_udns_ctx == NULL.\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         dns_ioevent(l_adns_ctx->m_udns_ctx, 0);
 #endif
@@ -752,7 +752,7 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("lookup_async.\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         return STATUS_OK;
@@ -785,7 +785,7 @@ int32_t nresolver::evr_fd_timeout_cb(void *a_data)
         if(!l_adns_ctx)
         {
                 TRC_ERROR("a_data == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(l_adns_ctx->m_ctx)
         {
@@ -798,7 +798,7 @@ int32_t nresolver::evr_fd_timeout_cb(void *a_data)
                 l_s = l_adns_ctx->m_ctx->lookup_async(l_adns_ctx,l_unused,0,l_adns_ctx,&l_job);
                 if(l_s != STATUS_OK)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         return STATUS_OK;

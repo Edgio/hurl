@@ -113,13 +113,13 @@
         do {\
                 if(!_data) {\
                         NDBG_PRINT("Error.\n");\
-                        return HURL_STATUS_ERROR;\
+                        return STATUS_ERROR;\
                 }\
         } while(0)
 #define CHECK_FOR_NULL_ERROR(_data) \
         do {\
                 if(!_data) {\
-                        return HURL_STATUS_ERROR;\
+                        return STATUS_ERROR;\
                 }\
         } while(0)
 //: ----------------------------------------------------------------------------
@@ -558,7 +558,7 @@ int32_t request::init_with_url(const std::string &a_url)
         {
                 NDBG_PRINT("Error parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // Set no port
         m_port = 0;
@@ -588,7 +588,7 @@ int32_t request::init_with_url(const std::string &a_url)
                                 else
                                 {
                                         NDBG_PRINT("Error schema[%s] is unsupported\n", l_part.c_str());
-                                        return HURL_STATUS_ERROR;
+                                        return STATUS_ERROR;
                                 }
                                 break;
                         }
@@ -925,7 +925,7 @@ public:
                 if(!m_evr_loop)
                 {
                         TRC_ERROR("m_evr_loop == NULL");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 m_is_initd = true;
                 m_request.m_data = this;
@@ -935,7 +935,7 @@ public:
                 int32_t l_pthread_error = 0;
                 l_pthread_error = pthread_create(&m_t_run_thread, NULL, t_run_static, this);
                 if (l_pthread_error != 0) {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 return STATUS_OK;
         };
@@ -946,7 +946,7 @@ public:
         }
         bool is_running(void) { return !m_stopped; }
         int32_t cancel_timer(void *a_timer) {
-                if(!m_evr_loop) return HURL_STATUS_ERROR;
+                if(!m_evr_loop) return STATUS_ERROR;
                 if(!a_timer) return STATUS_OK;
                 ns_hurl::evr_event_t *l_t = static_cast<ns_hurl::evr_event_t *>(a_timer);
                 return m_evr_loop->cancel_event(l_t);
@@ -1342,7 +1342,7 @@ int32_t http_session::srequest(void)
         if(!m_t_hurl)
         {
                 TRC_ERROR("m_t_hurl == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         ++m_t_hurl->m_stat.m_reqs;
         ++m_t_hurl->m_num_in_progress;
@@ -1508,7 +1508,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 TRC_ERROR("Parse error.  Reason: %s: %s\n",
                            http_errno_name((enum http_errno)l_hmsg->m_http_parser->http_errno),
                            http_errno_description((enum http_errno)l_hmsg->m_http_parser->http_errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         l_hmsg->m_cur_off = a_off;
         if(m_resp->m_complete)
@@ -1531,7 +1531,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing request_complete\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // ---------------------------------
                 // check for done
@@ -1699,7 +1699,7 @@ int32_t h2_session::sconnected(void)
         if(l_s != 0)
         {
                 TRC_ERROR("performing nghttp2_submit_settings.  Reason: %s\n", nghttp2_strerror(l_s));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 #if 0
@@ -1877,7 +1877,7 @@ int32_t h2_session::srequest(void)
         if (l_id < 0)
         {
                 TRC_ERROR("performing nghttp2_submit_request.  Reason: %s\n", nghttp2_strerror(l_id));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         //printf("[INFO] Stream ID = %d\n", l_id);
         // TODO FIX!!!
@@ -1894,7 +1894,7 @@ int32_t h2_session::srequest(void)
                 TRC_ERROR("performing nghttp2_session_send.  Reason: %s\n", nghttp2_strerror(l_s));
                 // TODO
                 // delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(l_ngxxx_headers)
         {
@@ -1945,7 +1945,7 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 TRC_ERROR("performing nghttp2_session_mem_recv: %s", nghttp2_strerror((int) l_rl));;
                 // TODO
                 //delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #if 0
         NDBG_PRINT("nghttp2_session_send\n");
@@ -1955,7 +1955,7 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 TRC_ERROR("performing nghttp2_session_send: %s", nghttp2_strerror((int) l_s));;
                 // TODO
                 //delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 #endif
         return STATUS_OK;
@@ -1975,7 +1975,7 @@ int32_t h2_session::swrite(void)
                 TRC_ERROR("performing nghttp2_session_send: %s", nghttp2_strerror((int) l_s));;
                 // TODO
                 //delete_http2_session_data(session_data);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -2021,12 +2021,12 @@ int32_t session::request_complete(void)
         if(!m_t_hurl)
         {
                 TRC_ERROR("m_t_hurl == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(!m_nconn)
         {
                 TRC_ERROR("m_t_hurl == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         //NDBG_PRINT("m_t_hurl->m_num_in_progress: %d\n", (int)m_t_hurl->m_num_in_progress);
         m_nconn->bump_num_requested();
@@ -2054,13 +2054,13 @@ int32_t session::cancel_timer(void *a_timer)
 {
         if(!m_t_hurl)
         {
-            return HURL_STATUS_ERROR;
+            return STATUS_ERROR;
         }
         int32_t l_s;
         l_s = m_t_hurl->cancel_timer(a_timer);
         if(l_s != STATUS_OK)
         {
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -2110,7 +2110,7 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                                 // TODO -error???
                         }
                         // TODO record???
-                        return HURL_STATUS_DONE;
+                        return STATUS_DONE;
                 }
                 else
                 {
@@ -2121,7 +2121,7 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                                 TRC_ERROR("performing session_cleanup\n");
                                 // TODO -error???
                         }
-                        return HURL_STATUS_DONE;
+                        return STATUS_DONE;
                 }
         }
         // -------------------------------------------------
@@ -2174,7 +2174,7 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
                                         a_conn_mode,
                                         l_ses,
                                         l_t_hurl);
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         // -------------------------------------------------
@@ -2230,7 +2230,7 @@ state_top:
                         TRC_ERROR("performing ncsetup\n");
                         // Kill program
                         g_test_finished = true;
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_nconn->set_state(ns_hurl::nconn::NC_STATE_CONNECTING);
                 // TODO FIX!!!
@@ -2257,7 +2257,7 @@ state_top:
                         TRC_ERROR("performing ncconnect for host: %s.\n", l_nconn->get_label().c_str());
                         // Kill program
                         g_test_finished = true;
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 if(l_nconn->is_connecting())
                 {
@@ -2279,7 +2279,7 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing show_tls_info\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 }
                 // -----------------------------------------
@@ -2290,7 +2290,7 @@ state_top:
                 if(!l_ses)
                 {
                         TRC_ERROR("performing session_create for host: %s.\n", l_nconn->get_label().c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // -----------------------------------------
                 // on connected
@@ -2299,7 +2299,7 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing m_connected_cb for host: %s.\n", l_nconn->get_label().c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 //NDBG_PRINT("%sconnected%s: label: %s --created session\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_nconn->get_label().c_str());
                 // -----------------------------------------
@@ -2309,7 +2309,7 @@ state_top:
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing request_create for host: %s.\n", l_nconn->get_label().c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 a_conn_mode = ns_hurl::EVR_MODE_WRITE;
                 // TODO FIX!!!
@@ -2410,7 +2410,7 @@ state_top:
                         case ns_hurl::nconn::NC_STATUS_READ_UNAVAILABLE:
                         {
                                 // TODO TRACE
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         // ---------------------------------
                         // NC_STATUS_OK
@@ -2419,7 +2419,7 @@ state_top:
                         {
                                 if(!l_ses)
                                 {
-                                        return HURL_STATUS_ERROR;
+                                        return STATUS_ERROR;
                                 }
                                 ns_hurl::nbq *l_out_q = NULL;
                                 if(l_ses &&
@@ -2479,10 +2479,10 @@ state_top:
                         // ---------------------------------
                         default:
                         {
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         }
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // -----------------------------------------
                 // write...
@@ -2499,7 +2499,7 @@ state_top:
                         if(l_s != STATUS_OK)
                         {
                                 TRC_ERROR("performing swrite\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         ns_hurl::nbq *l_out_q = NULL;
                         if(l_ses &&
@@ -2565,20 +2565,20 @@ state_top:
                         default:
                         {
                                 // TODO???
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         }
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // -----------------------------------------
                 // TODO
                 // -----------------------------------------
                 default:
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 }
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // -------------------------------------------------
         // STATE: DONE
@@ -2595,7 +2595,7 @@ state_top:
                         TRC_ERROR("performing session_cleanup\n");
                         // TODO -error???
                 }
-                return HURL_STATUS_DONE;
+                return STATUS_DONE;
         }
         // -------------------------------------------------
         // default
@@ -2604,7 +2604,7 @@ state_top:
         {
                 //NDBG_PRINT("default\n");
                 TRC_ERROR("unexpected conn state %d\n", l_nconn->get_state());
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         }
         return STATUS_OK;
@@ -2669,7 +2669,7 @@ int32_t t_hurl::conn_start(void)
                 {
                         // TODO fatal???
                         TRC_ERROR("l_nconn == NULL\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_nconn->set_label(m_request.m_host);
                 m_nconn_set.insert(l_nconn);
@@ -2683,7 +2683,7 @@ int32_t t_hurl::conn_start(void)
                 if(l_s != STATUS_OK)
                 {
                         TRC_ERROR("performing evr_fd_writeable_cb\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         return STATUS_OK;
@@ -2835,7 +2835,7 @@ static int32_t s_pre_connect_cb(int a_fd)
                 TRC_OUTPUT("%s.%s.%d: Error performing bind. Reason: %s.\n",
                        __FILE__,__FUNCTION__,__LINE__,strerror(errno));
                 pthread_mutex_unlock(&g_addrx_mutex);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         ++g_addrx_addr_ipv4;
         if(g_addrx_addr_ipv4 >= g_addrx_addr_ipv4_max)
@@ -2864,13 +2864,13 @@ static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_
         // Else lets try hex...
         l_s = sscanf(l_expr, "[%x-%x]", &l_start, &l_end);
         if(2 == l_s) goto success;
-        return HURL_STATUS_ERROR;
+        return STATUS_ERROR;
 success:
         // Check range...
         if(l_start > l_end)
         {
-                TRC_OUTPUT("HURL_STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
-                return HURL_STATUS_ERROR;
+                TRC_OUTPUT("STATUS_ERROR: Bad range start[%u] > end[%u]\n", l_start, l_end);
+                return STATUS_ERROR;
         }
         // Successfully matched we outie
         ao_range.m_start = l_start;
@@ -2896,8 +2896,8 @@ int32_t parse_path(const char *a_path,
         {
                 if((l_range_end_pos = l_path.find("]", l_range_start_pos)) == std::string::npos)
                 {
-                        TRC_OUTPUT("HURL_STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
-                        return HURL_STATUS_ERROR;
+                        TRC_OUTPUT("STATUS_ERROR: Bad range for path: %s at pos: %zu\n", a_path, l_range_start_pos);
+                        return STATUS_ERROR;
                 }
                 // Push path back...
                 std::string l_substr = l_path.substr(l_cur_str_pos, l_range_start_pos - l_cur_str_pos);
@@ -2913,8 +2913,8 @@ int32_t parse_path(const char *a_path,
                 l_s = convert_exp_to_range(l_range_exp, l_range);
                 if(STATUS_OK != l_s)
                 {
-                        TRC_OUTPUT("HURL_STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
-                        return HURL_STATUS_ERROR;
+                        TRC_OUTPUT("STATUS_ERROR: performing convert_exp_to_range(%s)\n", l_range_exp.c_str());
+                        return STATUS_ERROR;
                 }
                 ao_range_vector.push_back(l_range);
                 l_cur_str_pos = l_range_end_pos + 1;
@@ -3022,8 +3022,8 @@ int32_t special_effects_parse(std::string &a_path)
                         l_s = parse_path(l_p, l_path_substr_vector, l_range_vector);
                         if(l_s != STATUS_OK)
                         {
-                                TRC_OUTPUT("HURL_STATUS_ERROR: Performing parse_path(%s)\n", l_p);
-                                return HURL_STATUS_ERROR;
+                                TRC_OUTPUT("STATUS_ERROR: Performing parse_path(%s)\n", l_p);
+                                return STATUS_ERROR;
                         }
                 }
                 // If empty path explode
@@ -3032,8 +3032,8 @@ int32_t special_effects_parse(std::string &a_path)
                         l_s = path_exploder(std::string(""), l_path_substr_vector, 0, l_range_vector, 0);
                         if(l_s != STATUS_OK)
                         {
-                                TRC_OUTPUT("HURL_STATUS_ERROR: Performing explode_path(%s)\n", l_p);
-                                return HURL_STATUS_ERROR;
+                                TRC_OUTPUT("STATUS_ERROR: Performing explode_path(%s)\n", l_p);
+                                return STATUS_ERROR;
                         }
                         // DEBUG show paths
                         //printf(" -- Displaying Paths --\n");
@@ -3082,8 +3082,8 @@ int32_t special_effects_parse(std::string &a_path)
                         else if (l_val == "random"){ g_path_order_random = true; }
                         else
                         {
-                                TRC_OUTPUT("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                                return HURL_STATUS_ERROR;
+                                TRC_OUTPUT("STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                                return STATUS_ERROR;
                         }
                 }
 #if 0
@@ -3093,15 +3093,15 @@ int32_t special_effects_parse(std::string &a_path)
                         else if (l_val) m_run_only_once_flag = false;
                         else
                         {
-                                NDBG_PRINT("HURL_STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
-                                return HURL_STATUS_ERROR;
+                                NDBG_PRINT("STATUS_ERROR: Bad value[%s] for key[%s]\n", l_val.c_str(), l_key.c_str());
+                                return STATUS_ERROR;
                         }
                 }
 #endif
                 else
                 {
-                        TRC_OUTPUT("HURL_STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
-                        return HURL_STATUS_ERROR;
+                        TRC_OUTPUT("STATUS_ERROR: Unrecognized key[%s]\n", l_key.c_str());
+                        return STATUS_ERROR;
                 }
                 l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
         }
@@ -3548,7 +3548,7 @@ int main(int argc, char** argv)
                                 if(l_s != STATUS_OK)
                                 {
                                         TRC_OUTPUT("Error reading body data from file: %s\n", l_arg.c_str() + 1);
-                                        return HURL_STATUS_ERROR;
+                                        return STATUS_ERROR;
                                 }
                                 l_request->m_body_data = l_buf;
                                 l_request->m_body_data_len = l_len;
@@ -3578,7 +3578,7 @@ int main(int argc, char** argv)
                         if (l_val < 1)
                         {
                                 TRC_OUTPUT("Error num parallel must be at least 1\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_num_parallel = l_val;
                         break;
@@ -3592,7 +3592,7 @@ int main(int argc, char** argv)
                         if (l_val < 1)
                         {
                                 TRC_OUTPUT("Error fetches must be at least 1\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_num_to_request = l_val;
                         break;
@@ -3606,7 +3606,7 @@ int main(int argc, char** argv)
                         if(l_val < 1)
                         {
                                 TRC_OUTPUT("Error num-calls must be at least 1");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         g_reqs_per_conn = l_val;
                         if (g_reqs_per_conn == 1)
@@ -3640,7 +3640,7 @@ int main(int argc, char** argv)
                         if (l_val < 0)
                         {
                                 TRC_OUTPUT("Error num-threads must be 0 or greater\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         g_num_threads = l_val;
                         break;
@@ -3657,13 +3657,13 @@ int main(int argc, char** argv)
                         if (l_s != 0)
                         {
                                 TRC_OUTPUT("Error breaking header string: %s -not in <HEADER>:<VAL> format?\n", l_arg.c_str());
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_s = l_request->set_header(l_key, l_val);
                         if (l_s != 0)
                         {
                                 TRC_OUTPUT("Error performing set_header: %s\n", l_arg.c_str());
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         break;
                 }
@@ -3675,7 +3675,7 @@ int main(int argc, char** argv)
                         if(l_arg.length() > 64)
                         {
                                 TRC_OUTPUT("Error verb string: %s too large try < 64 chars\n", l_arg.c_str());
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_request->m_verb = l_arg;
                         break;
@@ -3690,7 +3690,7 @@ int main(int argc, char** argv)
                         {
                                 TRC_OUTPUT("Error: rate must be at least 1\n");
                                 //print_usage(stdout, -1);
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         g_rate_delta_us = 1000000 / l_val;
                         break;
@@ -3707,7 +3707,7 @@ int main(int argc, char** argv)
                         {
                                 TRC_OUTPUT("Error: Mode must be [roundrobin|sequential|random]\n");
                                 //print_usage(stdout, -1);
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         break;
                 }
@@ -3721,7 +3721,7 @@ int main(int argc, char** argv)
                         {
                                 TRC_OUTPUT("Error: seconds must be at least 1\n");
                                 //print_usage(stdout, -1);
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_run_time_ms = l_val*1000;
                         break;
@@ -3738,7 +3738,7 @@ int main(int argc, char** argv)
                         {
                                 TRC_OUTPUT("timeout must be > 0\n");
                                 //print_usage(stdout, -1);
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_request->m_timeout_ms = l_val*1000;
                         break;
@@ -3819,7 +3819,7 @@ int main(int argc, char** argv)
                         {
                                 TRC_OUTPUT("Error: Update interval must be > 0 ms\n");
                                 //print_usage(stdout, -1);
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                         l_interval_ms = l_val;
                         break;
@@ -3906,13 +3906,13 @@ int main(int argc, char** argv)
         if(l_s != 0)
         {
                 fprintf(stdout, "Error performing getrlimit. Reason: %s\n", strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(l_rlim.rlim_cur < (uint64_t)(g_num_threads*l_num_parallel))
         {
                 fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%u]\n",
                                 g_num_threads, l_num_parallel, (uint32_t)l_rlim.rlim_cur);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // -------------------------------------------
         // Sigint handler
@@ -3920,7 +3920,7 @@ int main(int argc, char** argv)
         if (signal(SIGINT, sig_handler) == SIG_ERR)
         {
                 TRC_OUTPUT("Error: can't catch SIGINT\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // -------------------------------------------
         // Add url from command line
@@ -3931,7 +3931,7 @@ int main(int argc, char** argv)
         if(l_s != 0)
         {
                 TRC_OUTPUT("Error: performing init_with_url: %s\n", l_url.c_str());
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // -------------------------------------------
         // resolve
@@ -3941,7 +3941,7 @@ int main(int argc, char** argv)
         if(l_s != STATUS_OK)
         {
                 TRC_OUTPUT("Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         l_request->m_host_info = l_host_info;
         // -------------------------------------------
@@ -3956,7 +3956,7 @@ int main(int argc, char** argv)
                 if(l_s != STATUS_OK)
                 {
                         TRC_OUTPUT("Error performing special_effects_parse with path: %s\n", l_raw_path.c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 if(g_path_vector.size() > 1)
                 {
@@ -4373,20 +4373,20 @@ int main(int argc, char** argv)
                 if(l_file_ptr == NULL)
                 {
                         TRC_OUTPUT("Error performing fopen. Reason: %s\n", strerror(errno));
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_num_bytes_written = fwrite(l_out_str.c_str(), 1, l_out_str.length(), l_file_ptr);
                 if(l_num_bytes_written != (int32_t)l_out_str.length())
                 {
                         TRC_OUTPUT("Error performing fwrite. Reason: %s\n", strerror(errno));
                         fclose(l_file_ptr);
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 l_s = fclose(l_file_ptr);
                 if(l_s != 0)
                 {
                         TRC_OUTPUT("Error performing fclose. Reason: %s\n", strerror(errno));
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         // -------------------------------------------

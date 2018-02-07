@@ -246,7 +246,7 @@ int32_t rqst::parse_uri()
         {
                 TRC_ERROR("parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
         {

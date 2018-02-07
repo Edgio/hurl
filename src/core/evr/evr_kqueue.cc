@@ -96,7 +96,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                 EV_SET(&l_ke, a_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
                 if (kevent(m_fd, &l_ke, 1, NULL, 0, NULL) == -1)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         if(a_attr_mask & AE_WRITABLE)
@@ -104,7 +104,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                 EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
                 if(kevent(m_fd, &l_ke, 1, NULL, 0, NULL) == -1)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         return STATUS_OK;

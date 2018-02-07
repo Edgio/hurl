@@ -47,13 +47,13 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         if(l_s != 0)
         {
                 printf("Error performing stat on file: %s.  Reason: %s\n", a_file, strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // Check if is regular file
         if(!(l_stat.st_mode & S_IFREG))
         {
                 printf("Error opening file: %s.  Reason: is NOT a regular file\n", a_file);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // Open file...
         FILE * l_file;
@@ -61,7 +61,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         if (NULL == l_file)
         {
                 printf("Error opening file: %s.  Reason: %s\n", a_file, strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // Read in file...
         int32_t l_size = l_stat.st_size;
@@ -73,14 +73,14 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         {
                 printf("Error performing fread.  Reason: %s [%d:%d]\n",
                                 strerror(errno), l_read_size, l_size);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // Close file...
         l_s = fclose(l_file);
         if (STATUS_OK != l_s)
         {
                 printf("Error performing fclose.  Reason: %s\n", strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
