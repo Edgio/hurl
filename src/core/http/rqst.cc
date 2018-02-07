@@ -112,7 +112,7 @@ const std::string &rqst::get_url()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         // return empty string
                         return l_empty_str;
@@ -130,7 +130,7 @@ const std::string &rqst::get_url_path()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -147,7 +147,7 @@ const std::string &rqst::get_url_query()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -164,7 +164,7 @@ const query_map_t &rqst::get_url_query_map()
         if(m_url_query_map.empty())
         {
                 int32_t l_status = parse_query(get_url_query(), m_url_query_map);
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -181,7 +181,7 @@ const std::string &rqst::get_url_fragment()
         if(!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -215,7 +215,7 @@ int32_t rqst::parse_uri()
 {
         if(m_url_parsed)
         {
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
 
         // Copy out the url...
@@ -289,7 +289,7 @@ int32_t rqst::parse_uri()
                 }
         }
         m_url_parsed = true;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO

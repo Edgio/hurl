@@ -152,6 +152,6 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
 
         // Set to 60min -cuz getaddr-info stinks...
         ao_host_info.m_expires_s = get_time_s() + 3600;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 }

@@ -177,7 +177,7 @@ public:
                 }
                 *ao_buf = m_alpn_buf;
                 ao_buf_len = m_alpn_buf_len;
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         evr_event_t *get_timer_obj(void) { return m_timer_obj;}
         // -------------------------------------------------
@@ -225,7 +225,7 @@ public:
                 m_alpn_buf = (char *)malloc(a_buf_len);
                 memcpy(m_alpn_buf, a_buf, a_buf_len);
                 m_alpn_buf_len = a_buf_len;
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         void set_timer_obj(evr_event_t *a_timer_obj) { m_timer_obj = a_timer_obj;}
         // -------------------------------------------------

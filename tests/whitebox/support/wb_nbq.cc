@@ -128,7 +128,7 @@ int32_t verify_contents(ns_hurl::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
                 //NDBG_PRINT("error l_read = %lu a_len = %lu\n", l_read, a_len);
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: Verify contents of buf
@@ -156,7 +156,7 @@ int32_t verify_contents(char *l_buf, uint64_t a_len, uint16_t a_offset)
                 //NDBG_PRINT("error l_read = %lu a_len = %lu\n", l_read, a_len);
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: Tests
@@ -264,7 +264,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 REQUIRE(( l_nbq.read_avail() == 703 ));
                 int32_t l_s;
                 l_s = verify_contents(l_nbq, 703, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 l_nbq.reset_read();
                 ns_hurl::nbq *l_nbq_tail;
                 // split at > written offset -return nothing
@@ -274,19 +274,19 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 REQUIRE(( l_nbq.read_avail() == 703 ));
                 // split at 0 offset -return nothing
                 l_s = l_nbq.split(&l_nbq_tail, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq.read_avail() == 703 ));
                 l_s = l_nbq.split(&l_nbq_tail, 400);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq_tail != NULL ));
                 REQUIRE(( l_nbq_tail->read_avail() == 303 ));
                 l_nbq.reset_read();
                 l_s = verify_contents(l_nbq, 400, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 303, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 if(l_nbq_tail)
                 {
                         delete l_nbq_tail;
@@ -313,15 +313,15 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 nbq_write(*l_nbq_tail, l_uni_buf, 400, 200);
                 int32_t l_s;
                 l_s = l_nbq->join_ref(*l_nbq_tail);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq->read_avail() == 1103 ));
                 l_nbq->reset_read();
                 // verify head
                 l_s = verify_contents(*l_nbq, 703, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 // verify tail
                 l_s = verify_contents(*l_nbq, 400, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq->read_avail() == 0 ));
                 if(l_nbq)
                 {
@@ -330,7 +330,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 400, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 if(l_uni_buf)
                 {
                         free(l_uni_buf);
@@ -349,7 +349,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 REQUIRE(( l_nbq->read_avail() == 703 ));
                 int32_t l_s;
                 l_s = verify_contents(*l_nbq, 703, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 l_nbq->reset_read();
                 ns_hurl::nbq *l_nbq_tail;
                 // split at > written offset -return nothing
@@ -359,16 +359,16 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 REQUIRE(( l_nbq->read_avail() == 703 ));
                 // split at 0 offset -return nothing
                 l_s = l_nbq->split(&l_nbq_tail, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq->read_avail() == 703 ));
                 l_s = l_nbq->split(&l_nbq_tail, 400);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq_tail != NULL ));
                 REQUIRE(( l_nbq_tail->read_avail() == 303 ));
                 l_nbq->reset_read();
                 l_s = verify_contents(*l_nbq, 400, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 if(l_nbq)
                 {
                         delete l_nbq;
@@ -376,20 +376,20 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 }
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 303, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 // join to new
                 ns_hurl::nbq *l_nbq_1 = new ns_hurl::nbq(BLOCK_SIZE);
                 nbq_write(*l_nbq_1, l_uni_buf, 300, 155);
                 REQUIRE(( l_nbq_1->read_avail() == 300 ));
                 l_s = l_nbq_1->join_ref(*l_nbq_tail);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq_1->read_avail() == 603 ));
                 // verify head
                 l_s = verify_contents(*l_nbq_1, 300, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 // verify tail
                 l_s = verify_contents(*l_nbq_1, 303, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 if(l_nbq_1)
                 {
                         delete l_nbq_1;
@@ -416,12 +416,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 int32_t l_s;
                 //l_nbq.b_display_all();
                 l_s = verify_contents(l_nbq, 4*4096, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 l_nbq.reset_read();
                 nbq_read(l_nbq, l_rbuf, 4096);
                 //ns_hurl::mem_display((const uint8_t *)l_rbuf, 4*4096, true);
                 l_s = verify_contents(l_rbuf, 4*4096, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 REQUIRE(( l_nbq.b_read_avail() == (0)));
                 REQUIRE(( l_nbq.read_avail() == (0)));
                 nbq_write(l_nbq, l_buf, 4*4096, 4096);
@@ -430,7 +430,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 nbq_read(l_nbq, l_rbuf, 4096);
                 //ns_hurl::mem_display((const uint8_t *)l_rbuf, 4*4096, true);
                 l_s = verify_contents(l_rbuf, 4*4096, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 // -----------------------------------------
                 // shrink
                 // -----------------------------------------
@@ -448,7 +448,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 REQUIRE(( l_nbq.read_avail() == (4*4096)));
                 //l_nbq.b_display_all();
                 l_s = verify_contents(l_nbq, 4*4096, 0);
-                REQUIRE(( l_s == HURL_STATUS_OK ));
+                REQUIRE(( l_s == STATUS_OK ));
                 //l_nbq.b_display_all());
                 //nbq_read(l_nbq, l_buf, BLOCK_SIZE);
                 //REQUIRE(( l_nbq.read_avail() == 0 ));

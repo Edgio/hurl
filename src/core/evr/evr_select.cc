@@ -130,7 +130,7 @@ int evr_select::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         //           a_fd, a_attr_mask, a_data);
         m_conn_map[a_fd] = a_evr_fd_event;
         mod(a_fd, a_attr_mask, a_evr_fd_event);
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -149,7 +149,7 @@ int evr_select::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         if(a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       { FD_SET(a_fd, &m_rfdset); }
         if(a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          { FD_SET(a_fd, &m_rfdset); }
         if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) { FD_SET(a_fd, &m_rfdset); }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -164,7 +164,7 @@ int evr_select::del(int a_fd)
         m_conn_map.erase(a_fd);
         FD_CLR(a_fd, &m_rfdset);
         FD_CLR(a_fd, &m_wfdset);
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -174,6 +174,6 @@ int evr_select::del(int a_fd)
 int evr_select::signal(void)
 {
         // TODO use a pipe for signalling...
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 } //namespace ns_hurl {

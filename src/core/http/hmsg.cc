@@ -147,7 +147,7 @@ nbq *hmsg::get_body_q(void)
         }
         int32_t l_s;
         l_s = m_q->split(&m_body_q, m_p_body.m_off);
-        if(l_s != HURL_STATUS_OK)
+        if(l_s != STATUS_OK)
         {
                 return NULL;
         }

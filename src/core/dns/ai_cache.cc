@@ -56,7 +56,7 @@ ai_cache::ai_cache(const std::string &a_ai_cache_file):
         if(!m_ai_cache_file.empty())
         {
                 int32_t l_status = read(m_ai_cache_file, m_ai_cache_map);
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         //NDBG_PRINT("Error: read with cache file: %s.\n",
                         //                m_ai_cache_file.c_str());
@@ -73,7 +73,7 @@ ai_cache::~ai_cache()
         if(!m_ai_cache_file.empty())
         {
                 int32_t l_status = sync(m_ai_cache_file, m_ai_cache_map);
-                if(l_status != HURL_STATUS_OK)
+                if(l_status != STATUS_OK)
                 {
                         //NDBG_PRINT("Error: sync with ai_cache file: %s.\n",
                         //                m_ai_cache_file.c_str());
@@ -198,7 +198,7 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
                 NDBG_PRINT("Error performing fclose. Reason: %s\n", strerror(errno));
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -209,20 +209,20 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                        ai_cache_map_t &ao_ai_cache_map)
 {
         struct stat l_stat;
-        int32_t l_status = HURL_STATUS_OK;
+        int32_t l_status = STATUS_OK;
         l_status = stat(a_ai_cache_file.c_str(), &l_stat);
         if(l_status != 0)
         {
                 //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n",
                 //           a_ai_cache_file.c_str(), strerror(errno));
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
 
         if(!(l_stat.st_mode & S_IFREG))
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n",
                 //           a_ai_cache_file.c_str());
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
 
         FILE * l_file;
@@ -231,7 +231,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: %s\n",
                 //           a_ai_cache_file.c_str(), strerror(errno));
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
 
         // Read in file...
@@ -243,7 +243,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         {
                 //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
                 //                strerror(errno), l_read_size, l_size);
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         std::string l_buf_str;
         l_buf_str.assign(l_buf, l_size);
@@ -259,7 +259,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                         free(l_buf);
                         l_buf = NULL;
                 }
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         // rapidjson uses SizeType instead of size_t.
         for(rapidjson::SizeType i_record = 0; i_record < l_doc.Size(); ++i_record)
@@ -273,7 +273,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                                 free(l_buf);
                                 l_buf = NULL;
                         }
-                        return HURL_STATUS_OK;
+                        return STATUS_OK;
                 }
                 std::string l_host;
                 std::string l_ai;
@@ -294,7 +294,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                 }
         }
         l_status = fclose(l_file);
-        if (HURL_STATUS_OK != l_status)
+        if (STATUS_OK != l_status)
         {
                 NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
                 if(l_buf)
@@ -309,6 +309,6 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                 free(l_buf);
                 l_buf = NULL;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 }

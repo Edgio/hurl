@@ -465,7 +465,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
         *ao_nbq_tail = NULL;
         if(!a_offset)
         {
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         if(a_offset >= m_cur_write_offset)
         {
@@ -536,7 +536,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
         m_cur_write_block = --m_q.end();
         reset_read();
         *ao_nbq_tail = l_nbq;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -562,7 +562,7 @@ int32_t nbq::join_ref(const nbq &ao_nbq_tail)
         }
         m_cur_write_block = m_q.end();
         // Join nbq with reference nbq
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO

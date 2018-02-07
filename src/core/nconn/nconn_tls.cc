@@ -269,7 +269,7 @@ int32_t show_tls_info(nconn *a_nconn)
         SSL *l_tls = nconn_get_SSL(*(a_nconn));
         if(!l_tls)
         {
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         char *l_alpn_result;
         uint32_t l_alpn_result_len = 0;
@@ -305,7 +305,7 @@ int32_t show_tls_info(nconn *a_nconn)
         //std::string l_protocol = get_tls_info_protocol_str(l_protocol_num);
         //printf(" cipher:     %s\n", l_cipher.c_str());
         //printf(" l_protocol: %s\n", l_protocol.c_str());
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO

@@ -69,7 +69,6 @@ SET(SRCS
     ./http/rqst.cc
     ./http/resp.cc
     ./http/cb.cc
-    ./http/api_resp.cc
 )
 # ------------------------------------------------
 # Linux Specific
@@ -96,7 +95,6 @@ SET(HDRS
     ${CMAKE_SOURCE_DIR}/include/hurl/http/hmsg.h
     ${CMAKE_SOURCE_DIR}/include/hurl/http/rqst.h
     ${CMAKE_SOURCE_DIR}/include/hurl/http/resp.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/http/api_resp.h
 )
 # ------------------------------------------------
 # library
