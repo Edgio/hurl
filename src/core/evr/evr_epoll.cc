@@ -120,7 +120,7 @@ int evr_epoll::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                            m_fd, a_fd, strerror(errno));
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -142,7 +142,7 @@ int evr_epoll::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                            m_fd, a_fd, strerror(errno));
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -163,7 +163,7 @@ int evr_epoll::del(int a_fd)
                         return HURL_STATUS_ERROR;
                 }
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -182,6 +182,6 @@ int32_t evr_epoll::signal(void)
                 //NDBG_PRINT("l_write_status: %ld\n", l_write_status);
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 } //namespace ns_hurl {

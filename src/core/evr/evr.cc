@@ -180,7 +180,7 @@ int32_t evr_loop::run(void)
         {
                 // dequeue any pending timeouts
                 l_time_diff_ms = dequeue_events();
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         // ---------------------------------------
         // service events
@@ -216,7 +216,7 @@ int32_t evr_loop::run(void)
                                         // Skip handling more events for this fd
                                         continue;
                                 }
-                                if(l_status != HURL_STATUS_OK)
+                                if(l_status != STATUS_OK)
                                 {
                                         TRC_ERROR("performing read_cb\n");
                                         // Skip handling more events for this fd
@@ -247,7 +247,7 @@ int32_t evr_loop::run(void)
                                         // Skip handling more events for this fd
                                         continue;
                                 }
-                                if(l_status != HURL_STATUS_OK)
+                                if(l_status != STATUS_OK)
                                 {
                                         TRC_ERROR("performing write_cb\n");
                                         // Skip handling more events for this fd
@@ -269,14 +269,14 @@ int32_t evr_loop::run(void)
                 //{
                 //        if(l_evr_event->m_error_cb)
                 //        {
-                //                int32_t l_status = HURL_STATUS_OK;
+                //                int32_t l_status = STATUS_OK;
                 //                l_status = l_evr_event->m_error_cb(l_evr_event->m_data);
                 //                if(l_status == HURL_STATUS_DONE)
                 //                {
                 //                        // Skip handling more events for this fd
                 //                        continue;
                 //                }
-                //                if(l_status != HURL_STATUS_OK)
+                //                if(l_status != STATUS_OK)
                 //                {
                 //                        //NDBG_PRINT("Error: l_status: %d\n", l_status);
                 //                        // Skip handling more events for this fd
@@ -285,7 +285,7 @@ int32_t evr_loop::run(void)
                 //        }
                 //}
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -330,7 +330,7 @@ int32_t evr_loop::del_fd(int a_fd)
 {
         if(!m_evr)
         {
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         int l_status;
         l_status = m_evr->del(a_fd);
@@ -358,7 +358,7 @@ int32_t evr_loop::add_event(uint32_t a_time_ms,
         //NDBG_PRINT_BT();
         m_event_pq.push(l_event);
         *ao_event = l_event;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -377,7 +377,7 @@ int32_t evr_loop::cancel_event(evr_event_t *a_event)
                 a_event->m_state = EVR_EVENT_CANCELLED;
                 a_event->m_data = NULL;
                 a_event->m_cb = NULL;
-                return HURL_STATUS_OK;
+                return STATUS_OK;
         }
         else
         {

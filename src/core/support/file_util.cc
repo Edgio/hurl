@@ -42,7 +42,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
 {
         // Check is a file
         struct stat l_stat;
-        int32_t l_s = HURL_STATUS_OK;
+        int32_t l_s = STATUS_OK;
         l_s = stat(a_file, &l_stat);
         if(l_s != 0)
         {
@@ -77,11 +77,11 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         }
         // Close file...
         l_s = fclose(l_file);
-        if (HURL_STATUS_OK != l_s)
+        if (STATUS_OK != l_s)
         {
                 printf("Error performing fclose.  Reason: %s\n", strerror(errno));
                 return HURL_STATUS_ERROR;
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 }

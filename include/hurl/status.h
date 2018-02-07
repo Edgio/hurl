@@ -27,8 +27,8 @@
 //: Constants
 //: ----------------------------------------------------------------------------
 // TODO enum instead???
-#ifndef HURL_STATUS_OK
-#define HURL_STATUS_OK 0
+#ifndef STATUS_OK
+#define STATUS_OK 0
 #endif
 
 #ifndef HURL_STATUS_ERROR

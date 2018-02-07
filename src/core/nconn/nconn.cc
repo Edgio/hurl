@@ -118,7 +118,7 @@ state_top:
                 if(m_connected_cb)
                 {
                         l_s = m_connected_cb(this, m_data);
-                        if(l_s != HURL_STATUS_OK)
+                        if(l_s != STATUS_OK)
                         {
                                 //NDBG_PRINT("LABEL[%s]: Error performing m_read_cb\n", m_label.c_str());
                                 return NC_STATUS_ERROR;
@@ -438,7 +438,7 @@ int32_t nconn::nc_set_listening(int32_t a_val)
         }
 
         m_nc_state = NC_STATE_LISTENING;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -457,7 +457,7 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
         }
 
         m_nc_state = NC_STATE_LISTENING;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -474,7 +474,7 @@ int32_t nconn::nc_set_accepting(int a_fd)
                 return HURL_STATUS_ERROR;
         }
         m_nc_state = NC_STATE_ACCEPTING;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -491,7 +491,7 @@ int32_t nconn::nc_set_connected(void)
                 return HURL_STATUS_ERROR;
         }
         m_nc_state = NC_STATE_CONNECTED;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------
@@ -519,7 +519,7 @@ int32_t nconn::nc_cleanup()
         }
         m_data = NULL;
         m_host_info_is_set = false;
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 
 //: ----------------------------------------------------------------------------

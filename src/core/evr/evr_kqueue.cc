@@ -80,7 +80,7 @@ int evr_kqueue::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
         }
         return l_ne;
 #endif
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -107,7 +107,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
                         return HURL_STATUS_ERROR;
                 }
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -117,7 +117,7 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 int evr_kqueue::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         // TODO -map attributes...
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -138,7 +138,7 @@ int evr_kqueue::del(int a_fd)
                 EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
                 kevent(m_fd, &l_ke, 1, NULL, 0, NULL);
         }
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -148,6 +148,6 @@ int evr_kqueue::del(int a_fd)
 int32_t evr_kqueue::signal(void)
 {
         // TODO
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 } //namespace ns_hurl {

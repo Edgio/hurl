@@ -274,7 +274,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         }
         ao_val |= i_option->second;
         //NDBG_PRINT("ao_val: 0x%08lX\n", ao_val);
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -591,6 +591,6 @@ int32_t tls_cleanup(void)
         ERR_free_strings();
         CRYPTO_cleanup_all_ex_data();
         // TODO -clean mutexes???
-        return HURL_STATUS_OK;
+        return STATUS_OK;
 }
 } //namespace ns_hurl {
