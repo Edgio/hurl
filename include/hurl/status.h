@@ -31,20 +31,20 @@
 #define STATUS_OK 0
 #endif
 
-#ifndef HURL_STATUS_ERROR
-#define HURL_STATUS_ERROR -1
+#ifndef STATUS_ERROR
+#define STATUS_ERROR -1
 #endif
 
-#ifndef HURL_STATUS_AGAIN
-#define HURL_STATUS_AGAIN -2
+#ifndef STATUS_AGAIN
+#define STATUS_AGAIN -2
 #endif
 
-#ifndef HURL_STATUS_BUSY
-#define HURL_STATUS_BUSY -3
+#ifndef STATUS_BUSY
+#define STATUS_BUSY -3
 #endif
 
-#ifndef HURL_STATUS_DONE
-#define HURL_STATUS_DONE -4
+#ifndef STATUS_DONE
+#define STATUS_DONE -4
 #endif
 
 #endif

@@ -260,7 +260,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 if(i_option == g_tls_options_map.end())
                 {
                         TRC_ERROR("unrecognized ssl option: %s\n", l_token.c_str());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 ao_val |= i_option->second;
         };
@@ -270,7 +270,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         if(i_option == g_tls_options_map.end())
         {
                 TRC_ERROR("unrecognized ssl option: %s\n", l_token.c_str());
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         ao_val |= i_option->second;
         //NDBG_PRINT("ao_val: 0x%08lX\n", ao_val);

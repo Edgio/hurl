@@ -76,13 +76,13 @@ int evr_select::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
         if (l_sstat < 0)
         {
                 //NDBG_PRINT("Error select() failed. Reason: %s\n", strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if (l_sstat > a_max_events)
         {
                 //NDBG_PRINT("Error select() returned too many events (got %d, expected <= %d)\n",
                 //                l_sstat, a_max_events);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         int l_p = 0;
         for(conn_map_t::iterator i_conn = m_conn_map.begin(); i_conn != m_conn_map.end(); ++i_conn)
@@ -109,7 +109,7 @@ int evr_select::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
                         if(l_p > l_sstat)
                         {
                                 //NDBG_PRINT("Error num events exceeds select result.\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                 }
         }

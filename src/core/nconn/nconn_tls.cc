@@ -264,7 +264,7 @@ int32_t show_tls_info(nconn *a_nconn)
         if(!a_nconn)
         {
                 TRC_ERROR("a_nconn == NULL\n");
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         SSL *l_tls = nconn_get_SSL(*(a_nconn));
         if(!l_tls)
@@ -285,7 +285,7 @@ int32_t show_tls_info(nconn *a_nconn)
         if(l_cert == NULL)
         {
                 NDBG_PRINT("SSL_get_peer_certificate error.  tls: %p\n", l_tls);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         TRC_OUTPUT("%s", ANSI_COLOR_FG_MAGENTA);
         TRC_OUTPUT("+------------------------------------------------------------------------------+\n");

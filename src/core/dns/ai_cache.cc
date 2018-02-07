@@ -170,7 +170,7 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
         if(l_file_ptr == NULL)
         {
                 //NDBG_PRINT("Error performing fopen. Reason: %s\n", strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         fprintf(l_file_ptr, "[");
         uint32_t l_len = a_ai_cache_map.size();
@@ -196,7 +196,7 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
         if(l_status != 0)
         {
                 NDBG_PRINT("Error performing fclose. Reason: %s\n", strerror(errno));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -302,7 +302,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                         free(l_buf);
                         l_buf = NULL;
                 }
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         if(l_buf)
         {

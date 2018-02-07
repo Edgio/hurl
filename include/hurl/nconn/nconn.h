@@ -173,7 +173,7 @@ public:
                 if(!ao_buf)
                 {
                         // TODO TRC_ERROR ???
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 *ao_buf = m_alpn_buf;
                 ao_buf_len = m_alpn_buf_len;

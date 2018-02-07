@@ -113,20 +113,20 @@ int32_t verify_contents(ns_hurl::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
                 if(l_s != 1)
                 {
                         //NDBG_PRINT("error\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 //NDBG_PRINT("l_cmp: %c l_char: %c -l_read: %lu\n", l_cmp, l_char, l_read);
                 if(l_cmp != l_char)
                 {
                         //NDBG_PRINT("error l_cmp: %c l_char: %c\n", l_cmp, l_char);
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 ++l_read;
         }
         if(l_read != a_len)
         {
                 //NDBG_PRINT("error l_read = %lu a_len = %lu\n", l_read, a_len);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -147,14 +147,14 @@ int32_t verify_contents(char *l_buf, uint64_t a_len, uint16_t a_offset)
                 if(l_cmp != l_char)
                 {
                         //NDBG_PRINT("error l_cmp: %c l_char: %c\n", l_cmp, l_char);
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 ++l_read;
         }
         if(l_read != a_len)
         {
                 //NDBG_PRINT("error l_read = %lu a_len = %lu\n", l_read, a_len);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         return STATUS_OK;
 }
@@ -269,7 +269,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 ns_hurl::nbq *l_nbq_tail;
                 // split at > written offset -return nothing
                 l_s = l_nbq.split(&l_nbq_tail, 703);
-                REQUIRE(( l_s == HURL_STATUS_ERROR ));
+                REQUIRE(( l_s == STATUS_ERROR ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq.read_avail() == 703 ));
                 // split at 0 offset -return nothing
@@ -354,7 +354,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 ns_hurl::nbq *l_nbq_tail;
                 // split at > written offset -return nothing
                 l_s = l_nbq->split(&l_nbq_tail, 703);
-                REQUIRE(( l_s == HURL_STATUS_ERROR ));
+                REQUIRE(( l_s == STATUS_ERROR ));
                 REQUIRE(( l_nbq_tail == NULL ));
                 REQUIRE(( l_nbq->read_avail() == 703 ));
                 // split at 0 offset -return nothing

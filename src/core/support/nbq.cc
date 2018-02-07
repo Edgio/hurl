@@ -217,7 +217,7 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
                 }
                 else if(a_status < 0)
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
         }
         return l_written;
@@ -239,7 +239,7 @@ int64_t nbq::write_q(nbq &a_q)
                         if(l_status <= 0)
                         {
                                 TRC_ERROR("b_write_add_avail()\n");
-                                return HURL_STATUS_ERROR;
+                                return STATUS_ERROR;
                         }
                 }
                 uint32_t l_write_avail = b_write_avail();
@@ -248,7 +248,7 @@ int64_t nbq::write_q(nbq &a_q)
                 if(l_status < 0)
                 {
                         TRC_ERROR("a_q.read()\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 if(l_status == 0)
                 {
@@ -470,7 +470,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
         if(a_offset >= m_cur_write_offset)
         {
                 TRC_ERROR("requested split at offset: %" PRIu64 " > write_offset: %" PRIu64 "\n", a_offset, m_cur_write_offset);
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
         // ---------------------------------------
         // find block at offset
@@ -484,7 +484,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 if(!(*i_b))
                 {
                         TRC_ERROR("block iter in nbq == NULL\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 uint32_t l_w = (*i_b)->written();
                 if(l_w > i_offset)
@@ -503,7 +503,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 if(i_offset >= l_b.written())
                 {
                         TRC_ERROR("i_offset: %" PRIu64 " >= l_b.written(): %u\n", i_offset, l_b.written());
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 // write the remainder
                 l_nbq->b_write_add_avail();
@@ -520,7 +520,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
                 if(!(*i_b))
                 {
                         TRC_ERROR("block iter in nbq == NULL\n");
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 //NDBG_PRINT("adding tail block\n");
                 l_nbq->m_q.push_back(*i_b);
@@ -552,7 +552,7 @@ int32_t nbq::join_ref(const nbq &ao_nbq_tail)
         {
                 if(!(*i_b))
                 {
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 nb_t &l_b = *(*i_b);
                 nb_t *l_b_ref = new nb_t(l_b.data(), l_b.written());

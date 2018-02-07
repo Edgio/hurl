@@ -65,7 +65,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         {
                 //NDBG_PRINT("Error getaddrinfo '%s': %s\n",
                 //           a_host.c_str(), gai_strerror(l_gaierr));
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 
         // Find the first IPv4 and IPv6 entries.
@@ -101,7 +101,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                                    a_host.c_str(),
                               (unsigned long) sizeof(ao_host_info.m_sa),
                               (unsigned long) l_addrinfo_v4->ai_addrlen);
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 ao_host_info.m_sock_family = l_addrinfo_v4->ai_family;
                 ao_host_info.m_sock_type = l_addrinfo_v4->ai_socktype;
@@ -126,7 +126,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                                    a_host.c_str(),
                               (unsigned long) sizeof(ao_host_info.m_sa),
                               (unsigned long) l_addrinfo_v6->ai_addrlen);
-                        return HURL_STATUS_ERROR;
+                        return STATUS_ERROR;
                 }
                 ao_host_info.m_sock_family = l_addrinfo_v6->ai_family;
                 ao_host_info.m_sock_type = l_addrinfo_v6->ai_socktype;
@@ -147,7 +147,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         {
                 NDBG_PRINT("Error no valid address found for host %s\n",
                            a_host.c_str());
-                return HURL_STATUS_ERROR;
+                return STATUS_ERROR;
         }
 
         // Set to 60min -cuz getaddr-info stinks...
