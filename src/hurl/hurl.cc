@@ -3844,7 +3844,7 @@ int main(int argc, char** argv)
         // Verify input
         if(!l_input_flag)
         {
-                fprintf(stdout, "Error: Input url/url file/playback file required.");
+                fprintf(stdout, "Error: url required.");
                 print_usage(stdout, -1);
         }
         // -------------------------------------------
