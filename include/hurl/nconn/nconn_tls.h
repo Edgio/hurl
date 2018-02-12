@@ -181,7 +181,8 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       const std::string &a_ca_path = "",
                       bool a_server_flag = false,
                       const std::string &a_tls_key_file = "",
-                      const std::string &a_tls_crt_file = "");
+                      const std::string &a_tls_crt_file = "",
+                      bool a_force_h1 = false);
 int32_t show_tls_info(nconn *a_nconn);
 } //namespace ns_hurl {
 
