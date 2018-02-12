@@ -142,7 +142,8 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       const std::string &a_ca_path,
                       bool a_server_flag,
                       const std::string &a_tls_key_file,
-                      const std::string &a_tls_crt_file)
+                      const std::string &a_tls_crt_file,
+                      bool a_force_h1)
 {
         SSL_CTX *l_ctx;
         // TODO Make configurable
@@ -241,9 +242,19 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
         // set npn callback
         SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
-#define _ALPN_PROTO_ADV "\x2h2\x5h2-16\x5h2-14"
+        // -------------------------------------------------
+        // TODO -something more extensible -list list of
+        //       protocols...
+        // -------------------------------------------------
+#define _ALPN_PROTO_ADV    "\x2h2\x5h2-16\x5h2-14\x8http/1.1"
+#define _ALPN_PROTO_ADV_H1 "\x8http/1.1"
+        const char *l_apln_proto_adv = _ALPN_PROTO_ADV;
+        if(a_force_h1)
+        {
+                l_apln_proto_adv = _ALPN_PROTO_ADV_H1;
+        }
         int l_s;
-        l_s = SSL_CTX_set_alpn_protos(l_ctx, (unsigned char *)_ALPN_PROTO_ADV, strlen(_ALPN_PROTO_ADV));
+        l_s = SSL_CTX_set_alpn_protos(l_ctx, (unsigned char *)l_apln_proto_adv, strlen(l_apln_proto_adv));
         UNUSED(l_s);
         //TODO -check error
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L

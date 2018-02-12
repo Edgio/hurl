@@ -690,7 +690,8 @@ int32_t request::init_with_url(const std::string &a_url)
                                                   m_conf_tls_ca_path,     // ctx ca path
                                                   false,                  // is server?
                                                   l_unused,               // tls key
-                                                  l_unused);              // tls crt
+                                                  l_unused,               // tls crt
+                                                  m_h1);                  // force h1
                 // modes from nghttp2 client example
                 SSL_CTX_set_mode(m_tls_ctx, SSL_MODE_AUTO_RETRY);
                 SSL_CTX_set_mode(m_tls_ctx, SSL_MODE_RELEASE_BUFFERS);
@@ -1194,7 +1195,6 @@ static int ngxxx_header_cb(nghttp2_session *a_session _U_,
         }
         default:
         {
-
         }
         }
         return 0;
@@ -1382,12 +1382,9 @@ int32_t http_session::srequest(void)
                         m_request->m_verb.c_str(), l_uri.c_str());
         nbq_write_request_line(*m_out_q, l_buf, l_len);
         m_request->set_header("Host", m_request->m_host);
-
         ns_hurl::kv_map_list_t::const_iterator i_hdr;
         bool l_specd_host = false;
-
 #define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
-
 #define SET_IF_V1(_key) do { \
 i_hdr = m_request->m_headers.find(_key);\
 if(i_hdr != m_request->m_headers.end()) { \
@@ -1556,43 +1553,33 @@ int32_t http_session::swrite(void)
         if (complete_) {
           return -1;
         }
-
         auto config = client_->worker->config;
         auto req_stat = client_->get_req_stat(stream_req_counter_);
         if (!req_stat) {
           return 0;
         }
-
         if (req_stat->data_offset < config->data_length) {
           auto req_stat = client_->get_req_stat(stream_req_counter_);
           auto &wb = client_->wb;
-
           // TODO unfortunately, wb has no interface to use with read(2)
           // family functions.
           std::array<uint8_t, 16_k> buf;
-
           ssize_t nread;
           while ((nread = pread(config->data_fd, buf.data(), buf.size(),
                                 req_stat->data_offset)) == -1 &&
                  errno == EINTR)
             ;
-
           if (nread == -1) {
             return -1;
           }
-
           req_stat->data_offset += nread;
-
           wb.append(buf.data(), nread);
-
           if (client_->worker->config->verbose) {
             std::cout << "[send " << nread << " byte(s)]" << std::endl;
           }
-
           if (req_stat->data_offset == config->data_length) {
             // increment for next request
             stream_req_counter_ += 2;
-
             if (stream_resp_counter_ == stream_req_counter_) {
               // Response has already been received
               client_->on_stream_close(stream_resp_counter_ - 2, true,
@@ -1600,7 +1587,6 @@ int32_t http_session::swrite(void)
             }
           }
         }
-
         return 0;
 #endif
         return STATUS_OK;
@@ -1659,7 +1645,6 @@ private:
         // -------------------------------------------------
         nghttp2_session *m_ngxxx_session;
 };
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -1704,47 +1689,34 @@ int32_t h2_session::sconnected(void)
         return STATUS_OK;
 #if 0
         int rv;
-
         // This is required with --disable-assert.
         (void)rv;
-
         nghttp2_option *opt;
-
         rv = nghttp2_option_new(&opt);
         assert(rv == 0);
-
         auto config = client_->worker->config;
-
         if (config->encoder_header_table_size != NGHTTP2_DEFAULT_HEADER_TABLE_SIZE) {
           nghttp2_option_set_max_deflate_dynamic_table_size(
               opt, config->encoder_header_table_size);
         }
-
         nghttp2_session_client_new2(&session_, callbacks, client_, opt);
-
         nghttp2_option_del(opt);
-
         std::array<nghttp2_settings_entry, 3> iv;
         size_t niv = 2;
         iv[0].settings_id = NGHTTP2_SETTINGS_ENABLE_PUSH;
         iv[0].value = 0;
         iv[1].settings_id = NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE;
         iv[1].value = (1 << config->window_bits) - 1;
-
         if (config->header_table_size != NGHTTP2_DEFAULT_HEADER_TABLE_SIZE) {
           iv[niv].settings_id = NGHTTP2_SETTINGS_HEADER_TABLE_SIZE;
           iv[niv].value = config->header_table_size;
           ++niv;
         }
-
         rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, iv.data(), niv);
-
         assert(rv == 0);
-
         auto connection_window = (1 << config->connection_window_bits) - 1;
         nghttp2_session_set_local_window_size(session_, NGHTTP2_FLAG_NONE, 0,
                                               connection_window);
-
         client_->signal_write();
 #endif
 }
@@ -1786,7 +1758,6 @@ int32_t h2_session::srequest(void)
         // hdrs should be 4 + header size
         l_hdrs_len = 4 + m_request->m_headers.size();
         l_ngxxx_headers = (nghttp2_nv *)malloc(sizeof(nghttp2_nv)*l_hdrs_len);
-
 #define SET_PSUEDO_HEADER(_idx, _key,_val) do { \
         l_ngxxx_headers[_idx].name = const_cast <uint8_t *>(reinterpret_cast<const uint8_t *>(_key));\
         l_ngxxx_headers[_idx].namelen = strlen(_key);\
@@ -1794,7 +1765,6 @@ int32_t h2_session::srequest(void)
         l_ngxxx_headers[_idx].valuelen = _val.length();\
         l_ngxxx_headers[_idx].flags = NGHTTP2_NV_FLAG_NONE;\
 } while(0)
-
 #define SET_HEADER(_idx, _key,_val) do { \
         l_ngxxx_headers[_idx].name = const_cast <uint8_t *>(reinterpret_cast<const uint8_t *>(_key.c_str()));\
         l_ngxxx_headers[_idx].namelen = _key.length();\
@@ -1802,7 +1772,6 @@ int32_t h2_session::srequest(void)
         l_ngxxx_headers[_idx].valuelen = _val.length();\
         l_ngxxx_headers[_idx].flags = NGHTTP2_NV_FLAG_NONE;\
 } while(0)
-
         std::string l_scheme = "https";
         uint16_t l_hdr_idx = 0;
         // -----------------------------------------
@@ -1923,16 +1892,12 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
         if (rv < 0) {
           return -1;
         }
-
         assert(static_cast<size_t>(rv) == len);
-
         if (nghttp2_session_want_read(session_) == 0 &&
             nghttp2_session_want_write(session_) == 0 && client_->wb.rleft() == 0) {
           return -1;
         }
-
         client_->signal_write();
-
         return 0;
 #endif
         ssize_t l_rl;
@@ -2758,8 +2723,7 @@ session *t_hurl::session_create(ns_hurl::nconn *a_nconn)
         // setup session
         // -------------------------------------------------
         session *l_ses = NULL;
-        if((a_nconn->get_alpn() == ns_hurl::nconn::ALPN_HTTP_VER_V2) &&
-           (!m_request.m_h1))
+        if((a_nconn->get_alpn() == ns_hurl::nconn::ALPN_HTTP_VER_V2))
         {
                 l_ses = new h2_session();
         }
@@ -2935,7 +2899,6 @@ int32_t parse_path(const char *a_path,
         {
                 TRC_OUTPUT("SUBSTR: %s\n", i_substr->c_str());
         }
-
         for(range_vector_t::iterator i_range = ao_range_vector.begin();
                         i_range != ao_range_vector.end();
                         ++i_range)
@@ -3505,7 +3468,6 @@ int main(int argc, char** argv)
                 else
                         l_arg.clear();
                 //NDBG_PRINT("arg[%c=%d]: %s\n", l_opt, l_option_index, l_arg.c_str());
-
                 switch (l_opt)
                 {
                 // -----------------------------------------
@@ -3562,7 +3524,6 @@ int main(int argc, char** argv)
                                 l_request->m_body_data = l_buf;
                                 l_request->m_body_data_len = l_len;
                         }
-
                         // Add content length
                         char l_len_str[64];
                         sprintf(l_len_str, "%u", l_request->m_body_data_len);
@@ -3620,7 +3581,7 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case '1':
                 {
-                       l_request->m_h1 = true;
+                        l_request->m_h1 = true;
                 }
                 // -----------------------------------------
                 // number of streams per connection
@@ -3829,9 +3790,7 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 case 'r':
                 {
-
 #define ELIF_TRACE_STR(_level) else if(strncasecmp(_level, l_arg.c_str(), sizeof(_level)) == 0)
-
                         bool l_val = false;
                         if(0) {}
                         ELIF_TRACE_STR("error") { ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR); l_val = true; }
@@ -4274,7 +4233,6 @@ int main(int argc, char** argv)
                 STR_PRINT("| mean bytes/conn:     %f\n", ((double)l_total_bytes)/((double)l_total.m_resp));
                 STR_PRINT("| fetches/sec:         %f\n", ((double)l_total.m_resp)/(l_elapsed_time_s));
                 STR_PRINT("| bytes/sec:           %e\n", ((double)l_total_bytes)/l_elapsed_time_s);
-
                 // TODO fix stat calcs
 #if 0
                 // TODO Fix stdev/var calcs
