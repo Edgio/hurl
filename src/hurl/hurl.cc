@@ -74,6 +74,7 @@
 // Profiler
 #ifdef ENABLE_PROFILER
 #include <gperftools/profiler.h>
+#include <gperftools/heap-profiler.h>
 #endif
 // For inet_pton
 #include <arpa/inet.h>
@@ -148,6 +149,7 @@ static uint32_t g_path_vector_last_idx = 0;
 static bool g_path_order_random = true;
 static pthread_mutex_t g_path_vector_mutex;
 static pthread_mutex_t g_completion_mutex;
+static uint32_t g_chunk_size_kb = 8;
 static const std::string &get_path(void *a_rand);
 //: ----------------------------------------------------------------------------
 //:                               S T A T S
@@ -880,8 +882,8 @@ public:
                m_num_conn_parallel_max(a_max_parallel),
                m_num_to_request(a_num_to_request)
         {
-                m_orphan_in_q = new ns_hurl::nbq(4096);
-                m_orphan_out_q = new ns_hurl::nbq(4096);
+                m_orphan_in_q = new ns_hurl::nbq(g_chunk_size_kb*1024);
+                m_orphan_out_q = new ns_hurl::nbq(g_chunk_size_kb*1024);
         }
         ~t_hurl()
         {
@@ -2180,6 +2182,10 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
 state_top:
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: CONN[%p] STATE[%d] MODE: %d\n",
         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, l_nconn, l_nconn->get_state(), a_conn_mode);
+        if(g_test_finished)
+        {
+                return STATUS_DONE;
+        }
         switch(l_nconn->get_state())
         {
         // -------------------------------------------------
@@ -2388,7 +2394,7 @@ state_top:
                                 }
                                 ns_hurl::nbq *l_out_q = NULL;
                                 if(l_ses &&
-                                   l_ses->m_in_q)
+                                   l_ses->m_out_q)
                                 {
                                         l_out_q = l_ses->m_out_q;
                                 }
@@ -2407,6 +2413,16 @@ state_top:
                                         l_nconn->set_state_done();
                                         goto state_top;
                                 }
+                                // -------------------------
+                                // reuse nbq if not verbose
+                                // -------------------------
+                                if(!g_verbose)
+                                {
+                                        l_in_q->reset_write();
+                                }
+                                // -------------------------
+                                // check for write avail
+                                // -------------------------
                                 if(l_out_q->read_avail() != 0)
                                 {
                                         // flip back to write and retry
@@ -2744,8 +2760,8 @@ session *t_hurl::session_create(ns_hurl::nconn *a_nconn)
         // -------------------------------------------------
         // setup q's
         // -------------------------------------------------
-        l_ses->m_in_q = new ns_hurl::nbq(8*1024);
-        l_ses->m_out_q = new ns_hurl::nbq(8*1024);
+        l_ses->m_in_q = new ns_hurl::nbq(g_chunk_size_kb*1024);
+        l_ses->m_out_q = new ns_hurl::nbq(g_chunk_size_kb*1024);
         return l_ses;
 }
 //: ----------------------------------------------------------------------------
@@ -3298,6 +3314,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -T, --timeout        Timeout (seconds).\n");
         fprintf(a_stream, "  -x, --no_stats       Don't collect stats -faster.\n");
         fprintf(a_stream, "  -I, --addr_seq       Sequence over local address range.\n");
+        fprintf(a_stream, "  -S, --chunk_size_kb  Chunk size in kB -max bytes to read/write per socket read/write. Default 8 kB\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Display Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
@@ -3313,7 +3330,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Debug Options:\n");
         fprintf(a_stream, "  -r, --trace          Turn on tracing (error/warn/debug/verbose/all)\n");
 #ifdef ENABLE_PROFILER
-        fprintf(a_stream, "  -G, --gprofile       Google profiler output file\n");
+        fprintf(a_stream, "  -P, --hprofile   Google heap profiler output file\n");
+        fprintf(a_stream, "  -G, --cprofile   Google cpu profiler output file\n");
 #endif
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running long jobs consider enabling tcp_tw_reuse -eg:\n");
@@ -3408,6 +3426,7 @@ int main(int argc, char** argv)
                 { "timeout",        1, 0, 'T' },
                 { "no_stats",       0, 0, 'x' },
                 { "addr_seq",       1, 0, 'I' },
+                { "chunk_size_kb",  1, 0, 'S' },
                 { "verbose",        0, 0, 'v' },
                 { "no_color",       0, 0, 'c' },
                 { "responses",      0, 0, 'C' },
@@ -3417,6 +3436,7 @@ int main(int argc, char** argv)
                 { "update",         1, 0, 'U' },
                 { "trace",          1, 0, 'r' },
 #ifdef ENABLE_PROFILER
+                { "hprofile",       1, 0, 'P' },
                 { "gprofile",       1, 0, 'G' },
 #endif
                 // list sentinel
@@ -3429,7 +3449,8 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         std::string l_url;
 #ifdef ENABLE_PROFILER
-        std::string l_gprof_file;
+        std::string l_hprof_file;
+        std::string l_cprof_file;
 #endif
         bool is_opt = false;
         for(int i_arg = 1; i_arg < argc; ++i_arg)
@@ -3457,9 +3478,9 @@ int main(int argc, char** argv)
                 }
         }
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:vcCLjo:U:r:G:";
+        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:P:G:";
 #else
-        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:vcCLjo:U:r:";
+        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -3721,6 +3742,22 @@ int main(int argc, char** argv)
                         break;
                 }
                 // -----------------------------------------
+                // chunk size
+                // -----------------------------------------
+                case 'S':
+                {
+                        int l_val = atoi(optarg);
+                        if((l_val < 1) ||
+                           (l_val > 1024))
+                        {
+                                TRC_OUTPUT("chunk size must be >= 1 and <= 1024\n");
+                                //print_usage(stdout, -1);
+                                return STATUS_ERROR;
+                        }
+                        g_chunk_size_kb = (uint32_t)l_val;
+                        break;
+                }
+                // -----------------------------------------
                 // verbose
                 // -----------------------------------------
                 case 'v':
@@ -3810,11 +3847,19 @@ int main(int argc, char** argv)
                 }
 #ifdef ENABLE_PROFILER
                 // -----------------------------------------
-                // Google Profiler Output File
+                // profiler file
+                // -----------------------------------------
+                case 'P':
+                {
+                        l_hprof_file = l_arg;
+                        break;
+                }
+                // -----------------------------------------
+                // profiler file
                 // -----------------------------------------
                 case 'G':
                 {
-                        l_gprof_file = l_arg;
+                        l_cprof_file = l_arg;
                         break;
                 }
 #endif
@@ -3927,10 +3972,16 @@ int main(int argc, char** argv)
                 g_path = l_raw_path;
         }
 #ifdef ENABLE_PROFILER
-        // Start Profiler
-        if (!l_gprof_file.empty())
+        // -------------------------------------------------
+        // start profiler(s)
+        // -------------------------------------------------
+        if(!l_hprof_file.empty())
         {
-                ProfilerStart(l_gprof_file.c_str());
+                HeapProfilerStart(l_hprof_file.c_str());
+        }
+        if(!l_cprof_file.empty())
+        {
+                ProfilerStart(l_cprof_file.c_str());
         }
 #endif
         // -------------------------------------------
@@ -4198,7 +4249,14 @@ int main(int argc, char** argv)
                 pthread_join(((*i_t)->m_t_run_thread), NULL);
         }
 #ifdef ENABLE_PROFILER
-        if (!l_gprof_file.empty())
+        // -------------------------------------------------
+        // stop profiler(s)
+        // -------------------------------------------------
+        if (!l_hprof_file.empty())
+        {
+                HeapProfilerStop();
+        }
+        if (!l_cprof_file.empty())
         {
                 ProfilerStop();
         }

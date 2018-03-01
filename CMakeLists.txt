@@ -261,6 +261,8 @@ endif()
 if (BUILD_SYMBOLS)
   add_definitions(-g3)
 endif()
+# Less strict/faster parsing
+add_definitions(-DHTTP_PARSER_STRICT=0)
 # ------------------------------------------------------------------------------
 # Version
 # ------------------------------------------------------------------------------
