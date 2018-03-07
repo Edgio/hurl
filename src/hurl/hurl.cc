@@ -2711,7 +2711,6 @@ ns_hurl::nconn *t_hurl::create_conn(void)
         // set params
         // -------------------------------------------------
         l_nconn->set_ctx(this);
-//	l_conn->set_ai_family(g_ai_family);
         l_nconn->set_num_reqs_per_conn(g_reqs_per_conn);
         l_nconn->set_evr_loop(m_evr_loop);
         l_nconn->setup_evr_fd(session::evr_fd_readable_cb,
@@ -3296,8 +3295,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -V, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Run Options:\n");
-        fprintf(a_stream, "  -4,    		  Use only IPv4 addresses.\n");
-        fprintf(a_stream, "  -6,    		  Use only IPv4 addresses.\n");
+        fprintf(a_stream, "  -4, --ipv4           Resolve name to IPv4 address.\n");
+        fprintf(a_stream, "  -6, --ipv6           Resolve name to IPv6 address.\n");
         fprintf(a_stream, "  -w, --no_wildcards   Don't wildcard the url.\n");
         fprintf(a_stream, "  -M, --mode           Request mode -if multipath [random(default) | sequential].\n");
         fprintf(a_stream, "  -d, --data           HTTP body data -supports curl style @ file specifier\n");
@@ -3414,6 +3413,8 @@ int main(int argc, char** argv)
                 {
                 { "help",           0, 0, 'h' },
                 { "version",        0, 0, 'V' },
+                { "ipv4",           0, 0, '4' },
+                { "ipv6",           0, 0, '6' },
                 { "no_wildcards",   0, 0, 'w' },
                 { "data",           1, 0, 'd' },
                 { "parallel",       1, 0, 'p' },
@@ -3511,22 +3512,22 @@ int main(int argc, char** argv)
                         print_version(stdout, 0);
                         break;
                 }
-		// -----------------------------------------
-		// Use IPv4
-		// -----------------------------------------
-		case '4':
-		{
-		        l_ai_family = AF_INET;
-			break;
-		}
-		// -----------------------------------------
-		// Use IPv6
-		// -----------------------------------------
-		case '6':
-		{
-		        l_ai_family = AF_INET6;
-			break;
-		}
+                // -----------------------------------------
+                // Use IPv4
+                // -----------------------------------------
+                case '4':
+                {
+                        l_ai_family = AF_INET;
+                        break;
+                }
+                // -----------------------------------------
+                // Use IPv6
+                // -----------------------------------------
+                case '6':
+                {
+                        l_ai_family = AF_INET6;
+                        break;
+                }
                 // -----------------------------------------
                 // Wildcarding
                 // -----------------------------------------
