@@ -31,6 +31,10 @@ B<-h>, B<--help>          display this help and exit
 
 B<-v>, B<--version>       display this version and exit
 
+B<-4>, B<--ipv4>          resolve name to IPv4 address
+
+B<-6>, B<--ipv6>          resolve name to IPv6 address
+
 B<-w>, B<--no_wildcards>  don't expand ranges in the url path.
 
 B<-M>, B<--mode>          request mode -if multipath [random(default) | sequential].
@@ -41,7 +45,7 @@ B<-p>, B<--parallel>      number of parallel requests. Default: 100.
 
 B<-f>, B<--fetches>       number of requests to run before exiting (defaults to infinite).
 
-B<-N>, B<--num_calls>     number of requests per connection
+B<-N>, B<--calls>         number of requests per connection (or stream if H2)
 
 B<-t>, B<--threads>       number of parallel threads. Default: 1
 
@@ -73,7 +77,7 @@ B<-r>, B<--trace>         turn on tracing (error/warn/debug/verbose/all)
 
 =head1 EXAMPLE
 
-hurl "http://127.0.0.1/index.html" --threads=4 --num_calls=100 --parallel=100 -fetches=100000
+hurl "http://127.0.0.1/index.html" --threads=4 --calls=100 --parallel=100 -fetches=100000
 
 =head1 NOTES
 
