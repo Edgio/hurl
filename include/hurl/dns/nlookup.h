@@ -28,6 +28,7 @@
 //: ----------------------------------------------------------------------------
 #include <stdint.h>
 #include <string>
+#include <arpa/inet.h>
 
 namespace ns_hurl {
 
@@ -39,7 +40,7 @@ struct host_info;
 //: ----------------------------------------------------------------------------
 //: Lookup inline
 //: ----------------------------------------------------------------------------
-int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_info);
+int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_info, int = AF_UNSPEC);
 
 } //namespace ns_hurl {
 

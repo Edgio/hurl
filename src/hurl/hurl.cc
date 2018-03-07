@@ -138,6 +138,7 @@ static uint64_t g_rate_delta_us = 0;
 static uint32_t g_num_threads = 1;
 static int64_t g_reqs_per_conn = -1;
 static bool g_stats = true;
+static int g_ai_family = AF_UNSPEC;
 // -----------------------------------------------
 // Path vector support
 // -----------------------------------------------
@@ -2711,6 +2712,7 @@ ns_hurl::nconn *t_hurl::create_conn(void)
         // set params
         // -------------------------------------------------
         l_nconn->set_ctx(this);
+//	l_conn->set_ai_family(g_ai_family);
         l_nconn->set_num_reqs_per_conn(g_reqs_per_conn);
         l_nconn->set_evr_loop(m_evr_loop);
         l_nconn->setup_evr_fd(session::evr_fd_readable_cb,
@@ -3295,6 +3297,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -V, --version        Display the version number and exit.\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Run Options:\n");
+        fprintf(a_stream, "  -4,    		  Use only IPv4 addresses.\n");
+        fprintf(a_stream, "  -6,    		  Use only IPv4 addresses.\n");
         fprintf(a_stream, "  -w, --no_wildcards   Don't wildcard the url.\n");
         fprintf(a_stream, "  -M, --mode           Request mode -if multipath [random(default) | sequential].\n");
         fprintf(a_stream, "  -d, --data           HTTP body data -supports curl style @ file specifier\n");
@@ -3478,9 +3482,9 @@ int main(int argc, char** argv)
                 }
         }
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:P:G:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:P:G:";
 #else
-        char l_short_arg_list[] = "hVwd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -3507,6 +3511,22 @@ int main(int argc, char** argv)
                         print_version(stdout, 0);
                         break;
                 }
+		// -----------------------------------------
+		// Use IPv4
+		// -----------------------------------------
+		case '4':
+		{
+			g_ai_family = AF_INET;
+			break;
+		}
+		// -----------------------------------------
+		// Use IPv6
+		// -----------------------------------------
+		case '6':
+		{
+			g_ai_family = AF_INET6;
+			break;
+		}
                 // -----------------------------------------
                 // Wildcarding
                 // -----------------------------------------
@@ -3941,7 +3961,7 @@ int main(int argc, char** argv)
         // resolve
         // -------------------------------------------
         ns_hurl::host_info l_host_info;
-        l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info);
+        l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info, g_ai_family);
         if(l_s != STATUS_OK)
         {
                 TRC_OUTPUT("Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
