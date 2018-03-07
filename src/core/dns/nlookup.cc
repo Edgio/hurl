@@ -39,7 +39,7 @@ namespace ns_hurl {
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
+int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_info, int g_ai_family)
 {
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
@@ -53,7 +53,7 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         // ---------------------------------------
         struct addrinfo l_hints;
         memset(&l_hints, 0, sizeof(l_hints));
-        l_hints.ai_family = PF_UNSPEC;
+        l_hints.ai_family = g_ai_family;
         l_hints.ai_socktype = SOCK_STREAM;
         char portstr[10];
         snprintf(portstr, sizeof(portstr), "%d", (int) a_port);
