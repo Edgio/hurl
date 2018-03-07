@@ -138,7 +138,6 @@ static uint64_t g_rate_delta_us = 0;
 static uint32_t g_num_threads = 1;
 static int64_t g_reqs_per_conn = -1;
 static bool g_stats = true;
-static int g_ai_family = AF_UNSPEC;
 // -----------------------------------------------
 // Path vector support
 // -----------------------------------------------
@@ -3362,6 +3361,7 @@ int main(int argc, char** argv)
         bool l_input_flag = false;
         bool l_wildcarding = true;
         std::string l_output_file = "";
+        int l_ai_family = AF_UNSPEC;
         //ns_hurl::trc_log_file_open("/dev/stdout");
         //ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR);
         ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
@@ -3516,7 +3516,7 @@ int main(int argc, char** argv)
 		// -----------------------------------------
 		case '4':
 		{
-			g_ai_family = AF_INET;
+		        l_ai_family = AF_INET;
 			break;
 		}
 		// -----------------------------------------
@@ -3524,7 +3524,7 @@ int main(int argc, char** argv)
 		// -----------------------------------------
 		case '6':
 		{
-			g_ai_family = AF_INET6;
+		        l_ai_family = AF_INET6;
 			break;
 		}
                 // -----------------------------------------
@@ -3961,7 +3961,7 @@ int main(int argc, char** argv)
         // resolve
         // -------------------------------------------
         ns_hurl::host_info l_host_info;
-        l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info, g_ai_family);
+        l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info, l_ai_family);
         if(l_s != STATUS_OK)
         {
                 TRC_OUTPUT("Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
