@@ -2,10 +2,10 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    status.h
+//: \file:    uri.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    03/11/2015
+//: \date:    02/07/2014
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,31 +20,17 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _STATUS_H
-#define _STATUS_H
-
+// Uri encode and decode.
+// RFC1630, RFC1738, RFC2396
 //: ----------------------------------------------------------------------------
-//: Constants
+//: Includes
 //: ----------------------------------------------------------------------------
-// TODO enum instead???
-#ifndef STATUS_OK
-#define STATUS_OK 0
-#endif
-
-#ifndef STATUS_ERROR
-#define STATUS_ERROR -1
-#endif
-
-#ifndef STATUS_AGAIN
-#define STATUS_AGAIN -2
-#endif
-
-#ifndef STATUS_BUSY
-#define STATUS_BUSY -3
-#endif
-
-#ifndef STATUS_DONE
-#define STATUS_DONE -4
-#endif
-
-#endif
+#include <string>
+//: ----------------------------------------------------------------------------
+//: Prototypes
+//: ----------------------------------------------------------------------------
+namespace ns_hurl
+{
+std::string uri_decode(const std::string & a_src);
+std::string uri_encode(const std::string & a_src);
+}

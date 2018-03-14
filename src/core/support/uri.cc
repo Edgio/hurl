@@ -20,18 +20,15 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 // Uri encode and decode.
 // RFC1630, RFC1738, RFC2396
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/uri.h"
+#include "support/uri.h"
 #include <string>
 #include <assert.h>
 #include <stdint.h>
-
 namespace ns_hurl
 {
 //: ----------------------------------------------------------------------------
@@ -44,24 +41,19 @@ const int8_t G_HEX2DEC[256] =
         /* 1 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* 2 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* 3 */  0, 1, 2, 3,  4, 5, 6, 7,  8, 9,-1,-1, -1,-1,-1,-1,
-
         /* 4 */ -1,10,11,12, 13,14,15,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* 5 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* 6 */ -1,10,11,12, 13,14,15,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* 7 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
-
         /* 8 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* 9 */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* A */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* B */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
-
         /* C */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* D */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* E */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1,
         /* F */ -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1
 };
-
-
 // Only alphanum is safe.
 const int8_t G_SAFE[256] =
 {
@@ -70,24 +62,19 @@ const int8_t G_SAFE[256] =
         /* 1 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* 2 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* 3 */ 1,1,1,1, 1,1,1,1, 1,1,0,0, 0,0,0,0,
-
         /* 4 */ 0,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
         /* 5 */ 1,1,1,1, 1,1,1,1, 1,1,1,0, 0,0,0,0,
         /* 6 */ 0,1,1,1, 1,1,1,1, 1,1,1,1, 1,1,1,1,
         /* 7 */ 1,1,1,1, 1,1,1,1, 1,1,1,0, 0,0,0,0,
-
         /* 8 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* 9 */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* A */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* B */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-
         /* C */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* D */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* E */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* F */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
 };
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -98,15 +85,12 @@ std::string uri_decode(const std::string & a_src)
         // Note from RFC1630:  "Sequences which start with a percent sign
         // but are not followed by two hexadecimal characters (0-9, A-F) are reserved
         // for future extension"
-
         const unsigned char * pSrc = (const unsigned char *) a_src.c_str();
         const int SRC_LEN = a_src.length();
         const unsigned char * const SRC_END = pSrc + SRC_LEN;
         const unsigned char * const SRC_LAST_DEC = SRC_END - 2; // last decodable '%'
-
         char * const pStart = new char[SRC_LEN];
         char * pEnd = pStart;
-
         while (pSrc < SRC_LAST_DEC)
         {
                 if(*pSrc == '+')
@@ -133,7 +117,6 @@ std::string uri_decode(const std::string & a_src)
                 ++pEnd;
                 ++pSrc;
         }
-
         // the last 2- chars
         while (pSrc < SRC_END)
         {
@@ -141,12 +124,10 @@ std::string uri_decode(const std::string & a_src)
                 ++pEnd;
                 ++pSrc;
         }
-
         std::string sResult(pStart, pEnd);
         delete[] pStart;
         return sResult;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -160,7 +141,6 @@ std::string uri_encode(const std::string & a_src)
         unsigned char * const pStart = new unsigned char[SRC_LEN * 3];
         unsigned char * pEnd = pStart;
         const unsigned char * const SRC_END = pSrc + SRC_LEN;
-
         for (; pSrc < SRC_END; ++pSrc)
         {
                 if (G_SAFE[*pSrc])
@@ -173,49 +153,38 @@ std::string uri_encode(const std::string & a_src)
                         *pEnd++ = DEC2HEX[*pSrc & 0x0F];
                 }
         }
-
         std::string sResult((char *) pStart, (char *) pEnd);
         delete[] pStart;
         return sResult;
 }
-
 }
-
 #if 0
 //////////////////////////////////////////////////////////////
 // Test codes start
 #ifndef NDEBUG
-
 class UriCodecTest
 {
 public:
         UriCodecTest();
 };
-
 static UriCodecTest test; // auto run the test
-
 #include <stdlib.h>
 #include <time.h>
-
 UriCodecTest::UriCodecTest()
 {
         assert(uri_encode("ABC") == "ABC");
-
         const std::string ORG("\0\1\2", 3);
         const std::string ENC("%00%01%02");
         assert(uri_encode(ORG) == ENC);
         assert(uri_decode(ENC) == ORG);
-
         assert(uri_encode("\xFF") == "%FF");
         assert(uri_decode("%FF") == "\xFF");
         assert(uri_decode("%ff") == "\xFF");
-
         // unsafe chars test, RFC1738
         const std::string UNSAFE(" <>#{}|\\^~[]`");
         std::string sUnsafeEnc = uri_encode(UNSAFE);
         assert(std::string::npos == sUnsafeEnc.find_first_of(UNSAFE));
         assert(uri_decode(sUnsafeEnc) == UNSAFE);
-
         // random test
         const int MAX_LEN = 128;
         char a[MAX_LEN];

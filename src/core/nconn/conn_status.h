@@ -22,24 +22,19 @@
 //: ----------------------------------------------------------------------------
 #ifndef _CONN_STATUS_H
 #define _CONN_STATUS_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
-
 //: ----------------------------------------------------------------------------
 //: Fwd Decl
 //: ----------------------------------------------------------------------------
 typedef struct ssl_st SSL;
-
 namespace ns_hurl {
-
 // ---------------------------------------
 // Connection status
 // ---------------------------------------
 typedef enum {
-
         CONN_STATUS_NONE                        =  1,
         CONN_STATUS_OK                          =  0,
         CONN_STATUS_ERROR_INTERNAL              = -1,   // generic internal failure
@@ -55,9 +50,7 @@ typedef enum {
         // CONN_STATUS_ERROR_RECV_TIMEOUT          = -10,  // connected, sent, error receiving, timed out
         CONN_STATUS_ERROR_TIMEOUT               = -11,   // got a timeout waiting for something, generic.  TODO: deprecate after independent connect/send/recv timeout support
         CONN_STATUS_CANCELLED                   = -100
-
 } conn_status_t;
-
 //: ----------------------------------------------------------------------------
 //: nconn_utils
 //: ----------------------------------------------------------------------------
@@ -68,7 +61,5 @@ long nconn_get_last_SSL_err(nconn &a_nconn);
 conn_status_t nconn_get_status(nconn &a_nconn);
 const std::string &nconn_get_last_error_str(nconn &a_nconn);
 
-
 }
-
 #endif

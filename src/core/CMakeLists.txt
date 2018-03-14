@@ -18,21 +18,17 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-
+# ------------------------------------------------
 # Project setup
+# ------------------------------------------------
 project(hurl)
 cmake_minimum_required(VERSION 2.6.0)
-
+# ------------------------------------------------
 # include paths
+# ------------------------------------------------
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ../../ext
-    ./evr
-    ./support
-    ./nconn
-    ./dns
-    ./http
-    ../../include
+    ${CMAKE_SOURCE_DIR}/ext
     ${LIBUDNS_INCLUDE_DIR}
 )
 # ------------------------------------------------
@@ -81,21 +77,7 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # ------------------------------------------------
 # Headers
 # ------------------------------------------------
-SET(HDRS
-    ${CMAKE_SOURCE_DIR}/include/hurl/evr/evr.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/support/atomic.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/support/kv_map_list.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/support/time_util.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/support/trace.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/nconn/scheme.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/nconn/conn_status.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/nconn/host_info.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/http/cr.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/http/http_status.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/http/hmsg.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/http/rqst.h
-    ${CMAKE_SOURCE_DIR}/include/hurl/http/resp.h
-)
+SET(HDRS)
 # ------------------------------------------------
 # library
 # ------------------------------------------------
@@ -108,14 +90,4 @@ target_link_libraries(hurlcore UDNS_OBJS_OBJECT)
 SET_TARGET_PROPERTIES(hurlcore
   PROPERTIES
   SOVERSION 0
-)
-# Add install target for the library
-install(TARGETS hurlcore
-  ARCHIVE DESTINATION lib
-  COMPONENT Libraries
-)
-# Add install target for header files
-install(FILES ${HDRS}
-  DESTINATION include/hurl
-  COMPONENT Headers
 )

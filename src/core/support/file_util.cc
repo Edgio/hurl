@@ -23,8 +23,8 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/support/file_util.h"
+#include "status.h"
+#include "support/file_util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>

@@ -22,19 +22,16 @@
 //: ----------------------------------------------------------------------------
 #ifndef _CIRCULAR_VECTOR_H
 #define _CIRCULAR_VECTOR_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "ndebug.h"
 #include <vector>
-
 //: ----------------------------------------------------------------------------
 //: Constants
 //: ----------------------------------------------------------------------------
 #define CIRCULAR_VECTOR_DEFAULT_MAX_SIZE 1024
 #define CIRCULAR_VECTOR_DEFAULT_NO_MAX -1
-
 //: ----------------------------------------------------------------------------
 //: \details: circular_vector
 //: ----------------------------------------------------------------------------
@@ -48,7 +45,6 @@ public:
                 m_cur_index(-1),
                 m_start_index(0)
         {
-
         }
         const _Tp &get_obj(uint32_t a_index) const
         {
@@ -67,7 +63,6 @@ public:
                         m_vector.push_back(a_obj);
                         return;
                 }
-
                 if(m_cur_index >= m_max_size)
                 {
                         m_cur_index = 0;
@@ -81,14 +76,12 @@ public:
                 {
                         //TRC_TRACE_PRINT("ADD_OBJ: %d\n", m_cur_index);
                         m_vector[m_cur_index] = a_obj;
-
                         // Overwriting -need to update where last start is
                         m_start_index = m_cur_index + 1;
                         if(m_start_index >= m_max_size)
                         {
                                 m_start_index = 0;
                         }
-
                 }
         }
         uint32_t get_cur_index(void) const { return m_cur_index;}
@@ -98,7 +91,6 @@ public:
                 //TRC_TRACE_PRINT("m_cur_index: %d -- a_from_index = %u\n", m_cur_index, a_from_index);
                 if(m_cur_index < 0)
                         return 0;
-
                 if((uint32_t)m_cur_index < a_from_index)
                 {
                         return m_vector.size() - a_from_index + m_cur_index;
@@ -115,5 +107,4 @@ private:
         int32_t m_cur_index;
         int32_t m_start_index;
 };
-
 #endif

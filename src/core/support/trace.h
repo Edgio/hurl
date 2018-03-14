@@ -22,15 +22,13 @@
 //: ----------------------------------------------------------------------------
 #ifndef _TRACE_H
 #define _TRACE_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
-#include "hurl/support/time_util.h"
-
+#include "support/time_util.h"
 //: ----------------------------------------------------------------------------
 //: trace macros
 //: ----------------------------------------------------------------------------
@@ -51,7 +49,6 @@
         } \
         } while(0)
 #endif
-
 #ifndef TRC_MEM
 #define TRC_MEM(_level, _buf, _len) \
         do { \
@@ -64,7 +61,6 @@
         } \
         } while(0)
 #endif
-
 //: ----------------------------------------------------------------------------
 //: trace levels
 //: ----------------------------------------------------------------------------
@@ -86,7 +82,6 @@
 #ifndef TRC_ALL_MEM
 #define TRC_ALL_MEM(_buf,_len) TRC_MEM(ns_hurl::TRC_LOG_LEVEL_ALL, _buf, _len)
 #endif
-
 // TODO -open file if NULL???
 #ifndef TRC_OUTPUT
 #define TRC_OUTPUT(...) \
@@ -98,7 +93,6 @@
         }\
         } while(0)
 #endif
-
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: trc enum
@@ -111,7 +105,6 @@ namespace ns_hurl {
         XX(3,  DEBUG,       D)\
         XX(4,  VERBOSE,     V)\
         XX(5,  ALL,         A)
-
 typedef enum trc_level_enum
 {
 #define XX(num, name, string) TRC_LOG_LEVEL_##name = num,
@@ -120,27 +113,21 @@ typedef enum trc_level_enum
 } trc_log_level_t;
 #endif
 const char *trc_log_level_str(trc_log_level_t a_level);
-
 //: ----------------------------------------------------------------------------
 //: Open logs
 //: ----------------------------------------------------------------------------
 void trc_log_level_set(trc_log_level_t a_level);
 int32_t trc_log_file_open(const std::string &a_file);
 int32_t trc_log_file_close(void);
-
 //: ----------------------------------------------------------------------------
 //: Externs
 //: ----------------------------------------------------------------------------
 extern trc_log_level_t g_trc_log_level;
 extern FILE* g_trc_log_file;
 extern FILE* g_trc_out_file;
-
 //: ----------------------------------------------------------------------------
 //: Utilities
 //: ----------------------------------------------------------------------------
 void trc_mem_display(FILE *a_file, const uint8_t *a_mem_buf, uint32_t a_length);
-
 } // namespace ns_hurl {
-
 #endif // NDEBUG_H_
-

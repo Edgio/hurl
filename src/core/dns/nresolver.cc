@@ -23,15 +23,15 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/dns/ai_cache.h"
-#include "hurl/dns/nresolver.h"
-#include "hurl/support/time_util.h"
-#include "hurl/dns/nlookup.h"
-#include "hurl/evr/evr.h"
-#include "hurl/nconn/host_info.h"
-#include "hurl/support/time_util.h"
-#include "hurl/status.h"
-#include "hurl/support/trace.h"
+#include "dns/ai_cache.h"
+#include "dns/nresolver.h"
+#include "support/time_util.h"
+#include "dns/nlookup.h"
+#include "evr/evr.h"
+#include "nconn/host_info.h"
+#include "support/time_util.h"
+#include "status.h"
+#include "support/trace.h"
 #ifdef ASYNC_DNS_WITH_UDNS
 #include "udns-0.4/udns.h"
 #endif
@@ -604,7 +604,6 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 //           l_job->m_host.c_str());
                 a_adns_ctx->m_job_q.push(l_job);
         }
-
         int32_t l_active = dns_active(l_ctx);
         uint32_t l_submit = m_max_parallel - l_active;
         //NDBG_PRINT("a_active: %lu\n", a_active);
@@ -630,7 +629,6 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                 //                l_job->m_host.c_str(),
                 //                dns_status(l_ctx),
                 //                dns_strerror(dns_status(l_ctx)));
-
                 // TODO ipv6 support???
                 //l_query = dns_submit_a6(NULL, a_host.c_str(), 0, s_dns_a6_cb, l_data);
                 //if (!l_query)

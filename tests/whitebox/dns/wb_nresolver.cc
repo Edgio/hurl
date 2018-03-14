@@ -23,10 +23,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/nconn/host_info.h"
-#include "hurl/dns/nresolver.h"
-#include "hurl/dns/ai_cache.h"
-#include "hurl/support/time_util.h"
+#include "nconn/host_info.h"
+#include "dns/nresolver.h"
+#include "dns/ai_cache.h"
+#include "support/time_util.h"
 #include "catch/catch.hpp"
 #include <unistd.h>
 #include <sys/poll.h>
@@ -60,7 +60,6 @@ int32_t test_resolved_cb(const ns_hurl::host_info *a_host_info, void *a_data)
         else if(!a_host_info &&
                ((a_data == (void *)(BAD_DATA_VALUE_1)) ||
                (a_data == (void *)(BAD_DATA_VALUE_2))))
-
         {
                 ++g_lkp_fail;
         }
@@ -137,25 +136,20 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->add_resolver_host("8.8.8.8");
                 l_nresolver->set_retries(1);
                 l_nresolver->set_timeout_s(1);
-
                 // Set up poller
                 // TODO
-
                 ns_hurl::nresolver::adns_ctx *l_adns_ctx = NULL;
                 l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
                 REQUIRE((l_adns_ctx != NULL));
-
                 uint64_t l_active;
                 ns_hurl::nresolver::lookup_job_q_t l_lookup_job_q;
                 ns_hurl::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
                 void *l_job_handle = NULL;
-
                 // Set globals
                 g_lkp_sucess = 0;
                 g_lkp_fail = 0;
                 g_lkp_err = 0;
-
                 // Good
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -163,7 +157,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(GOOD_DATA_VALUE_1),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
                 // Good
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -171,7 +164,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(GOOD_DATA_VALUE_2),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
                 // Bad
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -180,7 +172,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(BAD_DATA_VALUE_1),
                                                      l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                 REQUIRE((l_status == 0));
-
                 // Bad
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -188,7 +179,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(BAD_DATA_VALUE_2),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
 
                 uint32_t l_timeout_s = 5;
                 uint64_t l_start_s = ns_hurl::get_time_s();
@@ -215,21 +205,18 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 INFO("l_start_s:     " << l_start_s)
                 INFO("l_timeout_s:   " << l_timeout_s)
                 INFO("g_dns_reqs_qd: " << g_dns_reqs_qd)
-
                 //REQUIRE((l_end_s >= (l_start_s + l_timeout_s)));
                 if((l_end_s >= (l_start_s + l_timeout_s)))
                 {
                         // Handle timeouts
                 }
                 //printf("DEBUG: outtie\n");
-
                 INFO("g_lkp_sucess:  " << g_lkp_sucess)
                 REQUIRE((g_lkp_sucess == 2));
                 INFO("g_lkp_fail:    " << g_lkp_fail)
                 REQUIRE((g_lkp_fail == 2));
                 INFO("g_lkp_err:     " << g_lkp_err)
                 REQUIRE((g_lkp_err == 0));
-
                 l_nresolver->destroy_async(l_adns_ctx);
                 delete l_nresolver;
         }
@@ -241,7 +228,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
         SECTION("Validate async -bad resolver")
         {
                 ns_hurl::nresolver *l_nresolver = new ns_hurl::nresolver();
-
                 // ---------------------------------------------------
                 // Set resolver to something far and slow hopefully?
                 // grabbed hong kong one from:
@@ -251,23 +237,18 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->set_port(6969);
                 l_nresolver->set_retries(1);
                 l_nresolver->set_timeout_s(1);
-
                 // Set up poller
                 // TODO
-
                 ns_hurl::nresolver::adns_ctx *l_adns_ctx = NULL;
                 l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
                 REQUIRE((l_adns_ctx != NULL));
-
                 uint64_t l_active;
                 int32_t l_status = 0;
                 void *l_job_handle = NULL;
-
                 // Set globals
                 g_lkp_sucess = 0;
                 g_lkp_fail = 0;
                 g_lkp_err = 0;
-
                 // Good
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -275,7 +256,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(BAD_DATA_VALUE_1),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
                 // Good
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -283,7 +263,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(BAD_DATA_VALUE_2),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
                 // Bad
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -291,7 +270,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(BAD_DATA_VALUE_1),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
                 // Bad
                 ++g_dns_reqs_qd;
                 l_status = l_nresolver->lookup_async(l_adns_ctx,
@@ -299,7 +277,6 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                                                      (void *)(BAD_DATA_VALUE_2),
                                                      l_active, &l_job_handle);
                 REQUIRE((l_status == 0));
-
 
                 uint32_t l_timeout_s = 5;
                 uint64_t l_start_s = ns_hurl::get_time_s();
@@ -322,31 +299,26 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                         }
                 }
 
-
                 uint64_t l_end_s = ns_hurl::get_time_s();
                 INFO("l_end_s:       " << l_end_s)
                 INFO("l_start_s:     " << l_start_s)
                 INFO("l_timeout_s:   " << l_timeout_s)
                 INFO("g_dns_reqs_qd: " << g_dns_reqs_qd)
-
                 //REQUIRE((l_end_s >= (l_start_s + l_timeout_s)));
                 if((l_end_s >= (l_start_s + l_timeout_s)))
                 {
                         // Handle timeouts
                 }
                 //printf("DEBUG: outtie\n");
-
                 INFO("g_lkp_sucess:  " << g_lkp_sucess)
                 REQUIRE((g_lkp_sucess == 0));
                 INFO("g_lkp_fail:    " << g_lkp_fail)
                 REQUIRE((g_lkp_fail == 4));
                 INFO("g_lkp_err:     " << g_lkp_err)
                 REQUIRE((g_lkp_err == 0));
-
                 l_nresolver->destroy_async(l_adns_ctx);
                 delete l_nresolver;
         }
 #endif
-
 #endif
 }

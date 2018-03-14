@@ -23,12 +23,12 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/ndebug.h"
-#include "hurl/http/cb.h"
-#include "hurl/support/nbq.h"
-#include "hurl/http/resp.h"
-#include "hurl/support/trace.h"
-#include "hurl/status.h"
+#include "support/ndebug.h"
+#include "http/cb.h"
+#include "support/nbq.h"
+#include "http/resp.h"
+#include "support/trace.h"
+#include "status.h"
 #include "http_parser/http_parser.h"
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------

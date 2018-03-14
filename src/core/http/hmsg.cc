@@ -23,10 +23,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/http/hmsg.h"
-#include "hurl/support/nbq.h"
-#include "hurl/support/ndebug.h"
+#include "status.h"
+#include "http/hmsg.h"
+#include "support/nbq.h"
+#include "support/ndebug.h"
 #include "http_parser/http_parser.h"
 #include <stdlib.h>
 namespace ns_hurl {

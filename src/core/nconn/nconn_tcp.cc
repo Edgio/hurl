@@ -23,10 +23,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/time_util.h"
-#include "hurl/support/trace.h"
-#include "hurl/nconn/nconn_tcp.h"
-#include "hurl/support/ndebug.h"
+#include "support/time_util.h"
+#include "support/trace.h"
+#include "nconn/nconn_tcp.h"
+#include "support/ndebug.h"
 // Fcntl and friends
 #include <unistd.h>
 #include <fcntl.h>
@@ -60,7 +60,6 @@
                         return NC_STATUS_ERROR;\
                 } \
         } while(0)
-
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -120,7 +119,6 @@ int32_t nconn_tcp::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
                 return NC_STATUS_UNSUPPORTED;
         }
         }
-
         return NC_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
@@ -148,7 +146,6 @@ int32_t nconn_tcp::ncset_listening(int32_t a_val)
                         return NC_STATUS_ERROR;
                 }
         }
-
         return NC_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
@@ -173,7 +170,6 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-
         if(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
@@ -181,7 +177,6 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-
         // Add to event handler
         if(m_evr_loop)
         {
@@ -222,7 +217,6 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-
         if(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
@@ -231,7 +225,6 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
                 return NC_STATUS_ERROR;
         }
 #endif
-
         // Add to event handler
         if(m_evr_loop)
         {
@@ -286,7 +279,6 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
         int32_t l_bytes_read = 0;
-
         //l_status = read(m_fd, a_buf, a_buf_len);
         errno = 0;
         l_status = recvfrom(m_fd, a_buf, a_buf_len, 0, NULL, NULL);
@@ -450,7 +442,6 @@ int32_t nconn_tcp::ncsetup()
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-
         if(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
@@ -604,7 +595,6 @@ state_top:
                                         return NC_STATUS_ERROR;
                                 }
                         }
-
                         // Return here -still in connecting state
                         return NC_STATUS_OK;
                 }

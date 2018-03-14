@@ -23,11 +23,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/dns/ai_cache.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/support/time_util.h"
-#include "hurl/nconn/host_info.h"
-#include "hurl/status.h"
+#include "dns/ai_cache.h"
+#include "support/ndebug.h"
+#include "support/time_util.h"
+#include "nconn/host_info.h"
+#include "status.h"
 #include "base64/base64.h"
 // json support
 //#pragma GCC diagnostic push
@@ -79,7 +79,6 @@ ai_cache::~ai_cache()
                         //                m_ai_cache_file.c_str());
                 }
         }
-
         for(ai_cache_map_t::iterator i_h = m_ai_cache_map.begin();
             i_h != m_ai_cache_map.end();
             ++i_h)
@@ -217,14 +216,12 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                 //           a_ai_cache_file.c_str(), strerror(errno));
                 return STATUS_OK;
         }
-
         if(!(l_stat.st_mode & S_IFREG))
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n",
                 //           a_ai_cache_file.c_str());
                 return STATUS_OK;
         }
-
         FILE * l_file;
         l_file = fopen(a_ai_cache_file.c_str(),"r");
         if (NULL == l_file)
@@ -233,7 +230,6 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                 //           a_ai_cache_file.c_str(), strerror(errno));
                 return STATUS_OK;
         }
-
         // Read in file...
         int32_t l_size = l_stat.st_size;
         int32_t l_read_size;
@@ -280,11 +276,9 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
                 if(l_doc[i_record].HasMember("host"))
                 {
                         l_host = l_doc[i_record]["host"].GetString();
-
                         if(l_doc[i_record].HasMember("ai"))
                         {
                                 l_ai = l_doc[i_record]["ai"].GetString();
-
                                 std::string l_ai_decoded;
                                 l_ai_decoded = base64_decode(l_ai);
                                 host_info *l_host_info = new host_info();

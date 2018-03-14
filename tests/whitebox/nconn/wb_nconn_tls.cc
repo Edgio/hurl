@@ -24,10 +24,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "catch/catch.hpp"
-#include "hurl/nconn/nconn_tls.h"
-#include "hurl/support/tls_util.h"
-#include "hurl/dns/nlookup.h"
-#include "hurl/support/nbq.h"
+#include "nconn/nconn_tls.h"
+#include "support/tls_util.h"
+#include "dns/nlookup.h"
+#include "support/nbq.h"
 #include <unistd.h>
 //: ----------------------------------------------------------------------------
 //: Tests
@@ -36,7 +36,6 @@ TEST_CASE( "nconn tls test", "[nconn_tls]" )
 {
         // TODO Test with no init or ctx set
         //      test for graceful failure...
-
         // ---------------------------------------------------------------------
         // TODO: Quarantining flaky test...
         // ---------------------------------------------------------------------
@@ -47,13 +46,11 @@ TEST_CASE( "nconn tls test", "[nconn_tls]" )
                 ns_hurl::tls_init();
                 SSL_CTX *l_ctx = ns_hurl::tls_init_ctx("",0,"","",false,"","");
                 REQUIRE((l_ctx != NULL));
-
                 // TLS Setup...
                 int32_t l_s;
                 ns_hurl::nconn_tls l_c;
                 l_s = l_c.set_opt(ns_hurl::nconn_tls::OPT_TLS_CTX, l_ctx, sizeof(l_ctx));
                 REQUIRE((l_s == ns_hurl::nconn::NC_STATUS_OK));
-
                 ns_hurl::host_info l_h;
                 l_s = ns_hurl::nlookup("google.com", 443, l_h);
                 REQUIRE((l_s == 0));

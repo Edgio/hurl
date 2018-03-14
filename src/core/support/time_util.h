@@ -2,10 +2,10 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    host_info.h
+//: \file:    time_util.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    03/11/2015
+//: \date:    02/07/2014
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,33 +20,23 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _HOST_INFO_H
-#define _HOST_INFO_H
-
+#ifndef _TIME_UTIL_H
+#define _TIME_UTIL_H
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <sys/socket.h>
-
+#include <stdint.h>
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
-//: \details: Host info
+//: Prototypes
 //: ----------------------------------------------------------------------------
-struct host_info {
-        struct sockaddr_storage m_sa;
-        int m_sa_len;
-        int m_sock_family;
-        int m_sock_type;
-        int m_sock_protocol;
-        unsigned int m_expires_s;
-
-        host_info();
-        void show(void);
-};
-
-}
-
+const char *get_date_str(void);
+uint64_t get_time_s(void);
+uint64_t get_time_ms(void);
+uint64_t get_time_us(void);
+uint64_t get_delta_time_ms(uint64_t a_start_time_ms);
+uint64_t get_delta_time_us(uint64_t a_start_time_us);
+} //namespace ns_hurl {
 #endif
 
 
