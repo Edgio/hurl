@@ -23,11 +23,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/time_util.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/dns/nlookup.h"
-#include "hurl/nconn/host_info.h"
-#include "hurl/status.h"
+#include "support/time_util.h"
+#include "support/ndebug.h"
+#include "dns/nlookup.h"
+#include "nconn/host_info.h"
+#include "status.h"
 #include <unistd.h>
 #include <netdb.h>
 #include <string.h>
@@ -47,7 +47,6 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         // Initialize...
         ao_host_info.m_sa_len = sizeof(ao_host_info.m_sa);
         memset((void*) &(ao_host_info.m_sa), 0, ao_host_info.m_sa_len);
-
         // ---------------------------------------
         // get address...
         // ---------------------------------------
@@ -58,7 +57,6 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
         char portstr[10];
         snprintf(portstr, sizeof(portstr), "%d", (int) a_port);
         struct addrinfo* l_addrinfo;
-
         int l_gaierr;
         l_gaierr = getaddrinfo(a_host.c_str(), portstr, &l_hints, &l_addrinfo);
         if (l_gaierr != 0)
@@ -67,7 +65,6 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                 //           a_host.c_str(), gai_strerror(l_gaierr));
                 return STATUS_ERROR;
         }
-
         // Find the first IPv4 and IPv6 entries.
         struct addrinfo* l_addrinfo_v4 = NULL;
         struct addrinfo* l_addrinfo_v6 = NULL;
@@ -149,7 +146,6 @@ int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_i
                            a_host.c_str());
                 return STATUS_ERROR;
         }
-
         // Set to 60min -cuz getaddr-info stinks...
         ao_host_info.m_expires_s = get_time_s() + 3600;
         return STATUS_OK;

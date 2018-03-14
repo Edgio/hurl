@@ -2,10 +2,10 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    uri.h
+//: \file:    host_info.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,20 +20,26 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
-// Uri encode and decode.
-// RFC1630, RFC1738, RFC2396
-
+#ifndef _HOST_INFO_H
+#define _HOST_INFO_H
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <string>
-
+#include <sys/socket.h>
+namespace ns_hurl {
 //: ----------------------------------------------------------------------------
-//: Prototypes
+//: \details: Host info
 //: ----------------------------------------------------------------------------
-namespace ns_hurl
-{
-std::string uri_decode(const std::string & a_src);
-std::string uri_encode(const std::string & a_src);
+struct host_info {
+        struct sockaddr_storage m_sa;
+        int m_sa_len;
+        int m_sock_family;
+        int m_sock_type;
+        int m_sock_protocol;
+        unsigned int m_expires_s;
+        host_info();
+        void show(void);
+};
 }
+#endif
+

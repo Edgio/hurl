@@ -23,7 +23,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/ndebug.h"
+#include "support/ndebug.h"
 #include <string>
 #include <stdlib.h>
 #include <stdio.h>

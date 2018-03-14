@@ -24,7 +24,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
-#include "hurl/support/obj_pool.h"
+#include "support/obj_pool.h"
 #include "catch/catch.hpp"
 //: ----------------------------------------------------------------------------
 //:
@@ -60,14 +60,11 @@ typedef ns_hurl::obj_pool <animal> animal_pool_t;
 //: Tests
 //: ----------------------------------------------------------------------------
 TEST_CASE( "obj pool test", "[obj_pool]" ) {
-
         SECTION("Basic Insertion Test") {
                 animal_pool_t *l_animal_pool = new animal_pool_t();
-
                 INFO("Init'd");
                 REQUIRE(( l_animal_pool->free_size() == 0 ));
                 REQUIRE(( l_animal_pool->used_size() == 0 ));
-
                 INFO("Insert 5");
                 animal *l_a0 = new animal("Bongo");
                 animal *l_a1 = new animal("Binky");
@@ -81,46 +78,38 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
                 l_animal_pool->add(l_a4);
                 REQUIRE(( l_animal_pool->free_size() == 0 ));
                 REQUIRE(( l_animal_pool->used_size() == 5 ));
-
                 INFO("Release 1");
                 l_animal_pool->release(l_a0);
                 REQUIRE(( l_animal_pool->free_size() == 1 ));
                 REQUIRE(( l_animal_pool->used_size() == 4 ));
-
                 INFO("Get free");
                 animal *l_af = l_animal_pool->get_free();
                 REQUIRE((l_af != NULL));
                 REQUIRE((l_af->m_name == "Bongo"));
                 REQUIRE(( l_animal_pool->free_size() == 0 ));
                 REQUIRE(( l_animal_pool->used_size() == 5 ));
-
                 INFO("Release 3");
                 l_animal_pool->release(l_a1);
                 l_animal_pool->release(l_a2);
                 l_animal_pool->release(l_a3);
                 REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
-
                 INFO("Add null");
                 l_animal_pool->add(NULL);
                 REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
-
                 INFO("Release null");
                 l_animal_pool->release(NULL);
                 REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
-
                 INFO("Release 1");
                 l_animal_pool->release(l_a4);
                 REQUIRE(( l_animal_pool->free_size() == 4 ));
                 REQUIRE(( l_animal_pool->used_size() == 1 ));
-
                 INFO("Cleanup");
                 g_num_deleted = 0;
                 delete l_animal_pool;
                 l_animal_pool = NULL;
                 REQUIRE(( g_num_deleted == 5 ));
-
         }
 }

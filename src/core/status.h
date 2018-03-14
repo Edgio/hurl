@@ -2,10 +2,10 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    nresolver.h
+//: \file:    status.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    11/20/2015
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,28 +20,25 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _LOOKUP_INLINE_H
-#define _LOOKUP_INLINE_H
-
+#ifndef _STATUS_H
+#define _STATUS_H
 //: ----------------------------------------------------------------------------
-//: Includes
+//: Constants
 //: ----------------------------------------------------------------------------
-#include <stdint.h>
-#include <string>
-#include <arpa/inet.h>
-
-namespace ns_hurl {
-
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
-struct host_info;
-
-//: ----------------------------------------------------------------------------
-//: Lookup inline
-//: ----------------------------------------------------------------------------
-int32_t nlookup(const std::string &a_host, uint16_t a_port, host_info &ao_host_info, int = AF_UNSPEC);
-
-} //namespace ns_hurl {
-
+// TODO enum instead???
+#ifndef STATUS_OK
+#define STATUS_OK 0
+#endif
+#ifndef STATUS_ERROR
+#define STATUS_ERROR -1
+#endif
+#ifndef STATUS_AGAIN
+#define STATUS_AGAIN -2
+#endif
+#ifndef STATUS_BUSY
+#define STATUS_BUSY -3
+#endif
+#ifndef STATUS_DONE
+#define STATUS_DONE -4
+#endif
 #endif

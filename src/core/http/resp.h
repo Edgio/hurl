@@ -2,7 +2,7 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    rqst.h
+//: \file:    resp.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
 //: \date:    03/11/2015
@@ -20,77 +20,54 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _RQST_H
-#define _RQST_H
-
+#ifndef _RESP_H
+#define _RESP_H
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/http/hmsg.h"
-#include <string>
-#include <list>
-
+#include "http/hmsg.h"
+#include "http/http_status.h"
 namespace ns_hurl {
-
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
-typedef std::map <std::string, str_list_t> query_map_t;
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: ----------------------------------------------------------------------------
-class rqst : public hmsg
+class resp : public hmsg
 {
 public:
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
-        rqst();
-        ~rqst();
-
+        resp();
+        ~resp();
+        // Getters
+        uint16_t get_status(void);
+        // Setters
+        void set_status(http_status_t a_code);
         void clear(void);
         void init(bool a_save);
-
-        const std::string &get_url();
-        const std::string &get_url_path();
-        const std::string &get_url_query();
-        const query_map_t &get_url_query_map();
-        const std::string &get_url_fragment();
-        const char *get_method_str();
-
         // Debug
         void show();
-
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
-
         // ---------------------------------------
         // raw http request offsets
         // ---------------------------------------
-        cr_t m_p_url;
-        int m_method;
-        bool m_expect;
-
+        cr_t m_p_status;
+        // TODO REMOVE
+        const char *m_tls_info_protocol_str;
+        const char *m_tls_info_cipher_str;
 private:
         // -------------------------------------------------
         // Private methods
         // -------------------------------------------------
-        int32_t parse_uri(void);
-        int32_t parse_query(const std::string &a_query, query_map_t &ao_query_map);
-
+        // Disallow copy/assign
+        resp& operator=(const resp &);
+        resp(const resp &);
         // -------------------------------------------------
         // Private members
         // -------------------------------------------------
-        bool m_url_parsed;
-        std::string m_url;
-        std::string m_url_path;
-        std::string m_url_query;
-        query_map_t m_url_query_map;
-        std::string m_url_fragment;
+        http_status_t m_status;
 };
-
 }
-
 #endif

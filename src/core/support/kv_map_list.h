@@ -2,10 +2,10 @@
 //: Copyright (C) 2016 Verizon.  All Rights Reserved.
 //: All Rights Reserved
 //:
-//: \file:    time_util.h
+//: \file:    kv_map_list.h
 //: \details: TODO
 //: \author:  Reed P. Morrison
-//: \date:    02/07/2014
+//: \date:    03/11/2015
 //:
 //:   Licensed under the Apache License, Version 2.0 (the "License");
 //:   you may not use this file except in compliance with the License.
@@ -20,29 +20,28 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-#ifndef _TIME_UTIL_H
-#define _TIME_UTIL_H
-
+#ifndef _KV_MAP_LIST_H
+#define _KV_MAP_LIST_H
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include <stdint.h>
-
+#include <string>
+#include <list>
+#include <map>
+// for strcasecmp
+#include <strings.h>
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
-//: Prototypes
+//: Types
 //: ----------------------------------------------------------------------------
-const char *get_date_str(void);
-uint64_t get_time_s(void);
-uint64_t get_time_ms(void);
-uint64_t get_time_us(void);
-uint64_t get_delta_time_ms(uint64_t a_start_time_ms);
-uint64_t get_delta_time_us(uint64_t a_start_time_us);
-} //namespace ns_hurl {
-
+struct case_i_comp
+{
+        bool operator() (const std::string& lhs, const std::string& rhs) const
+        {
+                return strcasecmp(lhs.c_str(), rhs.c_str()) < 0;
+        }
+};
+typedef std::list <std::string> str_list_t;
+typedef std::map <std::string, str_list_t, case_i_comp> kv_map_list_t;
+}
 #endif
-
-
-
-
-

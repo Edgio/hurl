@@ -23,11 +23,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/time_util.h"
-#include "hurl/support/trace.h"
-#include "hurl/nconn/nconn_tls.h"
-#include "hurl/support/tls_util.h"
-#include "hurl/support/ndebug.h"
+#include "support/time_util.h"
+#include "support/trace.h"
+#include "nconn/nconn_tls.h"
+#include "support/tls_util.h"
+#include "support/ndebug.h"
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
@@ -193,7 +193,6 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                         SSL_CTX_free(l_ctx);
                         return NULL;
                 }
-
                 l_status = SSL_CTX_set_default_verify_paths(l_ctx);
                 if(1 != l_status)
                 {
@@ -423,7 +422,6 @@ int32_t nconn_tls::tls_connect(void)
                         //NDBG_PRINT("%sSSL_CON%s[%3d]: SSL_ERROR_WANT_READ\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, m_fd);
                         m_tls_state = TLS_STATE_TLS_CONNECTING_WANT_READ;
                         return NC_STATUS_AGAIN;
-
                 }
                 case SSL_ERROR_WANT_WRITE:
                 {
@@ -544,7 +542,6 @@ int32_t nconn_tls::tls_accept(void)
                         m_tls_state = TLS_STATE_TLS_ACCEPTING_WANT_WRITE;
                         return NC_STATUS_AGAIN;
                 }
-
                 case SSL_ERROR_WANT_X509_LOOKUP:
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS,
@@ -552,7 +549,6 @@ int32_t nconn_tls::tls_accept(void)
                                     m_label.c_str());
                         break;
                 }
-
                 // look at error stack/return value/errno
                 case SSL_ERROR_SYSCALL:
                 {
@@ -877,7 +873,6 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
         {
                 return NC_STATUS_EOF;
         }
-
         // TODO Translate status...
         switch(errno)
         {
@@ -1071,7 +1066,6 @@ ncaccept_state_top:
                 return NC_STATUS_ERROR;
         }
         }
-
         return NC_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
@@ -1100,13 +1094,11 @@ ncconnect_state_top:
                         //NDBG_PRINT("Error performing nconn_tcp::ncconnect\n");
                         return NC_STATUS_ERROR;
                 }
-
                 if(nconn_tcp::is_connecting())
                 {
                         //NDBG_PRINT("Still connecting...\n");
                         return NC_STATUS_OK;
                 }
-
                 m_tls_state = TLS_STATE_TLS_CONNECTING;
                 goto ncconnect_state_top;
         }

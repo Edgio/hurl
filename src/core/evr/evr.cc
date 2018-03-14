@@ -23,11 +23,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/support/time_util.h"
-#include "hurl/support/trace.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/evr/evr.h"
+#include "status.h"
+#include "support/time_util.h"
+#include "support/trace.h"
+#include "support/ndebug.h"
+#include "evr/evr.h"
 #include "evr_select.h"
 #include "evr_epoll.h"
 #include <stdlib.h>

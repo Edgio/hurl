@@ -23,7 +23,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/string_util.h"
+#include "support/string_util.h"
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -34,7 +34,6 @@ int32_t break_header_string(const std::string &a_header_str,
 		std::string &ao_header_key,
 		std::string &ao_header_val)
 {
-
 	// Find port prefix ":"
 	size_t l_colon_pos = 0;
 	l_colon_pos = a_header_str.find(":", 0);
@@ -49,7 +48,6 @@ int32_t break_header_string(const std::string &a_header_str,
 	ao_header_val = a_header_str.substr(l_colon_pos, a_header_str.length());
 	return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -59,7 +57,6 @@ std::string get_file_wo_path(const std::string &a_filename)
 {
         std::string fName(a_filename);
         size_t pos = fName.rfind("/");
-
         if(pos == std::string::npos)
         {
                 return fName;
@@ -70,7 +67,6 @@ std::string get_file_wo_path(const std::string &a_filename)
         }
         return fName.substr(pos + 1, fName.length());
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -90,7 +86,6 @@ std::string get_file_path(const std::string &a_filename)
         }
         return fName.substr(0, pos);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -110,7 +105,6 @@ std::string get_base_filename(const std::string &a_filename)
         }
         return fName.substr(0, pos);
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -130,7 +124,6 @@ std::string get_file_ext(const std::string &a_filename)
         }
         return fName.substr(pos + 1, fName.length());
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -150,5 +143,4 @@ std::string get_file_wo_ext(const std::string &a_filename)
         }
         return fName.substr(0, pos);
 }
-
 } //namespace ns_hurl {

@@ -23,13 +23,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/ndebug.h"
-#include "hurl/http/cb.h"
-#include "hurl/support/uri.h"
-#include "hurl/support/nbq.h"
-#include "hurl/http/rqst.h"
-#include "hurl/support/trace.h"
-#include "hurl/status.h"
+#include "support/ndebug.h"
+#include "http/cb.h"
+#include "support/uri.h"
+#include "support/nbq.h"
+#include "http/rqst.h"
+#include "support/trace.h"
+#include "status.h"
 #include "http_parser/http_parser.h"
 #include <string.h>
 #include <stdlib.h>
@@ -60,7 +60,6 @@ rqst::rqst(void):
 //: ----------------------------------------------------------------------------
 rqst::~rqst(void)
 {
-
 }
 //: ----------------------------------------------------------------------------
 //: \details: TODO
@@ -217,7 +216,6 @@ int32_t rqst::parse_uri()
         {
                 return STATUS_OK;
         }
-
         // Copy out the url...
         // TODO zero copy???
         if(m_q && m_p_url.m_off && m_p_url.m_len)
@@ -304,7 +302,6 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
         do {
                 l_pos = a_query.find("&", l_last_pos);
                 std::string l_part = a_query.substr(l_last_pos, l_pos - l_last_pos);
-
                 // Break by "="
                 std::string l_key;
                 std::string l_val;

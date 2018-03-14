@@ -23,19 +23,16 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/support/trace.h"
+#include "support/trace.h"
 #include <errno.h>
 #include <string.h>
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: Externs
 //: ----------------------------------------------------------------------------
 trc_log_level_t g_trc_log_level = TRC_LOG_LEVEL_ERROR;
 FILE* g_trc_log_file = stdout;
 FILE* g_trc_out_file = stdout;
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -45,7 +42,6 @@ void trc_log_level_set(trc_log_level_t a_level)
 {
         g_trc_log_level = a_level;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -64,7 +60,6 @@ int32_t trc_log_file_open(const std::string &a_file)
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -83,7 +78,6 @@ int32_t trc_log_file_close(void)
         }
         return 0;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -105,7 +99,6 @@ const char *trc_log_level_str(trc_log_level_t a_level)
 {
         return ELEM_AT(trc_log_level_strs, a_level, "?");
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -152,5 +145,4 @@ void trc_mem_display(FILE *a_file, const uint8_t* a_mem_buf, uint32_t a_length)
                 fprintf(a_file, "%s\n", l_display_line);
         }
 }
-
 } // namespace ns_hurl {

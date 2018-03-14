@@ -23,7 +23,7 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/nconn/host_info.h"
+#include "nconn/host_info.h"
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -44,7 +44,6 @@ host_info::host_info():
 {
         ((struct sockaddr_in *)(&m_sa))->sin_family = AF_INET;
 };
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -77,5 +76,4 @@ void host_info::show(void)
         printf(": m_expires:       %u\n", m_expires_s);
         printf("+-------------------------------------\n");
 }
-
 } //namespace ns_hurl {

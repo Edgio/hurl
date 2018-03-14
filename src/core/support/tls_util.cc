@@ -27,10 +27,10 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "hostcheck/hostcheck.h"
-#include "hurl/support/tls_util.h"
-#include "hurl/status.h"
-#include "hurl/support/trace.h"
-#include "hurl/support/ndebug.h"
+#include "support/tls_util.h"
+#include "status.h"
+#include "support/trace.h"
+#include "support/ndebug.h"
 #include <pthread.h>
 #include "openssl/ssl.h"
 #include "openssl/err.h"
@@ -63,7 +63,6 @@ static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int 
 {
         struct CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
         if (!value) return NULL;
-
         pthread_mutex_init(&value->mutex, NULL);
         return value;
 }
@@ -369,7 +368,6 @@ int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
                 {
                         // TODO Can add check for depth here.
                         //int depth = X509_STORE_CTX_get_error_depth(store);
-
                         int err = X509_STORE_CTX_get_error(store);
                         if ((err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
                             (err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
@@ -400,7 +398,6 @@ int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
         {
                 return ok;
         }
-
         if(store)
         {
                 // TODO Can add check for depth here.
@@ -453,7 +450,6 @@ bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
         while ((i = X509_NAME_get_index_by_NID(l_subj, NID_commonName, i)) != -1)
         {
                 ASN1_STRING* i_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(l_subj, i));
-
                 std::string l_dn(reinterpret_cast<char*>(ASN1_STRING_data(i_name)),
                                ASN1_STRING_length(i_name));
                 if (!l_dn.empty())
@@ -540,7 +536,6 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
         l_tls_verify_result = SSL_get_verify_result(a_tls);
         if(l_tls_verify_result != X509_V_OK)
         {
-
                 // Check for self-signed failures
                 //a_disallow_self_signed
                 if(a_disallow_self_signed == false)
@@ -559,7 +554,6 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                                 return -1;
                         }
                 }
-
                 //NDBG_PRINT("LABEL[%s]: SSL_get_verify_result[%ld]: %s",
                 //      a_host,
                 //      l_tls_verify_result,

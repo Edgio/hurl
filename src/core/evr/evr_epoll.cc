@@ -24,8 +24,8 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr_epoll.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/status.h"
+#include "support/ndebug.h"
+#include "status.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 #include <unistd.h>

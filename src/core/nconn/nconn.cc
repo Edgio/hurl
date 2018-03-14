@@ -23,13 +23,13 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/support/time_util.h"
-#include "hurl/support/trace.h"
-#include "hurl/support/nbq.h"
-#include "hurl/nconn/nconn.h"
-#include "hurl/nconn/conn_status.h"
+#include "status.h"
+#include "support/ndebug.h"
+#include "support/time_util.h"
+#include "support/trace.h"
+#include "support/nbq.h"
+#include "nconn/nconn.h"
+#include "nconn/conn_status.h"
 #include <errno.h>
 #include <string.h>
 #include <strings.h>
@@ -65,10 +65,8 @@ state_top:
                         //NDBG_PRINT("Error performing ncsetup\n");
                         return NC_STATUS_ERROR;
                 }
-
                 // TODO -check for errors
                 m_nc_state = NC_STATE_CONNECTING;
-
                 // Stats
                 if(m_collect_stats_flag)
                 {
@@ -219,7 +217,6 @@ state_top:
                         {
                                 return l_s;
                         }
-
                         default:
                         {
                                 break;
@@ -421,7 +418,6 @@ bool nconn::can_reuse(void)
                 return false;
         }
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -436,11 +432,9 @@ int32_t nconn::nc_set_listening(int32_t a_val)
         {
                 return STATUS_ERROR;
         }
-
         m_nc_state = NC_STATE_LISTENING;
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -455,11 +449,9 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
         {
                 return STATUS_ERROR;
         }
-
         m_nc_state = NC_STATE_LISTENING;
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -476,7 +468,6 @@ int32_t nconn::nc_set_accepting(int a_fd)
         m_nc_state = NC_STATE_ACCEPTING;
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -493,7 +484,6 @@ int32_t nconn::nc_set_connected(void)
         m_nc_state = NC_STATE_CONNECTED;
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -521,7 +511,6 @@ int32_t nconn::nc_cleanup()
         m_host_info_is_set = false;
         return STATUS_OK;
 }
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO

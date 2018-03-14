@@ -22,29 +22,23 @@
 //: ----------------------------------------------------------------------------
 #ifndef _HMSG_H
 #define _HMSG_H
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
 // For fixed size types
 #include <stdint.h>
-
-#include "hurl/http/cr.h"
-#include "hurl/support/kv_map_list.h"
-
+#include "http/cr.h"
+#include "support/kv_map_list.h"
 //: ----------------------------------------------------------------------------
 //: External Fwd Decl's
 //: ----------------------------------------------------------------------------
 struct http_parser_settings;
 struct http_parser;
-
 namespace ns_hurl {
-
 //: ----------------------------------------------------------------------------
 //: Fwd Decl's
 //: ----------------------------------------------------------------------------
 class nbq;
-
 //: ----------------------------------------------------------------------------
 //: \details: http message obj -abstraction of http reqeust / response
 //: ----------------------------------------------------------------------------
@@ -60,33 +54,26 @@ public:
                 TYPE_RQST,
                 TYPE_RESP
         } type_t;
-
         // -------------------------------------------------
         // Public methods
         // -------------------------------------------------
         hmsg();
         virtual ~hmsg();
-
         // Getters
         type_t get_type(void) const;
         nbq *get_q(void) const;
         nbq *get_body_q(void);
         uint64_t get_body_len(void) const;
-
         void get_headers(kv_map_list_t *ao_headers) const;
         const kv_map_list_t &get_headers();
         uint64_t get_idx(void) const;
         void set_idx(uint64_t a_idx);
-
         // Setters
         void set_q(nbq *a_q);
         void reset_body_q(void);
-
         virtual void init(bool a_save);
-
         // Debug
         virtual void show() = 0;
-
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------
@@ -97,7 +84,6 @@ public:
         uint64_t m_cur_off;
         char * m_cur_buf;
         bool m_save;
-
         // ---------------------------------------
         // raw http request offsets
         // ---------------------------------------
@@ -106,14 +92,12 @@ public:
         cr_t m_p_body;
         int m_http_major;
         int m_http_minor;
-
         // ---------------------------------------
         // ...
         // ---------------------------------------
         //uint16_t m_status;
         bool m_complete;
         bool m_supports_keep_alives;
-
 protected:
         // -------------------------------------------------
         // Protected members
@@ -122,10 +106,8 @@ protected:
         nbq *m_q;
         nbq *m_body_q;
         uint64_t m_idx;
-
         // populated on demand by getters
         kv_map_list_t *m_headers;
-
 private:
         // -------------------------------------------------
         // Private methods
@@ -133,11 +115,6 @@ private:
         // Disallow copy/assign
         hmsg(const hmsg &);
         hmsg& operator=(const hmsg &);
-
 };
-
 }
-
 #endif
-
-

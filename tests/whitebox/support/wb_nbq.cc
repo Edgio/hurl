@@ -20,14 +20,13 @@
 //:   limitations under the License.
 //:
 //: ----------------------------------------------------------------------------
-
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/support/nbq.h"
-#include "hurl/support/trace.h"
-#include "hurl/support/ndebug.h"
+#include "status.h"
+#include "support/nbq.h"
+#include "support/trace.h"
+#include "support/ndebug.h"
 #include "catch/catch.hpp"
 //: ----------------------------------------------------------------------------
 //: Constants

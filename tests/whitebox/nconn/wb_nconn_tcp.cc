@@ -24,9 +24,9 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "catch/catch.hpp"
-#include "hurl/nconn/nconn_tcp.h"
-#include "hurl/dns/nlookup.h"
-#include "hurl/support/nbq.h"
+#include "nconn/nconn_tcp.h"
+#include "dns/nlookup.h"
+#include "support/nbq.h"
 #include <unistd.h>
 //: ----------------------------------------------------------------------------
 //: Tests

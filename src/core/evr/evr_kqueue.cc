@@ -24,8 +24,8 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "evr_kqueue.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/status.h"
+#include "support/ndebug.h"
+#include "status.h"
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>

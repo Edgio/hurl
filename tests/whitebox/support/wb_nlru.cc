@@ -24,7 +24,7 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include <string>
-#include "hurl/support/nlru.h"
+#include "support/nlru.h"
 #include "catch/catch.hpp"
 //: ----------------------------------------------------------------------------
 //:
@@ -76,9 +76,7 @@ int main(void)
         const char *l_bear_label = "BEAR";
         const char *l_snake_label = "SNAKE";
 
-
         l_animal_lru.set_delete_cb(delete_cb, (void *)0xDEADDEAD);
-
         l_animal_lru.insert(l_monkey_label, new animal("Bongo"));
         l_animal_lru.insert(l_monkey_label, new animal("Binky"));
         l_animal_lru.insert(l_panda_label, new animal("Sleepy"));
@@ -88,9 +86,7 @@ int main(void)
         l_animal_lru.show();
         l_animal_lru.insert(l_bear_label, new animal("Honey"));
         l_animal_lru.show();
-
         animal *l_get = NULL;
-
         const char *l_animal_label = NULL;
         l_animal_label = l_panda_label;
         printf("* TEST: CALLING GET: %p\n", l_get);
@@ -101,9 +97,7 @@ int main(void)
                 printf("* TEST: GET: %s: name: %s\n", l_animal_label, l_get->m_name.c_str());
         }
         l_animal_lru.show();
-
         printf("* TEST: SIZE:        %d\n", (int)l_animal_lru.size());
-
         return 0;
 }
 #endif
@@ -111,7 +105,6 @@ int main(void)
 //: Tests
 //: ----------------------------------------------------------------------------
 TEST_CASE( "nlru test", "[nlru]" ) {
-
         animal_lru_t l_animal_lru(4);
         const char *l_panda_label = "PANDA";
         const char *l_monkey_label = "MONKEY";
@@ -119,7 +112,6 @@ TEST_CASE( "nlru test", "[nlru]" ) {
         const char *l_snake_label = "SNAKE";
         uint32_t l_num_call = 0;
         l_animal_lru.set_delete_cb(delete_cb, (void *)&l_num_call);
-
         SECTION("Basic Insertion Test") {
                 INFO("Write 5 entries");
                 l_animal_lru.insert(l_monkey_label, new animal("Bongo"));

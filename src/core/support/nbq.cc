@@ -23,10 +23,10 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/support/ndebug.h"
-#include "hurl/support/trace.h"
-#include "hurl/support/nbq.h"
+#include "status.h"
+#include "support/ndebug.h"
+#include "support/trace.h"
+#include "support/nbq.h"
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>

@@ -18,22 +18,16 @@
 #   limitations under the License.
 #
 # ------------------------------------------------------------------------------
-
+# ------------------------------------------------
 # Project setup
+# ------------------------------------------------
 project(hurl)
 cmake_minimum_required(VERSION 2.8.0)
-
 # ------------------------------------------------
 # wb_ai_cache
 # ------------------------------------------------
 SET(SRCS wb_ai_cache.cc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../
-                    ../../../ext
-                    ../../../include
-                    ../../../src/core/dns/
-                    ../../../src/core/support/
-                    ../../../src/core/ndebug/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src/core)
 add_executable(wb_ai_cache ${HDRS} ${SRCS})
 target_link_libraries(wb_ai_cache
   compiled_catch
@@ -43,19 +37,11 @@ target_link_libraries(wb_ai_cache
 )
 SET_TARGET_PROPERTIES(wb_ai_cache PROPERTIES OUTPUT_NAME "wb_ai_cache")
 add_test(ai_cache wb_ai_cache)
-
 # ------------------------------------------------
 # wb_nresolver
 # ------------------------------------------------
 SET(SRCS wb_nresolver.cc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../
-                    ../../../ext
-                    ../../../include
-                    ../../../src/core/dns/
-                    ../../../src/core/evr/
-                    ../../../src/core/support/
-                    ../../../src/core/ndebug/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/src/core)
 add_executable(wb_nresolver ${HDRS} ${SRCS})
 target_link_libraries(wb_nresolver
   compiled_catch

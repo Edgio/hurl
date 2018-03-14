@@ -25,11 +25,11 @@
 //: ----------------------------------------------------------------------------
 //: Includes
 //: ----------------------------------------------------------------------------
-#include "hurl/status.h"
-#include "hurl/nconn/scheme.h"
-#include "hurl/nconn/conn_status.h"
-#include "hurl/nconn/host_info.h"
-#include "hurl/evr/evr.h"
+#include "status.h"
+#include "nconn/scheme.h"
+#include "nconn/conn_status.h"
+#include "nconn/host_info.h"
+#include "evr/evr.h"
 // For memcpy -TODO move into impl file
 #include <string.h>
 #include <string>
