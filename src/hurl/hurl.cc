@@ -3318,6 +3318,9 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -I, --addr_seq       Sequence over local address range.\n");
         fprintf(a_stream, "  -S, --chunk_size_kb  Chunk size in kB -max bytes to read/write per socket read/write. Default 8 kB\n");
         fprintf(a_stream, "  \n");
+        fprintf(a_stream, "TLS Settings:\n");
+        fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
+        fprintf(a_stream, "  -O, --tls_options    SSL Options string.\n");
         fprintf(a_stream, "Display Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --no_color       Turn off colors\n");
@@ -3432,6 +3435,8 @@ int main(int argc, char** argv)
                 { "no_stats",       0, 0, 'x' },
                 { "addr_seq",       1, 0, 'I' },
                 { "chunk_size_kb",  1, 0, 'S' },
+                { "cipher",         1, 0, 'y' },
+                { "tls_options",    1, 0, 'O' },
                 { "verbose",        0, 0, 'v' },
                 { "no_color",       0, 0, 'c' },
                 { "responses",      0, 0, 'C' },
@@ -3483,9 +3488,9 @@ int main(int argc, char** argv)
                 }
         }
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:P:G:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:P:G:";
 #else
-        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:vcCLjo:U:r:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:";
 #endif
         while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
         {
@@ -3776,6 +3781,29 @@ int main(int argc, char** argv)
                                 return STATUS_ERROR;
                         }
                         g_chunk_size_kb = (uint32_t)l_val;
+                        break;
+                }
+                // -----------------------------------------
+                // cipher
+                // -----------------------------------------
+                case 'y':
+                {
+                        l_request->m_conf_tls_cipher_list = l_arg;
+                        break;
+                }
+                // -----------------------------------------
+                // tls options
+                // -----------------------------------------
+                case 'O':
+                {
+                        int32_t l_s;
+                        long l_tls_options;
+                        l_s = ns_hurl::get_tls_options_str_val(l_arg, l_tls_options);
+                        if(l_s != STATUS_OK)
+                        {
+                                return STATUS_ERROR;
+                        }
+                        l_request->m_conf_tls_options = l_tls_options;
                         break;
                 }
                 // -----------------------------------------
