@@ -239,27 +239,31 @@ public:
         {}
         int set_header(const std::string &a_key, const std::string &a_val)
         {
+                bool l_replace = false;
+                bool l_remove = false;
+                if(!strcasecmp(a_key.c_str(), "User-Agent") ||
+                   !strcasecmp(a_key.c_str(), "Referer") ||
+                   !strcasecmp(a_key.c_str(), "Accept") ||
+                   !strcasecmp(a_key.c_str(), "Host"))
+                {
+                        l_replace = true;
+                        if(a_val.empty())
+                        {
+                                l_remove = true;
+                        }
+                }
                 ns_hurl::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
                 if(i_obj != m_headers.end())
                 {
                         // Special handling for Host/User-agent/referer
-                        bool l_replace = false;
-                        bool l_remove = false;
-                        if(!strcasecmp(a_key.c_str(), "User-Agent") ||
-                           !strcasecmp(a_key.c_str(), "Referer") ||
-                           !strcasecmp(a_key.c_str(), "Accept") ||
-                           !strcasecmp(a_key.c_str(), "Host"))
-                        {
-                                l_replace = true;
-                                if(a_val.empty())
-                                {
-                                        l_remove = true;
-                                }
-                        }
                         if(l_replace)
                         {
-                                i_obj->second.pop_front();
-                                if(!l_remove)
+                                i_obj->second.clear();
+                                if(l_remove)
+                                {
+                                        m_headers.erase(i_obj);
+                                }
+                                else
                                 {
                                         i_obj->second.push_back(a_val);
                                 }

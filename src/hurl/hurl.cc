@@ -428,6 +428,7 @@ public:
                 m_keepalive(false),
                 m_save(false),
                 m_h1(false),
+                m_no_host(false),
                 m_timeout_ms(10000),
                 m_host_info(),
                 m_data(NULL),
@@ -457,6 +458,7 @@ public:
                 m_keepalive(a_r.m_keepalive),
                 m_save(a_r.m_save),
                 m_h1(a_r.m_h1),
+                m_no_host(a_r.m_no_host),
                 m_timeout_ms(a_r.m_timeout_ms),
                 m_host_info(a_r.m_host_info),
                 m_data(a_r.m_data),
@@ -464,27 +466,35 @@ public:
         {}
         int set_header(const std::string &a_key, const std::string &a_val)
         {
+                bool l_replace = false;
+                bool l_remove = false;
+                if(!strcasecmp(a_key.c_str(), "User-Agent") ||
+                   !strcasecmp(a_key.c_str(), "Referer") ||
+                   !strcasecmp(a_key.c_str(), "Accept") ||
+                   !strcasecmp(a_key.c_str(), "Host"))
+                {
+                        l_replace = true;
+                        if(a_val.empty())
+                        {
+                                if(!strncasecmp(a_key.c_str(), "Host", strlen("Host")))
+                                {
+                                        m_no_host = true;
+                                }
+                                l_remove = true;
+                        }
+                }
                 ns_hurl::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
                 if(i_obj != m_headers.end())
                 {
                         // Special handling for Host/User-agent/referer
-                        bool l_replace = false;
-                        bool l_remove = false;
-                        if(!strcasecmp(a_key.c_str(), "User-Agent") ||
-                           !strcasecmp(a_key.c_str(), "Referer") ||
-                           !strcasecmp(a_key.c_str(), "Accept") ||
-                           !strcasecmp(a_key.c_str(), "Host"))
-                        {
-                                l_replace = true;
-                                if(a_val.empty())
-                                {
-                                        l_remove = true;
-                                }
-                        }
                         if(l_replace)
                         {
-                                i_obj->second.pop_front();
-                                if(!l_remove)
+                                i_obj->second.clear();
+                                if(l_remove)
+                                {
+                                        m_headers.erase(i_obj);
+                                }
+                                else
                                 {
                                         i_obj->second.push_back(a_val);
                                 }
@@ -494,7 +504,7 @@ public:
                                 i_obj->second.push_back(a_val);
                         }
                 }
-                else
+                else if(!l_remove)
                 {
                         ns_hurl::str_list_t l_list;
                         l_list.push_back(a_val);
@@ -527,6 +537,7 @@ public:
         bool m_keepalive;
         bool m_save;
         bool m_h1;
+        bool m_no_host;
         uint32_t m_timeout_ms;
         ns_hurl::host_info m_host_info;
         void *m_data;
@@ -1383,7 +1394,10 @@ int32_t http_session::srequest(void)
                         "%s %s HTTP/1.1",
                         m_request->m_verb.c_str(), l_uri.c_str());
         nbq_write_request_line(*m_out_q, l_buf, l_len);
-        m_request->set_header("Host", m_request->m_host);
+        if(!m_request->m_no_host)
+        {
+                m_request->set_header("Host", m_request->m_host);
+        }
         ns_hurl::kv_map_list_t::const_iterator i_hdr;
         bool l_specd_host = false;
 #define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
@@ -1430,7 +1444,8 @@ if(i_hdr != m_request->m_headers.end()) { \
         // -------------------------------------------------
         // Default Host if unspecified
         // -------------------------------------------------
-        if(!l_specd_host)
+        if(!l_specd_host &&
+           !m_request->m_no_host)
         {
                 nbq_write_header(*m_out_q,
                                           "Host", strlen("Host"),
@@ -1806,6 +1821,11 @@ int32_t h2_session::srequest(void)
 #define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
                 if(STRN_CASE_CMP("accept", i_hdr->first.c_str()) ||
                    STRN_CASE_CMP("user-agent", i_hdr->first.c_str()))
+                {
+                        continue;
+                }
+                if(!m_request->m_no_host &&
+                    STRN_CASE_CMP("host", i_hdr->first.c_str()))
                 {
                         continue;
                 }
