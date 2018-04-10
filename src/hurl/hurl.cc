@@ -4107,14 +4107,14 @@ int main(int argc, char** argv)
         //              c o l o r s
         // *******************************************
         // -------------------------------------------
-        const char *l_c_fg_white = NULL;
-        const char *l_c_fg_red = NULL;
-        const char *l_c_fg_blue = NULL;
-        const char *l_c_fg_cyan = NULL;
-        const char *l_c_fg_magenta = NULL;
-        const char *l_c_fg_green = NULL;
-        const char *l_c_fg_yellow = NULL;
-        const char *l_c_off = NULL;
+        const char *l_c_fg_white = ANSI_COLOR_OFF;
+        const char *l_c_fg_red = ANSI_COLOR_OFF;
+        const char *l_c_fg_blue = ANSI_COLOR_OFF;
+        const char *l_c_fg_cyan = ANSI_COLOR_OFF;
+        const char *l_c_fg_magenta = ANSI_COLOR_OFF;
+        const char *l_c_fg_green = ANSI_COLOR_OFF;
+        const char *l_c_fg_yellow = ANSI_COLOR_OFF;
+        const char *l_c_off = ANSI_COLOR_OFF;
         if(g_color)
         {
                 l_c_fg_white = ANSI_COLOR_FG_WHITE;
