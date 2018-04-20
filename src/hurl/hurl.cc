@@ -1473,6 +1473,7 @@ setup_resp:
         TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
         TRC_OUTPUT("%s", ANSI_COLOR_OFF);
         m_out_q->print();
+        TRC_OUTPUT("\n");
         }
         // -------------------------------------------------
         // create resp
@@ -3573,7 +3574,7 @@ int main(int argc, char** argv)
                         {
                                 char *l_buf;
                                 uint32_t l_len;
-                                l_s = ns_hurl::read_file(l_arg.data() + 1, &(l_buf), &(l_len));
+                                l_s = ns_hurl::read_file(l_arg.c_str(), &(l_buf), &(l_len));
                                 if(l_s != STATUS_OK)
                                 {
                                         TRC_OUTPUT("Error reading body data from file: %s\n", l_arg.c_str() + 1);
@@ -3586,8 +3587,9 @@ int main(int argc, char** argv)
                         {
                                 char *l_buf;
                                 uint32_t l_len;
-                                l_len = l_arg.length() + 1;
+                                l_len = l_arg.length();
                                 l_buf = (char *)malloc(sizeof(char)*l_len);
+                                memcpy(l_buf, l_arg.c_str(), l_arg.length());
                                 l_request->m_body_data = l_buf;
                                 l_request->m_body_data_len = l_len;
                         }
