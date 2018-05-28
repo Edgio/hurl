@@ -85,13 +85,13 @@ echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 
 #### An example
 ```bash
->printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"https://bloop.com/" -s -c -T5
+>printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"https://bloop.com/" -s -T5 -o output.json
 Done:        0 Reqd:        0 Pendn:        3 Flight:        0 Error:        0
+Done:        0 Reqd:        3 Pendn:        3 Flight:        3 Error:        0
 Done:        1 Reqd:        3 Pendn:        2 Flight:        2 Error:        0
 Done:        2 Reqd:        3 Pendn:        1 Flight:        1 Error:        0
 Done:        3 Reqd:        3 Pendn:        0 Flight:        0 Error:        0
 Done:        3 Reqd:        3 Pendn:        0 Flight:        0 Error:        0
-[{"host":"www.google.com","server":"www.google.com:443","id":"","where":"","port":443,"status-code":200,"Alpn":"NA","Cipher":"ECDHE-RSA-AES128-GCM-SHA256","Protocol":"TLSv1.2"},{"host":"www.yahoo.com","server":"www.yahoo.com:443","id":"","where":"","port":443,"status-code":200,"Alpn":"NA","Cipher":"ECDHE-RSA-AES128-GCM-SHA256","Protocol":"TLSv1.2"},{"host":"www.reddit.com","server":"www.reddit.com:443","id":"","where":"","port":443,"status-code":200,"Alpn":"NA","Cipher":"ECDHE-RSA-AES128-GCM-SHA256","Protocol":"TLSv1.2"}]
 ****************** SUMMARY ******************** 
 | total hosts:                                3
 | success:                                    3
