@@ -3574,7 +3574,7 @@ int main(int argc, char** argv)
                         {
                                 char *l_buf;
                                 uint32_t l_len;
-                                l_s = ns_hurl::read_file(l_arg.c_str(), &(l_buf), &(l_len));
+                                l_s = ns_hurl::read_file(l_arg.c_str()+1, &(l_buf), &(l_len));
                                 if(l_s != STATUS_OK)
                                 {
                                         TRC_OUTPUT("Error reading body data from file: %s\n", l_arg.c_str() + 1);
