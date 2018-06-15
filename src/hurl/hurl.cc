@@ -1775,7 +1775,7 @@ int32_t h2_session::srequest(void)
         uint16_t l_hdrs_len;
         // hdrs should be 4 + header size
         l_hdrs_len = 4 + m_request->m_headers.size();
-        l_ngxxx_headers = (nghttp2_nv *)malloc(sizeof(nghttp2_nv)*l_hdrs_len);
+        l_ngxxx_headers = (nghttp2_nv *)calloc(l_hdrs_len, sizeof(nghttp2_nv));
 #define SET_PSUEDO_HEADER(_idx, _key,_val) do { \
         l_ngxxx_headers[_idx].name = const_cast <uint8_t *>(reinterpret_cast<const uint8_t *>(_key));\
         l_ngxxx_headers[_idx].namelen = strlen(_key);\
@@ -1845,9 +1845,15 @@ int32_t h2_session::srequest(void)
             i_h < l_hdrs_len;
             ++i_h)
         {
-                NDBG_OUTPUT("%s%.*s%s: %s%.*s%s\n",
-                            ANSI_COLOR_FG_BLUE,  (int)l_ngxxx_headers[i_h].namelen,  l_ngxxx_headers[i_h].name,  ANSI_COLOR_OFF,
-                            ANSI_COLOR_FG_GREEN, (int)l_ngxxx_headers[i_h].valuelen, l_ngxxx_headers[i_h].value, ANSI_COLOR_OFF);
+                if(l_ngxxx_headers[i_h].name &&
+                   l_ngxxx_headers[i_h].namelen &&
+                   l_ngxxx_headers[i_h].value &&
+                   l_ngxxx_headers[i_h].valuelen)
+                {
+                        NDBG_OUTPUT("%s%.*s%s: %s%.*s%s\n",
+                                    ANSI_COLOR_FG_BLUE,  (int)l_ngxxx_headers[i_h].namelen,  l_ngxxx_headers[i_h].name,  ANSI_COLOR_OFF,
+                                    ANSI_COLOR_FG_GREEN, (int)l_ngxxx_headers[i_h].valuelen, l_ngxxx_headers[i_h].value, ANSI_COLOR_OFF);
+                }
         }
         NDBG_OUTPUT("\n");
         }
