@@ -1040,13 +1040,13 @@ static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static long int ngxxx_data_source_read_cb(nghttp2_session *a_session,
-                                          int32_t a_stream_id,
-                                          uint8_t *a_buf,
-                                          size_t a_length,
-                                          uint32_t *a_data_flags,
-                                          nghttp2_data_source *a_source,
-                                          void *a_user_data)
+static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
+                                         int32_t a_stream_id,
+                                         uint8_t *a_buf,
+                                         size_t a_length,
+                                         uint32_t *a_data_flags,
+                                         nghttp2_data_source *a_source,
+                                         void *a_user_data)
 {
         //NDBG_PRINT("%sDATA_SOURCE_READ_CB%s: \n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF);
         // TODO FIX!!!
