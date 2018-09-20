@@ -1246,13 +1246,13 @@ static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-static long int ngxxx_data_source_read_cb(nghttp2_session *a_session,
-                                          int32_t a_stream_id,
-                                          uint8_t *a_buf,
-                                          size_t a_length,
-                                          uint32_t *a_data_flags,
-                                          nghttp2_data_source *a_source,
-                                          void *a_user_data)
+static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
+                                         int32_t a_stream_id,
+                                         uint8_t *a_buf,
+                                         size_t a_length,
+                                         uint32_t *a_data_flags,
+                                         nghttp2_data_source *a_source,
+                                         void *a_user_data)
 {
         //NDBG_PRINT("%sDATA_SOURCE_READ_CB%s: \n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF);
         // TODO FIX!!!
@@ -2861,7 +2861,7 @@ static int32_t s_pre_connect_cb(int a_fd)
 // Assumes expr in form [<val>-<val>] where val can be either int or hex
 static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_range)
 {
-        char l_expr[64];
+        char l_expr[65];
         strncpy(l_expr, a_range_exp.c_str(), 64);
         uint32_t l_start;
         uint32_t l_end;
@@ -3012,7 +3012,7 @@ int32_t special_effects_parse(std::string &a_path)
         // TODO This seems hacky...
         // -------------------------------------------
         // strtok is NOT thread-safe but not sure it matters here...
-        char l_path[2048];
+        char l_path[2049];
         char *l_save_ptr;
         strncpy(l_path, a_path.c_str(), 2048);
         char *l_p = strtok_r(l_path, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
@@ -3069,7 +3069,7 @@ int32_t special_effects_parse(std::string &a_path)
                         l_p = strtok_r(NULL, SPECIAL_EFX_OPT_SEPARATOR, &l_save_ptr);
                         continue;
                 }
-                char l_options[1024];
+                char l_options[1025];
                 char *l_options_save_ptr;
                 strncpy(l_options, l_p, 1024);
                 //printf("Options: %s\n", l_options);
