@@ -146,7 +146,16 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       bool a_force_h1)
 {
         SSL_CTX *l_ctx;
-        // TODO Make configurable
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        if(a_server_flag)
+        {
+                l_ctx = SSL_CTX_new(TLS_server_method());
+        }
+        else
+        {
+                l_ctx = SSL_CTX_new(TLS_client_method());
+        }
+#else
         if(a_server_flag)
         {
                 l_ctx = SSL_CTX_new(SSLv23_server_method());
@@ -155,6 +164,7 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
         {
                 l_ctx = SSL_CTX_new(SSLv23_client_method());
         }
+#endif
         if(l_ctx == NULL)
         {
                 ERR_print_errors_fp(stderr);
@@ -371,6 +381,26 @@ int32_t nconn_tls::init(void)
                         return NC_STATUS_ERROR;
                 }
         }
+        // TODO ifdef in...
+#if OPENSSL_VERSION_NUMBER >= 0x10100000L
+        if(m_tls_opt_verify)
+        {
+                if(!m_tls_opt_verify_no_host_check)
+                {
+                        SSL_set_hostflags(m_tls, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+                        SSL_set1_host(m_tls, m_tls_opt_hostname.c_str());
+                        // TODO check for error
+                }
+                if(m_tls_opt_verify_allow_self_signed)
+                {
+                        ::SSL_set_verify(m_tls, SSL_VERIFY_PEER, tls_cert_verify_callback_allow_self_signed);
+                }
+                else
+                {
+                        ::SSL_set_verify(m_tls, SSL_VERIFY_PEER, NULL);
+                }
+        }
+#else
         // Set tls Cert verify callback ...
         if(m_tls_opt_verify)
         {
@@ -383,6 +413,7 @@ int32_t nconn_tls::init(void)
                         ::SSL_set_verify(m_tls, SSL_VERIFY_PEER, tls_cert_verify_callback);
                 }
         }
+#endif
         return NC_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------
@@ -395,7 +426,6 @@ int32_t nconn_tls::tls_connect(void)
         int l_status;
         m_tls_state = TLS_STATE_TLS_CONNECTING;
         l_status = SSL_connect(m_tls);
-        //NDBG_PRINT("l_status: %d\n", l_status);
         if(l_status <= 0)
         {
                 int l_tls_error = 0;
@@ -433,7 +463,7 @@ int32_t nconn_tls::tls_connect(void)
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         m_last_err = ERR_get_error();
-                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
+                        NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
                 }
                 // look at error stack/return value/errno
@@ -481,7 +511,6 @@ int32_t nconn_tls::tls_connect(void)
         }
         else if(l_status == 1)
         {
-                //NDBG_PRINT("CONNECTED\n");
                 m_tls_state = TLS_STATE_CONNECTED;
         }
         //did_connect = 1;
@@ -1111,7 +1140,7 @@ ncconnect_state_top:
         {
                 int l_status;
                 l_status = tls_connect();
-                //NDBG_PRINT("%stls_connectING%s status = %d m_tls_state = %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status, m_tls_state);
+                //NDBG_PRINT("%stls_connecting%s status = %d m_tls_state = %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status, m_tls_state);
                 if(l_status == NC_STATUS_AGAIN)
                 {
                         if(TLS_STATE_TLS_CONNECTING_WANT_READ == m_tls_state)
@@ -1126,6 +1155,7 @@ ncconnect_state_top:
                 }
                 else if(l_status != NC_STATUS_OK)
                 {
+                        //NDBG_PRINT("NC_STATUS_ERROR\n");
                         return NC_STATUS_ERROR;
                 }
                 // ...
@@ -1136,7 +1166,8 @@ ncconnect_state_top:
         // -------------------------------------------------
         case TLS_STATE_CONNECTED:
         {
-                if(m_tls_opt_verify && !m_tls_opt_verify_no_host_check)
+                if(m_tls_opt_verify &&
+                   !m_tls_opt_verify_no_host_check)
                 {
                         int32_t l_status;
                         // Do verify
@@ -1149,6 +1180,8 @@ ncconnect_state_top:
                                 NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS_HOST,
                                             "LABEL[%s]: Error: %s\n",
                                             m_label.c_str(), gts_last_tls_error);
+                                //NDBG_PRINT("LABEL[%s]: Error: %s\n",
+                                //            m_label.c_str(), gts_last_tls_error);
                                 gts_last_tls_error[0] = '\0';
                                 return NC_STATUS_ERROR;
                         }
