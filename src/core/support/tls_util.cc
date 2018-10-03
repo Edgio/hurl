@@ -332,12 +332,12 @@ const char *get_tls_info_protocol_str(int32_t a_version)
                 return "TLSv1.2";
         }
         // TODO -ifdef in
-//#if OPENSSL_VERSION_NUMBER >= 0x10200000L
-        //case TLS1_3_VERSION:
-        //{
-        //        return "TLSv1.3";
-        //}
-//#endif
+#if OPENSSL_VERSION_NUMBER >= 0x10101000L
+        case TLS1_3_VERSION:
+        {
+                return "TLSv1.3";
+        }
+#endif
         case TLS1_1_VERSION:
         {
                 return "TLSv1.1";
