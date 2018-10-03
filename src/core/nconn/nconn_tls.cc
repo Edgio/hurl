@@ -463,7 +463,7 @@ int32_t nconn_tls::tls_connect(void)
                 {
                         NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         m_last_err = ERR_get_error();
-                        NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
+                        //NDBG_PRINT("LABEL[%s]: SSL_ERROR_WANT_X509_LOOKUP\n", m_label.c_str());
                         break;
                 }
                 // look at error stack/return value/errno
