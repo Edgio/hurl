@@ -239,6 +239,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 g_tls_options_map["SSL_OP_NO_SSLv2"] = SSL_OP_NO_SSLv2;
                 g_tls_options_map["SSL_OP_NO_SSLv3"] = SSL_OP_NO_SSLv3;
                 g_tls_options_map["SSL_OP_NO_TLSv1"] = SSL_OP_NO_TLSv1;
+                g_tls_options_map["SSL_OP_NO_TLSv1_3"] = SSL_OP_NO_TLSv1_3;
                 g_tls_options_map["SSL_OP_NO_TLSv1_2"] = SSL_OP_NO_TLSv1_2;
                 g_tls_options_map["SSL_OP_NO_TLSv1_1"] = SSL_OP_NO_TLSv1_1;
         }
