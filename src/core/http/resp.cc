@@ -136,19 +136,26 @@ void resp::set_status(http_status_t a_code)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void resp::show(void)
+void resp::show(bool a_color)
 {
         m_q->reset_read();
+        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_BLUE);
         TRC_OUTPUT("HTTP/%d.%d %u ", m_http_major, m_http_minor, m_status);
+        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
         print_part(*m_q, m_p_status.m_off, m_p_status.m_len);
+        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
         TRC_OUTPUT("\r\n");
         cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
         for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)
         {
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_BLUE);
                 print_part(*m_q, i_k->m_off, i_k->m_len);
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 TRC_OUTPUT(": ");
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
                 print_part(*m_q, i_v->m_off, i_v->m_len);
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 TRC_OUTPUT("\r\n");
         }
         TRC_OUTPUT("\r\n");

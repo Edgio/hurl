@@ -73,7 +73,7 @@ public:
         void reset_body_q(void);
         virtual void init(bool a_save);
         // Debug
-        virtual void show() = 0;
+        virtual void show(bool a_color = false) = 0;
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------

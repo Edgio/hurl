@@ -1513,6 +1513,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
         //NDBG_PRINT("%sHTTP_PARSER%s: m_read_buf: %p, m_read_buf_idx: %d, l_bytes_read: %d\n",
         //                ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF,
         //                a_buf, (int)a_off, (int)a_len);
+        l_hmsg->m_cur_off = a_off;
         l_parse_status = http_parser_execute(l_hmsg->m_http_parser,
                                              l_hmsg->m_http_parser_settings,
                                              reinterpret_cast<const char *>(a_buf),
@@ -1525,7 +1526,6 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                            http_errno_description((enum http_errno)l_hmsg->m_http_parser->http_errno));
                 return STATUS_ERROR;
         }
-        l_hmsg->m_cur_off = a_off;
         if(m_resp->m_complete)
         {
                 // ---------------------------------
@@ -1533,9 +1533,7 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
                 // ---------------------------------
                 if(g_verbose)
                 {
-                        if(g_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_CYAN);
-                        m_resp->show();
-                        if(g_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+                        m_resp->show(g_color);
                 }
                 request_log_status(m_resp->get_status());
                 // ---------------------------------

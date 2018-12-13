@@ -46,7 +46,7 @@ public:
         void clear(void);
         void init(bool a_save);
         // Debug
-        void show();
+        void show(bool a_color = false);
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------

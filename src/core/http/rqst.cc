@@ -335,18 +335,24 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-void rqst::show(void)
+void rqst::show(bool a_color)
 {
         m_q->reset_read();
         cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
+        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
         print_part(*m_q, m_p_url.m_off, m_p_url.m_len);
+        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
         TRC_OUTPUT("\r\n");
         for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)
         {
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_BLUE);
                 print_part(*m_q, i_k->m_off, i_k->m_len);
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 TRC_OUTPUT(": ");
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
                 print_part(*m_q, i_v->m_off, i_v->m_len);
+                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 TRC_OUTPUT("\r\n");
         }
         TRC_OUTPUT("\r\n");

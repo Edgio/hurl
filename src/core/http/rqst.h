@@ -53,7 +53,7 @@ public:
         const std::string &get_url_fragment();
         const char *get_method_str();
         // Debug
-        void show();
+        void show(bool a_color = false);
         // -------------------------------------------------
         // Public members
         // -------------------------------------------------

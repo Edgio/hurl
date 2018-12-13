@@ -1195,9 +1195,10 @@ ncconnect_state_top:
                 SSL_get0_alpn_selected(m_tls, (const unsigned char**)&l_alpn, &l_alpn_len);
                 //NDBG_PRINT("showing alpn\n");
                 //mem_display((const uint8_t *)l_alpn, l_alpn_len, true);
-                if((strncmp("h2",    l_alpn, l_alpn_len) == 0) ||
-                   (strncmp("h2-16", l_alpn, l_alpn_len) == 0) ||
-                   (strncmp("h2-14", l_alpn, l_alpn_len) == 0))
+                if((l_alpn_len > 0) &&
+                   ((strncmp("h2",    l_alpn, l_alpn_len) == 0) ||
+                    (strncmp("h2-16", l_alpn, l_alpn_len) == 0) ||
+                    (strncmp("h2-14", l_alpn, l_alpn_len) == 0)))
                 {
                         set_alpn(ns_hurl::nconn::ALPN_HTTP_VER_V2);
                 }
