@@ -1454,7 +1454,8 @@ if(i_hdr != m_request->m_headers.end()) { \
         // -------------------------------------------------
         // body
         // -------------------------------------------------
-        if(m_request->m_body_data && m_request->m_body_data_len)
+        if(m_request->m_body_data &&
+           m_request->m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
                 nbq_write_body(*m_out_q, m_request->m_body_data, m_request->m_body_data_len);
@@ -3487,43 +3488,22 @@ int main(int argc, char** argv)
         std::string l_hprof_file;
         std::string l_cprof_file;
 #endif
-        bool is_opt = false;
-        for(int i_arg = 1; i_arg < argc; ++i_arg)
-        {
-                if(argv[i_arg][0] == '-')
-                {
-                        // next arg is for the option
-                        is_opt = true;
-                }
-                else if((argv[i_arg][0] != '-') &&
-                        (is_opt == false))
-                {
-                        // Stuff in url field...
-                        l_url = std::string(argv[i_arg]);
-                        //if(g_verbose)
-                        //{
-                        //      NDBG_PRINT("Found unspecified argument: %s --assuming url...\n", l_url.c_str());
-                        //}
-                        l_input_flag = true;
-                        break;
-                } else
-                {
-                        // reset option flag
-                        is_opt = false;
-                }
-        }
 #ifdef ENABLE_PROFILER
         char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:P:G:";
 #else
         char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:";
 #endif
-        while ((l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index)) != -1 && ((unsigned char)l_opt != 255))
+        while(((unsigned char)l_opt != 255))
         {
+                l_opt = getopt_long_only(argc, argv, l_short_arg_list, l_long_options, &l_option_index);
                 if (optarg)
+                {
                         l_arg = std::string(optarg);
+                }
                 else
+                {
                         l_arg.clear();
-                //NDBG_PRINT("arg[%c=%d]: %s\n", l_opt, l_option_index, l_arg.c_str());
+                }
                 switch (l_opt)
                 {
                 // -----------------------------------------
@@ -3955,8 +3935,19 @@ int main(int argc, char** argv)
                 // -----------------------------------------
                 default:
                 {
-                        fprintf(stdout, "Unrecognized option.\n");
-                        print_usage(stdout, -1);
+                        // ---------------------------------
+                        // get the url...
+                        // ---------------------------------
+                        l_url = argv[optind];
+                        if(!l_url.empty())
+                        {
+                                l_input_flag = true;
+                        }
+                        else
+                        {
+                                fprintf(stdout, "Unrecognized option.\n");
+                                print_usage(stdout, -1);
+                        }
                         break;
                 }
                 }
