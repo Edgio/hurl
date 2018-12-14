@@ -394,7 +394,8 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
         ao_written += l_s;
         // and not error?
         a_out_q->b_read_incr(l_s);
-        a_out_q->shrink();
+        // no shrink???
+        //a_out_q->shrink();
         return NC_STATUS_OK;
 }
 //: ----------------------------------------------------------------------------

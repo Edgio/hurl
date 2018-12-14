@@ -67,7 +67,7 @@ public:
         // Split and create separate nbq with tail at offset
         int32_t split(nbq **ao_nbq_tail, uint64_t a_offset);
         // Join nbq with reference nbq
-        int32_t join_ref(const nbq &ao_nbq_tail);
+        int32_t join_ref(const nbq &a_nbq_tail);
         // Block Writing...
         char * b_write_ptr(void);
         uint32_t b_write_avail(void);

@@ -412,8 +412,7 @@ public:
                 m_url_query(),
                 m_verb("GET"),
                 m_headers(),
-                m_body_data(NULL),
-                m_body_data_len(0),
+                m_body_q(NULL),
                 m_conf_tls_cipher_list(),
                 m_conf_tls_options(),
                 m_conf_tls_verify(),
@@ -442,8 +441,7 @@ public:
                 m_url_query(a_r.m_url_query),
                 m_verb(a_r.m_verb),
                 m_headers(a_r.m_headers),
-                m_body_data(a_r.m_body_data),
-                m_body_data_len(a_r.m_body_data_len),
+                m_body_q(a_r.m_body_q),
                 m_conf_tls_cipher_list(a_r.m_conf_tls_cipher_list),
                 m_conf_tls_options(a_r.m_conf_tls_options),
                 m_conf_tls_verify(a_r.m_conf_tls_verify),
@@ -521,8 +519,7 @@ public:
         std::string m_url_query;
         std::string m_verb;
         ns_hurl::kv_map_list_t m_headers;
-        char *m_body_data;
-        uint32_t m_body_data_len;
+        ns_hurl::nbq *m_body_q;
         std::string m_conf_tls_cipher_list;
         long m_conf_tls_options;
         bool m_conf_tls_verify;
@@ -1271,6 +1268,8 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
         {
                 return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
         }
+        // TODO FIX!!!
+#if 0
         uint32_t l_len = l_request->m_body_data_len - l_ses->m_body_offset;
         if(l_len > a_length)
         {
@@ -1292,6 +1291,9 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
                 TRC_OUTPUT("\n");
                 }
         }
+#else
+        uint32_t l_len = 0;
+#endif
         return l_len;
 }
 //: ****************************************************************************
@@ -1448,17 +1450,16 @@ if(i_hdr != m_request->m_headers.end()) { \
            !m_request->m_no_host)
         {
                 nbq_write_header(*m_out_q,
-                                          "Host", strlen("Host"),
-                                          m_request->m_host.c_str(), m_request->m_host.length());
+                                 "Host", strlen("Host"),
+                                  m_request->m_host.c_str(), m_request->m_host.length());
         }
         // -------------------------------------------------
         // body
         // -------------------------------------------------
-        if(m_request->m_body_data &&
-           m_request->m_body_data_len)
+        if(m_request->m_body_q)
         {
-                //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                nbq_write_body(*m_out_q, m_request->m_body_data, m_request->m_body_data_len);
+                m_out_q->write("\r\n", strlen("\r\n"));
+                m_out_q->join_ref(*(m_request->m_body_q));
         }
         else
         {
@@ -1863,8 +1864,7 @@ int32_t h2_session::srequest(void)
         // -----------------------------------------
         nghttp2_data_provider *l_ngxxx_data_tmp = NULL;
         nghttp2_data_provider l_ngxxx_data;
-        if(m_request->m_body_data &&
-           m_request->m_body_data_len)
+        if(m_request->m_body_q)
         {
                 l_ngxxx_data.source = {0};
                 l_ngxxx_data.read_callback = ngxxx_data_source_read_cb;
@@ -3390,6 +3390,7 @@ int main(int argc, char** argv)
         bool l_wildcarding = true;
         std::string l_output_file = "";
         int l_ai_family = AF_UNSPEC;
+        ns_hurl::nbq *l_body_q = NULL;
         //ns_hurl::trc_log_file_open("/dev/stdout");
         //ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR);
         ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
@@ -3556,31 +3557,26 @@ int main(int argc, char** argv)
                         // If a_data starts with @ assume file
                         if(l_arg[0] == '@')
                         {
-                                char *l_buf;
+                                l_body_q = new ns_hurl::nbq(8*1024);
                                 uint32_t l_len;
-                                l_s = ns_hurl::read_file(l_arg.c_str()+1, &(l_buf), &(l_len));
+                                l_s = ns_hurl::read_file_nbq(*l_body_q, l_len, l_arg.c_str()+1);
                                 if(l_s != STATUS_OK)
                                 {
                                         TRC_OUTPUT("Error reading body data from file: %s\n", l_arg.c_str() + 1);
+                                        if(l_body_q) { delete l_body_q; l_body_q = NULL; }
                                         return STATUS_ERROR;
                                 }
-                                l_request->m_body_data = l_buf;
-                                l_request->m_body_data_len = l_len;
                         }
                         else
                         {
-                                char *l_buf;
-                                uint32_t l_len;
-                                l_len = l_arg.length();
-                                l_buf = (char *)malloc(sizeof(char)*l_len);
-                                memcpy(l_buf, l_arg.c_str(), l_arg.length());
-                                l_request->m_body_data = l_buf;
-                                l_request->m_body_data_len = l_len;
+                                l_body_q = new ns_hurl::nbq(8*1024);
+                                l_body_q->write(l_arg.c_str(), l_arg.length());
                         }
                         // Add content length
                         char l_len_str[64];
-                        sprintf(l_len_str, "%u", l_request->m_body_data_len);
+                        sprintf(l_len_str, "%lu", l_body_q->read_avail());
                         l_request->set_header("Content-Length", l_len_str);
+                        l_request->m_body_q = l_body_q;
                         break;
                 }
                 // -----------------------------------------
@@ -4498,6 +4494,11 @@ int main(int argc, char** argv)
         {
                 delete l_request;
                 l_request = NULL;
+        }
+        if(l_body_q)
+        {
+                delete l_body_q;
+                l_body_q = NULL;
         }
 #if 0
         // TODO delete SSL_CTX...

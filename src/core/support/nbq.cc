@@ -543,9 +543,9 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
 //: \return:  TODO
 //: \param:   TODO
 //: ----------------------------------------------------------------------------
-int32_t nbq::join_ref(const nbq &ao_nbq_tail)
+int32_t nbq::join_ref(const nbq &a_nbq_tail)
 {
-        const nbq &l_nbq_tail = ao_nbq_tail;
+        const nbq &l_nbq_tail = a_nbq_tail;
         for(nb_list_t::const_iterator i_b = l_nbq_tail.m_q.begin();
             i_b != l_nbq_tail.m_q.end();
             ++i_b)
