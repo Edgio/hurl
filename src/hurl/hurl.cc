@@ -736,7 +736,7 @@ public:
         uint64_t m_idx;
         bool m_goaway;
         uint32_t m_streams_closed;
-        uint32_t m_body_offset;
+        ns_hurl::nbq *m_h2_body_q;
         // -------------------------------------------------
         // public methods
         // -------------------------------------------------
@@ -750,7 +750,7 @@ public:
                 m_idx(0),
                 m_goaway(false),
                 m_streams_closed(0),
-                m_body_offset(0)
+                m_h2_body_q(NULL)
 #if 0
         ,
                 m_last_active_ms(0),
@@ -768,6 +768,11 @@ public:
                 {
                         delete m_out_q;
                         m_out_q = NULL;
+                }
+                if(m_h2_body_q)
+                {
+                        delete m_h2_body_q;
+                        m_h2_body_q = NULL;
                 }
         }
         int32_t cancel_timer(void *a_timer);
@@ -1251,8 +1256,7 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
                                          nghttp2_data_source *a_source,
                                          void *a_user_data)
 {
-        //NDBG_PRINT("%sDATA_SOURCE_READ_CB%s: \n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF);
-        // TODO FIX!!!
+        //NDBG_PRINT("%sDATA_SOURCE_READ_CB%s: push up to: %lu bytes\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, a_length);
         // copy up to length into buffer
         session *l_ses = (session *)a_user_data;
         if(!l_ses)
@@ -1268,22 +1272,28 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
         {
                 return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
         }
-        // TODO FIX!!!
-#if 0
-        uint32_t l_len = l_request->m_body_data_len - l_ses->m_body_offset;
-        if(l_len > a_length)
+        if(!l_request->m_body_q)
         {
-                l_len = a_length;
+                return 0;
         }
-        memcpy(a_buf,
-               (l_request->m_body_data + l_ses->m_body_offset),
-               l_len);
+        if(!l_ses->m_h2_body_q)
+        {
+                l_ses->m_h2_body_q = new ns_hurl::nbq(8*1024);
+                l_ses->m_h2_body_q->join_ref(*(l_request->m_body_q));
+        }
+        uint64_t l_r_avail = l_ses->m_h2_body_q->read_avail();
+        size_t l_len = a_length;
+        if(l_len > l_r_avail)
+        {
+                l_len = l_r_avail;
+        }
+        uint64_t l_read;
+        l_read = l_ses->m_h2_body_q->read((char *)a_buf, l_len);
         if(g_verbose)
         {
-        TRC_OUTPUT("%.*s", l_len, (l_request->m_body_data + l_ses->m_body_offset));
+        TRC_OUTPUT("%.*s", (int)l_read, a_buf);
         }
-        l_ses->m_body_offset += l_len;
-        if(l_ses->m_body_offset == l_request->m_body_data_len)
+        if(!l_ses->m_h2_body_q->read_avail())
         {
                 *a_data_flags |= NGHTTP2_DATA_FLAG_EOF;
                 if(g_verbose)
@@ -1291,10 +1301,7 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
                 TRC_OUTPUT("\n");
                 }
         }
-#else
-        uint32_t l_len = 0;
-#endif
-        return l_len;
+        return l_read;
 }
 //: ****************************************************************************
 //: ************************ H T T P   S U P P O R T ***************************
@@ -2461,6 +2468,11 @@ state_top:
                                         //NDBG_PRINT("l_ses->m_goaway:         %d\n", l_ses->m_goaway);
                                         //NDBG_PRINT("l_nconn->can_reuse():    %d\n", l_nconn->can_reuse());
                                         //NDBG_PRINT("l_t_hurl->can_request(): %d\n", l_t_hurl->can_request());
+                                        if(l_ses->m_h2_body_q)
+                                        {
+                                                delete l_ses->m_h2_body_q;
+                                                l_ses->m_h2_body_q = NULL;
+                                        }
                                         if(l_ses->m_goaway ||
                                             !l_nconn->can_reuse() ||
                                             !l_t_hurl->can_request())

@@ -546,6 +546,7 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
 int32_t nbq::join_ref(const nbq &a_nbq_tail)
 {
         const nbq &l_nbq_tail = a_nbq_tail;
+        bool l_empty = m_q.empty();
         for(nb_list_t::const_iterator i_b = l_nbq_tail.m_q.begin();
             i_b != l_nbq_tail.m_q.end();
             ++i_b)
@@ -561,6 +562,10 @@ int32_t nbq::join_ref(const nbq &a_nbq_tail)
                 m_total_read_avail += l_b_ref->written();
         }
         m_cur_write_block = m_q.end();
+        if(l_empty)
+        {
+                m_cur_read_block = m_q.begin();
+        }
         // Join nbq with reference nbq
         return STATUS_OK;
 }
