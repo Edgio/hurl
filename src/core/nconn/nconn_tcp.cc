@@ -628,6 +628,21 @@ state_top:
         }
         // Set to connected state
         m_tcp_state = TCP_STATE_CONNECTED;
+        
+        // David S - KTLS enable - code borrowed from Openssl include/internal/ktls.h
+        
+        int tmp_ret = 0;                                                   
+        tmp_ret = setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
+
+<<<<<<< HEAD
+=======
+        
+        printf("HURL CODE CHECK - in nconn_tcp::ncconnect() after m_tcp_state = TCP_STATE_CONNECTED .635.nconn_tcp.cc- After setsockopt value of tmp_ret is: %d and value of errno is: %d\n",tmp_ret,errno);
+
+>>>>>>> fb62bee... [WIP ktls_davids] Make the debug check for KTLS use more robust (will
+        // David S - KTLS enable  end
+        
+        
         // TODO Stats???
         //if(m_collect_stats_flag)
         //{

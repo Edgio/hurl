@@ -182,6 +182,11 @@ void tls_init(void)
         SSL_library_init();
         // Bring in and register error messages
         ERR_load_crypto_strings();
+        
+        // David S - BIO changes
+        ERR_load_BIO_strings();
+        // David S- end
+
         SSL_load_error_strings();
         // TODO Deprecated???
         //SSLeay_add_tls_algorithms();

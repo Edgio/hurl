@@ -2224,7 +2224,7 @@ state_top:
         {
                 return STATUS_DONE;
         }
-        switch(l_nconn->get_state())
+        switch(l_nconn->get_state()) // base class nconn function. returns m_nc_state
         {
         // -------------------------------------------------
         // STATE: FREE
@@ -2233,7 +2233,7 @@ state_top:
         {
                 //NDBG_PRINT("NC_STATE_FREE\n");
                 int32_t l_s;
-                l_s = l_nconn->ncsetup();
+                l_s = l_nconn->ncsetup(); //should call the implimentation in ns_hurl::nconn_tls for TLS connections. Not certain at this stage since l_nconn is a pointer of type nconn (base class) but it will actually point to a nconn_tls object for tls connections...
                 if(l_s != ns_hurl::nconn::NC_STATUS_OK)
                 {
                         TRC_ERROR("performing ncsetup\n");

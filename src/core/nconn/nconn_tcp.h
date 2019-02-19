@@ -26,6 +26,16 @@
 //: Includes
 //: ----------------------------------------------------------------------------
 #include "nconn.h"
+
+//David S - KTLS changes requires a #define for TCP_ULP - is only defined in /usr/include/linux/tcp.h (propbably from kernel version >= 4.13 when KTLS support was first added). Since KTLS is a linux only feature thus far, only the required define is repeated here (for code portability's sake - based on https://stackoverflow.com/questions/34121434/difference-in-netinet-tcp-h-vs-linux-tcp-h)
+#ifdef __linux__
+    #ifndef TCP_ULP
+    #define TCP_ULP 31
+    #endif
+#endif
+//David S - End
+
+
 namespace ns_hurl {
 //: ----------------------------------------------------------------------------
 //: \details: TODO

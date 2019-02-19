@@ -245,7 +245,7 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
 int32_t nconn::nc_set_accepting(int a_fd)
 {
         int32_t l_s;
-        l_s = ncset_accepting(a_fd);
+        l_s = ncset_accepting(a_fd); //function name typo?
         if(l_s != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
