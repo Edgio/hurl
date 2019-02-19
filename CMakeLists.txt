@@ -178,7 +178,11 @@ elseif(BUILD_UBUNTU)
   find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
 else()
-  set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
+   INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
+   set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/lib/libssl.a")
+   set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/lib/libcrypto.a")    
+   set(LIBRARIES ${LIBRARIES} pthread z)
+   # set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
 # ------------------------------------------------------------------------------
 # Build PROFILER
