@@ -93,10 +93,12 @@ int32_t nlookup(const std::string &a_host,
                         break;
                 }
                 }
-                if(l_addrinfo_v4 ||
-                   l_addrinfo_v6)
+                // hack to force to check all lookups for localhost...
+                if((a_host != "localhost") &&
+                   (l_addrinfo_v4 ||
+                    l_addrinfo_v6))
                 {
-                        break;
+                       break;
                 }
         }
         // If there's an IPv4 address, use that, otherwise try IPv6.

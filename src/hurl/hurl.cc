@@ -979,7 +979,7 @@ public:
                    !m_stopped &&
                    (m_num_in_progress < m_num_conn_parallel_max) &&
                    ((m_num_to_request < 0) ||
-                    ((uint32_t)m_num_to_request > m_stat.m_reqs)))
+                    ((uint32_t)m_num_to_request > (m_stat.m_reqs + m_num_in_progress))))
                 {
                         //NDBG_PRINT("CAN:                TRUE\n");
                         return true;
@@ -1376,6 +1376,7 @@ int32_t http_session::srequest(void)
         }
         {
         // TODO grab from path...
+        m_out_q->reset();
         std::string l_uri;
         l_uri = get_path(g_path_rand_ptr);
         if(l_uri.empty())
@@ -1575,42 +1576,49 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 int32_t http_session::swrite(void)
 {
 #if 0
-        if (complete_) {
-          return -1;
+        if (complete_)
+        {
+                return -1;
         }
         auto config = client_->worker->config;
         auto req_stat = client_->get_req_stat(stream_req_counter_);
-        if (!req_stat) {
-          return 0;
+        if (!req_stat)
+        {
+                return 0;
         }
-        if (req_stat->data_offset < config->data_length) {
-          auto req_stat = client_->get_req_stat(stream_req_counter_);
-          auto &wb = client_->wb;
-          // TODO unfortunately, wb has no interface to use with read(2)
-          // family functions.
-          std::array<uint8_t, 16_k> buf;
-          ssize_t nread;
-          while ((nread = pread(config->data_fd, buf.data(), buf.size(),
-                                req_stat->data_offset)) == -1 &&
-                 errno == EINTR)
-            ;
-          if (nread == -1) {
-            return -1;
-          }
-          req_stat->data_offset += nread;
-          wb.append(buf.data(), nread);
-          if (client_->worker->config->verbose) {
-            std::cout << "[send " << nread << " byte(s)]" << std::endl;
-          }
-          if (req_stat->data_offset == config->data_length) {
-            // increment for next request
-            stream_req_counter_ += 2;
-            if (stream_resp_counter_ == stream_req_counter_) {
-              // Response has already been received
-              client_->on_stream_close(stream_resp_counter_ - 2, true,
-                                       client_->final);
-            }
-          }
+        if (req_stat->data_offset < config->data_length)
+        {
+                auto req_stat = client_->get_req_stat(stream_req_counter_);
+                auto &wb = client_->wb;
+                // TODO unfortunately, wb has no interface to use with read(2)
+                // family functions.
+                std::array<uint8_t, 16_k> buf;
+                ssize_t nread;
+                while((nread = pread(config->data_fd, buf.data(), buf.size(), req_stat->data_offset)) == -1 &&
+                       errno == EINTR)
+                {
+                        // do nothing???
+                }
+                if (nread == -1)
+                {
+                        return -1;
+                }
+                req_stat->data_offset += nread;
+                wb.append(buf.data(), nread);
+                if (client_->worker->config->verbose)
+                {
+                        std::cout << "[send " << nread << " byte(s)]" << std::endl;
+                }
+                if (req_stat->data_offset == config->data_length)
+                {
+                        // increment for next request
+                        stream_req_counter_ += 2;
+                        if (stream_resp_counter_ == stream_req_counter_)
+                        {
+                                // Response has already been received
+                                client_->on_stream_close(stream_resp_counter_ - 2, true, client_->final);
+                        }
+                }
         }
         return 0;
 #endif
@@ -2028,7 +2036,6 @@ int32_t session::request_complete(void)
                 TRC_ERROR("m_t_hurl == NULL\n");
                 return STATUS_ERROR;
         }
-        //NDBG_PRINT("m_t_hurl->m_num_in_progress: %d\n", (int)m_t_hurl->m_num_in_progress);
         m_nconn->bump_num_requested();
         if(m_t_hurl->m_num_in_progress)
         {
@@ -2089,7 +2096,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
         // -------------------------------------------------
         if(a_conn_mode == ns_hurl::EVR_MODE_ERROR)
         {
-                NDBG_PRINT("EVR_MODE_ERROR\n");
                 // ignore errors for free connections
                 if(l_nconn->is_free())
                 {
@@ -2129,7 +2135,6 @@ int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode
         // -------------------------------------------------
         else if(a_conn_mode == ns_hurl::EVR_MODE_TIMEOUT)
         {
-                NDBG_PRINT("EVR_MODE_TIMEOUT\n");
                 // ignore timeout for free connections
                 if(l_nconn->is_free())
                 {
@@ -2465,23 +2470,19 @@ state_top:
                                 }
                                 if(l_ses->m_streams_closed)
                                 {
-                                        //NDBG_PRINT("l_ses->m_goaway:         %d\n", l_ses->m_goaway);
-                                        //NDBG_PRINT("l_nconn->can_reuse():    %d\n", l_nconn->can_reuse());
-                                        //NDBG_PRINT("l_t_hurl->can_request(): %d\n", l_t_hurl->can_request());
+                                        bool l_can_request = l_t_hurl->can_request();
                                         if(l_ses->m_h2_body_q)
                                         {
                                                 delete l_ses->m_h2_body_q;
                                                 l_ses->m_h2_body_q = NULL;
                                         }
                                         if(l_ses->m_goaway ||
-                                            !l_nconn->can_reuse() ||
-                                            !l_t_hurl->can_request())
+                                           !l_nconn->can_reuse() ||
+                                           !l_can_request)
                                         {
-                                                //NDBG_PRINT("done\n");
                                                 l_nconn->set_state_done();
                                                 goto state_top;
                                         }
-                                        //NDBG_PRINT("m_streams_closed: %u\n", l_ses->m_streams_closed);
                                         l_ses->srequest();
                                         a_conn_mode = ns_hurl::EVR_MODE_WRITE;
                                         l_ses->m_streams_closed = 0;
@@ -2604,7 +2605,6 @@ state_top:
         // -------------------------------------------------
         case ns_hurl::nconn::NC_STATE_DONE:
         {
-                //NDBG_PRINT("NC_STATE_DONE\n");
                 //TRC_ERROR("unexpected state DONE\n");
                 session *l_ses = static_cast<session *>(l_nconn->get_data());
                 int32_t l_s;
@@ -2682,7 +2682,7 @@ int32_t t_hurl::conn_start(void)
                 // create connection
                 // -----------------------------------------
                 ns_hurl::nconn *l_nconn = NULL;
-                //NDBG_PRINT("%sCREATING NEW CONNECTION%s\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF);
+                //NDBG_PRINT("%sCREATING NEW CONNECTION%s: set_size: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, (int)m_nconn_set.size());
                 l_nconn = create_conn();
                 if(!l_nconn)
                 {
