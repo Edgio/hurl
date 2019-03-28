@@ -323,6 +323,28 @@ int32_t show_tls_info(nconn *a_nconn)
         TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
         TRC_OUTPUT("%s", ANSI_COLOR_OFF);
         SSL_SESSION_print_fp(stdout, m_tls_session);
+       
+        #ifdef KTLS_SUPPORT 
+            // Print KTLS info
+            if (BIO_get_ktls_send(SSL_get_wbio(l_tls)))
+            {
+                printf("%s\n","TX path is using KTLS");
+            }    
+            else
+            {
+                printf("%s\n","TX path is NOT using KTLS");
+            }
+                                                      
+            if (BIO_get_ktls_recv(SSL_get_rbio(l_tls)))
+            {
+                printf("%s\n","RX path is using KTLS");
+            }    
+            else
+            {
+                printf("%s\n","RX path is NOT using KTLS");
+            }
+        #endif
+
         //int32_t l_protocol_num = get_tls_info_protocol_num(l_tls);
         //std::string l_cipher = get_tls_info_cipher_str(l_tls);
         //std::string l_protocol = get_tls_info_protocol_str(l_protocol_num);
@@ -760,7 +782,7 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
 
 BIO* nconn_tls::get_m_tls_bio()
 {
-    return this->m_tls_bio;
+    return m_tls_bio;
 }    
 
 // David S - End
@@ -1239,33 +1261,6 @@ ncconnect_state_top:
                         }
                 }
         
-        // David S - KTLS debug
-        // The m_tls_bio was kept for convenience, but it seems to be more robust
-        // to rather make use of the SSL_get_wbio/rbio functions when checking for KTLS
-        // since calls to SSL_set_fd exist elsewhere in the hurl source code which could 
-        // potentially 'free' the BIOs assigned to m_tls and thereafter create new BIOs
-        // and attach these to m_tls.
-        //if (BIO_get_ktls_send(m_tls_bio))
-        if (BIO_get_ktls_send(SSL_get_wbio(m_tls)))
-        {
-            printf("%s\n","TX is using KTLS");
-        }    
-        else
-        {
-            printf("%s\n","TX is NOT using KTLS");
-        }
-                                                  
-                                                  
-        //if (BIO_get_ktls_recv(m_tls_bio))
-        if (BIO_get_ktls_recv(SSL_get_rbio(m_tls)))
-        {
-            printf("%s\n","RX is using KTLS");
-        }    
-        else
-        {
-            printf("%s\n","RX is NOT using KTLS");
-        }
-        // David S -End KTLS debug
                 // -----------------------------------------
                 // get negotiated alpn...
                 // -----------------------------------------

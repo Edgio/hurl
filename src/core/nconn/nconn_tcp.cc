@@ -629,20 +629,13 @@ state_top:
         // Set to connected state
         m_tcp_state = TCP_STATE_CONNECTED;
         
-        // David S - KTLS enable - code borrowed from Openssl include/internal/ktls.h
-        
-        setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
-
-        //TODO: check for errors in setsockopt?? - shouldn't really be necessary
-
-        //int tmp_ret = 0;                                                   
-        //tmp_ret = setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
-
-        
-        //printf("HURL CODE CHECK - in nconn_tcp::ncconnect() after m_tcp_state = TCP_STATE_CONNECTED .635.nconn_tcp.cc- After setsockopt value of tmp_ret is: %d and value of errno is: %d\n",tmp_ret,errno); //The purpose of this printf is to evaluate the return code and errno from setsockopt. Only really needed for debugging.
-
-        // David S - KTLS enable  end
-        
+#ifdef KTLS_SUPPORT
+             // David S - KTLS enable - code borrowed from Openssl include/internal/ktls.h
+             
+             setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
+             
+             //TODO: check for errors in setsockopt?? - shouldn't really be necessary
+#endif
         
         // TODO Stats???
         //if(m_collect_stats_flag)
