@@ -628,6 +628,15 @@ state_top:
         }
         // Set to connected state
         m_tcp_state = TCP_STATE_CONNECTED;
+        
+#ifdef KTLS_SUPPORT
+             // David S - KTLS enable - code borrowed from Openssl include/internal/ktls.h
+             
+             setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
+             
+             //TODO: check for errors in setsockopt?? - shouldn't really be necessary
+#endif
+        
         // TODO Stats???
         //if(m_collect_stats_flag)
         //{

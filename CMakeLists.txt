@@ -43,6 +43,7 @@ option(BUILD_UBSAN          "Build with Undefined Behavior Sanitizer" OFF)
 option(BUILD_UDNS           "Build with udns (async dns support)" ON)
 option(BUILD_UBUNTU         "Build for Ubuntu" OFF)
 option(BUILD_CUSTOM_OPENSSL "Build for Ubuntu" OFF)
+option(BUILD_KTLS_SUPPORT   "Build with KTLS support - requires OpenSSL to be built with KTLS support as well" OFF)
 # ------------------------------------------------------------------------------
 # Display the current settings
 # ------------------------------------------------------------------------------
@@ -64,6 +65,7 @@ message("    Build with Undefined Behavior Sanitizer:   " "BUILD_UBSAN          
 message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
 message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU            " ${BUILD_UBUNTU})
 message("    Build for custom OpenSSL:                  " "BUILD_CUSTOM_OPENSSL    " ${BUILD_CUSTOM_OPENSSL})
+message("    Build with KTLS support:                   " "BUILD_KTLS_SUPPORT      " ${BUILD_KTLS_SUPPORT})
 message("")
 # ------------------------------------------------------------------------------
 # fortify options
@@ -168,9 +170,9 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # Link OpenSSL
 # ------------------------------------------------------------------------------
 if(BUILD_UBUNTU AND BUILD_CUSTOM_OPENSSL)
-  INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
-  set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libssl.a")
-  set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libcrypto.a")
+  	INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
+	set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libssl.a")
+	set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libcrypto.a")
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
   add_definitions(-DBUILD_CUSTOM_OPENSSL=1)
 elseif(BUILD_UBUNTU)
@@ -178,8 +180,14 @@ elseif(BUILD_UBUNTU)
   find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
 else()
-  set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
+    set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
+# ------------------------------------------------------------------------------
+# KTLS SUPPORT
+# ------------------------------------------------------------------------------
+if (BUILD_KTLS_SUPPORT)
+    add_definitions(-DKTLS_SUPPORT)
+endif()    
 # ------------------------------------------------------------------------------
 # Build PROFILER
 # ------------------------------------------------------------------------------
