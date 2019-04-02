@@ -27,7 +27,6 @@
 #include "support/trace.h"
 #include "nconn/nconn_tcp.h"
 #include "support/ndebug.h"
-// Fcntl and friends
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -628,15 +627,9 @@ state_top:
         }
         // Set to connected state
         m_tcp_state = TCP_STATE_CONNECTED;
-        
 #ifdef KTLS_SUPPORT
-             // David S - KTLS enable - code borrowed from Openssl include/internal/ktls.h
-             
-             setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
-             
-             //TODO: check for errors in setsockopt?? - shouldn't really be necessary
+        setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
 #endif
-        
         // TODO Stats???
         //if(m_collect_stats_flag)
         //{

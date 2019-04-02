@@ -26,10 +26,6 @@
 //: includes
 //: ----------------------------------------------------------------------------
 #include "nconn/nconn_tcp.h"
-// David S - BIO includes
-#include <openssl/bio.h>
-#include <openssl/ssl.h>
-// End David S
 //: ----------------------------------------------------------------------------
 //: ext fwd decl's
 //: ----------------------------------------------------------------------------
@@ -94,32 +90,27 @@ public:
         // Public methods
         // ---------------------------------------
         nconn_tls():
-          nconn_tcp(),
-          m_tls_ctx(NULL),
-          m_tls(NULL),
-          // David S - BIO changes
-          m_tls_bio(NULL),
-          // David S - End
-          m_tls_opt_verify(false),
-          m_tls_opt_sni(false),
-          m_tls_opt_verify_allow_self_signed(false),
-          m_tls_opt_verify_no_host_check(false),
-          m_tls_opt_hostname(""),
-          m_tls_opt_ca_file(""),
-          m_tls_opt_ca_path(""),
-          m_tls_opt_options(0),
-          m_tls_opt_cipher_str(""),
-          m_tls_key(""),
-          m_tls_crt(""),
-          m_tls_state(TLS_STATE_NONE),
-          m_last_err(0)
+                nconn_tcp(),
+                m_tls_ctx(NULL),
+                m_tls(NULL),
+                m_tls_opt_verify(false),
+                m_tls_opt_sni(false),
+                m_tls_opt_verify_allow_self_signed(false),
+                m_tls_opt_verify_no_host_check(false),
+                m_tls_opt_hostname(""),
+                m_tls_opt_ca_file(""),
+                m_tls_opt_ca_path(""),
+                m_tls_opt_options(0),
+                m_tls_opt_cipher_str(""),
+                m_tls_key(""),
+                m_tls_crt(""),
+                m_tls_state(TLS_STATE_NONE),
+                m_last_err(0)
         {
                 m_scheme = SCHEME_TLS;
         };
         // Destructor
         ~nconn_tls() {};
-        
-        //Public methods
         int32_t set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len);
         int32_t get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len);
         bool is_listening(void) {return (m_tls_state == TLS_STATE_LISTENING);};
@@ -131,9 +122,6 @@ public:
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING) ||
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING_WANT_READ) ||
                                          (m_tls_state == TLS_STATE_TLS_ACCEPTING_WANT_WRITE));};
-        //David S
-        BIO* get_m_tls_bio();
-        //David S - End
         // -------------------------------------------------
         // virtual methods
         // -------------------------------------------------
@@ -147,8 +135,6 @@ public:
         int32_t ncset_listening_nb(int32_t a_val);
         int32_t ncset_accepting(int a_fd);
         int32_t ncset_connected(void);
-
-        
 private:
         // -------------------------------------------------
         // Private methods
@@ -163,9 +149,6 @@ private:
         // -------------------------------------------------
         SSL_CTX * m_tls_ctx;
         SSL *m_tls;
-        // David S - TLS BIO additions
-        BIO *m_tls_bio;
-        // End David S
         bool m_tls_opt_verify;
         bool m_tls_opt_sni;
         bool m_tls_opt_verify_allow_self_signed;

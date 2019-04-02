@@ -39,9 +39,7 @@
 #include <openssl/rand.h>
 #include <openssl/crypto.h>
 #include <openssl/x509v3.h>
-//David S
 #include <sys/socket.h>
-
 //: ----------------------------------------------------------------------------
 //: constants
 //: ----------------------------------------------------------------------------
@@ -323,28 +321,25 @@ int32_t show_tls_info(nconn *a_nconn)
         TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
         TRC_OUTPUT("%s", ANSI_COLOR_OFF);
         SSL_SESSION_print_fp(stdout, m_tls_session);
-       
-        #ifdef KTLS_SUPPORT 
-            // Print KTLS info
-            if (BIO_get_ktls_send(SSL_get_wbio(l_tls)))
-            {
-                printf("%s\n","TX path is using KTLS");
-            }    
-            else
-            {
-                printf("%s\n","TX path is NOT using KTLS");
-            }
-                                                      
-            if (BIO_get_ktls_recv(SSL_get_rbio(l_tls)))
-            {
-                printf("%s\n","RX path is using KTLS");
-            }    
-            else
-            {
-                printf("%s\n","RX path is NOT using KTLS");
-            }
-        #endif
-
+#ifdef KTLS_SUPPORT
+        // Print KTLS info
+        if(BIO_get_ktls_send(SSL_get_wbio(l_tls)))
+        {
+                TRC_OUTPUT("TX path is using KTLS\n");
+        }
+        else
+        {
+                TRC_OUTPUT("TX path is NOT using KTLS\n",);
+        }
+        if(BIO_get_ktls_recv(SSL_get_rbio(l_tls)))
+        {
+                TRC_OUTPUT("RX path is using KTLS\n",);
+        }
+        else
+        {
+                TRC_OUTPUT("RX path is NOT using KTLS\n");
+        }
+#endif
         //int32_t l_protocol_num = get_tls_info_protocol_num(l_tls);
         //std::string l_cipher = get_tls_info_cipher_str(l_tls);
         //std::string l_protocol = get_tls_info_protocol_str(l_protocol_num);
@@ -364,45 +359,69 @@ int32_t nconn_tls::init(void)
                 NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: ctx == NULL\n", m_label.c_str());
                 return NC_STATUS_ERROR;
         }
-        m_tls = ::SSL_new(m_tls_ctx); //creates the SSL structure which is needed to hold data for a SSL/TLS connection. The new structure inherits the settings of the uderlying context. - https://www.openssl.org/docs/man1.1.1/man3/SSL_new.html - In this case, the underlying context is m_tls_ctx. //returns pointer to allocated SSL structure
-        
+        m_tls = ::SSL_new(m_tls_ctx);
         if(!m_tls_ctx)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: tls_ctx == NULL\n", m_label.c_str());
                 return NC_STATUS_ERROR;
         }
-        // David S - BIO code - these changes may not be expressly necessary to add KTLS support, but it is convenient to be able to address the BIO directly without having to call the openssl 'get BIO' functions for debugging (i.e. checking if the BIO is using KTLS or not)
-        // Based on OpenSSL master manual pages as well as an article in Linux Journal - https://www.linuxjournal.com/article/4822 
-
-
-        // Create BIO and attach to TCP socket
-        m_tls_bio = ::BIO_new_socket(m_fd,BIO_NOCLOSE);
-        
-        if (m_tls_bio == NULL)
+#ifdef KTLS_SUPPORT
+        // -------------------------------------------------
+        // BIO code:
+        // changes may not be necessary to add KTLS support,
+        // but it is convenient to be able to address BIO
+        // directly w/o having to call the openssl 'get BIO'
+        // functions for debugging (i.e. checking if the BIO
+        // is using KTLS or not)
+        // Based on OpenSSL master manual pages as well as
+        // article in Linux Journal:
+        // https://www.linuxjournal.com/article/4822
+        // -------------------------------------------------
+        // create BIO and attach to TCP socket
+        // -------------------------------------------------
+        BIO *l_bio = NULL;
+        l_bio = ::BIO_new_socket(m_fd,BIO_NOCLOSE);
+        if(l_bio == NULL)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS, "LABEL[%s]: m_tls_bio == NULL\n", m_label.c_str());
                 return NC_STATUS_ERROR;  
-        } //end if m_tls_bio == NULL    
-
-        //Attach SSL object (m_tls) to BIO
-        
-        ::BIO_up_ref(m_tls_bio); //Necessary to increase (up) the reference counter of m_tls_bio, since the SSL_set_rbio and SSL_set_wbio functions will each take ownership of one reference to the m_tls_bio object - https://www.openssl.org/docs/manmaster/man3/SSL_set_bio.html
-        
-        //TODO Check for errors
-        
-        
-        ::SSL_set0_rbio(m_tls,m_tls_bio); // Set m_tls_bio as both read- and write BIOs
-        ::SSL_set0_wbio(m_tls,m_tls_bio);
-
-        
-        //TODO Check for errors
-
-
-        //Original code::SSL_set_fd(m_tls, m_fd); // Sets the fd as the input/output facility for the TLS/SSL (encrypted) side of the SSL structure (m_tls). fd should typically be the scoket file descriptor of an underlying network conection (m_fd is the fd of the underlying TCP connection) - NB! a socket BIO is AUTOMATICALLY created as part of this process to interface between m_tls and m_fd -   https://www.openssl.org/docs/manmaster/man3/SSL_set_fd.html - the BIO will inherit the nature of m_fd. NOTE: if a BIO was already connected to the SSL structure (m_tls), BIO_free() will be called for both the sending and receiving side (if different).
-        
-        // David S - End
-        
-        // TODO Check for Errors
+        }
+        // -------------------------------------------------
+        // attach SSL object (m_tls) to BIO
+        // -------------------------------------------------
+        // necessary to increase (up) the reference counter
+        // of m_tls_bio, since the SSL_set_rbio and
+        // SSL_set_wbio functions will each take ownership
+        // of one reference to the m_tls_bio object
+        // https://www.openssl.org/docs/manmaster/man3/SSL_set_bio.html
+        // -------------------------------------------------
+        ::BIO_up_ref(l_bio);
+        // TODO Check for errors
+        // -------------------------------------------------
+        // set m_tls_bio as both read- and write BIOs
+        // -------------------------------------------------
+        ::SSL_set0_rbio(m_tls,l_bio);
+        ::SSL_set0_wbio(m_tls,l_bio);
+        // TODO Check for errors
+        // -------------------------------------------------
+        // Sets the fd as the input/output facility for the
+        // TLS/SSL (encrypted) SSL structure (m_tls).
+        // fd should typically be the scoket file descriptor
+        // of an underlying network conection
+        // (m_fd is the fd of the underlying TCP connection)
+        // -NB! socket BIO is AUTOMATICALLY created as part
+        // of this process to interface between m_tls and
+        // m_fd see:
+        // https://www.openssl.org/docs/manmaster/man3/SSL_set_fd.html
+        // BIO will inherit the nature of m_fd.
+        // NOTE: if a BIO was already connected to the SSL
+        // structure (m_tls), BIO_free() will be called for
+        // both the sending and receiving side (if different).
+        // -------------------------------------------------
+        // TODO l_bio leaks???
+#else
+        SSL_set_fd(m_tls, m_fd);
+#endif
         ::SSL_set_ex_data(m_tls, _HURL_EX_DATA_IDX, this);
         // TODO Check for Errors
         const long l_tls_options = m_tls_opt_options;
@@ -481,7 +500,6 @@ int32_t nconn_tls::tls_connect(void)
 {
         int l_status;
         m_tls_state = TLS_STATE_TLS_CONNECTING;
-
         l_status = SSL_connect(m_tls); 
         if(l_status <= 0)
         {
@@ -776,22 +794,6 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
         }
         return NC_STATUS_OK;
 }
-
-
-// David S - Add definition for public function (prototype defined in core/nconn/nconn_tls.h) to get m_tls_bio
-
-BIO* nconn_tls::get_m_tls_bio()
-{
-    return m_tls_bio;
-}    
-
-// David S - End
-
-
-
-
-
-
 //: ----------------------------------------------------------------------------
 //: \details: TODO
 //: \return:  TODO
@@ -882,10 +884,9 @@ int32_t nconn_tls::ncset_listening_nb(int32_t a_val)
 //: ----------------------------------------------------------------------------
 int32_t nconn_tls::ncset_accepting(int a_fd)
 {
-        printf("HURL CODE FLOW - we are now in an accepting mood");//Check to see if this code is ever hit - there does not seem to be a call to the nconn_tls::ncset_accepting method anywhere in the source code
-        int32_t l_status;
-        l_status = nconn_tcp::ncset_accepting(a_fd);
-        if(l_status != NC_STATUS_OK)
+        int32_t l_s;
+        l_s = nconn_tcp::ncset_accepting(a_fd);
+        if(l_s != NC_STATUS_OK)
         {
                 return NC_STATUS_ERROR;
         }

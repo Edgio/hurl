@@ -170,9 +170,9 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # Link OpenSSL
 # ------------------------------------------------------------------------------
 if(BUILD_UBUNTU AND BUILD_CUSTOM_OPENSSL)
-  	INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
-	set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libssl.a")
-	set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libcrypto.a")
+  INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
+  set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libssl.a")
+  set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libcrypto.a")
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
   add_definitions(-DBUILD_CUSTOM_OPENSSL=1)
 elseif(BUILD_UBUNTU)
@@ -180,7 +180,7 @@ elseif(BUILD_UBUNTU)
   find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
   find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
 else()
-    set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
+  set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
 # ------------------------------------------------------------------------------
 # KTLS SUPPORT
