@@ -329,11 +329,11 @@ int32_t show_tls_info(nconn *a_nconn)
         }
         else
         {
-                TRC_OUTPUT("TX path is NOT using KTLS\n",);
+                TRC_OUTPUT("TX path is NOT using KTLS\n");
         }
         if(BIO_get_ktls_recv(SSL_get_rbio(l_tls)))
         {
-                TRC_OUTPUT("RX path is using KTLS\n",);
+                TRC_OUTPUT("RX path is using KTLS\n");
         }
         else
         {
