@@ -147,13 +147,6 @@ elseif (BUILD_UBSAN)
   set(BUILD_TCMALLOC OFF)
 endif()
 # ------------------------------------------------------------------------------
-# Libraries options
-# ------------------------------------------------------------------------------
-set(LIBRARIES ${LIBRARIES} pthread)
-IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(LIBRARIES ${LIBRARIES} rt)
-ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-# ------------------------------------------------------------------------------
 # Mac OS X
 # ------------------------------------------------------------------------------
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -182,6 +175,13 @@ elseif(BUILD_UBUNTU)
 else()
   set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
+# ------------------------------------------------------------------------------
+# Libraries options
+# ------------------------------------------------------------------------------
+set(LIBRARIES ${LIBRARIES} pthread)
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(LIBRARIES ${LIBRARIES} rt)
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # ------------------------------------------------------------------------------
 # KTLS SUPPORT
 # ------------------------------------------------------------------------------

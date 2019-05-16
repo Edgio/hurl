@@ -3946,7 +3946,10 @@ int main(int argc, char** argv)
                         // ---------------------------------
                         // get the url...
                         // ---------------------------------
-                        l_url = argv[optind];
+                        if(argv[optind])
+                        {
+                                l_url = argv[optind];
+                        }
                         if(!l_url.empty())
                         {
                                 l_input_flag = true;
