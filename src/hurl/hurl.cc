@@ -3448,7 +3448,7 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // Get args...
         // -------------------------------------------------
-        char l_opt;
+        char l_opt = '\0';
         std::string l_arg;
         int l_option_index = 0;
         struct option l_long_options[] =
@@ -3586,7 +3586,7 @@ int main(int argc, char** argv)
                         }
                         // Add content length
                         char l_len_str[64];
-                        sprintf(l_len_str, "%lu", l_body_q->read_avail());
+                        sprintf(l_len_str, "%u", (unsigned int)l_body_q->read_avail());
                         l_request->set_header("Content-Length", l_len_str);
                         l_request->m_body_q = l_body_q;
                         break;
