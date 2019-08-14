@@ -31,6 +31,11 @@
 #  define WIN32
 #endif
 
+/* Compatibility for non-Clang compilers */
+#ifndef __has_declspec_attribute
+#  define __has_declspec_attribute(x) 0
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -51,7 +56,8 @@ extern "C" {
 
 #ifdef NGHTTP2_STATICLIB
 #  define NGHTTP2_EXTERN
-#elif defined(WIN32)
+#elif defined(WIN32) || (__has_declspec_attribute(dllexport) &&                \
+                         __has_declspec_attribute(dllimport))
 #  ifdef BUILDING_NGHTTP2
 #    define NGHTTP2_EXTERN __declspec(dllexport)
 #  else /* !BUILDING_NGHTTP2 */
@@ -680,7 +686,12 @@ typedef enum {
   /**
    * SETTINGS_MAX_HEADER_LIST_SIZE
    */
-  NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE = 0x06
+  NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE = 0x06,
+  /**
+   * SETTINGS_ENABLE_CONNECT_PROTOCOL
+   * (`RFC 8441 <https://tools.ietf.org/html/rfc8441>`_)
+   */
+  NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL = 0x08
 } nghttp2_settings_id;
 /* Note: If we add SETTINGS, update the capacity of
    NGHTTP2_INBOUND_NUM_IV as well */

@@ -164,6 +164,7 @@ typedef struct {
   uint32_t initial_window_size;
   uint32_t max_frame_size;
   uint32_t max_header_list_size;
+  uint32_t enable_connect_protocol;
 } nghttp2_settings_storage;
 
 typedef enum {
@@ -208,9 +209,6 @@ struct nghttp2_session {
   nghttp2_session_callbacks callbacks;
   /* Memory allocator */
   nghttp2_mem mem;
-  /* Base value when we schedule next DATA frame write.  This is
-     updated when one frame was written. */
-  uint64_t last_cycle;
   void *user_data;
   /* Points to the latest incoming closed stream.  NULL if there is no
      closed stream.  Only used when session is initialized as
@@ -321,6 +319,9 @@ struct nghttp2_session {
   /* Unacked local ENABLE_PUSH value.  We use this to refuse
      PUSH_PROMISE before SETTINGS ACK is received. */
   uint8_t pending_enable_push;
+  /* Unacked local ENABLE_CONNECT_PROTOCOL value.  We use this to
+     accept :protocol header field before SETTINGS_ACK is received. */
+  uint8_t pending_enable_connect_protocol;
   /* Nonzero if the session is server side. */
   uint8_t server;
   /* Flags indicating GOAWAY is sent and/or received. The flags are

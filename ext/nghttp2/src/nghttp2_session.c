@@ -3619,71 +3619,73 @@ static int inflate_header_block(nghttp2_session *session, nghttp2_frame *frame,
 
     if (call_header_cb && (inflate_flags & NGHTTP2_HD_INFLATE_EMIT)) {
       rv = 0;
-      if (subject_stream && session_enforce_http_messaging(session)) {
-        rv = nghttp2_http_on_header(session, subject_stream, frame, &nv,
-                                    trailer);
+      if (subject_stream) {
+        if (session_enforce_http_messaging(session)) {
+          rv = nghttp2_http_on_header(session, subject_stream, frame, &nv,
+                                      trailer);
 
-        if (rv == NGHTTP2_ERR_IGN_HTTP_HEADER) {
-          /* Don't overwrite rv here */
-          int rv2;
+          if (rv == NGHTTP2_ERR_IGN_HTTP_HEADER) {
+            /* Don't overwrite rv here */
+            int rv2;
 
-          rv2 = session_call_on_invalid_header(session, frame, &nv);
-          if (rv2 == NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE) {
-            rv = NGHTTP2_ERR_HTTP_HEADER;
-          } else {
-            if (rv2 != 0) {
-              return rv2;
+            rv2 = session_call_on_invalid_header(session, frame, &nv);
+            if (rv2 == NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE) {
+              rv = NGHTTP2_ERR_HTTP_HEADER;
+            } else {
+              if (rv2 != 0) {
+                return rv2;
+              }
+
+              /* header is ignored */
+              DEBUGF("recv: HTTP ignored: type=%u, id=%d, header %.*s: %.*s\n",
+                     frame->hd.type, frame->hd.stream_id, (int)nv.name->len,
+                     nv.name->base, (int)nv.value->len, nv.value->base);
+
+              rv2 = session_call_error_callback(
+                  session, NGHTTP2_ERR_HTTP_HEADER,
+                  "Ignoring received invalid HTTP header field: frame type: "
+                  "%u, stream: %d, name: [%.*s], value: [%.*s]",
+                  frame->hd.type, frame->hd.stream_id, (int)nv.name->len,
+                  nv.name->base, (int)nv.value->len, nv.value->base);
+
+              if (nghttp2_is_fatal(rv2)) {
+                return rv2;
+              }
             }
+          }
 
-            /* header is ignored */
-            DEBUGF("recv: HTTP ignored: type=%u, id=%d, header %.*s: %.*s\n",
+          if (rv == NGHTTP2_ERR_HTTP_HEADER) {
+            DEBUGF("recv: HTTP error: type=%u, id=%d, header %.*s: %.*s\n",
                    frame->hd.type, frame->hd.stream_id, (int)nv.name->len,
                    nv.name->base, (int)nv.value->len, nv.value->base);
 
-            rv2 = session_call_error_callback(
+            rv = session_call_error_callback(
                 session, NGHTTP2_ERR_HTTP_HEADER,
-                "Ignoring received invalid HTTP header field: frame type: "
+                "Invalid HTTP header field was received: frame type: "
                 "%u, stream: %d, name: [%.*s], value: [%.*s]",
                 frame->hd.type, frame->hd.stream_id, (int)nv.name->len,
                 nv.name->base, (int)nv.value->len, nv.value->base);
 
-            if (nghttp2_is_fatal(rv2)) {
-              return rv2;
+            if (nghttp2_is_fatal(rv)) {
+              return rv;
             }
+
+            rv = session_handle_invalid_stream2(session,
+                                                subject_stream->stream_id,
+                                                frame, NGHTTP2_ERR_HTTP_HEADER);
+            if (nghttp2_is_fatal(rv)) {
+              return rv;
+            }
+            return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
           }
         }
-
-        if (rv == NGHTTP2_ERR_HTTP_HEADER) {
-          DEBUGF("recv: HTTP error: type=%u, id=%d, header %.*s: %.*s\n",
-                 frame->hd.type, frame->hd.stream_id, (int)nv.name->len,
-                 nv.name->base, (int)nv.value->len, nv.value->base);
-
-          rv = session_call_error_callback(
-              session, NGHTTP2_ERR_HTTP_HEADER,
-              "Invalid HTTP header field was received: frame type: "
-              "%u, stream: %d, name: [%.*s], value: [%.*s]",
-              frame->hd.type, frame->hd.stream_id, (int)nv.name->len,
-              nv.name->base, (int)nv.value->len, nv.value->base);
-
-          if (nghttp2_is_fatal(rv)) {
+        if (rv == 0) {
+          rv = session_call_on_header(session, frame, &nv);
+          /* This handles NGHTTP2_ERR_PAUSE and
+             NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE as well */
+          if (rv != 0) {
             return rv;
           }
-
-          rv =
-              session_handle_invalid_stream2(session, subject_stream->stream_id,
-                                             frame, NGHTTP2_ERR_HTTP_HEADER);
-          if (nghttp2_is_fatal(rv)) {
-            return rv;
-          }
-          return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-        }
-      }
-      if (rv == 0) {
-        rv = session_call_on_header(session, frame, &nv);
-        /* This handles NGHTTP2_ERR_PAUSE and
-           NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE as well */
-        if (rv != 0) {
-          return rv;
         }
       }
     }
@@ -4361,6 +4363,9 @@ int nghttp2_session_update_local_settings(nghttp2_session *session,
     case NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
       session->local_settings.max_header_list_size = iv[i].value;
       break;
+    case NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL:
+      session->local_settings.enable_connect_protocol = iv[i].value;
+      break;
     }
   }
 
@@ -4498,6 +4503,26 @@ int nghttp2_session_on_settings_received(nghttp2_session *session,
     case NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
 
       session->remote_settings.max_header_list_size = entry->value;
+
+      break;
+    case NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL:
+
+      if (entry->value != 0 && entry->value != 1) {
+        return session_handle_invalid_connection(
+            session, frame, NGHTTP2_ERR_PROTO,
+            "SETTINGS: invalid SETTINGS_ENABLE_CONNECT_PROTOCOL");
+      }
+
+      if (!session->server &&
+          session->remote_settings.enable_connect_protocol &&
+          entry->value == 0) {
+        return session_handle_invalid_connection(
+            session, frame, NGHTTP2_ERR_PROTO,
+            "SETTINGS: server attempted to disable "
+            "SETTINGS_ENABLE_CONNECT_PROTOCOL");
+      }
+
+      session->remote_settings.enable_connect_protocol = entry->value;
 
       break;
     }
@@ -5250,6 +5275,7 @@ static void inbound_frame_set_settings_entry(nghttp2_inbound_frame *iframe) {
   case NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE:
   case NGHTTP2_SETTINGS_MAX_FRAME_SIZE:
   case NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
+  case NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL:
     break;
   default:
     DEBUGF("recv: unknown settings id=0x%02x\n", iv.settings_id);
@@ -5378,8 +5404,8 @@ ssize_t nghttp2_session_mem_recv(nghttp2_session *session, const uint8_t *in,
     case NGHTTP2_IB_READ_CLIENT_MAGIC:
       readlen = nghttp2_min(inlen, iframe->payloadleft);
 
-      if (memcmp(NGHTTP2_CLIENT_MAGIC + NGHTTP2_CLIENT_MAGIC_LEN -
-                     iframe->payloadleft,
+      if (memcmp(&NGHTTP2_CLIENT_MAGIC[NGHTTP2_CLIENT_MAGIC_LEN -
+                                       iframe->payloadleft],
                  in, readlen) != 0) {
         return NGHTTP2_ERR_BAD_CLIENT_MAGIC;
       }
@@ -7052,6 +7078,13 @@ int nghttp2_session_add_settings(nghttp2_session *session, uint8_t flags,
     }
   }
 
+  for (i = niv; i > 0; --i) {
+    if (iv[i - 1].settings_id == NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL) {
+      session->pending_enable_connect_protocol = (uint8_t)iv[i - 1].value;
+      break;
+    }
+  }
+
   return 0;
 }
 
@@ -7360,6 +7393,8 @@ uint32_t nghttp2_session_get_remote_settings(nghttp2_session *session,
     return session->remote_settings.max_frame_size;
   case NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
     return session->remote_settings.max_header_list_size;
+  case NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL:
+    return session->remote_settings.enable_connect_protocol;
   }
 
   assert(0);
@@ -7381,6 +7416,8 @@ uint32_t nghttp2_session_get_local_settings(nghttp2_session *session,
     return session->local_settings.max_frame_size;
   case NGHTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
     return session->local_settings.max_header_list_size;
+  case NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL:
+    return session->local_settings.enable_connect_protocol;
   }
 
   assert(0);
