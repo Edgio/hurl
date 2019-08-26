@@ -4210,10 +4210,10 @@ int main(int argc, char** argv)
                                 l_c_fg_white, "Rsp/s", l_c_off,
                                 l_c_fg_white, "Cmpltd", l_c_off,
                                 l_c_fg_white, "Errors", l_c_off,
-                                l_c_fg_green, "200s %%", l_c_off,
-                                l_c_fg_cyan, "300s %%", l_c_off,
-                                l_c_fg_magenta, "400s %%", l_c_off,
-                                l_c_fg_red, "500s %%", l_c_off);
+                                l_c_fg_green, "200s %", l_c_off,
+                                l_c_fg_cyan, "300s %", l_c_off,
+                                l_c_fg_magenta, "400s %", l_c_off,
+                                l_c_fg_red, "500s %", l_c_off);
                 }
                 else
                 {
