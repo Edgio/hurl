@@ -185,6 +185,7 @@ if (BUILD_TCMALLOC)
     set(LIBRARIES ${LIBRARIES} unwind)
     set(LIBRARIES ${LIBRARIES} lzma)
   endif()
+  set(LIBRARIES ${LIBRARIES} pthread)
 endif()
 # ------------------------------------------------------------------------------
 # Build UDNS
