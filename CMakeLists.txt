@@ -40,7 +40,7 @@ option(BUILD_SYMBOLS        "Build with Symbols" OFF)
 option(BUILD_ASAN           "Build with Address Sanitizer" OFF)
 option(BUILD_UBSAN          "Build with Undefined Behavior Sanitizer" OFF)
 option(BUILD_UDNS           "Build with udns (async dns support)" ON)
-option(BUILD_LINUX          "Build for Ubuntu" OFF)
+option(BUILD_LINUX          "Build for Linux" OFF)
 option(BUILD_CUSTOM_OPENSSL "Build with custom OpenSSL" OFF)
 option(BUILD_KTLS_SUPPORT   "Build with KTLS support - requires OpenSSL to be built with KTLS support as well" OFF)
 # ------------------------------------------------------------------------------
@@ -198,14 +198,6 @@ if(BUILD_UDNS)
     INSTALL_COMMAND ""
   )
   add_definitions(-DASYNC_DNS_WITH_UDNS=1)
-endif()
-# ------------------------------------------------------------------------------
-# package failures
-# ------------------------------------------------------------------------------
-if (FAILED_PACKAGES)
-  LIST(REMOVE_DUPLICATES MISSING_UBUNTU_PACKAGES)
-  string(REPLACE ";" " " MISSING_UBUNTU_PACKAGES_STR "${MISSING_UBUNTU_PACKAGES}")
-  message(FATAL_ERROR "  Please install suggested packages:   sudo apt-get install ${MISSING_UBUNTU_PACKAGES_STR}   and try again.")
 endif()
 # ------------------------------------------------------------------------------
 #
