@@ -3373,8 +3373,8 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "Debug Options:\n");
         fprintf(a_stream, "  -r, --trace          Turn on tracing (error/warn/debug/verbose/all)\n");
 #ifdef ENABLE_PROFILER
-        fprintf(a_stream, "  -P, --hprofile   Google heap profiler output file\n");
-        fprintf(a_stream, "  -G, --cprofile   Google cpu profiler output file\n");
+        fprintf(a_stream, "  -P, --hprofile       Google heap profiler output file\n");
+        fprintf(a_stream, "  -G, --cprofile       Google cpu profiler output file\n");
 #endif
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "Note: If running long jobs consider enabling tcp_tw_reuse -eg:\n");
