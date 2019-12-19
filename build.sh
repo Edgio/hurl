@@ -34,7 +34,7 @@ pushd build && \
     -DBUILD_TCMALLOC=ON \
     -DBUILD_TESTS=ON \
     -DBUILD_APPS=ON \
-    -DBUILD_UBUNTU=ON \
+    -DBUILD_LINUX=ON \
     -DCMAKE_INSTALL_PREFIX=/usr && \
     make && \
     umask 0022 && chmod -R a+rX . && \

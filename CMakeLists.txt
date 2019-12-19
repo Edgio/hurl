@@ -37,12 +37,11 @@ option(BUILD_TESTS          "Build the unit tests." OFF)
 option(BUILD_TCMALLOC       "Build with tcmalloc" OFF)
 option(BUILD_PROFILER       "Enable google cpu and heap profiler support" OFF)
 option(BUILD_SYMBOLS        "Build with Symbols" OFF)
-option(BUILD_EFENCE         "Build with efence" OFF)
 option(BUILD_ASAN           "Build with Address Sanitizer" OFF)
 option(BUILD_UBSAN          "Build with Undefined Behavior Sanitizer" OFF)
 option(BUILD_UDNS           "Build with udns (async dns support)" ON)
-option(BUILD_UBUNTU         "Build for Ubuntu" OFF)
-option(BUILD_CUSTOM_OPENSSL "Build for Ubuntu" OFF)
+option(BUILD_LINUX         "Build for Ubuntu" OFF)
+option(BUILD_CUSTOM_OPENSSL "Build with custom OpenSSL" OFF)
 option(BUILD_KTLS_SUPPORT   "Build with KTLS support - requires OpenSSL to be built with KTLS support as well" OFF)
 # ------------------------------------------------------------------------------
 # Display the current settings
@@ -59,11 +58,10 @@ message("    Install path:                              " "INSTALL_PREFIX       
 message("    Enable google cpu/heap profiler support:   " "BUILD_PROFILER          " ${BUILD_PROFILER})
 message("    Build Symbols                              " "BUILD_SYMBOLS           " ${BUILD_SYMBOLS})
 message("    Build with tcmalloc:                       " "BUILD_TCMALLOC          " ${BUILD_TCMALLOC})
-message("    Build with efence:                         " "BUILD_EFENCE            " ${BUILD_EFENCE})
 message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
 message("    Build with Undefined Behavior Sanitizer:   " "BUILD_UBSAN             " ${BUILD_UBSAN})
 message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
-message("    Build for Ubuntu (adds package help):      " "BUILD_UBUNTU            " ${BUILD_UBUNTU})
+message("    Build for Ubuntu (adds package help):      " "BUILD_LINUX             " ${BUILD_LINUX})
 message("    Build for custom OpenSSL:                  " "BUILD_CUSTOM_OPENSSL    " ${BUILD_CUSTOM_OPENSSL})
 message("    Build with KTLS support:                   " "BUILD_KTLS_SUPPORT      " ${BUILD_KTLS_SUPPORT})
 message("")
@@ -74,63 +72,22 @@ if (FORTIFY)
   add_definitions(-D_FORTIFY_SOURCE=2 -O1 -fstack-protector-all -Wl,-z,relro,-z,now)
 endif()
 # ------------------------------------------------------------------------------
-# \brief   Find ubuntu packages based on their (optional) include and (required) library test files
-# \details
-# \param   output_var_prefix    The prefix for variables output_var_prefix{_INCLUDE_DIR,_LIBS} that are set on success
-# \param   include_test_file    The file to look for via find_path to see if it exists anywhere
-# \param   library_test_file    The file to look for and add to the LIBRARIES variable
-# \param   ubuntu_package       The package to add to CPACK package depends list
-# \param   ubuntu_build_package The package to suggest installing to proceed building properly
+# fail if not found
 # ------------------------------------------------------------------------------
-macro(find_ubuntu_package output_var_prefix include_test_file
-                library_test_file ubuntu_package
-                ubuntu_build_package)
-
-  # handle optional prefix_path arg
-  if (${ARGC} EQUAL 6)
-          set(prefix_path "${ARGN}")
-          message(STATUS "Got prefix path: '${prefix_path}' for package: ${ubuntu_build_package}")
-          # set(list_var "${ARGN}")
-          # message(STATUS "got ARGC: ${ARGC}")
-          # foreach(loop_var IN LISTS list_var)
-          #         message(STATUS "got arg: ${loop_var}")
-          # endforeach()
+macro(fail_if_not_found_library a_lib)
+  find_library(${a_lib}_LIBRARY
+               NAME ${a_lib}
+               PATH_SUFFIXES ${CMAKE_LIBRARY_ARCHITECTURE})
+  if(NOT ${a_lib}_LIBRARY)
+    message(FATAL_ERROR "${a_lib} library not found")
   endif()
-
-  if (NOT "${include_test_file}" STREQUAL "")
-          find_path(${output_var_prefix}_INCLUDE_DIR ${include_test_file}) # HINTS ${prefix_path} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_SYSTEN_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
-          if (${output_var_prefix}_INCLUDE_DIR)
-                  #if(NOT "${output_var_prefix}_INCLUDE_DIR" STREQUAL "/usr/include")
-                          message(STATUS "Found ${output_var_prefix} include: ${${output_var_prefix}_INCLUDE_DIR}")
-                  #endif()
-          else()
-                  message("aaaa Failed to find ${output_var_prefix} include.  Suggested ubuntu package: ${ubuntu_build_package}")
-                  LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
-                  SET(FAILED_PACKAGES 1)
-          endif()
-  endif()
-  if (NOT "${library_test_file}" STREQUAL "")
-          find_library(${output_var_prefix}_LIBS ${library_test_file} HINTS ${prefix_path} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH)
-          if (${output_var_prefix}_LIBS)
-                  message(STATUS "Found ${output_var_prefix} lib: ${${output_var_prefix}_LIBS}")
-                  LIST(APPEND LIBRARIES ${${output_var_prefix}_LIBS})
-          else()
-                  message("Failed to find ${output_var_prefix} library.  Suggested ubuntu package: ${ubuntu_build_package}")
-                  LIST(APPEND MISSING_UBUNTU_PACKAGES "'${ubuntu_build_package}'")
-                  SET(FAILED_PACKAGES 1)
-          endif()
-  endif()
-  if (NOT "${ubuntu_package}" STREQUAL "")
-          LIST(APPEND CPACK_DEBIAN_PACKAGE_DEPENDS_LIST "${ubuntu_package}")
-  endif()
-  if (NOT "${ubuntu_build_package}" STREQUAL "")
-          LIST(APPEND CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST "${ubuntu_build_package}")
-  endif()
-endmacro(find_ubuntu_package)
+endmacro(fail_if_not_found_library)
 # ------------------------------------------------------------------------------
 # ASAN
 # ------------------------------------------------------------------------------
 if (BUILD_ASAN)
+  # TODO not working
+  #fail_if_not_found_library(asan)
   set(LIBRARIES ${LIBRARIES} asan)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
   set(DEBUG_MODE ON)
@@ -140,6 +97,8 @@ if (BUILD_ASAN)
 # UBSAN
 # ------------------------------------------------------------------------------
 elseif (BUILD_UBSAN)
+  # TODO not working
+  #fail_if_not_found_library(ubsan)
   set(LIBRARIES ${LIBRARIES} ubsan)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover)
   set(DEBUG_MODE ON)
@@ -162,16 +121,16 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # ------------------------------------------------------------------------------
 # Link OpenSSL
 # ------------------------------------------------------------------------------
-if(BUILD_UBUNTU AND BUILD_CUSTOM_OPENSSL)
+if(BUILD_LINUX AND BUILD_CUSTOM_OPENSSL)
   INCLUDE_DIRECTORIES("${BUILD_CUSTOM_OPENSSL}/include")
   set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libssl.a")
   set(LIBRARIES ${LIBRARIES} "${BUILD_CUSTOM_OPENSSL}/libcrypto.a")
-  find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
   add_definitions(-DBUILD_CUSTOM_OPENSSL=1)
-elseif(BUILD_UBUNTU)
-  find_ubuntu_package(LIBSSL openssl/ssl.h libssl.a libssl1.0.0 libssl-dev)
-  find_ubuntu_package(LIBCRYPTO openssl/crypto.h libcrypto.a libssl1.0.0 libssl-dev)
-  find_ubuntu_package(LIBZ zlib.h libz.a zlib1g zlib1g-dev)
+elseif(BUILD_LINUX)
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  find_package(OpenSSL REQUIRED)
+  set(LIBRARIES ${LIBRARIES} OpenSSL::SSL)
+  set(LIBRARIES ${LIBRARIES} OpenSSL::Crypto)
 else()
   set(LIBRARIES ${LIBRARIES} pthread ssl crypto)
 endif()
@@ -192,34 +151,35 @@ endif()
 # Build PROFILER
 # ------------------------------------------------------------------------------
 if (BUILD_PROFILER)
-  add_definitions(-DENABLE_PROFILER=1)
-  if (BUILD_UBUNTU)
-    find_ubuntu_package(LIBPROFILER google/profiler.h libprofiler.a google-perftools libgoogle-perftools-dev)
+  if (BUILD_LINUX)
+    fail_if_not_found_library(libprofiler.a)
+    set(LIBRARIES ${LIBRARIES} ${libprofiler.a_LIBRARY})
   else()
-    set(LIBRARIES ${LIBRARIES} tcmalloc profiler)
+    fail_if_not_found_library(profiler)
+    set(LIBRARIES ${LIBRARIES} profiler)
   endif()
+  add_definitions(-DENABLE_PROFILER=1)
+  # profiler requires tcmalloc
+  set(BUILD_TCMALLOC ON)
 endif()
 # ------------------------------------------------------------------------------
 # Build TCMALLOC
 # ------------------------------------------------------------------------------
 if (BUILD_TCMALLOC)
-  if (BUILD_UBUNTU)
-    find_ubuntu_package(LIBTCMALLOC google/tcmalloc.h libtcmalloc.a "" libgoogle-perftools-dev)
-    find_ubuntu_package(LIBZMA lzma.h liblzma.a liblzma5 liblzma-dev)
-    find_ubuntu_package(LIBUNWIND libunwind.h libunwind.a "" libunwind8-dev)
-    LIST(APPEND LIBRARIES pthread)  # yes it's wierd as shit to have to include this again...
+  if (BUILD_LINUX)
+    fail_if_not_found_library(libtcmalloc.a)
+    fail_if_not_found_library(libunwind.a)
+    fail_if_not_found_library(liblzma.a)
+    set(LIBRARIES ${LIBRARIES} ${libtcmalloc.a_LIBRARY})
+    set(LIBRARIES ${LIBRARIES} ${libunwind.a_LIBRARY})
+    set(LIBRARIES ${LIBRARIES} ${liblzma.a_LIBRARY})
+    set(LIBRARIES ${LIBRARIES} ${liblzma.a_LIBRARY})
   else()
+    fail_if_not_found_library(tcmalloc)
+    fail_if_not_found_library(unwind)
     set(LIBRARIES ${LIBRARIES} tcmalloc)
-  endif()
-endif()
-# ------------------------------------------------------------------------------
-# Build EFENCE
-# ------------------------------------------------------------------------------
-if (BUILD_EFENCE)
-  if (BUILD_UBUNTU)
-    find_ubuntu_package(LIBEFENCE "" libefence.a "" electric-fence)
-  else()
-    set(LIBRARIES ${LIBRARIES} efence)
+    set(LIBRARIES ${LIBRARIES} unwind)
+    set(LIBRARIES ${LIBRARIES} lzma)
   endif()
 endif()
 # ------------------------------------------------------------------------------
@@ -283,7 +243,7 @@ add_definitions(-DHURL_VERSION="${VERSION}")
 # ------------------------------------------------------------------------------
 # Debian Package Support
 # ------------------------------------------------------------------------------
-if (BUILD_UBUNTU)
+if (BUILD_LINUX)
   EXECUTE_PROCESS(COMMAND lsb_release -cs OUTPUT_VARIABLE DISTRIBUTION OUTPUT_STRIP_TRAILING_WHITESPACE)
   SET(CPACK_GENERATOR "DEB")
   SET(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION}-${DISTRIBUTION}")
