@@ -43,6 +43,7 @@
 #include "http/cb.h"
 #include "http/resp.h"
 #include <string.h>
+#include <random>
 // getrlimit
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -138,6 +139,7 @@ static uint64_t g_rate_delta_us = 0;
 static uint32_t g_num_threads = 1;
 static int64_t g_reqs_per_conn = -1;
 static bool g_stats = true;
+static bool g_random_xfwd = false;
 // -----------------------------------------------
 // Path vector support
 // -----------------------------------------------
@@ -469,6 +471,7 @@ public:
                 if(!strcasecmp(a_key.c_str(), "User-Agent") ||
                    !strcasecmp(a_key.c_str(), "Referer") ||
                    !strcasecmp(a_key.c_str(), "Accept") ||
+                   !strcasecmp(a_key.c_str(), "X-Forwarded-For") ||
                    !strcasecmp(a_key.c_str(), "Host"))
                 {
                         l_replace = true;
@@ -509,6 +512,22 @@ public:
                         m_headers[a_key] = l_list;
                 }
                 return STATUS_OK;
+        }
+        void set_random_xfwd_header()
+        {
+            const std::string xfwdkey = "X-Forwarded-For";
+
+            // add an x-forwarded-for header for a random ip
+            // skip 0.0.0.0/8; ip ranges from 1.0.0.0 to 255.255.255.255
+            static std::random_device rd;
+            static std::uniform_int_distribution<> dist(0x01000000, 0xFFFFFFFF);
+
+            uint32_t randaddr = htonl(dist(rd));
+            std::string randipstr(INET_ADDRSTRLEN, '#');
+            inet_ntop(AF_INET, &randaddr, randipstr.data(), INET_ADDRSTRLEN);
+
+            m_headers[xfwdkey].clear();
+            m_headers[xfwdkey].push_back(std::move(randipstr));
         }
         // Initialize
         int32_t init_with_url(const std::string &a_url);
@@ -1408,6 +1427,10 @@ int32_t http_session::srequest(void)
         {
                 m_request->set_header("Host", m_request->m_host);
         }
+        if (g_random_xfwd)
+        {
+            m_request->set_random_xfwd_header();
+        }
         ns_hurl::kv_map_list_t::const_iterator i_hdr;
         bool l_specd_host = false;
 #define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
@@ -1786,6 +1809,10 @@ int32_t h2_session::srequest(void)
         // is the concatenation of host and port with ":" in
         // between.
         // -------------------------------------------------
+        if (g_random_xfwd)
+        {
+            m_request->set_random_xfwd_header();
+        }
         nghttp2_nv *l_ngxxx_headers;
         uint16_t l_hdrs_len;
         // hdrs should be 4 + header size
@@ -3355,6 +3382,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -x, --no_stats       Don't collect stats -faster.\n");
         fprintf(a_stream, "  -I, --addr_seq       Sequence over local address range.\n");
         fprintf(a_stream, "  -S, --chunk_size_kb  Chunk size in kB -max bytes to read/write per socket read/write. Default 8 kB\n");
+        fprintf(a_stream, "  -F, --rand_xfwd      Generate a random X-Forwarded-For header per request)\n");
         fprintf(a_stream, "  \n");
         fprintf(a_stream, "TLS Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
@@ -3484,6 +3512,7 @@ int main(int argc, char** argv)
                 { "output",         1, 0, 'o' },
                 { "update",         1, 0, 'U' },
                 { "trace",          1, 0, 'r' },
+                { "rand_xfwd",      0, 0, 'F' },
 #ifdef ENABLE_PROFILER
                 { "hprofile",       1, 0, 'P' },
                 { "gprofile",       1, 0, 'G' },
@@ -3502,9 +3531,9 @@ int main(int argc, char** argv)
         std::string l_cprof_file;
 #endif
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:P:G:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:FP:G:";
 #else
-        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:F";
 #endif
         while(((unsigned char)l_opt != 255))
         {
@@ -3907,6 +3936,11 @@ int main(int argc, char** argv)
                                 ns_hurl::trc_log_file_open("/dev/stdout");
                         }
                         break;
+                }
+                case 'F':
+                {
+                    g_random_xfwd = true;
+                    break;
                 }
 #ifdef ENABLE_PROFILER
                 // -----------------------------------------
