@@ -22,10 +22,7 @@
 # Project setup
 # ------------------------------------------------------------------------------
 project(hurl)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 2.8.0)
 if (POLICY CMP0050)
     cmake_policy(SET CMP0050 OLD)
 endif()
@@ -268,7 +265,13 @@ add_subdirectory(ext/nghttp2/src)
 # ------------------------------------------------------------------------------
 # Compiler options
 # ------------------------------------------------------------------------------
-add_definitions(-std=c++0x)
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG(-std=c++17 HAVE_CPP17)
+if (HAVE_CPP17)
+    add_definitions(-std=c++17)
+else()
+    add_definitions(-std=c++0x)
+endif()
 add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 #add_definitions(-pedantic)
 # ------------------------------------------------------------------------------

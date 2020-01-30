@@ -43,7 +43,16 @@
 #include "http/cb.h"
 #include "http/resp.h"
 #include <string.h>
+#if __cplusplus >= 201703L
+#define CPP17
+#endif
+// random or std::rand
+#ifdef CPP17
 #include <random>
+#else
+#include <cstdlib>
+#include <ctime>
+#endif
 // getrlimit
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -519,6 +528,7 @@ public:
 
             // add an x-forwarded-for header for a random ip
             // skip 0.0.0.0/8; ip ranges from 1.0.0.0 to 255.255.255.255
+#ifdef CPP17
             static std::random_device rd;
             static std::uniform_int_distribution<> dist(0x01000000, 0xFFFFFFFF);
 
@@ -528,6 +538,16 @@ public:
 
             m_headers[xfwdkey].clear();
             m_headers[xfwdkey].push_back(std::move(randipstr));
+#else
+            // four random octets, packed in network order
+            uint32_t randaddr = std::rand()%255 << 24
+                              | std::rand()%255 << 16
+                              | std::rand()%255 << 8
+                              | std::rand()/((RAND_MAX + 1u)/255);
+            char randipstr[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &randaddr, randipstr, INET_ADDRSTRLEN);
+            set_header(xfwdkey, std::string(randipstr));
+#endif
         }
         // Initialize
         int32_t init_with_url(const std::string &a_url);
@@ -3939,6 +3959,9 @@ int main(int argc, char** argv)
                 }
                 case 'F':
                 {
+#ifndef CPP17
+                    std::srand(std::time(0));
+#endif
                     g_random_xfwd = true;
                     break;
                 }
