@@ -10,4 +10,4 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: build
-      run: ./build.sh
+      run: ./build_simple.sh
