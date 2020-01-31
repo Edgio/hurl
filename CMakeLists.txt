@@ -265,7 +265,11 @@ add_subdirectory(ext/nghttp2/src)
 # ------------------------------------------------------------------------------
 # Compiler options
 # ------------------------------------------------------------------------------
-add_definitions(-std=c++0x)
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG(-std=c++17 HAVE_CPP17)
+if (HAVE_CPP17)
+    add_definitions(-std=c++17)
+endif()
 add_definitions(-Wall -Werror -Weffc++ -Wformat -Wformat-security)
 #add_definitions(-pedantic)
 # ------------------------------------------------------------------------------

@@ -1638,7 +1638,7 @@ int32_t h2_session::srequest(void)
         if(m_t_phurl->m_request->m_body_data &&
            m_t_phurl->m_request->m_body_data_len)
         {
-                l_ngxxx_data.source = {0};
+                memset(&l_ngxxx_data.source, 0, sizeof(l_ngxxx_data.source));
                 l_ngxxx_data.read_callback = ngxxx_data_source_read_cb;
                 l_ngxxx_data_tmp = &(l_ngxxx_data);
         }
