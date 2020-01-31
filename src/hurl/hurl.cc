@@ -49,9 +49,6 @@
 // random or std::rand
 #ifdef CPP17
 #include <random>
-#else
-#include <cstdlib>
-#include <ctime>
 #endif
 // getrlimit
 #include <sys/time.h>
@@ -540,10 +537,10 @@ public:
             m_headers[xfwdkey].push_back(std::move(randipstr));
 #else
             // four random octets, packed in network order
-            uint32_t randaddr = std::rand()%255 << 24
-                              | std::rand()%255 << 16
-                              | std::rand()%255 << 8
-                              | std::rand()/((RAND_MAX + 1u)/255);
+            uint32_t randaddr = rand()%255 << 24
+                              | rand()%255 << 16
+                              | rand()%255 << 8
+                              | rand()/((RAND_MAX + 1u)/255);
             char randipstr[INET_ADDRSTRLEN];
             inet_ntop(AF_INET, &randaddr, randipstr, INET_ADDRSTRLEN);
             set_header(xfwdkey, std::string(randipstr));
@@ -1928,7 +1925,7 @@ int32_t h2_session::srequest(void)
         nghttp2_data_provider l_ngxxx_data;
         if(m_request->m_body_q)
         {
-                l_ngxxx_data.source = {0};
+                memset(&l_ngxxx_data.source, 0, sizeof(l_ngxxx_data.source));
                 l_ngxxx_data.read_callback = ngxxx_data_source_read_cb;
                 l_ngxxx_data_tmp = &(l_ngxxx_data);
         }
@@ -3960,7 +3957,7 @@ int main(int argc, char** argv)
                 case 'F':
                 {
 #ifndef CPP17
-                    std::srand(std::time(0));
+                    srand(time(0));
 #endif
                     g_random_xfwd = true;
                     break;
