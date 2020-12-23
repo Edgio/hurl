@@ -1,28 +1,15 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    ai_cache.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    11/20/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "dns/ai_cache.h"
 #include "support/ndebug.h"
 #include "support/time_util.h"
@@ -44,11 +31,11 @@
 #define __STDC_FORMAT_MACROS
 #endif
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 ai_cache::ai_cache(const std::string &a_ai_cache_file):
         m_ai_cache_map(),
         m_ai_cache_file(a_ai_cache_file)
@@ -63,11 +50,11 @@ ai_cache::ai_cache(const std::string &a_ai_cache_file):
                 }
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 ai_cache::~ai_cache()
 {
         if(!m_ai_cache_file.empty())
@@ -90,11 +77,11 @@ ai_cache::~ai_cache()
                 }
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 host_info *ai_cache::lookup(const std::string a_label)
 {
         host_info *l_host_info = NULL;
@@ -119,11 +106,11 @@ host_info *ai_cache::lookup(const std::string a_label)
         }
         return l_host_info;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 host_info *ai_cache::lookup(const std::string a_label, host_info *a_host_info)
 {
         host_info *l_host_info = lookup(a_label);
@@ -138,11 +125,11 @@ host_info *ai_cache::lookup(const std::string a_label, host_info *a_host_info)
         }
         return l_host_info;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void ai_cache::add(const std::string a_label, host_info *a_host_info)
 {
         ai_cache_map_t::iterator i_h = m_ai_cache_map.find(a_label);
@@ -156,11 +143,11 @@ void ai_cache::add(const std::string a_label, host_info *a_host_info)
         }
         m_ai_cache_map[a_label] = a_host_info;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t ai_cache::sync(const std::string &a_ai_cache_file,
                        const ai_cache_map_t &a_ai_cache_map)
 {
@@ -199,11 +186,11 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t ai_cache::read(const std::string &a_ai_cache_file,
                        ai_cache_map_t &ao_ai_cache_map)
 {

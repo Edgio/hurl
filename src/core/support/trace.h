@@ -1,37 +1,24 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    trace.h
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    04/15/2016
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
 #ifndef _TRACE_H
 #define _TRACE_H
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
 #include "support/time_util.h"
-//: ----------------------------------------------------------------------------
-//: trace macros
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! trace macros
+//! ----------------------------------------------------------------------------
 // TODO -open file if NULL???
 #ifndef TRC_PRINT
 #define TRC_PRINT(_level, ...) \
@@ -61,9 +48,9 @@
         } \
         } while(0)
 #endif
-//: ----------------------------------------------------------------------------
-//: trace levels
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! trace levels
+//! ----------------------------------------------------------------------------
 #ifndef TRC_ERROR
 #define TRC_ERROR(...)  TRC_PRINT(ns_hurl::TRC_LOG_LEVEL_ERROR, __VA_ARGS__)
 #endif
@@ -94,9 +81,9 @@
         } while(0)
 #endif
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: trc enum
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! trc enum
+//! ----------------------------------------------------------------------------
 #ifndef _HURL_TRC_LOG_LEVEL_T
 #define TRC_LOG_LEVEL_MAP(XX)\
         XX(0,  NONE,        N)\
@@ -113,21 +100,21 @@ typedef enum trc_level_enum
 } trc_log_level_t;
 #endif
 const char *trc_log_level_str(trc_log_level_t a_level);
-//: ----------------------------------------------------------------------------
-//: Open logs
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Open logs
+//! ----------------------------------------------------------------------------
 void trc_log_level_set(trc_log_level_t a_level);
 int32_t trc_log_file_open(const std::string &a_file);
 int32_t trc_log_file_close(void);
-//: ----------------------------------------------------------------------------
-//: Externs
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Externs
+//! ----------------------------------------------------------------------------
 extern trc_log_level_t g_trc_log_level;
 extern FILE* g_trc_log_file;
 extern FILE* g_trc_out_file;
-//: ----------------------------------------------------------------------------
-//: Utilities
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Utilities
+//! ----------------------------------------------------------------------------
 void trc_mem_display(FILE *a_file, const uint8_t *a_mem_buf, uint32_t a_length);
 } // namespace ns_hurl {
 #endif // NDEBUG_H_

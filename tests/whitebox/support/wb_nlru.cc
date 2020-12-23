@@ -1,38 +1,25 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    wb_nlru.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    10/25/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include <string>
 #include "support/nlru.h"
 #include "catch/catch.hpp"
-//: ----------------------------------------------------------------------------
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//!
+//! ----------------------------------------------------------------------------
 #define UNUSED(x) ( (void)(x) )
-//: ----------------------------------------------------------------------------
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//!
+//! ----------------------------------------------------------------------------
 class animal {
 public:
         animal(std::string a_name):
@@ -44,11 +31,11 @@ private:
         animal(const animal &);
 };
 typedef ns_hurl::nlru <animal> animal_lru_t;
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int delete_cb(void* a_1, void *a_2)
 {
         //printf("%s.%s.%d: DELETE: %p %p\n", __FILE__,__FUNCTION__,__LINE__,o_1, a_2);
@@ -60,14 +47,14 @@ int delete_cb(void* a_1, void *a_2)
         return 0;
 }
 #if 0
-//: ----------------------------------------------------------------------------
-//: main
-//: compile standalone example
-//: export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer-3.3
-//: export ASAN_OPTIONS=symbolize=1
-//: g++ ./wb_nlru.cc -I../../src/core/support/ -std=c++0x -g3 -fno-omit-frame-pointer -fsanitize=address -o ./wb_nlru -lasan -Wall -Werror -ggdb
-//: ./wb_nlru
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! main
+//! compile standalone example
+//! export ASAN_SYMBOLIZER_PATH=/usr/bin/llvm-symbolizer-3.3
+//! export ASAN_OPTIONS=symbolize=1
+//! g++ ./wb_nlru.cc -I../../src/core/support/ -std=c++0x -g3 -fno-omit-frame-pointer -fsanitize=address -o ./wb_nlru -lasan -Wall -Werror -ggdb
+//! ./wb_nlru
+//! ----------------------------------------------------------------------------
 int main(void)
 {
         animal_lru_t l_animal_lru(4);
@@ -101,9 +88,9 @@ int main(void)
         return 0;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: Tests
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Tests
+//! ----------------------------------------------------------------------------
 TEST_CASE( "nlru test", "[nlru]" ) {
         animal_lru_t l_animal_lru(4);
         const char *l_panda_label = "PANDA";

@@ -13,7 +13,7 @@
  * The 3-clause BSD License is applied to this software, see
  * LICENSE.txt
  */
-#include "../hurl/tinymt64.h"
+#include "tinymt/tinymt64.h"
 
 #define MIN_LOOP 8
 

@@ -1,29 +1,16 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    hurl.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: includes
-//: ----------------------------------------------------------------------------
-#include "tinymt64.h"
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
+#include "tinymt/tinymt64.h"
 #include "nghttp2/nghttp2.h"
 #include "status.h"
 #include "dns/nlookup.h"
@@ -100,16 +87,16 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/prettywriter.h"
-//: ----------------------------------------------------------------------------
-//: constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! constants
+//! ----------------------------------------------------------------------------
 #define NB_ENABLE  1
 #define NB_DISABLE 0
 #define LOCAL_ADDR_V4_MIN 0x7f000001
 #define LOCAL_ADDR_V4_MAX 0x7ffffffe
-//: ----------------------------------------------------------------------------
-//: macros
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! macros
+//! ----------------------------------------------------------------------------
 #ifndef _U_
 #define _U_ __attribute__((unused))
 #endif
@@ -130,14 +117,14 @@
                         return STATUS_ERROR;\
                 }\
         } while(0)
-//: ----------------------------------------------------------------------------
-//: types
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! types
+//! ----------------------------------------------------------------------------
 typedef std::vector <std::string> path_substr_vector_t;
 typedef std::vector <std::string> path_vector_t;
-//: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Globals
+//! ----------------------------------------------------------------------------
 static bool g_test_finished = false;
 static bool g_verbose = false;
 static bool g_color = false;
@@ -159,16 +146,16 @@ static pthread_mutex_t g_path_vector_mutex;
 static pthread_mutex_t g_completion_mutex;
 static uint32_t g_chunk_size_kb = 8;
 static const std::string &get_path(void *a_rand);
-//: ----------------------------------------------------------------------------
-//:                               S T A T S
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//!                               S T A T S
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Types
+//! ----------------------------------------------------------------------------
 typedef std::map<uint16_t, uint32_t > status_code_count_map_t;
-//: ----------------------------------------------------------------------------
-//: xstat
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! xstat
+//! ----------------------------------------------------------------------------
 typedef struct xstat_struct
 {
         double m_sum_x;
@@ -197,9 +184,9 @@ typedef struct xstat_struct
                 m_num = 0;
         };
 } xstat_t;
-//: ----------------------------------------------------------------------------
-//: counter stats
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! counter stats
+//! ----------------------------------------------------------------------------
 typedef struct t_stat_cntr_struct
 {
         // TODO fix stat calcs
@@ -278,9 +265,9 @@ typedef struct t_stat_cntr_struct
         }
 } t_stat_cntr_t;
 typedef std::list <t_stat_cntr_t> t_stat_cntr_list_t;
-//: ----------------------------------------------------------------------------
-//: calculated stats
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! calculated stats
+//! ----------------------------------------------------------------------------
 typedef struct t_stat_calc_struct
 {
         // ups
@@ -320,12 +307,12 @@ typedef struct t_stat_calc_struct
                 m_resp_status_5xx_pcnt = 0.0;
         }
 } t_stat_calc_t;
-//: ----------------------------------------------------------------------------
-//: \details: Update stat with new value
-//: \return:  n/a
-//: \param:   ao_stat stat to be updated
-//: \param:   a_val value to update stat with
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Update stat with new value
+//! \return:  n/a
+//! \param:   ao_stat stat to be updated
+//! \param:   a_val value to update stat with
+//! ----------------------------------------------------------------------------
 void update_stat(xstat_t &ao_stat, double a_val)
 {
         ao_stat.m_num++;
@@ -334,12 +321,12 @@ void update_stat(xstat_t &ao_stat, double a_val)
         if(a_val > ao_stat.m_max) ao_stat.m_max = a_val;
         if(a_val < ao_stat.m_min) ao_stat.m_min = a_val;
 }
-//: ----------------------------------------------------------------------------
-//: \details: Add stats
-//: \return:  n/a
-//: \param:   ao_stat stat to be updated
-//: \param:   a_from_stat stat to add
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Add stats
+//! \return:  n/a
+//! \param:   ao_stat stat to be updated
+//! \param:   a_from_stat stat to add
+//! ----------------------------------------------------------------------------
 void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
 {
         ao_stat.m_num += a_from_stat.m_num;
@@ -348,34 +335,34 @@ void add_stat(xstat_t &ao_stat, const xstat_t &a_from_stat)
         if(a_from_stat.m_min < ao_stat.m_min) ao_stat.m_min = a_from_stat.m_min;
         if(a_from_stat.m_max > ao_stat.m_max) ao_stat.m_max = a_from_stat.m_max;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   n/a
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   n/a
+//! ----------------------------------------------------------------------------
 double xstat_struct::stdev() const
 {
         return sqrt(var());
 }
-//: ----------------------------------------------------------------------------
-//: nbq utilities
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! nbq utilities
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
         ao_q.write(a_buf, a_len);
         ao_q.write("\r\n", strlen("\r\n"));
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
                          const char *a_key_buf, uint32_t a_key_len,
                          const char *a_val_buf, uint32_t a_val_len)
@@ -386,20 +373,20 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
         ao_q.write("\r\n", 2);
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t nbq_write_body(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
         ao_q.write("\r\n", strlen("\r\n"));
         ao_q.write(a_buf, a_len);
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: types
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! types
+//! ----------------------------------------------------------------------------
 typedef struct range_struct {
         uint32_t m_start;
         uint32_t m_end;
@@ -407,9 +394,9 @@ typedef struct range_struct {
 typedef std::vector <range_t> range_vector_t;
 class t_hurl;
 typedef std::list <t_hurl *> t_hurl_list_t;
-//: ----------------------------------------------------------------------------
-//: request object/meta
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! request object/meta
+//! ----------------------------------------------------------------------------
 class request {
 public:
         request():
@@ -579,11 +566,11 @@ private:
         // Disallow copy/assign
         request& operator=(const request &);
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t request::init_with_url(const std::string &a_url)
 {
         std::string l_url_fixed = a_url;
@@ -755,9 +742,9 @@ int32_t request::init_with_url(const std::string &a_url)
         // -------------------------------------------------
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: session
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! session
+//! ----------------------------------------------------------------------------
 class session {
 public:
         // -------------------------------------------------
@@ -858,9 +845,9 @@ private:
 #endif
 };
 #if 0
-//: ----------------------------------------------------------------------------
-//: stream
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! stream
+//! ----------------------------------------------------------------------------
 class stream {
 public:
         // -------------------------------------------------
@@ -899,9 +886,9 @@ private:
         // -------------------------------------------------
 };
 #endif
-//: ----------------------------------------------------------------------------
-//: t_hurl
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! t_hurl
+//! ----------------------------------------------------------------------------
 class t_hurl
 {
 public:
@@ -1058,16 +1045,16 @@ private:
         uint32_t m_num_conn_parallel_max;
         int32_t m_num_to_request;
 };
-//: ****************************************************************************
-//: ******************** N G H T T P 2   S U P P O R T *************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_send_callback. Here we transmit the |data|, |length| bytes,
-//:           to the network. Because we are using libevent bufferevent, we just
-//:           write those bytes into bufferevent buffer
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! ******************** N G H T T P 2   S U P P O R T *************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_send_callback. Here we transmit the |data|, |length| bytes,
+//!           to the network. Because we are using libevent bufferevent, we just
+//!           write those bytes into bufferevent buffer
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
                              const uint8_t *a_data,
                              size_t a_length,
@@ -1083,12 +1070,12 @@ static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
         //NDBG_PRINT("%sWRITE%s: l_s: %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (int)l_s);
         return (ssize_t)l_s;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
-//:           received a complete frame from the remote peer.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
+//!           received a complete frame from the remote peer.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_frame_recv_cb(nghttp2_session *a_session,
                                const nghttp2_frame *a_frame,
                                void *a_user_data)
@@ -1111,12 +1098,12 @@ static int ngxxx_frame_recv_cb(nghttp2_session *a_session,
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
-//:           received a complete frame from the remote peer.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
+//!           received a complete frame from the remote peer.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_frame_send_cb(nghttp2_session *a_session,
                                const nghttp2_frame *a_frame,
                                void *a_user_data)
@@ -1144,15 +1131,15 @@ static int ngxxx_frame_send_cb(nghttp2_session *a_session,
 #endif
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_data_chunk_recv_callback: Called when DATA frame is
-//:           received from the remote peer. In this implementation, if the frame
-//:           is meant to the stream we initiated, print the received data in
-//:           stdout, so that the user can redirect its output to the file
-//:           easily.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_data_chunk_recv_callback: Called when DATA frame is
+//!           received from the remote peer. In this implementation, if the frame
+//!           is meant to the stream we initiated, print the received data in
+//!           stdout, so that the user can redirect its output to the file
+//!           easily.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_data_chunk_recv_cb(nghttp2_session *a_session _U_,
                                     uint8_t a_flags _U_,
                                     int32_t a_stream_id,
@@ -1177,14 +1164,14 @@ static int ngxxx_data_chunk_recv_cb(nghttp2_session *a_session _U_,
 #endif
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_stream_close_callback: Called when a stream is about to
-//:           closed. This example program only deals with 1 HTTP request (1
-//:           stream), if it is closed, we send GOAWAY and tear down the
-//:           session
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_stream_close_callback: Called when a stream is about to
+//!           closed. This example program only deals with 1 HTTP request (1
+//!           stream), if it is closed, we send GOAWAY and tear down the
+//!           session
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_stream_close_cb(nghttp2_session *a_session,
                                  int32_t a_stream_id,
                                  uint32_t a_error_code,
@@ -1211,12 +1198,12 @@ static int ngxxx_stream_close_cb(nghttp2_session *a_session,
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_header_callback: Called when nghttp2 library emits
-//:           single header name/value pair
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_header_callback: Called when nghttp2 library emits
+//!           single header name/value pair
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_header_cb(nghttp2_session *a_session _U_,
                            const nghttp2_frame *a_frame,
                            const uint8_t *a_name,
@@ -1250,12 +1237,12 @@ static int ngxxx_header_cb(nghttp2_session *a_session _U_,
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_begin_headers_callback:
-//:           Called when nghttp2 library gets started to receive header block.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_begin_headers_callback:
+//!           Called when nghttp2 library gets started to receive header block.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
                                   const nghttp2_frame *a_frame,
                                   void *a_user_data)
@@ -1279,11 +1266,11 @@ static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
 #endif
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
                                          int32_t a_stream_id,
                                          uint8_t *a_buf,
@@ -1339,12 +1326,12 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
         }
         return l_read;
 }
-//: ****************************************************************************
-//: ************************ H T T P   S U P P O R T ***************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: http_session
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! ************************ H T T P   S U P P O R T ***************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! http_session
+//! ----------------------------------------------------------------------------
 class http_session: public session {
 public:
         // -------------------------------------------------
@@ -1381,20 +1368,20 @@ private:
         // -------------------------------------------------
         ns_hurl::resp *m_resp;
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::sconnected(void)
 {
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::srequest(void)
 {
         if(!m_t_hurl)
@@ -1550,11 +1537,11 @@ setup_resp:
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 {
         ns_hurl::hmsg *l_hmsg = static_cast<ns_hurl::hmsg *>(m_resp);
@@ -1608,11 +1595,11 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::swrite(void)
 {
 #if 0
@@ -1664,11 +1651,11 @@ int32_t http_session::swrite(void)
 #endif
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::sdone(void)
 {
 #if 0
@@ -1676,12 +1663,12 @@ int32_t http_session::sdone(void)
 #endif
         return STATUS_OK;
 }
-//: ****************************************************************************
-//: *************************** H 2   S U P P O R T ****************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: h2_session
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! *************************** H 2   S U P P O R T ****************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! h2_session
+//! ----------------------------------------------------------------------------
 class h2_session: public session {
 public:
         // -------------------------------------------------
@@ -1718,11 +1705,11 @@ private:
         // -------------------------------------------------
         nghttp2_session *m_ngxxx_session;
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::sconnected(void)
 {
         // -------------------------------------------------
@@ -1793,11 +1780,11 @@ int32_t h2_session::sconnected(void)
         client_->signal_write();
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::srequest(void)
 {
         ++m_t_hurl->m_stat.m_reqs;
@@ -1967,11 +1954,11 @@ int32_t h2_session::srequest(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 {
 #if 0
@@ -2012,11 +1999,11 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 #endif
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::swrite(void)
 {
         int l_s;
@@ -2031,11 +2018,11 @@ int32_t h2_session::swrite(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::sdone(void)
 {
 #if 0
@@ -2043,11 +2030,11 @@ int32_t h2_session::sdone(void)
 #endif
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void session::request_log_status(uint16_t a_status)
 {
         if(!m_t_hurl)
@@ -2061,11 +2048,11 @@ void session::request_log_status(uint16_t a_status)
         else if((a_status >= 500) && (a_status < 600)){++m_t_hurl->m_stat.m_resp_status_5xx;}
         ++m_t_hurl->m_status_code_count_map[a_status];
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t session::request_complete(void)
 {
         //NDBG_PRINT("%sREQUEST_COMPLETE%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
@@ -2096,11 +2083,11 @@ int32_t session::request_complete(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t session::cancel_timer(void *a_timer)
 {
         if(!m_t_hurl)
@@ -2115,11 +2102,11 @@ int32_t session::cancel_timer(void *a_timer)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode)
 {
         //NDBG_PRINT("%sRUN%s a_conn_mode: %d a_data: %p\n",
@@ -2672,11 +2659,11 @@ state_top:
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void *t_hurl::t_run(void *a_nothing)
 {
         int32_t l_s;
@@ -2713,11 +2700,11 @@ void *t_hurl::t_run(void *a_nothing)
         m_stopped = true;
         return NULL;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t t_hurl::conn_start(void)
 {
         while(m_nconn_set.size() < m_num_conn_parallel_max)
@@ -2751,11 +2738,11 @@ int32_t t_hurl::conn_start(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 ns_hurl::nconn *t_hurl::create_conn(void)
 {
         // -------------------------------------------------
@@ -2801,11 +2788,11 @@ ns_hurl::nconn *t_hurl::create_conn(void)
         l_nconn->set_host_info(m_request.m_host_info);
         return l_nconn;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 session *t_hurl::session_create(ns_hurl::nconn *a_nconn)
 {
         if(!a_nconn)
@@ -2846,11 +2833,11 @@ session *t_hurl::session_create(ns_hurl::nconn *a_nconn)
         l_ses->m_out_q = new ns_hurl::nbq(g_chunk_size_kb*1024);
         return l_ses;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t t_hurl::session_cleanup(session *a_ses, ns_hurl::nconn *a_nconn)
 {
         if(a_ses)
@@ -2875,11 +2862,11 @@ int32_t t_hurl::session_cleanup(session *a_ses, ns_hurl::nconn *a_nconn)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #if 0
 static int32_t s_pre_connect_cb(int a_fd)
 {
@@ -2908,11 +2895,11 @@ static int32_t s_pre_connect_cb(int a_fd)
         return STATUS_OK;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 // Assumes expr in form [<val>-<val>] where val can be either int or hex
 static int32_t convert_exp_to_range(const std::string &a_range_exp, range_t &ao_range)
 {
@@ -2939,11 +2926,11 @@ success:
         ao_range.m_end = l_end;
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t parse_path(const char *a_path,
                    path_substr_vector_t &ao_substr_vector,
                    range_vector_t &ao_range_vector)
@@ -3006,11 +2993,11 @@ int32_t parse_path(const char *a_path,
 #endif
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t path_exploder(std::string a_path_part,
                       const path_substr_vector_t &a_substr_vector,
                       uint32_t a_substr_idx,
@@ -3042,11 +3029,11 @@ int32_t path_exploder(std::string a_path_part,
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #define SPECIAL_EFX_OPT_SEPARATOR ";"
 #define SPECIAL_EFX_KV_SEPARATOR "="
 int32_t special_effects_parse(std::string &a_path)
@@ -3169,11 +3156,11 @@ int32_t special_effects_parse(std::string &a_path)
         //printf("a_path: %s\n", a_path.c_str());
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 const std::string &get_path(void *a_rand)
 {
         // TODO -make this threadsafe -mutex per???
@@ -3209,11 +3196,11 @@ const std::string &get_path(void *a_rand)
                 return g_path_vector[l_rand_idx];
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void get_stat(t_stat_cntr_t &ao_total,
               t_stat_calc_t &ao_total_calc,
               t_stat_cntr_list_t &ao_thread,
@@ -3276,11 +3263,11 @@ void get_stat(t_stat_cntr_t &ao_total,
         s_last = ao_total;
         s_stat_last_time_ms = l_cur_time_ms;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static void get_status_codes(status_code_count_map_t &ao_map, t_hurl_list_t &a_t_hurl_list)
 {
         for(t_hurl_list_t::iterator i_t = a_t_hurl_list.begin();
@@ -3296,11 +3283,11 @@ static void get_status_codes(status_code_count_map_t &ao_map, t_hurl_list_t &a_t
                 }
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int kbhit()
 {
         struct timeval l_tv;
@@ -3313,11 +3300,11 @@ static int kbhit()
         select(STDIN_FILENO + 1, &l_fds, NULL, NULL, &l_tv);
         return FD_ISSET(STDIN_FILENO, &l_fds);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static void nonblock(int state)
 {
         struct termios ttystate;
@@ -3337,11 +3324,11 @@ static void nonblock(int state)
         //set the terminal attributes.
         tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
-//: ----------------------------------------------------------------------------
-//: \details: sighandler
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: sighandler
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void sig_handler(int signo)
 {
         if (signo == SIGINT)
@@ -3350,11 +3337,11 @@ void sig_handler(int signo)
                 g_test_finished = true;
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: Print the version.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Print the version.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void print_version(FILE* a_stream, int a_exit_code)
 {
         // print out the version information
@@ -3364,11 +3351,11 @@ void print_version(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "       OpenSSL Version: 0x%lX\n", OPENSSL_VERSION_NUMBER);
         exit(a_exit_code);
 }
-//: ----------------------------------------------------------------------------
-//: \details: Print the command line help.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Print the command line help.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void print_usage(FILE* a_stream, int a_exit_code)
 {
         fprintf(a_stream, "Usage: hurl [http[s]://]hostname[:port]/path [options]\n");
@@ -3427,11 +3414,11 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "\n");
         exit(a_exit_code);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
         int64_t l_num_to_request = -1;

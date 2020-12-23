@@ -1,28 +1,15 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    phurl.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "nghttp2/nghttp2.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -73,9 +60,9 @@
 // TLS
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
-//: ----------------------------------------------------------------------------
-//: constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! constants
+//! ----------------------------------------------------------------------------
 #define NB_ENABLE  1
 #define NB_DISABLE 0
 #define MAX_READLINE_SIZE 1024
@@ -85,9 +72,9 @@
 #ifndef STATUS_ERROR
 #define STATUS_ERROR -1
 #endif
-//: ----------------------------------------------------------------------------
-//: enums
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! enums
+//! ----------------------------------------------------------------------------
 // ---------------------------------------
 // output types
 // ---------------------------------------
@@ -105,9 +92,9 @@ typedef enum {
         PART_HEADERS = 1 << 3,
         PART_BODY = 1 << 4
 } output_part_t;
-//: ----------------------------------------------------------------------------
-//: macros
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! macros
+//! ----------------------------------------------------------------------------
 #ifndef _U_
 #define _U_ __attribute__((unused))
 #endif
@@ -131,30 +118,30 @@ typedef enum {
                         return STATUS_ERROR;\
                 }\
         } while(0);
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Types
+//! ----------------------------------------------------------------------------
 class t_phurl;
 typedef std::list <t_phurl *> t_phurl_list_t;
-//: ----------------------------------------------------------------------------
-//: nbq utilities
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! nbq utilities
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
         ao_q.write(a_buf, a_len);
         ao_q.write("\r\n", strlen("\r\n"));
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
                          const char *a_key_buf, uint32_t a_key_len,
                          const char *a_val_buf, uint32_t a_val_len)
@@ -165,20 +152,20 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
         ao_q.write("\r\n", 2);
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t nbq_write_body(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
         ao_q.write("\r\n", strlen("\r\n"));
         ao_q.write(a_buf, a_len);
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: request object/meta
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! request object/meta
+//! ----------------------------------------------------------------------------
 class request {
 public:
         request():
@@ -313,11 +300,11 @@ private:
         // Disallow copy/assign
         request& operator=(const request &);
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t request::init_with_url(const std::string &a_url)
 {
         std::string l_url_fixed = a_url;
@@ -488,9 +475,9 @@ int32_t request::init_with_url(const std::string &a_url)
         // -------------------------------------------------
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: host
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! host
+//! ----------------------------------------------------------------------------
 typedef struct _host_struct {
         std::string m_host;
         std::string m_hostname;
@@ -550,9 +537,9 @@ private:
 typedef std::queue<host_t *> host_queue_t;
 typedef std::list <host_t *> host_list_t;
 //static int32_t s_create_request(request &a_request, ns_hurl::nbq &a_nbq);
-//: ----------------------------------------------------------------------------
-//: session
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! session
+//! ----------------------------------------------------------------------------
 class session {
 public:
         // -------------------------------------------------
@@ -647,9 +634,9 @@ private:
 #endif
 };
 typedef std::list <session *> session_list_t;
-//: ----------------------------------------------------------------------------
-//: globals
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! globals
+//! ----------------------------------------------------------------------------
 // -----------------------------------------------
 // settings
 // -----------------------------------------------
@@ -697,9 +684,9 @@ summary_map_t g_sum_info_tls_protocols;
 summary_map_t g_sum_info_tls_ciphers;
 summary_map_t g_sum_info_alpn;
 summary_map_t g_sum_info_alpn_full;
-//: ----------------------------------------------------------------------------
-//: t_phurl
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! t_phurl
+//! ----------------------------------------------------------------------------
 class t_phurl
 {
 public:
@@ -817,16 +804,16 @@ private:
         // -------------------------------------------------
         bool m_is_initd;
 };
-//: ****************************************************************************
-//: ******************** N G H T T P 2   S U P P O R T *************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_send_callback. Here we transmit the |data|, |length| bytes,
-//:           to the network. Because we are using libevent bufferevent, we just
-//:           write those bytes into bufferevent buffer
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! ******************** N G H T T P 2   S U P P O R T *************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_send_callback. Here we transmit the |data|, |length| bytes,
+//!           to the network. Because we are using libevent bufferevent, we just
+//!           write those bytes into bufferevent buffer
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
                              const uint8_t *a_data,
                              size_t a_length,
@@ -842,12 +829,12 @@ static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
         //NDBG_PRINT("%sWRITE%s: l_s: %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (int)l_s);
         return (ssize_t)l_s;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
-//:           received a complete frame from the remote peer.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
+//!           received a complete frame from the remote peer.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_frame_recv_cb(nghttp2_session *a_session,
                                const nghttp2_frame *a_frame,
                                void *a_user_data)
@@ -870,12 +857,12 @@ static int ngxxx_frame_recv_cb(nghttp2_session *a_session,
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
-//:           received a complete frame from the remote peer.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
+//!           received a complete frame from the remote peer.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_frame_send_cb(nghttp2_session *a_session,
                                const nghttp2_frame *a_frame,
                                void *a_user_data)
@@ -903,15 +890,15 @@ static int ngxxx_frame_send_cb(nghttp2_session *a_session,
 #endif
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_data_chunk_recv_callback: Called when DATA frame is
-//:           received from the remote peer. In this implementation, if the frame
-//:           is meant to the stream we initiated, print the received data in
-//:           stdout, so that the user can redirect its output to the file
-//:           easily.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_data_chunk_recv_callback: Called when DATA frame is
+//!           received from the remote peer. In this implementation, if the frame
+//!           is meant to the stream we initiated, print the received data in
+//!           stdout, so that the user can redirect its output to the file
+//!           easily.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_data_chunk_recv_cb(nghttp2_session *a_session _U_,
                                     uint8_t a_flags _U_,
                                     int32_t a_stream_id,
@@ -936,14 +923,14 @@ static int ngxxx_data_chunk_recv_cb(nghttp2_session *a_session _U_,
 #endif
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_stream_close_callback: Called when a stream is about to
-//:           closed. This example program only deals with 1 HTTP request (1
-//:           stream), if it is closed, we send GOAWAY and tear down the
-//:           session
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_stream_close_callback: Called when a stream is about to
+//!           closed. This example program only deals with 1 HTTP request (1
+//!           stream), if it is closed, we send GOAWAY and tear down the
+//!           session
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_stream_close_cb(nghttp2_session *a_session,
                                  int32_t a_stream_id,
                                  uint32_t a_error_code,
@@ -966,12 +953,12 @@ static int ngxxx_stream_close_cb(nghttp2_session *a_session,
         l_ses->m_goaway = true;
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_header_callback: Called when nghttp2 library emits
-//:           single header name/value pair
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_header_callback: Called when nghttp2 library emits
+//!           single header name/value pair
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_header_cb(nghttp2_session *a_session _U_,
                            const nghttp2_frame *a_frame,
                            const uint8_t *a_name,
@@ -1006,12 +993,12 @@ static int ngxxx_header_cb(nghttp2_session *a_session _U_,
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: nghttp2_on_begin_headers_callback:
-//:           Called when nghttp2 library gets started to receive header block.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_begin_headers_callback:
+//!           Called when nghttp2 library gets started to receive header block.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
                                   const nghttp2_frame *a_frame,
                                   void *a_user_data)
@@ -1035,11 +1022,11 @@ static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
 #endif
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
                                          int32_t a_stream_id,
                                          uint8_t *a_buf,
@@ -1088,12 +1075,12 @@ static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
         }
         return l_len;
 }
-//: ****************************************************************************
-//: ************************ H T T P   S U P P O R T ***************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: http_session
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! ************************ H T T P   S U P P O R T ***************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! http_session
+//! ----------------------------------------------------------------------------
 class http_session: public session {
 public:
         // -------------------------------------------------
@@ -1130,20 +1117,20 @@ private:
         // -------------------------------------------------
         ns_hurl::resp *m_resp;
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::sconnected(void)
 {
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::srequest(void)
 {
         if(!m_t_phurl)
@@ -1264,11 +1251,11 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 {
         ns_hurl::hmsg *l_hmsg = static_cast<ns_hurl::hmsg *>(m_resp);
@@ -1316,11 +1303,11 @@ int32_t http_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::swrite(void)
 {
 #if 0
@@ -1376,11 +1363,11 @@ int32_t http_session::swrite(void)
 #endif
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t http_session::sdone(void)
 {
 #if 0
@@ -1388,12 +1375,12 @@ int32_t http_session::sdone(void)
 #endif
         return STATUS_OK;
 }
-//: ****************************************************************************
-//: *************************** H 2   S U P P O R T ****************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: h2_session
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! *************************** H 2   S U P P O R T ****************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! h2_session
+//! ----------------------------------------------------------------------------
 class h2_session: public session {
 public:
         // -------------------------------------------------
@@ -1431,11 +1418,11 @@ private:
         nghttp2_session *m_ngxxx_session;
 };
 
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::sconnected(void)
 {
         // -------------------------------------------------
@@ -1519,11 +1506,11 @@ int32_t h2_session::sconnected(void)
         client_->signal_write();
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::srequest(void)
 {
         //++m_t_phurl->m_stat.m_reqs;
@@ -1680,11 +1667,11 @@ int32_t h2_session::srequest(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 {
 #if 0
@@ -1729,11 +1716,11 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 #endif
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::swrite(void)
 {
         int l_s;
@@ -1748,11 +1735,11 @@ int32_t h2_session::swrite(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t h2_session::sdone(void)
 {
         int l_rv;
@@ -1764,11 +1751,11 @@ int32_t h2_session::sdone(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t session::teardown(ns_hurl::http_status_t a_status)
 {
         int32_t l_s;
@@ -1955,11 +1942,11 @@ int32_t session::teardown(ns_hurl::http_status_t a_status)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void session::request_log_status(uint16_t a_status)
 {
         if(!m_t_phurl)
@@ -1975,11 +1962,11 @@ void session::request_log_status(uint16_t a_status)
         ++m_t_phurl->m_status_code_count_map[a_status];
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t session::request_complete(void)
 {
         //NDBG_PRINT("%sREQUEST_COMPLETE%s\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF);
@@ -1996,11 +1983,11 @@ int32_t session::request_complete(void)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t session::run_state_machine(void *a_data, ns_hurl::evr_mode_t a_conn_mode)
 {
         //NDBG_PRINT("%sRUN%s a_conn_mode: %d a_data: %p\n",
@@ -2561,11 +2548,11 @@ state_top:
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void *t_phurl::t_run(void *a_nothing)
 {
         int32_t l_s;
@@ -2602,11 +2589,11 @@ void *t_phurl::t_run(void *a_nothing)
         m_stopped = true;
         return NULL;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t t_phurl::host_dequeue(void)
 {
         uint32_t l_dq = 0;
@@ -2635,11 +2622,11 @@ int32_t t_phurl::host_dequeue(void)
         //                m_num_in_progress, m_num_parallel_max);
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t t_phurl::host_start(host_t *a_host)
 {
         //NDBG_PRINT("%srequest%s --HOST: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, a_request.m_host.c_str());
@@ -2682,9 +2669,9 @@ int32_t t_phurl::host_start(host_t *a_host)
         l_nconn->set_timer_obj(l_timer);
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: conn opt helper macro
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! conn opt helper macro
+//! ----------------------------------------------------------------------------
 #define _SET_NCONN_OPT(_conn, _opt, _buf, _len) do { \
                 int _status = 0; \
                 _status = _conn->set_opt((_opt), (_buf), (_len)); \
@@ -2694,11 +2681,11 @@ int32_t t_phurl::host_start(host_t *a_host)
                         return NULL;\
                 } \
         } while(0)
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 ns_hurl::nconn *t_phurl::create_new_nconn(const request &a_request, host_t *a_host)
 {
         ns_hurl::nconn *l_nconn = NULL;
@@ -2743,11 +2730,11 @@ ns_hurl::nconn *t_phurl::create_new_nconn(const request &a_request, host_t *a_ho
         l_nconn->set_host_info(a_host->m_host_info);
         return l_nconn;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 session *t_phurl::session_create(ns_hurl::nconn *a_nconn)
 {
         if(!a_nconn)
@@ -2785,11 +2772,11 @@ session *t_phurl::session_create(ns_hurl::nconn *a_nconn)
         l_ses->m_out_q = new ns_hurl::nbq(8*1024);
         return l_ses;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t t_phurl::session_cleanup(session *a_ses, ns_hurl::nconn *a_nconn)
 {
         if(a_ses)
@@ -2814,9 +2801,9 @@ int32_t t_phurl::session_cleanup(session *a_ses, ns_hurl::nconn *a_nconn)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: Prototypes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Prototypes
+//! ----------------------------------------------------------------------------
 void display_status_line(void);
 void display_summary(void);
 std::string dump_all_responses(host_list_t &a_host_list,
@@ -2824,11 +2811,11 @@ std::string dump_all_responses(host_list_t &a_host_list,
                                bool a_pretty,
                                output_type_t a_output_type,
                                int a_part_map);
-//: ----------------------------------------------------------------------------
-//: \details: Signal handler
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Signal handler
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void sig_handler(int signo)
 {
         if (signo == SIGINT)
@@ -2846,11 +2833,11 @@ void sig_handler(int signo)
                 }
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int kbhit()
 {
         struct timeval l_tv;
@@ -2863,11 +2850,11 @@ int kbhit()
         select(STDIN_FILENO + 1, &l_fds, NULL, NULL, &l_tv);
         return FD_ISSET(STDIN_FILENO, &l_fds);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void nonblock(int state)
 {
         struct termios ttystate;
@@ -2887,11 +2874,11 @@ void nonblock(int state)
         //set the terminal attributes.
         tcsetattr(STDIN_FILENO, TCSANOW, &ttystate);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int command_exec(bool a_send_stop)
 {
         int i = 0;
@@ -2987,11 +2974,11 @@ int command_exec(bool a_send_stop)
         nonblock(NB_DISABLE);
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t add_line(host_list_t &ao_host_list, uint16_t a_port, FILE *a_file_ptr)
 {
         char l_readline[MAX_READLINE_SIZE];
@@ -3022,11 +3009,11 @@ int32_t add_line(host_list_t &ao_host_list, uint16_t a_port, FILE *a_file_ptr)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int32_t host_resolved_cb(const ns_hurl::host_info *a_host_info, void *a_ctx)
 {
         --g_dns_num_in_flight;
@@ -3047,11 +3034,11 @@ static int32_t host_resolved_cb(const ns_hurl::host_info *a_host_info, void *a_c
         l_h->m_host_resolved = true;
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: Print the version.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Print the version.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void print_version(FILE* a_stream, int a_exit_code)
 {
         // print out the version information
@@ -3062,11 +3049,11 @@ void print_version(FILE* a_stream, int a_exit_code)
         exit(a_exit_code);
 }
 
-//: ----------------------------------------------------------------------------
-//: \details: Print the command line help.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Print the command line help.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void print_usage(FILE* a_stream, int a_exit_code)
 {
         fprintf(a_stream, "Usage: phurl -u [http[s]://]hostname[:port]/path [options]\n");
@@ -3128,11 +3115,11 @@ void print_usage(FILE* a_stream, int a_exit_code)
         exit(a_exit_code);
 }
 
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
         // Suppress errors
@@ -4234,11 +4221,11 @@ int main(int argc, char** argv)
         return 0;
 }
 
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void display_summary(void)
 {
         std::string l_header_str = "";
@@ -4292,11 +4279,11 @@ void display_summary(void)
         for(_sorted_map_t::reverse_iterator i_s = l_sorted_map.rbegin(); i_s != l_sorted_map.rend(); ++i_s)
         TRC_OUTPUT("| %-32s %12u\n", i_s->second.c_str(), i_s->first);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void display_status_line(void)
 {
         // -------------------------------------------------
@@ -4321,11 +4308,11 @@ void display_status_line(void)
                                 g_req_num_errors.v);
         }
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 std::string dump_all_responses_line_dl(host_list_t &a_host_list,
                                        bool a_color,
                                        bool a_pretty,
@@ -4460,11 +4447,11 @@ std::string dump_all_responses_line_dl(host_list_t &a_host_list,
         }
         return l_responses_str;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #define JS_ADD_MEMBER(_key, _val)\
 l_obj.AddMember(_key,\
                 rapidjson::Value(_val, l_js_allocator).Move(),\
@@ -4623,11 +4610,11 @@ std::string dump_all_responses_json(host_list_t &a_host_list,
         std::string l_responses_str = l_strbuf.GetString();
         return l_responses_str;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 std::string dump_all_responses(host_list_t &a_host_list,
                                bool a_color,
                                bool a_pretty,

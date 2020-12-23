@@ -1,28 +1,15 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    nconn_tls.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "support/time_util.h"
 #include "support/trace.h"
 #include "nconn/nconn_tls.h"
@@ -40,16 +27,16 @@
 #include <openssl/crypto.h>
 #include <openssl/x509v3.h>
 #include <sys/socket.h>
-//: ----------------------------------------------------------------------------
-//: constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! constants
+//! ----------------------------------------------------------------------------
 #define _HURL_EX_DATA_IDX 0
-//: ****************************************************************************
-//: ************************ A L P N  S U P P O R T ****************************
-//: ****************************************************************************
-//: ----------------------------------------------------------------------------
-//: ALPN/NPN support borrowed from curl...
-//: ----------------------------------------------------------------------------
+//! ****************************************************************************
+//! ************************ A L P N  S U P P O R T ****************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! ALPN/NPN support borrowed from curl...
+//! ----------------------------------------------------------------------------
 #define ALPN_HTTP_1_1_LENGTH 8
 #define ALPN_HTTP_1_1 "http/1.1"
 // Check for OpenSSL 1.0.2 which has ALPN support.
@@ -65,18 +52,18 @@
     && !defined(OPENSSL_NO_NEXTPROTONEG)
 #  define HAS_NPN 1
 #endif
-//: ****************************************************************************
-//: example taken from nghttp2
-//: ****************************************************************************
+//! ****************************************************************************
+//! example taken from nghttp2
+//! ****************************************************************************
 #define HTTP_1_1_ALPN "\x8http/1.1"
 #define HTTP_1_1_ALPN_LEN (sizeof(HTTP_1_1_ALPN) - 1)
 #define PROTO_ALPN "\x2h2"
 #define PROTO_ALPN_LEN (sizeof(PROTO_ALPN) - 1)
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int select_next_protocol(unsigned char **out,
                                 unsigned char *outlen,
                                 const unsigned char *in,
@@ -98,13 +85,13 @@ static int select_next_protocol(unsigned char **out,
         }
         return -1;
 }
-//: ----------------------------------------------------------------------------
-//: \details: NPN TLS extension client callback. We check that server advertised
-//:           the HTTP/2 protocol the nghttp2 library supports. If not, exit
-//:           the program.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: NPN TLS extension client callback. We check that server advertised
+//!           the HTTP/2 protocol the nghttp2 library supports. If not, exit
+//!           the program.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static int alpn_select_next_proto_cb(SSL *a_ssl,
                                      unsigned char **a_out,
                                      unsigned char *a_outlen,
@@ -132,11 +119,11 @@ static int alpn_select_next_proto_cb(SSL *a_ssl,
         return SSL_TLSEXT_ERR_ALERT_FATAL;
 }
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: \details: Initialize OpenSSL
-//: \return:  ctx on success, NULL on failure
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Initialize OpenSSL
+//! \return:  ctx on success, NULL on failure
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       long a_options,
                       const std::string &a_ca_file,
@@ -274,11 +261,11 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
         //NDBG_PRINT("SSL_CTX_new success\n");
         return l_ctx;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t show_tls_info(nconn *a_nconn)
 {
         //NDBG_PRINT("%sconnected%s...\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
@@ -347,11 +334,11 @@ int32_t show_tls_info(nconn *a_nconn)
         //printf(" l_protocol: %s\n", l_protocol.c_str());
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::init(void)
 {
         if(!m_tls_ctx)
@@ -491,11 +478,11 @@ int32_t nconn_tls::init(void)
 #endif
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::tls_connect(void)
 {
         int l_status;
@@ -591,11 +578,11 @@ int32_t nconn_tls::tls_connect(void)
         //did_connect = 1;
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::tls_accept(void)
 {
         int l_status;
@@ -705,11 +692,11 @@ int32_t nconn_tls::tls_accept(void)
         //did_connect = 1;
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
 {
         //NDBG_PRINT("HERE: a_opt: %d a_buf: %p\n", a_opt, a_buf);
@@ -794,11 +781,11 @@ int32_t nconn_tls::set_opt(uint32_t a_opt, const void *a_buf, uint32_t a_len)
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
 {
         int32_t l_status;
@@ -843,11 +830,11 @@ int32_t nconn_tls::get_opt(uint32_t a_opt, void **a_buf, uint32_t *a_len)
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncset_listening(int32_t a_val)
 {
         int32_t l_status;
@@ -860,11 +847,11 @@ int32_t nconn_tls::ncset_listening(int32_t a_val)
         m_tls_state = TLS_STATE_LISTENING;
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncset_listening_nb(int32_t a_val)
 {
         int32_t l_status;
@@ -877,11 +864,11 @@ int32_t nconn_tls::ncset_listening_nb(int32_t a_val)
         m_tls_state = TLS_STATE_LISTENING;
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncset_accepting(int a_fd)
 {
         int32_t l_s;
@@ -915,11 +902,11 @@ int32_t nconn_tls::ncset_accepting(int a_fd)
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncset_connected(void)
 {
         int32_t l_status;
@@ -930,11 +917,11 @@ int32_t nconn_tls::ncset_connected(void)
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
 {
         ssize_t l_status;
@@ -992,11 +979,11 @@ int32_t nconn_tls::ncread(char *a_buf, uint32_t a_buf_len)
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
 {
         int l_status;
@@ -1033,11 +1020,11 @@ int32_t nconn_tls::ncwrite(char *a_buf, uint32_t a_buf_len)
         }
         return l_status;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncsetup()
 {
         int32_t l_status;
@@ -1054,11 +1041,11 @@ int32_t nconn_tls::ncsetup()
         m_tls_state = TLS_STATE_CONNECTING;
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncaccept()
 {
         //NDBG_PRINT("%sSSL_ACCEPT%s: STATE[%d] --START\n",
@@ -1172,11 +1159,11 @@ ncaccept_state_top:
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::ncconnect()
 {
         //NDBG_PRINT("%stls_connect%s: STATE[%d] --START\n",
@@ -1296,11 +1283,11 @@ ncconnect_state_top:
         }
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nconn_tls::nccleanup()
 {
         // Shut down connection
@@ -1317,14 +1304,14 @@ int32_t nconn_tls::nccleanup()
         nconn_tcp::nccleanup();
         return NC_STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: nconn_utils
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! nconn_utils
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 SSL *nconn_get_SSL(nconn &a_nconn)
 {
         SSL *l_ssl;
@@ -1337,11 +1324,11 @@ SSL *nconn_get_SSL(nconn &a_nconn)
         }
         return l_ssl;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 long nconn_get_last_SSL_err(nconn &a_nconn)
 {
         long l_err;

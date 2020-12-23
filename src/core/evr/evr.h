@@ -1,44 +1,31 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    evr.h
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
 #ifndef _EVR_H
 #define _EVR_H
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include <stddef.h>
 #include <stdint.h>
 // for std::priority_queue
 #include <queue>
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Constants
+//! ----------------------------------------------------------------------------
 #define EVR_DEFAULT_TIME_WAIT_MS (-1)
 #define EVR_EVENT_FD_MAGIC 0xDEADF154
 #define EVR_EVENT_MAGIC 0xDEADCAFE
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: Enums
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Enums
+//! ----------------------------------------------------------------------------
 // loop type
 typedef enum evr_loop_type
 {
@@ -73,9 +60,9 @@ typedef enum mode_enum {
         EVR_MODE_TIMEOUT,
         EVR_MODE_ERROR
 } evr_mode_t;
-//: ----------------------------------------------------------------------------
-//: \details: Types -copied from epoll
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Types -copied from epoll
+//! ----------------------------------------------------------------------------
 // event data
 typedef union evr_data_union
 {
@@ -91,9 +78,9 @@ struct evr_event_struct
         evr_data_t data;
 } __attribute__ ((__packed__));
 typedef evr_event_struct evr_events_t;
-//: ----------------------------------------------------------------------------
-//: \details: Event Types -copied from epoll
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Event Types -copied from epoll
+//! ----------------------------------------------------------------------------
 typedef enum evr_event_types_enum
 {
         EVR_EV_IN = 0x001,
@@ -107,18 +94,18 @@ typedef enum evr_event_types_enum
         EVR_EV_RDHUP = 0x2000,
 #define EVR_EV_RDHUP EVR_EV_RDHUP
 } evr_event_types_t;
-//: ----------------------------------------------------------------------------
-//: event attributes crib'd from epoll
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! event attributes crib'd from epoll
+//! ----------------------------------------------------------------------------
 // file attr
 #define EVR_FILE_ATTR_VAL_READABLE  0x001D
 #define EVR_FILE_ATTR_VAL_WRITEABLE 0x0002
 // event attr
 #define EVR_EV_VAL_READABLE  0x2019
 #define EVR_EV_VAL_WRITEABLE 0x0004
-//: ----------------------------------------------------------------------------
-//: Types
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Types
+//! ----------------------------------------------------------------------------
 // -----------------------------------------------
 // Callback Types
 // -----------------------------------------------
@@ -144,9 +131,9 @@ typedef struct evr_event {
         evr_event_state_t m_state;
         void *m_data;
 } evr_event_t;
-//: ----------------------------------------------------------------------------
-//: Priority queue sorting
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Priority queue sorting
+//! ----------------------------------------------------------------------------
 class evr_compare_events {
 public:
         // Returns true if t1 is greater than t2
@@ -156,9 +143,9 @@ public:
         }
 };
 typedef std::priority_queue<evr_event_t *, std::vector<evr_event_t *>, evr_compare_events> evr_event_pq_t;
-//: ----------------------------------------------------------------------------
-//: \details: evr object -wraps OS specific implementations
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: evr object -wraps OS specific implementations
+//! ----------------------------------------------------------------------------
 class evr
 {
 public:
@@ -170,9 +157,9 @@ public:
         virtual int del(int a_fd) = 0;
         virtual int signal(void) = 0;
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! ----------------------------------------------------------------------------
 class evr_loop
 {
 public:

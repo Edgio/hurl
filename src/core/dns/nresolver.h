@@ -1,30 +1,17 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    nresolver.h
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    11/20/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
 #ifndef _NRESOLVER_H
 #define _NRESOLVER_H
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include <pthread.h>
 #include <stdint.h>
 #include <list>
@@ -37,41 +24,41 @@
 #ifdef ASYNC_DNS_SUPPORT
 #include "evr/evr.h"
 #endif
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Constants
+//! ----------------------------------------------------------------------------
 #define NRESOLVER_DEFAULT_AI_CACHE_FILE "/tmp/addr_info_cache.json"
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Fwd Decl's
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_WITH_UDNS
 struct dns_ctx;
 struct dns_rr_a4;
 struct dns_query;
 #endif
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: Fwd Decl's
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Fwd Decl's
+//! ----------------------------------------------------------------------------
 class nconn;
 struct host_info;
 class ai_cache;
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! ----------------------------------------------------------------------------
 class nresolver
 {
 public:
-        //: ------------------------------------------------
-        //: Types
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Types
+        // -------------------------------------------------
         typedef std::list <std::string> resolver_host_list_t;
 #ifdef ASYNC_DNS_SUPPORT
         // Async resolver callback
         typedef int32_t (*resolved_cb)(const host_info *, void *);
-        //: ------------------------------------------------
-        //: lookup job
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -lookup job
+        // -------------------------------------------------
         struct job {
                 void *m_data;
                 resolved_cb m_cb;
@@ -103,9 +90,9 @@ public:
                 job(const job &);
         };
         typedef std::queue<job *>job_q_t;
-        //: ------------------------------------------------
-        //: Priority queue sorting
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Priority queue sorting
+        // -------------------------------------------------
         class lj_compare_start_times {
         public:
                 bool operator()(job* t1, job* t2)
@@ -114,9 +101,9 @@ public:
                 }
         };
         typedef std::priority_queue<job *, std::vector<job *>, lj_compare_start_times> job_pq_t;
-        //: ------------------------------------------------
-        //: async context object
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -async context object
+        // -------------------------------------------------
         struct adns_ctx {
                 nresolver *m_ctx;
                 resolved_cb m_cb;
@@ -153,18 +140,18 @@ public:
                 adns_ctx(const adns_ctx &);
         };
 #endif
-        //: ------------------------------------------------
-        //: Const
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Const
+        // -------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
         static const uint32_t S_TIMEOUT_S = 4;
         static const uint32_t S_RETRIES = 3;
         static const uint32_t S_MAX_PARALLEL_LOOKUPS = 100;
 #endif
         static const uint32_t S_MIN_TTL_S = 10;
-        //: ------------------------------------------------
-        //: Public methods
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Public methods
+        // -------------------------------------------------
         nresolver();
         ~nresolver();
         int32_t init(bool a_use_cache = true,
@@ -197,22 +184,22 @@ public:
         static int32_t evr_fd_timeout_cb(void *a_data);
 #endif
 private:
-        //: ------------------------------------------------
-        //: Private methods
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Private methods
+        // -------------------------------------------------
         // Disallow copy/assign
         nresolver& operator=(const nresolver &);
         nresolver(const nresolver &);
         int32_t lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info);
-        //: ------------------------------------------------
-        //: Private static methods
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Private static methods
+        // -------------------------------------------------
 #ifdef ASYNC_DNS_WITH_UDNS
         static void dns_a4_cb(struct dns_ctx *a_ctx, struct dns_rr_a4 *a_result, void *a_data);
 #endif
-        //: ------------------------------------------------
-        //: Private members
-        //: ------------------------------------------------
+        // -------------------------------------------------
+        // -Private members
+        // -------------------------------------------------
         bool m_is_initd;
         resolver_host_list_t m_resolver_host_list;
         uint16_t m_port;
@@ -225,9 +212,9 @@ private:
         pthread_mutex_t m_cache_mutex;
         ai_cache *m_ai_cache;
 };
-//: ----------------------------------------------------------------------------
-//: cache key helper
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! cache key helper
+//! ----------------------------------------------------------------------------
 std::string get_cache_key(const std::string &a_host, uint16_t a_port);
 } //namespace ns_hurl {
 #endif
