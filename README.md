@@ -1,10 +1,18 @@
-  hurl: HTTP Server Load Test in C++
-=========
+# hurl
+> _HTTP Server Load Test utility written in C++_
 
-## What are they
+## Table of Contents
+
+- [Background](#background)
+- [Install](#install)
+- [Usage](#usage)
+- [Contribute](#contribute)
+- [License](#license)
+
+## Background
 A few utilities for testing and curling from http servers.
 
-## *hurl* HTTP Server Load Tester
+### *hurl* HTTP Server Load Tester
 *hurl* is an http server load tester similar to ab/siege/weighttp/wrk with support for tls, http2, multithreading, parallelism, url ranges.  *hurl* is primarily useful for benchmarking http server applications.
 
 * **A little more about URLs Ranges**:
@@ -32,8 +40,72 @@ Running 1 threads 100 parallel connections per thread with 100 requests per conn
 | 200 -- 1000
 ```
 
-#### Options
+### *phurl* Parallel Curl
+*phurl* is a parallel curling utility useful for pulling a single url from many different hosts. *phurl* supports reading line delimited hosts from stdin, a shell command string, or a file.
+
+#### An example
 ```bash
+>printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"https://bloop.com/" -s -T5 -o output.json
+Done:        0 Reqd:        0 Pendn:        3 Flight:        0 Error:        0
+Done:        0 Reqd:        3 Pendn:        3 Flight:        3 Error:        0
+Done:        1 Reqd:        3 Pendn:        2 Flight:        2 Error:        0
+Done:        2 Reqd:        3 Pendn:        1 Flight:        1 Error:        0
+Done:        3 Reqd:        3 Pendn:        0 Flight:        0 Error:        0
+Done:        3 Reqd:        3 Pendn:        0 Flight:        0 Error:        0
+****************** SUMMARY ******************** 
+| total hosts:                                3
+| success:                                    3
+| error:                                      0
+| error address lookup:                       0
+| error connectivity:                         0
+| error unknown:                              0
+| tls error cert hostname:                    0
+| tls error cert self-signed:                 0
+| tls error cert expired:                     0
+| tls error cert issuer:                      0
+| tls error other:                            0
++--------------- ALPN PROTOCOLS --------------- 
+| NA                                          3
++--------------- ALPN STRING ------------------ 
+| NA                                          3
++--------------- SSL PROTOCOLS ---------------- 
+| TLSv1.2                                     3
++--------------- SSL CIPHERS ------------------ 
+| ECDHE-RSA-AES128-GCM-SHA256                 3
+```
+
+## Install
+
+## OS requirements:
+Linux/OS X (kqueue support coming soon-ish)
+
+### Install dependencies:
+Library requirements:
+* libssl/libcrypto (OpenSSL)
+
+### OS X Build requirements (brew)
+```bash
+brew install cmake
+brew install openssl
+```
+
+### Building the tools
+```bash
+./build_simple.sh
+```
+
+And optionally install
+```bash
+cd ./build
+sudo make install
+```
+
+## Usage
+
+### `hurl`
+`hurl --help`
+
+```sh
 Usage: hurl [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help           Display this help and exit.
@@ -80,42 +152,10 @@ Note: If running long jobs consider enabling tcp_tw_reuse -eg:
 echo 1 > /proc/sys/net/ipv4/tcp_tw_reuse
 ```
 
-## *phurl* Parallel Curl
-*phurl* is a parallel curling utility useful for pulling a single url from many different hosts. *phurl* supports reading line delimited hosts from stdin, a shell command string, or a file.
+### `phurl`
+`phurl --help`
 
-#### An example
-```bash
->printf "www.google.com\nwww.yahoo.com\nwww.reddit.com\n" | phurl -p2 -t3 -u"https://bloop.com/" -s -T5 -o output.json
-Done:        0 Reqd:        0 Pendn:        3 Flight:        0 Error:        0
-Done:        0 Reqd:        3 Pendn:        3 Flight:        3 Error:        0
-Done:        1 Reqd:        3 Pendn:        2 Flight:        2 Error:        0
-Done:        2 Reqd:        3 Pendn:        1 Flight:        1 Error:        0
-Done:        3 Reqd:        3 Pendn:        0 Flight:        0 Error:        0
-Done:        3 Reqd:        3 Pendn:        0 Flight:        0 Error:        0
-****************** SUMMARY ******************** 
-| total hosts:                                3
-| success:                                    3
-| error:                                      0
-| error address lookup:                       0
-| error connectivity:                         0
-| error unknown:                              0
-| tls error cert hostname:                    0
-| tls error cert self-signed:                 0
-| tls error cert expired:                     0
-| tls error cert issuer:                      0
-| tls error other:                            0
-+--------------- ALPN PROTOCOLS --------------- 
-| NA                                          3
-+--------------- ALPN STRING ------------------ 
-| NA                                          3
-+--------------- SSL PROTOCOLS ---------------- 
-| TLSv1.2                                     3
-+--------------- SSL CIPHERS ------------------ 
-| ECDHE-RSA-AES128-GCM-SHA256                 3
-```
-
-#### Options
-```bash
+```sh
 Usage: phurl -u [http[s]://]hostname[:port]/path [options]
 Options are:
   -h, --help           Display this help and exit.
@@ -165,28 +205,12 @@ Output Options: -defaults to line delimited
   -P, --pretty         Pretty output
 ```
 
-## Building
+## Contribute
 
-## OS requirements:
-Linux/OS X (kqueue support coming soon-ish)
+- We welcome issues, questions and pull requests.
 
-### Install dependencies:
-Library requirements:
-* libssl/libcrypto (OpenSSL)
 
-### OS X Build requirements (brew)
-```bash
-brew install cmake
-brew install openssl
-```
+## License
 
-### Building the tools
-```bash
-./build_simple.sh
-```
+This project is licensed under the terms of the Apache 2.0 open source license. Please refer to the `LICENSE-2.0.txt` file for the full terms.
 
-And optionally install
-```bash
-cd ./build
-sudo make install
-```

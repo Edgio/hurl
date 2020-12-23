@@ -1,31 +1,18 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    tls_util.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//:                          OpenSSL Support
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//!                          OpenSSL Support
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "hostcheck/hostcheck.h"
 #include "support/tls_util.h"
 #include "status.h"
@@ -40,24 +27,24 @@
 #include "openssl/x509v3.h"
 #include <map>
 #include <algorithm>
-//: ----------------------------------------------------------------------------
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//!
+//! ----------------------------------------------------------------------------
 struct CRYPTO_dynlock_value
 {
         pthread_mutex_t mutex;
 };
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Globals
+//! ----------------------------------------------------------------------------
 static pthread_mutex_t *g_lock_cs;
 __thread char gts_last_tls_error[256] = "\0";
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int a_line)
 {
@@ -67,11 +54,11 @@ static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int 
         return value;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void dyn_lock_function(int a_mode,
                               struct CRYPTO_dynlock_value* a_l,
@@ -88,11 +75,11 @@ static void dyn_lock_function(int a_mode,
         }
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
                                  const char* a_file,
@@ -105,11 +92,11 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
         }
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file, int a_line)
 {
@@ -134,11 +121,11 @@ static void pthreads_locking_callback(int a_mode, int a_type, const char *a_file
         }
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
 static unsigned long pthreads_thread_id(void)
 {
@@ -147,13 +134,13 @@ static unsigned long pthreads_thread_id(void)
         return(ret);
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: OpenSSL can safely be used in multi-threaded applications provided
-//:           that at least two callback functions are set, locking_function and
-//:           threadid_func this function sets those two callbacks.
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: OpenSSL can safely be used in multi-threaded applications provided
+//!           that at least two callback functions are set, locking_function and
+//!           threadid_func this function sets those two callbacks.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static void tls_init_locking(void)
 {
         int l_num_locks = CRYPTO_num_locks();
@@ -171,11 +158,11 @@ static void tls_init_locking(void)
         CRYPTO_set_dynlock_destroy_callback(dyn_destroy_function);
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void tls_init(void)
 {
         // Initialize the OpenSSL library
@@ -208,11 +195,11 @@ void tls_init(void)
         }
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void ssl_kill_locks(void)
 {
         CRYPTO_set_id_callback(NULL);
@@ -227,11 +214,11 @@ void ssl_kill_locks(void)
         OPENSSL_free(g_lock_cs);
         g_lock_cs = NULL;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 typedef std::map <std::string, long>tls_options_map_t;
 tls_options_map_t g_tls_options_map;
 int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
@@ -281,11 +268,11 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         //NDBG_PRINT("ao_val: 0x%08lX\n", ao_val);
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 const char *get_tls_info_cipher_str(SSL *a_ssl)
 {
         if(!a_ssl)
@@ -294,11 +281,11 @@ const char *get_tls_info_cipher_str(SSL *a_ssl)
         }
         return SSL_get_cipher_name(a_ssl);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t get_tls_info_protocol_num(SSL *a_ssl)
 {
         if(!a_ssl)
@@ -316,11 +303,11 @@ int32_t get_tls_info_protocol_num(SSL *a_ssl)
         return SSL_version(a_ssl);
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 const char *get_tls_info_protocol_str(int32_t a_version)
 {
         switch(a_version)
@@ -367,12 +354,12 @@ const char *get_tls_info_protocol_str(int32_t a_version)
         }
         return NULL;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: \notes:   Based on example from "Network Security with OpenSSL" pg. 132
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! \notes:   Based on example from "Network Security with OpenSSL" pg. 132
+//! ----------------------------------------------------------------------------
 int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
 {
         if(ok)
@@ -401,12 +388,12 @@ int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
         }
         return ok;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: \notes:   Based on example from "Network Security with OpenSSL" pg. 132
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! \notes:   Based on example from "Network Security with OpenSSL" pg. 132
+//! ----------------------------------------------------------------------------
 int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
 {
         if(ok)
@@ -423,12 +410,12 @@ int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
         }
         return ok;
 }
-//: ----------------------------------------------------------------------------
-//: \details: Return an array of (RFC 6125 coined) DNS-IDs and CN-IDs in a x509
-//:           certificate
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: Return an array of (RFC 6125 coined) DNS-IDs and CN-IDs in a x509
+//!           certificate
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
 {
         if (!x509)
@@ -478,12 +465,12 @@ bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
         return false;
 #endif
 }
-//: ----------------------------------------------------------------------------
-//: Check host name
-//: Based on example from:
-//: "Network Security with OpenSSL" pg. 135-136
-//: Returns 0 on Success, -1 on Failure
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Check host name
+//! Based on example from:
+//! "Network Security with OpenSSL" pg. 135-136
+//! Returns 0 on Success, -1 on Failure
+//! ----------------------------------------------------------------------------
 static int validate_server_certificate_hostname(X509* a_cert, const char* a_host)
 {
         typedef std::vector <std::string> cert_name_list_t;
@@ -506,12 +493,12 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
         //NDBG_PRINT("LABEL[%s]: Error hostname match failed.\n", a_host);
         return -1;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: \notes:   Based on example from "Network Security with OpenSSL" pg. 132
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! \notes:   Based on example from "Network Security with OpenSSL" pg. 132
+//! ----------------------------------------------------------------------------
 int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disallow_self_signed)
 {
         X509* l_cert = NULL;
@@ -585,12 +572,12 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
         // No errors return success(0)
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: \notes:   Example from tor
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! \notes:   Example from tor
+//! ----------------------------------------------------------------------------
 int32_t tls_cleanup(void)
 {
         EVP_cleanup();

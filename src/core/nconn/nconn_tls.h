@@ -1,40 +1,27 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    nconn_tls.h
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
 #ifndef _NCONN_TLS_H
 #define _NCONN_TLS_H
-//: ----------------------------------------------------------------------------
-//: includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "nconn/nconn_tcp.h"
-//: ----------------------------------------------------------------------------
-//: ext fwd decl's
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! ext fwd decl's
+//! ----------------------------------------------------------------------------
 typedef struct ssl_ctx_st SSL_CTX;
 typedef struct ssl_st SSL;
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! ----------------------------------------------------------------------------
 class nconn_tls: public nconn_tcp
 {
 public:
@@ -172,9 +159,9 @@ private:
                                              unsigned int a_inlen,
                                              void *a_arg);
 };
-//: ----------------------------------------------------------------------------
-//: \prototypes:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \prototypes:
+//! ----------------------------------------------------------------------------
 SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       long a_options = 0,
                       const std::string &a_ca_file = "",

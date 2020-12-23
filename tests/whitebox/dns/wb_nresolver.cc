@@ -1,28 +1,15 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    wb_nresolver.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    09/30/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "nconn/host_info.h"
 #include "dns/nresolver.h"
 #include "dns/ai_cache.h"
@@ -30,23 +17,23 @@
 #include "catch/catch.hpp"
 #include <unistd.h>
 #include <sys/poll.h>
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Constants
+//! ----------------------------------------------------------------------------
 #define GOOD_DATA_VALUE_1 0xDEADBEEFDEADBEEFUL
 #define GOOD_DATA_VALUE_2 0xDEADBEEFDEADBEEEUL
 #define BAD_DATA_VALUE_1  0xDEADBEEFDEADF154UL
 #define BAD_DATA_VALUE_2  0xDEADBEEFDEADF155UL
-//: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Globals
+//! ----------------------------------------------------------------------------
 static uint32_t g_dns_reqs_qd = 0;
 static uint32_t g_lkp_sucess = 0;
 static uint32_t g_lkp_fail = 0;
 static uint32_t g_lkp_err = 0;
-//: ----------------------------------------------------------------------------
-//: Test helpers
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Test helpers
+//! ----------------------------------------------------------------------------
 int32_t test_resolved_cb(const ns_hurl::host_info *a_host_info, void *a_data)
 {
         --g_dns_reqs_qd;
@@ -69,9 +56,9 @@ int32_t test_resolved_cb(const ns_hurl::host_info *a_host_info, void *a_data)
         }
         return 0;
 }
-//: ----------------------------------------------------------------------------
-//: Get cache key
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Get cache key
+//! ----------------------------------------------------------------------------
 TEST_CASE( "get cache key", "[get_cache_key]" )
 {
         SECTION("Verify get cache key")
@@ -82,9 +69,9 @@ TEST_CASE( "get cache key", "[get_cache_key]" )
                 REQUIRE((l_label == "google.com:7868"));
         }
 }
-//: ----------------------------------------------------------------------------
-//: nresolver
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! nresolver
+//! ----------------------------------------------------------------------------
 TEST_CASE( "nresolver test", "[nresolver]" )
 {
         SECTION("Validate No cache")

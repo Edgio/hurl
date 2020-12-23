@@ -14,7 +14,6 @@
 # async_http library, and other command-line tools have no problems.
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # ------------------------------------------------------------------------------
-
 # ------------------------------------------------------------------------------
 # imports
 # ------------------------------------------------------------------------------
@@ -27,10 +26,8 @@ import random
 import string
 from datetime import datetime
 from copy import deepcopy
-
 import SocketServer
 import gzip
-
 # ------------------------------------------------------------------------------
 # globals
 # ------------------------------------------------------------------------------
@@ -48,7 +45,6 @@ G_TEST_RESP_TEMPLATE = {
     ]
 }
 G_RESPONSE_FILE = ''
-
 # ------------------------------------------------------------------------------
 # Upstream Server
 # ------------------------------------------------------------------------------
@@ -64,7 +60,6 @@ class UpstreamHTTPServer(SocketServer.ThreadingMixIn,
     # socket_timeout.     
     # ------------------------------------------------------
     daemon_threads = True
-
 # ------------------------------------------------------------------------------
 # ListBuffer
 # ------------------------------------------------------------------------------
@@ -87,22 +82,17 @@ class ListBuffer(object):
     __slots__ = 'l_gz_buffer',
     def __init__(self):
         self.l_gz_buffer = []
-
     def __nonzero__(self):
         return len(self.l_gz_buffer)
-
     def write(self, data):
         if data:
             self.l_gz_buffer.append(data)
-
     def flush(self):
         pass
-
     def getvalue(self):
         data = ''.join(self.l_gz_buffer)
         self.l_gz_buffer = []
         return data
-
 # ------------------------------------------------------------------------------
 # chunk_generator
 # ------------------------------------------------------------------------------
@@ -111,7 +101,6 @@ def chunk_generator():
     for i in xrange(10):
         time.sleep(.01)
         yield "this is i_chunk: %s\r\n"%i
-
 # ------------------------------------------------------------------------------
 # Upstream Server
 # ------------------------------------------------------------------------------
@@ -122,7 +111,6 @@ class UpstreamHTTPHandler(BaseHTTPRequestHandler):
     
     ALWAYS_SEND_SOME = False
     ALLOW_GZIP = False
-
     #Handler for the GET requests
     def do_GET(self):
         # --------------------------------------------------
@@ -138,7 +126,6 @@ class UpstreamHTTPHandler(BaseHTTPRequestHandler):
             self.send_header('Content-length',len(l_str))
             self.end_headers()
             self.wfile.write(l_str)
-
         # --------------------------------------------------
         # /chunked
         # notes from original gist -see header comments:
@@ -165,9 +152,7 @@ class UpstreamHTTPHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-Encoding', 'gzip')
                 l_gz_buffer = ListBuffer()
                 l_gz_output = gzip.GzipFile(mode='wb', fileobj=l_gz_buffer)
-
             self.end_headers()
-
             # ----------------------------------------------
             # from file
             # ----------------------------------------------
@@ -180,7 +165,6 @@ class UpstreamHTTPHandler(BaseHTTPRequestHandler):
                         self.wfile.write(l_tosend)
                 # send the chunked trailer
                 self.wfile.write('0\r\n\r\n')
-
             # ----------------------------------------------
             # string chunks
             # ----------------------------------------------
@@ -217,7 +201,6 @@ class UpstreamHTTPHandler(BaseHTTPRequestHandler):
         
                 # send the chunked trailer
                 self.wfile.write('0\r\n\r\n')
-
         # --------------------------------------------------
         # default endpoint
         # --------------------------------------------------
@@ -229,7 +212,6 @@ class UpstreamHTTPHandler(BaseHTTPRequestHandler):
             self.send_header('Content-length',len(l_str))
             self.end_headers()
             self.wfile.write(l_str)
-
 # ------------------------------------------------------------------------------
 # main
 # ------------------------------------------------------------------------------
@@ -239,7 +221,6 @@ def main(argv):
                 description='Upstream Server.',
                 usage= '%(prog)s',
                 epilog= '')
-
     # port
     arg_parser.add_argument('-p',
                             '--port',
@@ -247,8 +228,6 @@ def main(argv):
                             help='Port',
                             type=int,
                             required=True)
-
-
     # file
     arg_parser.add_argument('-f',
                             '--file',
@@ -256,21 +235,16 @@ def main(argv):
                             help='File to send (for response)',
                             type=str,
                             required=False)
-
-
     args = arg_parser.parse_args()
-
     global G_RESPONSE_FILE
     if args.file:
         G_RESPONSE_FILE = args.file
-
     try:
         l_server = UpstreamHTTPServer(('', args.port), UpstreamHTTPHandler)
         l_server.serve_forever()
     except KeyboardInterrupt:
         print '^C received, shutting down the web server'
         l_server.socket.close()
-
 # ------------------------------------------------------------------------------
 #
 # ------------------------------------------------------------------------------

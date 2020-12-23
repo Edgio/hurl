@@ -1,40 +1,27 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    wb_nbq.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    09/30/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "status.h"
 #include "support/nbq.h"
 #include "support/trace.h"
 #include "support/ndebug.h"
 #include "catch/catch.hpp"
-//: ----------------------------------------------------------------------------
-//: Constants
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Constants
+//! ----------------------------------------------------------------------------
 #define BLOCK_SIZE 256
-//: ----------------------------------------------------------------------------
-//: Test helpers
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Test helpers
+//! ----------------------------------------------------------------------------
 #define TO_HEX(i) (i <= 9 ? '0' + i : 'A' - 10 + i)
 char *create_uniform_buf(uint32_t a_size)
 {
@@ -45,9 +32,9 @@ char *create_uniform_buf(uint32_t a_size)
         }
         return l_buf;
 }
-//: ----------------------------------------------------------------------------
-//: Test helpers
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Test helpers
+//! ----------------------------------------------------------------------------
 char *create_buf(uint32_t a_size)
 {
         char *l_buf = (char *)malloc(a_size);
@@ -57,9 +44,9 @@ char *create_buf(uint32_t a_size)
         }
         return l_buf;
 }
-//: ----------------------------------------------------------------------------
-//: Test helpers
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Test helpers
+//! ----------------------------------------------------------------------------
 void nbq_write(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_write_size, uint32_t a_write_per)
 {
         uint64_t l_write_size = a_write_size;
@@ -77,9 +64,9 @@ void nbq_write(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_write_size, uint32_t
                 }
         }
 }
-//: ----------------------------------------------------------------------------
-//: Test helpers
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Test helpers
+//! ----------------------------------------------------------------------------
 void nbq_read(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
 {
         uint64_t l_read = 0;
@@ -94,9 +81,9 @@ void nbq_read(ns_hurl::nbq &a_nbq, char *a_buf, uint32_t a_read_per)
                 }
         }
 }
-//: ----------------------------------------------------------------------------
-//: Verify contents of nbq
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Verify contents of nbq
+//! ----------------------------------------------------------------------------
 int32_t verify_contents(ns_hurl::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
 {
         uint64_t l_read = 0;
@@ -129,9 +116,9 @@ int32_t verify_contents(ns_hurl::nbq &a_nbq, uint64_t a_len, uint16_t a_offset)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: Verify contents of buf
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Verify contents of buf
+//! ----------------------------------------------------------------------------
 int32_t verify_contents(char *l_buf, uint64_t a_len, uint16_t a_offset)
 {
         uint64_t l_read = 0;
@@ -157,9 +144,9 @@ int32_t verify_contents(char *l_buf, uint64_t a_len, uint16_t a_offset)
         }
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: Tests
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Tests
+//! ----------------------------------------------------------------------------
 TEST_CASE( "nbq test", "[nbq]" ) {
         ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
         SECTION("writing then reading to new") {

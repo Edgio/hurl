@@ -1,28 +1,15 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    nresolver.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    11/20/2015
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "dns/ai_cache.h"
 #include "dns/nresolver.h"
 #include "support/time_util.h"
@@ -45,11 +32,11 @@
 // for inet_pton
 #include <arpa/inet.h>
 namespace ns_hurl {
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 std::string get_cache_key(const std::string &a_host, uint16_t a_port)
 {
         char l_port_str[8];
@@ -58,11 +45,11 @@ std::string get_cache_key(const std::string &a_host, uint16_t a_port)
         l_cache_key = a_host + ":" + l_port_str;
         return l_cache_key;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 nresolver::nresolver():
         m_is_initd(false),
         m_resolver_host_list(),
@@ -78,11 +65,11 @@ nresolver::nresolver():
 {
         pthread_mutex_init(&m_cache_mutex, NULL);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 nresolver::~nresolver()
 {
         // Sync back to disk
@@ -93,11 +80,11 @@ nresolver::~nresolver()
         }
         pthread_mutex_destroy(&m_cache_mutex);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nresolver::init(bool a_use_cache,
                         const std::string &a_ai_cache_file)
 {
@@ -124,20 +111,20 @@ int32_t nresolver::init(bool a_use_cache,
         m_is_initd = true;
         return STATUS_OK;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 void nresolver::add_resolver_host(const std::string a_server)
 {
         m_resolver_host_list.push_back(a_server);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
 {
@@ -180,11 +167,11 @@ int32_t nresolver::destroy_async(adns_ctx* a_adns_ctx)
         return STATUS_OK;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_cb a_cb)
 {
@@ -292,21 +279,21 @@ nresolver::adns_ctx *nresolver::get_new_adns_ctx(evr_loop *a_evr_loop, resolved_
         return l_adns_ctx;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 static bool is_valid_ip_address(const char *a_str)
 {
     struct sockaddr_in l_sa;
     return (inet_pton(AF_INET, a_str, &(l_sa.sin_addr)) != 0);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nresolver::lookup_tryfast(const std::string &a_host,
                                   uint16_t a_port,
                                   host_info &ao_host_info)
@@ -351,11 +338,11 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         }
         return STATUS_ERROR;
 }
-//: ----------------------------------------------------------------------------
-//: \details: slow resolution
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: slow resolution
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
         int32_t l_s;
@@ -388,11 +375,11 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         }
         return l_retval;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_info &ao_host_info)
 {
         //NDBG_PRINT("%sRESOLVE%s: a_host: %s a_port: %d\n",
@@ -415,22 +402,22 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
         }
         return lookup_inline(a_host, a_port, ao_host_info);
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 const char *s_bytes_2_ip_str(const unsigned char *c)
 {
         static char b[sizeof("255.255.255.255")];
         sprintf(b, "%u.%u.%u.%u", c[0], c[1], c[2], c[3]);
         return b;
 }
-//: ----------------------------------------------------------------------------
-//: \details: A query callback routine
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: A query callback routine
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_WITH_UDNS
 void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
                           struct dns_rr_a4 *a_result,
@@ -526,11 +513,11 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
         }
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: A query callback routine
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: A query callback routine
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_WITH_UDNS
 // TODO ipv6 support???
 //static void s_dns_a6_cb(struct dns_ctx *a_ctx,
@@ -550,11 +537,11 @@ void nresolver::dns_a4_cb(struct dns_ctx *a_ctx,
 //        return;
 //}
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
                                 const std::string &a_host,
@@ -672,11 +659,11 @@ int32_t nresolver::lookup_async(adns_ctx* a_adns_ctx,
         return STATUS_OK;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::get_active(adns_ctx* a_adns_ctx)
 {
@@ -703,11 +690,11 @@ int32_t nresolver::get_active(adns_ctx* a_adns_ctx)
 #endif
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_writeable_cb(void *a_data)
 {
@@ -716,11 +703,11 @@ int32_t nresolver::evr_fd_writeable_cb(void *a_data)
         return STATUS_OK;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_readable_cb(void *a_data)
 {
@@ -756,11 +743,11 @@ int32_t nresolver::evr_fd_readable_cb(void *a_data)
         return STATUS_OK;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_error_cb(void *a_data)
 {
@@ -769,11 +756,11 @@ int32_t nresolver::evr_fd_error_cb(void *a_data)
         return STATUS_OK;
 }
 #endif
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 #ifdef ASYNC_DNS_SUPPORT
 int32_t nresolver::evr_fd_timeout_cb(void *a_data)
 {

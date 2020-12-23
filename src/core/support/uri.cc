@@ -1,39 +1,26 @@
-//: ----------------------------------------------------------------------------
-//: Copyright (C) 2016 Verizon.  All Rights Reserved.
-//: All Rights Reserved
-//:
-//: \file:    uri.cc
-//: \details: TODO
-//: \author:  Reed P. Morrison
-//: \date:    02/07/2014
-//:
-//:   Licensed under the Apache License, Version 2.0 (the "License");
-//:   you may not use this file except in compliance with the License.
-//:   You may obtain a copy of the License at
-//:
-//:       http://www.apache.org/licenses/LICENSE-2.0
-//:
-//:   Unless required by applicable law or agreed to in writing, software
-//:   distributed under the License is distributed on an "AS IS" BASIS,
-//:   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//:   See the License for the specific language governing permissions and
-//:   limitations under the License.
-//:
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Copyright Verizon.
+//!
+//! \file:    TODO
+//! \details: TODO
+//!
+//! Licensed under the terms of the Apache 2.0 open source license.
+//! Please refer to the LICENSE file in the project root for the terms.
+//! ----------------------------------------------------------------------------
 // Uri encode and decode.
 // RFC1630, RFC1738, RFC2396
-//: ----------------------------------------------------------------------------
-//: Includes
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! includes
+//! ----------------------------------------------------------------------------
 #include "support/uri.h"
 #include <string>
 #include <assert.h>
 #include <stdint.h>
 namespace ns_hurl
 {
-//: ----------------------------------------------------------------------------
-//: Globals
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! Globals
+//! ----------------------------------------------------------------------------
 const int8_t G_HEX2DEC[256] =
 {
         /*       0  1  2  3   4  5  6  7   8  9  A  B   C  D  E  F */
@@ -75,11 +62,11 @@ const int8_t G_SAFE[256] =
         /* E */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
         /* F */ 0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0
 };
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 std::string uri_decode(const std::string & a_src)
 {
         // Note from RFC1630:  "Sequences which start with a percent sign
@@ -128,11 +115,11 @@ std::string uri_decode(const std::string & a_src)
         delete[] pStart;
         return sResult;
 }
-//: ----------------------------------------------------------------------------
-//: \details: TODO
-//: \return:  TODO
-//: \param:   TODO
-//: ----------------------------------------------------------------------------
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
 std::string uri_encode(const std::string & a_src)
 {
         const char DEC2HEX[16 + 1] = "0123456789ABCDEF";
