@@ -75,7 +75,13 @@ int main(int argc, char **argv) {
 EOF
 
 if ac_library_find_v 'socket and connect' "" "-lsocket -lnsl" <<EOF
-int main() { socket(); connect(); return 0; }
+#include <sys/types.h>
+#include <sys/socket.h>
+int main() {
+  socket(AF_INET, SOCK_STREAM, 0);
+  connect(0, 0, 0);
+  return 0;
+}
 EOF
 then :
 else
