@@ -509,7 +509,6 @@ public:
         void set_random_xfwd_header()
         {
             const std::string xfwdkey = "X-Forwarded-For";
-
             // add an x-forwarded-for header for a random ip
             // skip 0.0.0.0/8; ip ranges from 1.0.0.0 to 255.255.255.255
 #ifdef CPP17
@@ -3391,6 +3390,7 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "TLS Settings:\n");
         fprintf(a_stream, "  -y, --cipher         Cipher --see \"openssl ciphers\" for list.\n");
         fprintf(a_stream, "  -O, --tls_options    SSL Options string.\n");
+        fprintf(a_stream, "  \n");
         fprintf(a_stream, "Display Options:\n");
         fprintf(a_stream, "  -v, --verbose        Verbose logging\n");
         fprintf(a_stream, "  -c, --no_color       Turn off colors\n");
