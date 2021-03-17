@@ -1426,10 +1426,6 @@ int32_t http_session::srequest(void)
                         "%s %s HTTP/1.1",
                         m_request->m_verb.c_str(), l_uri.c_str());
         nbq_write_request_line(*m_out_q, l_buf, l_len);
-        if(!m_request->m_no_host)
-        {
-                m_request->set_header("Host", m_request->m_host);
-        }
         if (g_random_xfwd)
         {
             m_request->set_random_xfwd_header();
