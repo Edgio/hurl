@@ -566,9 +566,9 @@ private:
         request& operator=(const request &);
 };
 //! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
+//! \details: Initialize an instance of request from a URL string
+//! \return:  STATUS_ERROR or STATUS_OK
+//! \param:   a_url the URL associated with this request instance
 //! ----------------------------------------------------------------------------
 int32_t request::init_with_url(const std::string &a_url)
 {
