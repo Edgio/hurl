@@ -50,6 +50,22 @@ if (FORTIFY)
   add_definitions(-D_FORTIFY_SOURCE=2 -O1 -fstack-protector-all -Wl,-z,relro,-z,now)
 endif()
 # ------------------------------------------------------------------------------
+# fail if not found sanitizers
+# ------------------------------------------------------------------------------
+macro(fail_if_not_found_sanitizers)
+	if(${ARGC} GREATER 0)
+    find_library(${ARGV0}_LIBRARY
+	         NAMES ${ARGN}
+                 PATH_SUFFIXES ${CMAKE_LIBRARY_ARCHITECTURE})
+    if(NOT ${ARGV0}_LIBRARY)
+      message(FATAL_ERROR "${ARGV0} library not found")
+    endif()
+  else()
+    message(FATAL_ERROR "No arguments specified")
+  endif()
+endmacro(fail_if_not_found_sanitizers)
+
+# ------------------------------------------------------------------------------
 # fail if not found
 # ------------------------------------------------------------------------------
 macro(fail_if_not_found_library a_lib)
@@ -64,8 +80,10 @@ endmacro(fail_if_not_found_library)
 # ASAN
 # ------------------------------------------------------------------------------
 if (BUILD_ASAN)
-  # TODO not working
-  #fail_if_not_found_library(asan)
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    set(ASAN_LIBS asan libasan.so libasan.so.6 libasan.so.5 libasan.so.4 libasan.so.3 libasan.so.2 libasan.so.1)
+    fail_if_not_found_sanitizers(${ASAN_LIBS})
+  endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(LIBRARIES ${LIBRARIES} asan)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
   set(DEBUG_MODE ON)
@@ -75,8 +93,10 @@ if (BUILD_ASAN)
 # UBSAN
 # ------------------------------------------------------------------------------
 elseif (BUILD_UBSAN)
-  # TODO not working
-  #fail_if_not_found_library(ubsan)
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")  
+    set(UBSAN_LIBS ubsan libubsan.so libubsan.so.5 libubsan.so.4 libubsan.so.3 libubsan.so.2 libubsan.so.1 libubsan.so.0)
+    fail_if_not_found_sanitizers(${UBSAN_LIBS})
+  endif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(LIBRARIES ${LIBRARIES} ubsan)
   add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover)
   set(DEBUG_MODE ON)
