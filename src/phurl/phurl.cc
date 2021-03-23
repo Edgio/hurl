@@ -133,11 +133,17 @@ typedef std::list <t_phurl *> t_phurl_list_t;
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
-        if((ao_q.write(a_buf, a_len)) == STATUS_ERROR)
+        int64_t l_s;
+        l_s = ao_q.write(a_buf, a_len);
+        if(l_s == STATUS_ERROR)
         {
-            return STATUS_ERROR
+                return STATUS_ERROR;
         }
-        ao_q.write("\r\n", strlen("\r\n"));
+        l_s = ao_q.write("\r\n", strlen("\r\n"));
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------

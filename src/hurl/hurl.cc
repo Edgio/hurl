@@ -133,9 +133,9 @@ static uint32_t g_num_threads = 1;
 static int64_t g_reqs_per_conn = -1;
 static bool g_stats = true;
 static bool g_random_xfwd = false;
-// -----------------------------------------------
+// ---------------------------------------------------------
 // Path vector support
-// -----------------------------------------------
+// ---------------------------------------------------------
 static bool g_path_multi = false;
 static tinymt64_t *g_path_rand_ptr = NULL;
 static path_vector_t g_path_vector;
@@ -354,11 +354,17 @@ double xstat_struct::stdev() const
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
-        if((ao_q.write(a_buf, a_len)) == STATUS_ERROR)
+        int64_t l_s;
+        l_s = ao_q.write(a_buf, a_len);
+        if(l_s == STATUS_ERROR)
         {
                 return STATUS_ERROR;
         }
-        ao_q.write("\r\n", strlen("\r\n"))
+        l_s = ao_q.write("\r\n", strlen("\r\n"));
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
@@ -367,8 +373,8 @@ static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uin
 //! \param:   TODO
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
-                         const char *a_key_buf, uint32_t a_key_len,
-                         const char *a_val_buf, uint32_t a_val_len)
+                                const char *a_key_buf, uint32_t a_key_len,
+                                const char *a_val_buf, uint32_t a_val_len)
 {
         ao_q.write(a_key_buf, a_key_len);
         ao_q.write(": ", 2);
@@ -2973,9 +2979,9 @@ int32_t parse_path(const char *a_path,
         //NDBG_PRINT("l_substr: %s from %lu -- %lu\n", l_substr.c_str(), l_cur_str_pos, l_path.length());
         ao_substr_vector.push_back(l_substr);
 #if 0
-        // -------------------------------------------
+        // -------------------------------------------------
         // Explode the lists
-        // -------------------------------------------
+        // -------------------------------------------------
         for(path_substr_vector_t::iterator i_substr = ao_substr_vector.begin();
                         i_substr != ao_substr_vector.end();
                         ++i_substr)
@@ -3037,20 +3043,20 @@ int32_t path_exploder(std::string a_path_part,
 int32_t special_effects_parse(std::string &a_path)
 {
         //printf("SPECIAL_FX_PARSE: path: %s\n", a_path.c_str());
-        // -------------------------------------------
+        // -------------------------------------------------
         // 1. Break by separator ";"
         // 2. Check for exploded path
         // 3. For each bit after path
         //        Split by Key "=" Value
-        // -------------------------------------------
+        // -------------------------------------------------
         // Bail out if no path
         if(a_path.empty())
         {
                 return STATUS_OK;
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // TODO This seems hacky...
-        // -------------------------------------------
+        // -------------------------------------------------
         // strtok is NOT thread-safe but not sure it matters here...
         char l_path[2049];
         char *l_save_ptr;
@@ -4009,9 +4015,9 @@ int main(int argc, char** argv)
                 fprintf(stdout, "Error: url required.");
                 print_usage(stdout, -1);
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // Add url from command line
-        // -------------------------------------------
+        // -------------------------------------------------
         if(!l_url.length())
         {
                 fprintf(stdout, "Error: No specified URL on cmd line.\n");
@@ -4035,17 +4041,17 @@ int main(int argc, char** argv)
                                 g_num_threads, l_num_parallel, (uint32_t)l_rlim.rlim_cur);
                 return STATUS_ERROR;
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // Sigint handler
-        // -------------------------------------------
+        // -------------------------------------------------
         if (signal(SIGINT, sig_handler) == SIG_ERR)
         {
                 TRC_OUTPUT("Error: can't catch SIGINT\n");
                 return STATUS_ERROR;
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // Add url from command line
-        // -------------------------------------------
+        // -------------------------------------------------
         //printf("Adding url: %s\n", l_url.c_str());
         // Set url
         l_s = l_request->init_with_url(l_url);
@@ -4054,9 +4060,9 @@ int main(int argc, char** argv)
                 TRC_OUTPUT("Error: performing init_with_url: %s\n", l_url.c_str());
                 return STATUS_ERROR;
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // resolve
-        // -------------------------------------------
+        // -------------------------------------------------
         ns_hurl::host_info l_host_info;
         l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info, l_ai_family);
         if(l_s != STATUS_OK)
@@ -4065,9 +4071,9 @@ int main(int argc, char** argv)
                 return STATUS_ERROR;
         }
         l_request->m_host_info = l_host_info;
-        // -------------------------------------------
+        // -------------------------------------------------
         // paths...
-        // -------------------------------------------
+        // -------------------------------------------------
         std::string l_raw_path = l_request->m_url_path;
         //printf("l_raw_path: %s\n",l_raw_path.c_str());
         if(l_wildcarding)
@@ -4101,9 +4107,9 @@ int main(int argc, char** argv)
                 ProfilerStart(l_cprof_file.c_str());
         }
 #endif
-        // -------------------------------------------
+        // -------------------------------------------------
         // message
-        // -------------------------------------------
+        // -------------------------------------------------
         if(!g_verbose)
         {
                 if(g_reqs_per_conn < 0)
@@ -4117,9 +4123,9 @@ int main(int argc, char** argv)
                                         g_num_threads, l_num_parallel, g_reqs_per_conn);
                 }
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // init
-        // -------------------------------------------
+        // -------------------------------------------------
         static t_hurl_list_t l_t_hurl_list;
         for(uint32_t i_t = 0; i_t < g_num_threads; ++i_t)
         {
@@ -4139,9 +4145,9 @@ int main(int argc, char** argv)
                 l_t_hurl->init();
                 // TODO Check status
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // run
-        // -------------------------------------------
+        // -------------------------------------------------
         l_start_time_ms = ns_hurl::get_time_ms();;
         for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
             i_t != l_t_hurl_list.end();
@@ -4150,11 +4156,11 @@ int main(int argc, char** argv)
                 (*i_t)->run();
                 // TODO Check status
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // *******************************************
         //              c o l o r s
         // *******************************************
-        // -------------------------------------------
+        // -------------------------------------------------
         const char *l_c_fg_white = ANSI_COLOR_OFF;
         const char *l_c_fg_red = ANSI_COLOR_OFF;
         const char *l_c_fg_blue = ANSI_COLOR_OFF;
@@ -4174,18 +4180,18 @@ int main(int argc, char** argv)
                 l_c_fg_yellow = ANSI_COLOR_FG_YELLOW;
                 l_c_off = ANSI_COLOR_OFF;
         }
-        // -------------------------------------------
-        // *******************************************
-        //              command exec
-        // *******************************************
-        // -------------------------------------------
+        // -------------------------------------------------
+        // *************************************************
+        //                 command exec
+        // *************************************************
+        // -------------------------------------------------
         int i = 0;
         char l_cmd = ' ';
         bool l_first_time = true;
         nonblock(NB_ENABLE);
-        // -------------------------------------------
+        // -------------------------------------------------
         // Loop forever until user quits
-        // -------------------------------------------
+        // -------------------------------------------------
         while (!g_test_finished)
         {
                 i = kbhit();
@@ -4347,18 +4353,18 @@ int main(int argc, char** argv)
         }
         nonblock(NB_DISABLE);
         uint64_t l_end_time_ms = ns_hurl::get_time_ms() - l_start_time_ms;
-        // -------------------------------------------
+        // -------------------------------------------------
         // stop
-        // -------------------------------------------
+        // -------------------------------------------------
         for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
             i_t != l_t_hurl_list.end();
             ++i_t)
         {
                 (*i_t)->stop();
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // Join all threads before exit
-        // -------------------------------------------
+        // -------------------------------------------------
         for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
             i_t != l_t_hurl_list.end();
             ++i_t)
@@ -4379,9 +4385,9 @@ int main(int argc, char** argv)
         }
 #endif
         std::string l_out_str;
-        // -------------------------------------------
+        // -------------------------------------------------
         // Get stats
-        // -------------------------------------------
+        // -------------------------------------------------
         status_code_count_map_t l_status_code_count_map;
         t_stat_cntr_t l_total;
         t_stat_calc_t l_total_calc;
@@ -4390,9 +4396,9 @@ int main(int argc, char** argv)
         uint64_t l_total_bytes = l_total.m_bytes_read + l_total.m_bytes_written;
         get_status_codes(l_status_code_count_map, l_t_hurl_list);
         double l_elapsed_time_s = ((double)l_end_time_ms)/1000.0;
-        // -------------------------------------------
+        // -------------------------------------------------
         // results str
-        // -------------------------------------------
+        // -------------------------------------------------
         if(!l_display_results_json_flag)
         {
                 std::string l_tag;
@@ -4488,9 +4494,9 @@ int main(int argc, char** argv)
                 l_body.Accept(l_writer);
                 l_out_str.assign(l_strbuf.GetString(), l_strbuf.GetSize());
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // Write results...
-        // -------------------------------------------
+        // -------------------------------------------------
         if(l_output_file.empty())
         {
                 if(!g_verbose)
@@ -4522,9 +4528,9 @@ int main(int argc, char** argv)
                         return STATUS_ERROR;
                 }
         }
-        // -------------------------------------------
+        // -------------------------------------------------
         // Cleanup...
-        // -------------------------------------------
+        // -------------------------------------------------
         for(t_hurl_list_t::iterator i_t = l_t_hurl_list.begin();
             i_t != l_t_hurl_list.end();
             ++i_t)
