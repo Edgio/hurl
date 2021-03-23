@@ -130,11 +130,12 @@ nbq::~nbq(void)
                 }
         }
 }
-//! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
+//! -----------------------------------------------------------------------------
+//! \details: Write an array of characters to the current write block
+//! \return:  Number of characters written. -1 in case of error.
+//! \param:   a_buf the buffer containing characters to be written to write block
+//! \param:   a_len the length of a_buf
+//! -----------------------------------------------------------------------------
 int64_t nbq::write(const char *a_buf, uint64_t a_len)
 {
         CHECK_FOR_NULL_AND_LEN(a_buf, a_len);
