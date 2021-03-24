@@ -161,7 +161,7 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
         {
                return STATUS_ERROR;
         }
-        l_s = ao_q.write(": ", 2);
+        l_s = ao_q.write(": ", strlen(": "));
         if(l_s == STATUS_ERROR)
         {
                return STATUS_ERROR;
@@ -171,7 +171,7 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
         {
                return STATUS_ERROR;
         }
-        l_s = ao_q.write("\r\n", 2);
+        l_s = ao_q.write("\r\n", strlen("\r\n"));
         if(l_s == STATUS_ERROR)
         {
               return STATUS_ERROR;
