@@ -376,11 +376,28 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
                                 const char *a_key_buf, uint32_t a_key_len,
                                 const char *a_val_buf, uint32_t a_val_len)
 {
-        ao_q.write(a_key_buf, a_key_len);
-        ao_q.write(": ", 2);
-        ao_q.write(a_val_buf, a_val_len);
-        ao_q.write("\r\n", 2);
-        return 0;
+        int64_t l_s;
+        l_s = ao_q.write(a_key_buf, a_key_len);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+        l_s = ao_q.write(": ", 2);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+        l_s = ao_q.write(a_val_buf, a_val_len);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+        l_s = ao_q.write("\r\n", 2);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -389,9 +406,18 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_body(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
-        ao_q.write("\r\n", strlen("\r\n"));
-        ao_q.write(a_buf, a_len);
-        return 0;
+        int64_t l_s;
+        l_s = ao_q.write("\r\n", strlen("\r\n"));
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+        l_s = ao_q.write(a_buf, a_len);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
+        return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
 //! types
