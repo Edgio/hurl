@@ -33,17 +33,14 @@
 #include <arpa/inet.h>
 namespace ns_hurl {
 //! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
+//! \details: Get cache key for DNS lookups
+//! \return: l_cache_key String of the form [host:port]
+//! \param:  a_host Host component of URL
+//  \param:  a_port Port component of URL
 //! ----------------------------------------------------------------------------
 std::string get_cache_key(const std::string &a_host, uint16_t a_port)
 {
-        char l_port_str[8];
-        snprintf(l_port_str, 8, "%d", a_port);
-        std::string l_cache_key;
-        l_cache_key = a_host + ":" + l_port_str;
-        return l_cache_key;
+        return std::string(a_host + ":" + std::to_string(a_port));
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -315,10 +312,7 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         // ---------------------------------------
         host_info *l_host_info = NULL;
         // Create a cache key
-        char l_port_str[8];
-        snprintf(l_port_str, 8, "%d", a_port);
-        std::string l_cache_key;
-        l_cache_key = a_host + ":" + l_port_str;
+        std::string l_cache_key = get_cache_key(a_host, a_port);
         // Lookup in map
         if(m_use_cache && m_ai_cache)
         {
