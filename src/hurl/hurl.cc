@@ -348,9 +348,11 @@ double xstat_struct::stdev() const
 //! nbq utilities
 //! ----------------------------------------------------------------------------
 //! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
+//! \details: Write a request line
+//! \return:  STATUS_ERROR or STATUS_OK
+//! \param:   ao_q an instance of nbq
+//! \param:   a_buf the buffer containing characters to be written
+//! \param:   a_len the length of a_buf
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
@@ -368,9 +370,13 @@ static int32_t nbq_write_request_line(ns_hurl::nbq &ao_q, const char *a_buf, uin
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
+//! \details: Write request header
+//! \return:  STATUS_ERROR or STATUS_OK
+//! \param:   ao_q an instance of nbq
+//! \param:   a_key_buf the buffer containing characters to be written for the key of the header
+//! \param:   a_key_len the length of a_key_buf
+//! \param:   a_val_buf the buffer containing characters to be written for the value of the header
+//! \param:   a_val_len the length of a_val_buf
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
                                 const char *a_key_buf, uint32_t a_key_len,
@@ -400,9 +406,11 @@ static int32_t nbq_write_header(ns_hurl::nbq &ao_q,
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
+//! \details: Write request body
+//! \return:  STATUS_ERROR or STATUS_OK
+//! \param:   ao_q an instance of nbq
+//! \param:   a_buf the buffer containing characters to be written
+//! \param:   a_len the length of a_buf
 //! ----------------------------------------------------------------------------
 static int32_t nbq_write_body(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_len)
 {
