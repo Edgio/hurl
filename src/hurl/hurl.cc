@@ -4311,8 +4311,8 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                TRC_OUTPUT("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
-                TRC_OUTPUT("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %11s | %9s |\n",
+                TRC_OUTPUT("+-----------/-----------+-----------+-----------+--------------+-----------+------------+----------+\n");
+                TRC_OUTPUT("| %s%9s%s / %s%9s%s | %s%9s%s | %s%9s%s | %s%12s%s | %9s | %10s | %8s |\n",
                                 l_c_fg_green, "Completed", l_c_off,
                                 l_c_fg_blue, "Requested", l_c_off,
                                 l_c_fg_magenta, "IdlKil", l_c_off,
@@ -4321,7 +4321,7 @@ int main(int argc, char** argv)
                                 "Elapsed",
                                 "Req/s",
                                 "MB/s");
-                TRC_OUTPUT("+-----------/-----------+-----------+-----------+--------------+-----------+-------------+-----------+\n");
+                TRC_OUTPUT("+-----------/-----------+-----------+-----------+--------------+-----------+------------+----------+\n");
                 }
                 }
                 // Get stats
@@ -4373,7 +4373,7 @@ int main(int argc, char** argv)
                 }
                 else
                 {
-                TRC_OUTPUT("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2fs | %8.2fs |\n",
+                TRC_OUTPUT("| %s%9" PRIu64 "%s / %s%9" PRIi64 "%s | %s%9" PRIu64 "%s | %s%9" PRIu64 "%s | %s%12.2f%s | %8.2fs | %10.2f | %8.2f |\n",
                                 l_c_fg_green, l_total.m_resp, l_c_off,
                                 l_c_fg_blue, l_total.m_reqs, l_c_off,
                                 l_c_fg_magenta, l_total.m_idle_killed, l_c_off,
