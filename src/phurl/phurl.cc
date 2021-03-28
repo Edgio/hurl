@@ -1210,7 +1210,11 @@ int32_t http_session::srequest(void)
         l_len = snprintf(l_buf, sizeof(l_buf),
                         "%s %s HTTP/1.1",
                         m_t_phurl->m_request->m_verb.c_str(), l_uri.c_str());
-        nbq_write_request_line(*m_out_q, l_buf, l_len);
+        int64_t l_s = nbq_write_request_line(*m_out_q, l_buf, l_len);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
         ns_hurl::kv_map_list_t::const_iterator i_hdr;
 
 #define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
@@ -1223,7 +1227,11 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
                          i_hdr->second.front().c_str(),  i_hdr->second.front().length());\
 }\
 } while(0)
-        nbq_write_header(*m_out_q,"Host",strlen("Host"), m_host->m_host.c_str(), m_host->m_host.length());
+        l_s = nbq_write_header(*m_out_q,"Host",strlen("Host"), m_host->m_host.c_str(), m_host->m_host.length());
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }        
         SET_IF_V1("User-Agent");
         SET_IF_V1("Accept");
         // -------------------------------------------------
@@ -1244,7 +1252,11 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
-                        nbq_write_header(*m_out_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
+                        l_s = nbq_write_header(*m_out_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
+                        if(l_s == STATUS_ERROR)
+                        {
+                                return STATUS_ERROR;
+                        }                        
                 }
         }
         // -------------------------------------------------
@@ -1254,11 +1266,19 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
            m_t_phurl->m_request->m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                nbq_write_body(*m_out_q, m_t_phurl->m_request->m_body_data, m_t_phurl->m_request->m_body_data_len);
+                l_s = nbq_write_body(*m_out_q, m_t_phurl->m_request->m_body_data, m_t_phurl->m_request->m_body_data_len);
+                if(l_s == STATUS_ERROR)
+                {
+                        return STATUS_ERROR;
+                }                  
         }
         else
         {
-                nbq_write_body(*m_out_q, NULL, 0);
+                l_s = nbq_write_body(*m_out_q, NULL, 0);
+                if(l_s == STATUS_ERROR)
+                {
+                        return STATUS_ERROR;
+                }  
         }
         if(g_verbose)
         {

@@ -1468,7 +1468,11 @@ int32_t http_session::srequest(void)
         l_len = snprintf(l_buf, sizeof(l_buf),
                         "%s %s HTTP/1.1",
                         m_request->m_verb.c_str(), l_uri.c_str());
-        nbq_write_request_line(*m_out_q, l_buf, l_len);
+        int64_t l_s = nbq_write_request_line(*m_out_q, l_buf, l_len);
+        if(l_s == STATUS_ERROR)
+        {
+                return STATUS_ERROR;
+        }
         if (g_random_xfwd)
         {
             m_request->set_random_xfwd_header();
@@ -1509,7 +1513,11 @@ if(i_hdr != m_request->m_headers.end()) { \
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
-                        nbq_write_header(*m_out_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
+                        l_s = nbq_write_header(*m_out_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
+                        if(l_s == STATUS_ERROR)
+                        {
+                                return STATUS_ERROR;
+                        }
                         if (strcasecmp(i_hl->first.c_str(), "host") == 0)
                         {
                                 l_specd_host = true;
@@ -1522,9 +1530,13 @@ if(i_hdr != m_request->m_headers.end()) { \
         if(!l_specd_host &&
            !m_request->m_no_host)
         {
-                nbq_write_header(*m_out_q,
+                l_s = nbq_write_header(*m_out_q,
                                  "Host", strlen("Host"),
                                   m_request->m_host.c_str(), m_request->m_host.length());
+                if(l_s == STATUS_ERROR)
+                {
+                        return STATUS_ERROR;
+                }
         }
         // -------------------------------------------------
         // body
@@ -1536,7 +1548,11 @@ if(i_hdr != m_request->m_headers.end()) { \
         }
         else
         {
-                nbq_write_body(*m_out_q, NULL, 0);
+                l_s = nbq_write_body(*m_out_q, NULL, 0);
+                if(l_s == STATUS_ERROR)
+                {
+                        return STATUS_ERROR;
+                }
         }
         }
 setup_resp:
