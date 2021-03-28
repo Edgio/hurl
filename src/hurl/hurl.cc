@@ -3302,9 +3302,10 @@ void get_stat(t_stat_cntr_t &ao_total,
         s_stat_last_time_ms = l_cur_time_ms;
 }
 //! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
+//! \details: Obtain the count of each status code
+//! \return:  n/a
+//! \param:   ao_map a map with status code as the key and it's count as the value
+//! \param:   a_t_hurl_list a list of t_hurl instances
 //! ----------------------------------------------------------------------------
 static void get_status_codes(status_code_count_map_t &ao_map, t_hurl_list_t &a_t_hurl_list)
 {
