@@ -420,6 +420,11 @@ static int32_t nbq_write_body(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_
         {
                 return STATUS_ERROR;
         }
+        if(!a_buf ||
+           !a_len)
+        {
+                return STATUS_OK;
+        }
         l_s = ao_q.write(a_buf, a_len);
         if(l_s == STATUS_ERROR)
         {
@@ -1468,8 +1473,9 @@ int32_t http_session::srequest(void)
         l_len = snprintf(l_buf, sizeof(l_buf),
                         "%s %s HTTP/1.1",
                         m_request->m_verb.c_str(), l_uri.c_str());
-        int64_t l_s = nbq_write_request_line(*m_out_q, l_buf, l_len);
-        if(l_s == STATUS_ERROR)
+        int32_t l_s;
+        l_s = nbq_write_request_line(*m_out_q, l_buf, l_len);
+        if(l_s != STATUS_OK)
         {
                 return STATUS_ERROR;
         }
@@ -1513,8 +1519,9 @@ if(i_hdr != m_request->m_headers.end()) { \
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
+                        int32_t l_s;
                         l_s = nbq_write_header(*m_out_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
-                        if(l_s == STATUS_ERROR)
+                        if(l_s != STATUS_OK)
                         {
                                 return STATUS_ERROR;
                         }
@@ -1530,10 +1537,11 @@ if(i_hdr != m_request->m_headers.end()) { \
         if(!l_specd_host &&
            !m_request->m_no_host)
         {
+                int32_t l_s;
                 l_s = nbq_write_header(*m_out_q,
                                  "Host", strlen("Host"),
                                   m_request->m_host.c_str(), m_request->m_host.length());
-                if(l_s == STATUS_ERROR)
+                if(l_s != STATUS_OK)
                 {
                         return STATUS_ERROR;
                 }
@@ -1548,8 +1556,9 @@ if(i_hdr != m_request->m_headers.end()) { \
         }
         else
         {
+                int32_t l_s;
                 l_s = nbq_write_body(*m_out_q, NULL, 0);
-                if(l_s == STATUS_ERROR)
+                if(l_s != STATUS_OK)
                 {
                         return STATUS_ERROR;
                 }

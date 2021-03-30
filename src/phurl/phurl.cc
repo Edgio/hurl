@@ -199,6 +199,11 @@ static int32_t nbq_write_body(ns_hurl::nbq &ao_q, const char *a_buf, uint32_t a_
         {
               return STATUS_ERROR;
         }
+        if(!a_buf ||
+           !a_len)
+        {
+                return STATUS_OK;
+        }
         l_s = ao_q.write(a_buf, a_len);
         if(l_s == STATUS_ERROR)
         {
@@ -1210,15 +1215,14 @@ int32_t http_session::srequest(void)
         l_len = snprintf(l_buf, sizeof(l_buf),
                         "%s %s HTTP/1.1",
                         m_t_phurl->m_request->m_verb.c_str(), l_uri.c_str());
-        int64_t l_s = nbq_write_request_line(*m_out_q, l_buf, l_len);
-        if(l_s == STATUS_ERROR)
+        int32_t l_s;
+        l_s = nbq_write_request_line(*m_out_q, l_buf, l_len);
+        if(l_s != STATUS_OK)
         {
                 return STATUS_ERROR;
         }
         ns_hurl::kv_map_list_t::const_iterator i_hdr;
-
 #define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
-
 #define SET_IF_V1(_key) do { \
 i_hdr = m_t_phurl->m_request->m_headers.find(_key);\
 if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
@@ -1227,8 +1231,11 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
                          i_hdr->second.front().c_str(),  i_hdr->second.front().length());\
 }\
 } while(0)
-        l_s = nbq_write_header(*m_out_q,"Host",strlen("Host"), m_host->m_host.c_str(), m_host->m_host.length());
-        if(l_s == STATUS_ERROR)
+        l_s = nbq_write_header(*m_out_q,
+                               "Host",strlen("Host"),
+                               m_host->m_host.c_str(),
+                               m_host->m_host.length());
+        if(l_s != STATUS_OK)
         {
                 return STATUS_ERROR;
         }        
@@ -1252,8 +1259,13 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
                     i_v != i_hl->second.end();
                     ++i_v)
                 {
-                        l_s = nbq_write_header(*m_out_q, i_hl->first.c_str(), i_hl->first.length(), i_v->c_str(), i_v->length());
-                        if(l_s == STATUS_ERROR)
+                        int32_t l_s;
+                        l_s = nbq_write_header(*m_out_q,
+                                               i_hl->first.c_str(),
+                                               i_hl->first.length(),
+                                               i_v->c_str(),
+                                               i_v->length());
+                        if(l_s != STATUS_OK)
                         {
                                 return STATUS_ERROR;
                         }                        
@@ -1266,16 +1278,20 @@ if(i_hdr != m_t_phurl->m_request->m_headers.end()) { \
            m_t_phurl->m_request->m_body_data_len)
         {
                 //NDBG_PRINT("Write: buf: %p len: %d\n", l_buf, l_len);
-                l_s = nbq_write_body(*m_out_q, m_t_phurl->m_request->m_body_data, m_t_phurl->m_request->m_body_data_len);
-                if(l_s == STATUS_ERROR)
+                int32_t l_s;
+                l_s = nbq_write_body(*m_out_q,
+                                     m_t_phurl->m_request->m_body_data,
+                                     m_t_phurl->m_request->m_body_data_len);
+                if(l_s != STATUS_OK)
                 {
                         return STATUS_ERROR;
                 }                  
         }
         else
         {
+                int32_t l_s;
                 l_s = nbq_write_body(*m_out_q, NULL, 0);
-                if(l_s == STATUS_ERROR)
+                if(l_s != STATUS_OK)
                 {
                         return STATUS_ERROR;
                 }  
