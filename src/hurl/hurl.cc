@@ -3412,7 +3412,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "hurl HTTP Load Tester.\n");
         fprintf(a_stream, "Copyright (C) Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
-        fprintf(a_stream, "       OpenSSL Version: 0x%X\n", OPENSSL_VERSION_NUMBER);
+        fprintf(a_stream, "       OpenSSL Version: 0x%X\n", (uint32_t)OPENSSL_VERSION_NUMBER);
         exit(a_exit_code);
 }
 //! ----------------------------------------------------------------------------
