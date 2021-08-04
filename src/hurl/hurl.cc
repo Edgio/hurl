@@ -3412,7 +3412,7 @@ void print_version(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "hurl HTTP Load Tester.\n");
         fprintf(a_stream, "Copyright (C) Verizon Digital Media.\n");
         fprintf(a_stream, "               Version: %s\n", HURL_VERSION);
-        fprintf(a_stream, "       OpenSSL Version: 0x%lX\n", OPENSSL_VERSION_NUMBER);
+        fprintf(a_stream, "       OpenSSL Version: 0x%X\n", OPENSSL_VERSION_NUMBER);
         exit(a_exit_code);
 }
 //! ----------------------------------------------------------------------------
@@ -3439,12 +3439,13 @@ void print_usage(FILE* a_stream, int a_exit_code)
         fprintf(a_stream, "  -1, --h1             Force http 1.x\n");
         // TODO FIX!!!
 #if 0
-        fprintf(a_stream, "  -s, --streams        Number of streams per connection (H2 option)\n");
+        fprintf(a_stream, "  -R, --streams        Number of streams per connection (H2 option)\n");
 #endif
         fprintf(a_stream, "  -t, --threads        Number of parallel threads. Default: 1\n");
         fprintf(a_stream, "  -H, --header         Request headers -can add multiple ie -H<> -H<>...\n");
         fprintf(a_stream, "  -X, --verb           Request command -HTTP verb to use -GET/PUT/etc. Default GET\n");
-        fprintf(a_stream, "  -l, --seconds        Run for <N> seconds .\n");
+        fprintf(a_stream, "  -l, --seconds        Run for <N> seconds.\n");
+        fprintf(a_stream, "  -s, --silent         Silent mode.\n");
         fprintf(a_stream, "  -A, --rate           Max Request Rate -per sec.\n");
         fprintf(a_stream, "  -T, --timeout        Timeout (seconds).\n");
         fprintf(a_stream, "  -x, --no_stats       Don't collect stats -faster.\n");
@@ -3491,6 +3492,7 @@ int main(int argc, char** argv)
         uint32_t l_num_parallel = 100;
         uint64_t l_start_time_ms = 0;
         int32_t l_run_time_ms = -1;
+        bool l_silent = false;
         bool l_show_response_codes = false;
         bool l_show_per_interval = true;
         bool l_display_results_json_flag = false;
@@ -3560,13 +3562,13 @@ int main(int argc, char** argv)
                 { "fetches",        1, 0, 'f' },
                 { "calls",          1, 0, 'N' },
                 { "h1",             0, 0, '1' },
-                { "streams",        1, 0, 's' },
                 { "threads",        1, 0, 't' },
                 { "header",         1, 0, 'H' },
                 { "verb",           1, 0, 'X' },
                 { "rate",           1, 0, 'A' },
                 { "mode",           1, 0, 'M' },
                 { "seconds",        1, 0, 'l' },
+                { "silent",         0, 0, 's' },
                 { "timeout",        1, 0, 'T' },
                 { "no_stats",       0, 0, 'x' },
                 { "addr_seq",       1, 0, 'I' },
@@ -3600,9 +3602,9 @@ int main(int argc, char** argv)
         std::string l_cprof_file;
 #endif
 #ifdef ENABLE_PROFILER
-        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:FP:G:";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:sT:xI:S:y:O:vcCLjo:U:r:FP:G:";
 #else
-        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:T:xI:S:y:O:vcCLjo:U:r:F";
+        char l_short_arg_list[] = "hV46wd:p:f:N:1t:H:X:A:M:l:sT:xI:S:y:O:vcCLjo:U:r:F";
 #endif
         while(((unsigned char)l_opt != 255))
         {
@@ -3743,14 +3745,6 @@ int main(int argc, char** argv)
                         l_request->m_h1 = true;
                 }
                 // -----------------------------------------
-                // number of streams per connection
-                // -----------------------------------------
-                case 's':
-                {
-                        // TODO
-                        break;
-                }
-                // -----------------------------------------
                 // num threads
                 // -----------------------------------------
                 case 't':
@@ -3847,17 +3841,22 @@ int main(int argc, char** argv)
                         break;
                 }
                 // -----------------------------------------
+                // silent
+                // -----------------------------------------
+                case 's':
+                {
+                        l_silent = true;
+                        break;
+                }
+                // -----------------------------------------
                 // timeout
                 // -----------------------------------------
                 case 'T':
                 {
-                        //NDBG_PRINT("arg: --fetches: %s\n", optarg);
-                        //g_end_type = END_FETCHES;
                         int l_val = atoi(optarg);
                         if (l_val < 1)
                         {
                                 TRC_OUTPUT("timeout must be > 0\n");
-                                //print_usage(stdout, -1);
                                 return STATUS_ERROR;
                         }
                         l_request->m_timeout_ms = l_val*1000;
@@ -4170,7 +4169,8 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         // message
         // -------------------------------------------------
-        if(!g_verbose)
+        if(!g_verbose &&
+           !l_silent)
         {
                 if(g_reqs_per_conn < 0)
                 {
@@ -4304,6 +4304,13 @@ int main(int argc, char** argv)
                         // skip stats
                         continue;
                 }
+                // -----------------------------------------
+                // *****************************************
+                // display progress
+                // *****************************************
+                // -----------------------------------------
+                if(!l_silent)
+                {
                 if(l_first_time)
                 {
                 if(l_show_response_codes)
@@ -4409,6 +4416,7 @@ int main(int argc, char** argv)
                                 l_total_calc.m_req_s,
                                 l_total_calc.m_bytes_read_s/(1024.0*1024.0)
                                 );
+                }
                 }
         }
         nonblock(NB_DISABLE);
