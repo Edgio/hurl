@@ -16,7 +16,7 @@ build:
   before_script:
     - cat /etc/lsb-release
     - apt-get update
-    - apt-get install -y sudo lsb-release apt-transport-https ca-certificates curl git python3 python3-pip build-essential software-properties-common cmake libgoogle-perftools-dev
+    - apt-get install -y sudo lsb-release apt-transport-https ca-certificates curl git python3 python3-pip build-essential software-properties-common cmake libssl-dev libgoogle-perftools-dev
   script:
     - ./build.sh
     - DIST=$(lsb_release -s -c)
