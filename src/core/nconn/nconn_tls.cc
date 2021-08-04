@@ -180,8 +180,13 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                 l_ca_path = a_ca_path.c_str();
         }
         int32_t l_status;
-        if(l_ca_file || l_ca_path)
+        if(l_ca_file ||
+           l_ca_path)
         {
+                // -----------------------------------------
+                // TODO -deprecated ->migrate to new api
+                // -----------------------------------------
+#if 0
                 l_status = SSL_CTX_load_verify_locations(l_ctx, l_ca_file, l_ca_path);
                 if(1 != l_status)
                 {
@@ -191,6 +196,7 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                         SSL_CTX_free(l_ctx);
                         return NULL;
                 }
+#endif
                 l_status = SSL_CTX_set_default_verify_paths(l_ctx);
                 if(1 != l_status)
                 {
