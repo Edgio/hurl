@@ -1,0 +1,53 @@
+---
+include:
+  - project: ci-tools/templates
+    file: /ec_arty.yml
+
+stages:
+  - build
+  - upload
+
+build:
+  only:
+    - tags
+    - master
+  stage: build
+  image: ubuntu:$UBUNTU_VERSION
+  before_script:
+    - cat /etc/lsb-release
+    - apt-get update
+    - apt-get install -y sudo lsb-release apt-transport-https ca-certificates curl git python3 python3-pip build-essential software-properties-common cmake libgoogle-perftools-dev
+  script:
+    - ./build.sh
+    - DIST=$(lsb_release -s -c)
+    - mkdir -p output/${DIST}
+    - cp -va build/*.deb output/${DIST}
+    - chmod 755 output/${DIST}/*.deb
+  artifacts:
+    paths:
+      - output/
+    expire_in: 1 week
+  parallel:
+    matrix:
+      - UBUNTU_VERSION: ["18.04"]
+        TARGET: [release]
+
+arty:
+  extends: .ec_arty
+  only:
+    - tags
+  script:
+    - ls -l output
+    - |
+        for dir in output/*/; do
+            [ -d "${dir}" ] || break
+            DIST=$(basename ${dir})
+            for file in ${dir}*.deb; do
+                [ -f "${file}" ] || break
+                if [[ ! ${file} =~ .*-debug\.deb$ ]]; then
+                    for repo in ${AF_REPOS}; do
+                        ${AF_HELPER} upload debian --repo "${repo}" --dist "${DIST}" "${file}"
+                    done
+                fi
+            done
+        done
