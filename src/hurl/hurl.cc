@@ -3743,6 +3743,7 @@ int main(int argc, char** argv)
                 case '1':
                 {
                         l_request->m_h1 = true;
+                        break;
                 }
                 // -----------------------------------------
                 // num threads
