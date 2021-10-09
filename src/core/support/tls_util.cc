@@ -170,7 +170,7 @@ void tls_init(void)
         // Bring in and register error messages
         ERR_load_crypto_strings();
 #ifdef KTLS_SUPPORT
-        ERR_load_BIO_strings();
+        //ERR_load_BIO_strings();
 #endif
         SSL_load_error_strings();
         // TODO Deprecated???
