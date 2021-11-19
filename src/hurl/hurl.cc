@@ -3496,17 +3496,16 @@ int main(int argc, char** argv)
         bool l_show_response_codes = false;
         bool l_show_per_interval = true;
         bool l_display_results_json_flag = false;
-        // TODO Make default definitions
         bool l_input_flag = false;
         bool l_wildcarding = true;
         std::string l_output_file = "";
         int l_ai_family = AF_UNSPEC;
         ns_hurl::nbq *l_body_q = NULL;
-        //ns_hurl::trc_log_file_open("/dev/stdout");
-        //ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_ERROR);
         ns_hurl::trc_log_level_set(ns_hurl::TRC_LOG_LEVEL_NONE);
         ns_hurl::tls_init();
-        // TODO check result...
+        // -------------------------------------------------
+        // if is interactive term
+        // -------------------------------------------------
         if(isatty(fileno(stdout)))
         {
                 g_color = true;
@@ -3517,7 +3516,6 @@ int main(int argc, char** argv)
         request *l_request = new request();
         l_request->m_save = false;
         l_request->m_keepalive = true;
-        //l_request->set_num_reqs_per_conn(1);
         // -------------------------------------------------
         // default headers
         // -------------------------------------------------
@@ -3674,7 +3672,7 @@ int main(int argc, char** argv)
                                 l_s = ns_hurl::read_file_nbq(*l_body_q, l_len, l_arg.c_str()+1);
                                 if(l_s != STATUS_OK)
                                 {
-                                        TRC_OUTPUT("Error reading body data from file: %s\n", l_arg.c_str() + 1);
+                                        fprintf(stderr, "Error reading body data from file: %s\n", l_arg.c_str() + 1);
                                         if(l_body_q) { delete l_body_q; l_body_q = NULL; }
                                         return STATUS_ERROR;
                                 }
@@ -3699,7 +3697,7 @@ int main(int argc, char** argv)
                         int32_t l_val = atoi(optarg);
                         if (l_val < 1)
                         {
-                                TRC_OUTPUT("Error num parallel must be at least 1\n");
+                                fprintf(stderr, "Error num parallel must be at least 1\n");
                                 return STATUS_ERROR;
                         }
                         l_num_parallel = l_val;
@@ -3713,7 +3711,7 @@ int main(int argc, char** argv)
                         int32_t l_val = atoi(optarg);
                         if (l_val < 1)
                         {
-                                TRC_OUTPUT("Error fetches must be at least 1\n");
+                                fprintf(stderr, "Error fetches must be at least 1\n");
                                 return STATUS_ERROR;
                         }
                         l_num_to_request = l_val;
@@ -3727,7 +3725,7 @@ int main(int argc, char** argv)
                         int l_val = atoi(optarg);
                         if(l_val < 1)
                         {
-                                TRC_OUTPUT("Error num-calls must be at least 1");
+                                fprintf(stderr, "Error num-calls must be at least 1");
                                 return STATUS_ERROR;
                         }
                         g_reqs_per_conn = l_val;
@@ -3754,7 +3752,7 @@ int main(int argc, char** argv)
                         int l_val = atoi(optarg);
                         if (l_val < 0)
                         {
-                                TRC_OUTPUT("Error num-threads must be 0 or greater\n");
+                                fprintf(stderr, "Error num-threads must be 0 or greater\n");
                                 return STATUS_ERROR;
                         }
                         g_num_threads = l_val;
@@ -3771,13 +3769,13 @@ int main(int argc, char** argv)
                         l_s = ns_hurl::break_header_string(l_arg, l_key, l_val);
                         if (l_s != 0)
                         {
-                                TRC_OUTPUT("Error breaking header string: %s -not in <HEADER>:<VAL> format?\n", l_arg.c_str());
+                                fprintf(stderr, "Error breaking header string: %s -not in <HEADER>:<VAL> format?\n", l_arg.c_str());
                                 return STATUS_ERROR;
                         }
                         l_s = l_request->set_header(l_key, l_val);
                         if (l_s != 0)
                         {
-                                TRC_OUTPUT("Error performing set_header: %s\n", l_arg.c_str());
+                                fprintf(stderr, "Error performing set_header: %s\n", l_arg.c_str());
                                 return STATUS_ERROR;
                         }
                         break;
@@ -3789,7 +3787,7 @@ int main(int argc, char** argv)
                 {
                         if(l_arg.length() > 64)
                         {
-                                TRC_OUTPUT("Error verb string: %s too large try < 64 chars\n", l_arg.c_str());
+                                fprintf(stderr, "Error verb string: %s too large try < 64 chars\n", l_arg.c_str());
                                 return STATUS_ERROR;
                         }
                         l_request->m_verb = l_arg;
@@ -3803,7 +3801,7 @@ int main(int argc, char** argv)
                         int l_val = atoi(optarg);
                         if (l_val < 1)
                         {
-                                TRC_OUTPUT("Error: rate must be at least 1\n");
+                                fprintf(stderr, "Error: rate must be at least 1\n");
                                 //print_usage(stdout, -1);
                                 return STATUS_ERROR;
                         }
@@ -3820,7 +3818,7 @@ int main(int argc, char** argv)
                         else if(l_val == "random"){ g_path_order_random = true;}
                         else
                         {
-                                TRC_OUTPUT("Error: Mode must be [roundrobin|sequential|random]\n");
+                                fprintf(stderr, "Error: Mode must be [roundrobin|sequential|random]\n");
                                 //print_usage(stdout, -1);
                                 return STATUS_ERROR;
                         }
@@ -3834,7 +3832,7 @@ int main(int argc, char** argv)
                         int l_val = atoi(optarg);
                         if (l_val < 1)
                         {
-                                TRC_OUTPUT("Error: seconds must be at least 1\n");
+                                fprintf(stderr, "Error: seconds must be at least 1\n");
                                 //print_usage(stdout, -1);
                                 return STATUS_ERROR;
                         }
@@ -3857,7 +3855,7 @@ int main(int argc, char** argv)
                         int l_val = atoi(optarg);
                         if (l_val < 1)
                         {
-                                TRC_OUTPUT("timeout must be > 0\n");
+                                fprintf(stderr, "timeout must be > 0\n");
                                 return STATUS_ERROR;
                         }
                         l_request->m_timeout_ms = l_val*1000;
@@ -3888,7 +3886,7 @@ int main(int argc, char** argv)
                         if((l_val < 1) ||
                            (l_val > 1024))
                         {
-                                TRC_OUTPUT("chunk size must be >= 1 and <= 1024\n");
+                                fprintf(stderr, "chunk size must be >= 1 and <= 1024\n");
                                 //print_usage(stdout, -1);
                                 return STATUS_ERROR;
                         }
@@ -3913,6 +3911,8 @@ int main(int argc, char** argv)
                         l_s = ns_hurl::get_tls_options_str_val(l_arg, l_tls_options);
                         if(l_s != STATUS_OK)
                         {
+                                fprintf(stderr, "Error: performing get_tls_options_str_val with options: %s.  Bad option?\n",
+                                           l_arg.c_str());
                                 return STATUS_ERROR;
                         }
                         l_request->m_conf_tls_options = l_tls_options;
@@ -3976,7 +3976,7 @@ int main(int argc, char** argv)
                         int l_val = atoi(optarg);
                         if (l_val < 1)
                         {
-                                TRC_OUTPUT("Error: Update interval must be > 0 ms\n");
+                                fprintf(stderr, "Error: Update interval must be > 0 ms\n");
                                 //print_usage(stdout, -1);
                                 return STATUS_ERROR;
                         }
@@ -4040,8 +4040,7 @@ int main(int argc, char** argv)
                         // Required argument was missing
                         // '?' is provided when the 3rd arg to getopt_long does not begin with a ':', and is preceeded
                         // by an automatic error message.
-                        fprintf(stdout, "  Exiting.\n");
-                        print_usage(stdout, -1);
+                        fprintf(stderr, "Error required argument missing.\n");
                         break;
                 }
                 // -----------------------------------------
@@ -4062,8 +4061,7 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                                fprintf(stdout, "Unrecognized option.\n");
-                                print_usage(stdout, -1);
+                                fprintf(stderr, "Unrecognized option.\n");
                         }
                         break;
                 }
@@ -4072,16 +4070,14 @@ int main(int argc, char** argv)
         // Verify input
         if(!l_input_flag)
         {
-                fprintf(stdout, "Error: url required.");
-                print_usage(stdout, -1);
+                fprintf(stderr, "Error: url required.");
         }
         // -------------------------------------------------
         // Add url from command line
         // -------------------------------------------------
         if(!l_url.length())
         {
-                fprintf(stdout, "Error: No specified URL on cmd line.\n");
-                print_usage(stdout, -1);
+                fprintf(stderr, "Error: No specified URL on cmd line.\n");
         }
         // -------------------------------------------------
         // Get resource limits
@@ -4092,13 +4088,13 @@ int main(int argc, char** argv)
         l_s = getrlimit(RLIMIT_NOFILE, &l_rlim);
         if(l_s != 0)
         {
-                fprintf(stdout, "Error performing getrlimit. Reason: %s\n", strerror(errno));
+                fprintf(stderr, "Error performing getrlimit. Reason: %s\n", strerror(errno));
                 return STATUS_ERROR;
         }
         if(l_rlim.rlim_cur < (uint64_t)(g_num_threads*l_num_parallel))
         {
-                fprintf(stdout, "Error threads[%d]*parallelism[%d] > process fd resource limit[%u]\n",
-                                g_num_threads, l_num_parallel, (uint32_t)l_rlim.rlim_cur);
+                fprintf(stderr, "Error threads[%d]*parallelism[%d] > process fd resource limit[%u]\n",
+                        g_num_threads, l_num_parallel, (uint32_t)l_rlim.rlim_cur);
                 return STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -4106,7 +4102,7 @@ int main(int argc, char** argv)
         // -------------------------------------------------
         if (signal(SIGINT, sig_handler) == SIG_ERR)
         {
-                TRC_OUTPUT("Error: can't catch SIGINT\n");
+                fprintf(stderr, "Error: can't catch SIGINT\n");
                 return STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -4117,7 +4113,7 @@ int main(int argc, char** argv)
         l_s = l_request->init_with_url(l_url);
         if(l_s != 0)
         {
-                TRC_OUTPUT("Error: performing init_with_url: %s\n", l_url.c_str());
+                fprintf(stderr, "Error: performing init_with_url: %s\n", l_url.c_str());
                 return STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -4127,7 +4123,7 @@ int main(int argc, char** argv)
         l_s = ns_hurl::nlookup(l_request->m_host, l_request->m_port, l_host_info, l_ai_family);
         if(l_s != STATUS_OK)
         {
-                TRC_OUTPUT("Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
+                fprintf(stderr, "Error: resolving: %s:%d\n", l_request->m_host.c_str(), l_request->m_port);
                 return STATUS_ERROR;
         }
         l_request->m_host_info = l_host_info;
@@ -4142,7 +4138,7 @@ int main(int argc, char** argv)
                 l_s = special_effects_parse(l_raw_path);
                 if(l_s != STATUS_OK)
                 {
-                        TRC_OUTPUT("Error performing special_effects_parse with path: %s\n", l_raw_path.c_str());
+                        fprintf(stderr, "Error performing special_effects_parse with path: %s\n", l_raw_path.c_str());
                         return STATUS_ERROR;
                 }
                 if(g_path_vector.size() > 1)
@@ -4580,20 +4576,20 @@ int main(int argc, char** argv)
                 FILE *l_file_ptr = fopen(l_output_file.c_str(), "w+");
                 if(l_file_ptr == NULL)
                 {
-                        TRC_OUTPUT("Error performing fopen. Reason: %s\n", strerror(errno));
+                        fprintf(stderr, "Error performing fopen. Reason: %s\n", strerror(errno));
                         return STATUS_ERROR;
                 }
                 l_num_bytes_written = fwrite(l_out_str.c_str(), 1, l_out_str.length(), l_file_ptr);
                 if(l_num_bytes_written != (int32_t)l_out_str.length())
                 {
-                        TRC_OUTPUT("Error performing fwrite. Reason: %s\n", strerror(errno));
+                        fprintf(stderr, "Error performing fwrite. Reason: %s\n", strerror(errno));
                         fclose(l_file_ptr);
                         return STATUS_ERROR;
                 }
                 l_s = fclose(l_file_ptr);
                 if(l_s != 0)
                 {
-                        TRC_OUTPUT("Error performing fclose. Reason: %s\n", strerror(errno));
+                        fprintf(stderr, "Error performing fclose. Reason: %s\n", strerror(errno));
                         return STATUS_ERROR;
                 }
         }
@@ -4617,7 +4613,7 @@ int main(int argc, char** argv)
                 l_s = ns_hurl::tls_cleanup();
                 if(l_s != STATUS_OK)
                 {
-                        TRC_ERROR("performing tls_cleanup.\n");
+                        fprintf(stderr, "performing tls_cleanup.\n");
                 }
         }
         if(l_request)
