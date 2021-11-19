@@ -27,6 +27,7 @@
 #include <openssl/crypto.h>
 #include <openssl/x509v3.h>
 #include <sys/socket.h>
+#include <set>
 //! ----------------------------------------------------------------------------
 //! constants
 //! ----------------------------------------------------------------------------
@@ -86,6 +87,17 @@ static int select_next_protocol(unsigned char **out,
         return -1;
 }
 //! ----------------------------------------------------------------------------
+//! list of ciphersuites OpenSSL supports for TLSv1.3
+//! ----------------------------------------------------------------------------
+typedef std::set <std::string> str_set_t;
+static const std::set<std::string> g_valid_ciphersuites = {
+        "TLS_AES_128_GCM_SHA256",
+        "TLS_AES_256_GCM_SHA384",
+        "TLS_CHACHA20_POLY1305_SHA256",
+        "TLS_AES_128_CCM_SHA256",
+        "TLS_AES_128_CCM_8_SHA256"
+};
+//! ----------------------------------------------------------------------------
 //! \details: NPN TLS extension client callback. We check that server advertised
 //!           the HTTP/2 protocol the nghttp2 library supports. If not, exit
 //!           the program.
@@ -120,6 +132,52 @@ static int alpn_select_next_proto_cb(SSL *a_ssl,
 }
 namespace ns_hurl {
 //! ----------------------------------------------------------------------------
+//! \details: Seperate a combined ciphers list into separate ciphers and
+//!           ciphersuites for TLS versions less than TLSv1.3 and TLSv1.3
+//!           respectively.
+//!           The second and third arguments are modified, but their values will
+//!           be safe to pass to:
+//!           - SSL_CTX_set_cipher_list
+//!           - SSL_CTX_set_ciphersuites
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+void split_ciphers_ciphersuites(const std::string& a_list,
+                                std::string& ao_ciphers,
+                                std::string& ao_ciphersuites)
+{
+        std::string l_field;
+        std::string l_delim = ":";
+        // -------------------------------------------------
+        // clear
+        // -------------------------------------------------
+        ao_ciphers.clear();
+        ao_ciphersuites.clear();
+#define _SET_FIELD(_f) do { \
+        if (g_valid_ciphersuites.find(_f) != g_valid_ciphersuites.end()) { \
+                if (!ao_ciphersuites.empty()) { ao_ciphersuites += ":"; } \
+                ao_ciphersuites += _f; \
+        } else { \
+                if (!ao_ciphers.empty()) { ao_ciphers += ":"; } \
+                ao_ciphers += _f; \
+        } } while(0)
+        // -------------------------------------------------
+        // split by delim
+        // -------------------------------------------------
+        auto l_start = 0U;
+        auto l_end = a_list.find(l_delim);
+        while (l_end != std::string::npos)
+        {
+                l_field = a_list.substr(l_start, l_end - l_start);
+                _SET_FIELD(l_field);
+                l_start = l_end + l_delim.length();
+                l_end = a_list.find(l_delim, l_start);
+        }
+        l_field = a_list.substr(l_start, l_end);
+        _SET_FIELD(l_field);
+}
+
+//! ----------------------------------------------------------------------------
 //! \details: Initialize OpenSSL
 //! \return:  ctx on success, NULL on failure
 //! \param:   TODO
@@ -133,6 +191,9 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       const std::string &a_tls_crt_file,
                       bool a_force_h1)
 {
+        // -------------------------------------------------
+        // create CTX*
+        // -------------------------------------------------
         SSL_CTX *l_ctx;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
         if(a_server_flag)
@@ -159,16 +220,50 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                 TRC_ERROR("SSL_CTX_new Error: %s\n", ERR_error_string(ERR_get_error(), NULL));
                 return NULL;
         }
+        // -------------------------------------------------
+        // set ciphers/cipherlists
+        // -------------------------------------------------
         if(!a_cipher_list.empty())
         {
-                if(! SSL_CTX_set_cipher_list(l_ctx, a_cipher_list.c_str()))
+                int l_s;
+                // -----------------------------------------
+                // split into ciphers/ciphersuites
+                // -----------------------------------------
+                std::string l_c;
+                std::string l_cs;
+                split_ciphers_ciphersuites(a_cipher_list, l_c, l_cs);
+                // -----------------------------------------
+                // set ciphers
+                // -----------------------------------------
+                if (!l_c.empty())
                 {
-                        TRC_ERROR("cannot set m_cipher list: %s\n", a_cipher_list.c_str());
-                        ERR_print_errors_fp(stderr);
-                        //close_connection(con, nowP);
-                        return NULL;
+                        l_s = SSL_CTX_set_cipher_list(l_ctx, l_c.c_str());
+                        if (l_s != 1)
+                        {
+                                TRC_ERROR("error: performing SSL_CTX_set_cipher_list");
+                                ERR_print_errors_fp(stderr);
+                                //close_connection(con, nowP);
+                                return NULL;
+                        }
+                }
+                // -----------------------------------------
+                // set ciphersuites
+                // -----------------------------------------
+                if (!l_cs.empty())
+                {
+                        l_s = SSL_CTX_set_ciphersuites(l_ctx, l_cs.c_str());
+                        if (l_s != 1)
+                        {
+                                TRC_ERROR("error: performing SSL_CTX_set_ciphersuites");
+                                ERR_print_errors_fp(stderr);
+                                //close_connection(con, nowP);
+                                return NULL;
+                        }
                 }
         }
+        // -------------------------------------------------
+        // ca file/path
+        // -------------------------------------------------
         const char *l_ca_file = NULL;
         const char *l_ca_path = NULL;
         if(!a_ca_file.empty())
@@ -207,6 +302,9 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                         return NULL;
                 }
         }
+        // -------------------------------------------------
+        // options
+        // -------------------------------------------------
         if(a_options)
         {
                 SSL_CTX_set_options(l_ctx, a_options);
@@ -214,6 +312,9 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                 //long l_results = SSL_CTX_set_options(l_ctx, a_options);
                 //NDBG_PRINT("Set SSL CTX options: 0x%08lX -set to: 0x%08lX \n", l_results, a_options);
         }
+        // -------------------------------------------------
+        // crt file
+        // -------------------------------------------------
         if(!a_tls_crt_file.empty())
         {
                 // set the local certificate from CertFile
@@ -224,6 +325,9 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                         return NULL;
                 }
         }
+        // -------------------------------------------------
+        // key
+        // -------------------------------------------------
         if(!a_tls_key_file.empty())
         {
                 // set the private key from KeyFile (may be the same as CertFile) */
@@ -241,8 +345,13 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                         return NULL;
                 }
         }
+        // -------------------------------------------------
+        // set verify
+        // -------------------------------------------------
         SSL_CTX_set_default_verify_paths(l_ctx);
-        // set npn callback
+        // -------------------------------------------------
+        // set alpn callback
+        // -------------------------------------------------
         SSL_CTX_set_next_proto_select_cb(l_ctx, alpn_select_next_proto_cb, NULL);
 #if OPENSSL_VERSION_NUMBER >= 0x10002000L
         // -------------------------------------------------
@@ -274,7 +383,6 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
 //! ----------------------------------------------------------------------------
 int32_t show_tls_info(nconn *a_nconn)
 {
-        //NDBG_PRINT("%sconnected%s...\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF);
         if(!a_nconn)
         {
                 TRC_ERROR("a_nconn == NULL\n");
@@ -285,15 +393,6 @@ int32_t show_tls_info(nconn *a_nconn)
         {
                 return STATUS_OK;
         }
-        char *l_alpn_result;
-        uint32_t l_alpn_result_len = 0;
-        a_nconn->get_alpn_result(&l_alpn_result, l_alpn_result_len);
-        TRC_OUTPUT("%s", ANSI_COLOR_FG_WHITE);
-        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
-        TRC_OUTPUT("|                             T L S   A L P N                                  |\n");
-        TRC_OUTPUT("+------------------------------------------------------------------------------+\n");
-        TRC_OUTPUT("%s", ANSI_COLOR_OFF);
-        mem_display((const uint8_t *)l_alpn_result, l_alpn_result_len, true);
         X509* l_cert = NULL;
         l_cert = SSL_get_peer_certificate(l_tls);
         if(l_cert == NULL)
@@ -333,11 +432,6 @@ int32_t show_tls_info(nconn *a_nconn)
                 TRC_OUTPUT("RX path is NOT using KTLS\n");
         }
 #endif
-        //int32_t l_protocol_num = get_tls_info_protocol_num(l_tls);
-        //std::string l_cipher = get_tls_info_cipher_str(l_tls);
-        //std::string l_protocol = get_tls_info_protocol_str(l_protocol_num);
-        //printf(" cipher:     %s\n", l_cipher.c_str());
-        //printf(" l_protocol: %s\n", l_protocol.c_str());
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
@@ -1188,12 +1282,10 @@ ncconnect_state_top:
                 l_status = nconn_tcp::ncconnect();
                 if(l_status == NC_STATUS_ERROR)
                 {
-                        //NDBG_PRINT("Error performing nconn_tcp::ncconnect\n");
                         return NC_STATUS_ERROR;
                 }
                 if(nconn_tcp::is_connecting())
                 {
-                        //NDBG_PRINT("Still connecting...\n");
                         return NC_STATUS_OK;
                 }
                 m_tls_state = TLS_STATE_TLS_CONNECTING;
@@ -1208,7 +1300,6 @@ ncconnect_state_top:
         {
                 int l_status;
                 l_status = tls_connect();
-                //NDBG_PRINT("%stls_connecting%s status = %d m_tls_state = %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, l_status, m_tls_state);
                 if(l_status == NC_STATUS_AGAIN)
                 {
                         if(TLS_STATE_TLS_CONNECTING_WANT_READ == m_tls_state)
@@ -1242,14 +1333,11 @@ ncconnect_state_top:
                         l_status = validate_server_certificate(m_tls,
                                                                m_tls_opt_hostname.c_str(),
                                                                (!m_tls_opt_verify_allow_self_signed));
-                        //NDBG_PRINT("VERIFY l_status: %d\n", l_status);
                         if(l_status != 0)
                         {
                                 NCONN_ERROR(CONN_STATUS_ERROR_CONNECT_TLS_HOST,
                                             "LABEL[%s]: Error: %s\n",
                                             m_label.c_str(), gts_last_tls_error);
-                                //NDBG_PRINT("LABEL[%s]: Error: %s\n",
-                                //            m_label.c_str(), gts_last_tls_error);
                                 gts_last_tls_error[0] = '\0';
                                 return NC_STATUS_ERROR;
                         }
