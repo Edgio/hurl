@@ -2483,14 +2483,6 @@ state_top:
                         //NDBG_PRINT("l_s: %d\n", l_s);
                         switch(l_s){
                         // ---------------------------------
-                        // NC_STATUS_EOF
-                        // ---------------------------------
-                        case ns_hurl::nconn::NC_STATUS_EOF:
-                        {
-                                l_nconn->set_state_done();
-                                goto state_top;
-                        }
-                        // ---------------------------------
                         // NC_STATUS_ERROR
                         // ---------------------------------
                         case ns_hurl::nconn::NC_STATUS_ERROR:
@@ -2518,8 +2510,13 @@ state_top:
                         // ---------------------------------
                         // NC_STATUS_OK
                         // ---------------------------------
+                        case ns_hurl::nconn::NC_STATUS_EOF:
                         case ns_hurl::nconn::NC_STATUS_OK:
                         {
+                                if(l_s == ns_hurl::nconn::NC_STATUS_EOF)
+                                {
+                                        l_nconn->set_state_done();
+                                }
                                 if(!l_ses)
                                 {
                                         return STATUS_ERROR;
