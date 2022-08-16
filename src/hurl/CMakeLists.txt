@@ -12,7 +12,16 @@ include_directories(
 # sources
 # ------------------------------------------------------------------------------
 SET(SRCS hurl.cc ${CMAKE_SOURCE_DIR}/ext/tinymt/tinymt64.cc)
-SET(HDRS)
+# ------------------------------------------------------------------------------
+# fix for error
+# ...
+# /usr/bin/ld: /tmp/ccJLmlSQ.ltrans0.ltrans.o: relocation R_X86_64_32S against
+# `.rodata' can not be used when making a PIE object; recompile with -fPIE
+# ...
+# ref:
+# https://github.com/kermitt2/pdfalto/issues/41#issuecomment-479881065
+# ------------------------------------------------------------------------------
+set(CMAKE_EXE_LINKER_FLAGS "-no-pie")
 # ------------------------------------------------------------------------------
 # build and install
 # ------------------------------------------------------------------------------

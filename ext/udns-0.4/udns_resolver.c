@@ -1244,7 +1244,6 @@ static void dns_resolve_cb(struct dns_ctx *ctx, void *result, void *data) {
   struct dns_resolve_data *d = data;
   d->dnsrd_result = result;
   d->dnsrd_done = 1;
-  ctx = ctx;
 }
 
 void *dns_resolve(struct dns_ctx *ctx, struct dns_query *q) {
