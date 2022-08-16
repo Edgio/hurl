@@ -9,7 +9,16 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/ext/nghttp2/include
 )
 SET(SRCS phurl.cc)
-SET(HDRS)
+# ------------------------------------------------------------------------------
+# fix for error
+# ...
+# /usr/bin/ld: /tmp/ccJLmlSQ.ltrans0.ltrans.o: relocation R_X86_64_32S against
+# `.rodata' can not be used when making a PIE object; recompile with -fPIE
+# ...
+# ref:
+# https://github.com/kermitt2/pdfalto/issues/41#issuecomment-479881065
+# ------------------------------------------------------------------------------
+set(CMAKE_EXE_LINKER_FLAGS "-no-pie")
 # ------------------------------------------------------------------------------
 # build and install
 # ------------------------------------------------------------------------------
