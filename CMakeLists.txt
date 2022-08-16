@@ -2,8 +2,7 @@
 # Project setup
 # ------------------------------------------------------------------------------
 project(hurl)
-cmake_minimum_required(VERSION 2.8.0)
-CMAKE_POLICY(SET CMP0005 NEW)
+cmake_minimum_required(VERSION 3.10)
 # ------------------------------------------------------------------------------
 # Build options
 # ------------------------------------------------------------------------------
@@ -44,6 +43,10 @@ message("    Build for custom OpenSSL:                  " "BUILD_CUSTOM_OPENSSL 
 message("    Build with KTLS support:                   " "BUILD_KTLS_SUPPORT      " ${BUILD_KTLS_SUPPORT})
 message("")
 # ------------------------------------------------------------------------------
+# -fPIE
+# ------------------------------------------------------------------------------
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# ------------------------------------------------------------------------------
 # fortify options
 # ------------------------------------------------------------------------------
 if (FORTIFY)
@@ -64,7 +67,6 @@ macro(fail_if_not_found_sanitizers)
     message(FATAL_ERROR "No arguments specified")
   endif()
 endmacro(fail_if_not_found_sanitizers)
-
 # ------------------------------------------------------------------------------
 # fail if not found
 # ------------------------------------------------------------------------------
@@ -141,7 +143,7 @@ endif()
 # ------------------------------------------------------------------------------
 set(LIBRARIES ${LIBRARIES} pthread)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    set(LIBRARIES ${LIBRARIES} rt)
+  set(LIBRARIES ${LIBRARIES} rt)
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 # ------------------------------------------------------------------------------
 # KTLS SUPPORT

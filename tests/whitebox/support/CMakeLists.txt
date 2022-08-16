@@ -1,9 +1,4 @@
 # ------------------------------------------------------------------------------
-# Project setup
-# ------------------------------------------------------------------------------
-project(hurl)
-cmake_minimum_required(VERSION 2.8.0)
-# ------------------------------------------------------------------------------
 # wb_nbq
 # ------------------------------------------------------------------------------
 SET(SRCS wb_nbq.cc)
@@ -12,7 +7,6 @@ add_executable(wb_nbq ${HDRS} ${SRCS})
 target_link_libraries(wb_nbq compiled_catch  ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a ${LIBRARIES})
 SET_TARGET_PROPERTIES(wb_nbq PROPERTIES OUTPUT_NAME "wb_nbq")
 add_test(nbq wb_nbq)
-
 # ------------------------------------------------------------------------------
 # wb_obj_pool
 # ------------------------------------------------------------------------------
