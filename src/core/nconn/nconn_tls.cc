@@ -592,7 +592,6 @@ int32_t nconn_tls::tls_connect(void)
         {
                 int l_tls_error = 0;
                 l_tls_error = SSL_get_error(m_tls, l_status);
-                //NDBG_PRINT("l_tls_error: %d\n", l_tls_error);
                 switch(l_tls_error) {
                 case SSL_ERROR_SSL:
                 {

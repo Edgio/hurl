@@ -626,12 +626,8 @@ int32_t request::init_with_url(const std::string &a_url)
         {
                 l_url_fixed = "http://" + a_url;
         }
-        //NDBG_PRINT("Parse url:           %s\n", a_url.c_str());
-        //NDBG_PRINT("Parse a_wildcarding: %d\n", a_wildcarding);
         http_parser_url l_url;
         http_parser_url_init(&l_url);
-        // silence bleating memory sanitizers...
-        //memset(&l_url, 0, sizeof(l_url));
         int l_status;
         l_status = http_parser_parse_url(l_url_fixed.c_str(), l_url_fixed.length(), 0, &l_url);
         if(l_status != 0)
@@ -644,11 +640,7 @@ int32_t request::init_with_url(const std::string &a_url)
         m_port = 0;
         for(uint32_t i_part = 0; i_part < UF_MAX; ++i_part)
         {
-                //NDBG_PRINT("i_part: %d offset: %d len: %d\n", i_part, l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                //NDBG_PRINT("len+off: %d\n",       l_url.field_data[i_part].len + l_url.field_data[i_part].off);
-                //NDBG_PRINT("a_url.length(): %d\n", (int)a_url.length());
                 if(l_url.field_data[i_part].len &&
-                  // TODO Some bug with parser -parsing urls like "http://127.0.0.1" sans paths
                   ((l_url.field_data[i_part].len + l_url.field_data[i_part].off) <= l_url_fixed.length()))
                 {
                         switch(i_part)
@@ -675,42 +667,34 @@ int32_t request::init_with_url(const std::string &a_url)
                         case UF_HOST:
                         {
                                 std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_HOST]: %s\n", l_part.c_str());
                                 m_host = l_part;
                                 break;
                         }
                         case UF_PORT:
                         {
                                 std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_PORT]: %s\n", l_part.c_str());
                                 m_port = (uint16_t)strtoul(l_part.c_str(), NULL, 10);
                                 break;
                         }
                         case UF_PATH:
                         {
                                 std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_PATH]: %s\n", l_part.c_str());
                                 m_url_path = l_part;
                                 break;
                         }
                         case UF_QUERY:
                         {
                                 std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_QUERY]: %s\n", l_part.c_str());
                                 m_url_query = l_part;
                                 break;
                         }
                         case UF_FRAGMENT:
                         {
-                                //std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //NDBG_PRINT("l_part[UF_FRAGMENT]: %s\n", l_part.c_str());
                                 //m_fragment = l_part;
                                 break;
                         }
                         case UF_USERINFO:
                         {
-                                //std::string l_part = l_url_fixed.substr(l_url.field_data[i_part].off, l_url.field_data[i_part].len);
-                                //sNDBG_PRINT("l_part[UF_USERINFO]: %s\n", l_part.c_str());
                                 //m_userinfo = l_part;
                                 break;
                         }
@@ -751,13 +735,6 @@ int32_t request::init_with_url(const std::string &a_url)
                 m_url_path = "/";
         }
         // -------------------------------------------------
-        // setup ctx
-        // -------------------------------------------------
-        //m_num_to_req = m_path_vector.size();
-        //NDBG_PRINT("Showing parsed url.\n");
-        //m_url.show();
-        //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
-        // -------------------------------------------------
         // init tls...
         // -------------------------------------------------
         if(m_scheme == ns_hurl::SCHEME_TLS)
@@ -780,10 +757,6 @@ int32_t request::init_with_url(const std::string &a_url)
                 SSL_CTX_set_next_proto_select_cb(m_tls_ctx, alpn_select_next_proto_cb, this);
 #endif
         }
-        //m_num_to_req = m_path_vector.size();
-        //NDBG_PRINT("Showing parsed url.\n");
-        //m_url.show();
-        //NDBG_PRINT("Parsed url: %s\n", l_url_fixed.c_str());
         // -------------------------------------------------
         // done
         // -------------------------------------------------
@@ -1041,20 +1014,14 @@ public:
         session *session_create(ns_hurl::nconn *a_nconn);
         bool can_request(void)
         {
-                //NDBG_PRINT("m_num_conn_parallel_max: %d\n",(int)m_num_conn_parallel_max);
-                //NDBG_PRINT("m_num_in_progress:  %d\n",(int)m_num_in_progress);
-                //NDBG_PRINT("m_num_to_request:   %d\n",(int)m_num_to_request);
-                //NDBG_PRINT("m_stat.m_reqs:      %d\n",(int)m_stat.m_reqs);
                 if(!g_test_finished &&
                    !m_stopped &&
                    (m_num_in_progress < m_num_conn_parallel_max) &&
                    ((m_num_to_request < 0) ||
                     ((uint32_t)m_num_to_request > (m_stat.m_reqs + m_num_in_progress))))
                 {
-                        //NDBG_PRINT("CAN:                TRUE\n");
                         return true;
                 }
-                //NDBG_PRINT("CAN:                FALSE\n");
                 return false;
         }
         // -------------------------------------------------
@@ -1108,13 +1075,9 @@ static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
                              int a_flags _U_,
                              void *a_user_data)
 {
-        //NDBG_PRINT("SEND_CB\n");
-        // TODO FIX!!!
         session *l_ses = (session *)a_user_data;
-        //ns_hurl::mem_display(a_data, a_length, true);
         int64_t l_s;
         l_s = l_ses->m_out_q->write((const char *)a_data,(uint64_t)a_length);
-        //NDBG_PRINT("%sWRITE%s: l_s: %d\n", ANSI_COLOR_FG_BLUE, ANSI_COLOR_OFF, (int)l_s);
         return (ssize_t)l_s;
 }
 //! ----------------------------------------------------------------------------
@@ -1261,7 +1224,6 @@ static int ngxxx_header_cb(nghttp2_session *a_session _U_,
                            void *a_user_data)
 {
         //NDBG_PRINT("%sHEADER%s: \n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
-        // TODO FIX!!!
         switch (a_frame->hd.type)
         {
         case NGHTTP2_HEADERS:
@@ -1810,38 +1772,6 @@ int32_t h2_session::sconnected(void)
                 return STATUS_ERROR;
         }
         return STATUS_OK;
-#if 0
-        int rv;
-        // This is required with --disable-assert.
-        (void)rv;
-        nghttp2_option *opt;
-        rv = nghttp2_option_new(&opt);
-        assert(rv == 0);
-        auto config = client_->worker->config;
-        if (config->encoder_header_table_size != NGHTTP2_DEFAULT_HEADER_TABLE_SIZE) {
-          nghttp2_option_set_max_deflate_dynamic_table_size(
-              opt, config->encoder_header_table_size);
-        }
-        nghttp2_session_client_new2(&session_, callbacks, client_, opt);
-        nghttp2_option_del(opt);
-        std::array<nghttp2_settings_entry, 3> iv;
-        size_t niv = 2;
-        iv[0].settings_id = NGHTTP2_SETTINGS_ENABLE_PUSH;
-        iv[0].value = 0;
-        iv[1].settings_id = NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE;
-        iv[1].value = (1 << config->window_bits) - 1;
-        if (config->header_table_size != NGHTTP2_DEFAULT_HEADER_TABLE_SIZE) {
-          iv[niv].settings_id = NGHTTP2_SETTINGS_HEADER_TABLE_SIZE;
-          iv[niv].value = config->header_table_size;
-          ++niv;
-        }
-        rv = nghttp2_submit_settings(session_, NGHTTP2_FLAG_NONE, iv.data(), niv);
-        assert(rv == 0);
-        auto connection_window = (1 << config->connection_window_bits) - 1;
-        nghttp2_session_set_local_window_size(session_, NGHTTP2_FLAG_NONE, 0,
-                                              connection_window);
-        client_->signal_write();
-#endif
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -1985,16 +1915,11 @@ int32_t h2_session::srequest(void)
                 TRC_ERROR("performing nghttp2_submit_request.  Reason: %s\n", nghttp2_strerror(l_id));
                 return STATUS_ERROR;
         }
-        //printf("[INFO] Stream ID = %d\n", l_id);
-        // TODO FIX!!!
-        //m_ngxxx_session_stream_id = l_id;
         // -----------------------------------------
         // session send???
         // -----------------------------------------
-        //NDBG_PRINT("SESSION_SEND\n");
         int l_s;
         l_s = nghttp2_session_send(m_ngxxx_session);
-        //NDBG_PRINT("SESSION_SEND --DONE\n");
         if (l_s != 0)
         {
                 TRC_ERROR("performing nghttp2_session_send.  Reason: %s\n", nghttp2_strerror(l_s));
@@ -2024,19 +1949,6 @@ int32_t h2_session::srequest(void)
 //! ----------------------------------------------------------------------------
 int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 {
-#if 0
-        auto rv = nghttp2_session_mem_recv(session_, data, len);
-        if (rv < 0) {
-          return -1;
-        }
-        assert(static_cast<size_t>(rv) == len);
-        if (nghttp2_session_want_read(session_) == 0 &&
-            nghttp2_session_want_write(session_) == 0 && client_->wb.rleft() == 0) {
-          return -1;
-        }
-        client_->signal_write();
-        return 0;
-#endif
         ssize_t l_rl;
         //NDBG_PRINT("nghttp2_session_mem_recv\n");
         l_rl = nghttp2_session_mem_recv(m_ngxxx_session,
@@ -2045,21 +1957,8 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
         if(l_rl < 0)
         {
                 TRC_ERROR("performing nghttp2_session_mem_recv: %s", nghttp2_strerror((int) l_rl));;
-                // TODO
-                //delete_http2_session_data(session_data);
                 return STATUS_ERROR;
         }
-#if 0
-        NDBG_PRINT("nghttp2_session_send\n");
-        l_s = nghttp2_session_send(a_session.m_ngxxx_session);
-        if(l_s != 0)
-        {
-                TRC_ERROR("performing nghttp2_session_send: %s", nghttp2_strerror((int) l_s));;
-                // TODO
-                //delete_http2_session_data(session_data);
-                return STATUS_ERROR;
-        }
-#endif
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------
@@ -2070,13 +1969,10 @@ int32_t h2_session::sread(const uint8_t *a_buf, size_t a_len, size_t a_off)
 int32_t h2_session::swrite(void)
 {
         int l_s;
-        //NDBG_PRINT("nghttp2_session_send\n");
         l_s = nghttp2_session_send(m_ngxxx_session);
         if(l_s != 0)
         {
                 TRC_ERROR("performing nghttp2_session_send: %s", nghttp2_strerror((int) l_s));;
-                // TODO
-                //delete_http2_session_data(session_data);
                 return STATUS_ERROR;
         }
         return STATUS_OK;
@@ -2358,8 +2254,10 @@ state_top:
                 if(l_s == ns_hurl::nconn::NC_STATUS_ERROR)
                 {
                         TRC_ERROR("performing ncconnect for host: %s.\n", l_nconn->get_label().c_str());
-                        // Kill program
-                        g_test_finished = true;
+                        if (l_t_hurl)
+                        {
+                                ++l_t_hurl->m_stat.m_errors;
+                        }
                         return STATUS_ERROR;
                 }
                 if(l_nconn->is_connecting())
@@ -2369,8 +2267,6 @@ state_top:
                 }
                 // TODO FIX!!!
                 //NDBG_PRINT("%sconnected%s: label: %s\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, l_nconn->get_label().c_str());
-                //TRC_DEBUG("Connected: label: %s\n", l_nconn->get_label().c_str());
-                // Returning client fd
                 // If OK -change state to connected???
                 l_nconn->set_state(ns_hurl::nconn::NC_STATE_CONNECTED);
                 // -----------------------------------------

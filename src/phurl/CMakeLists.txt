@@ -26,6 +26,7 @@ add_executable(phurl_cmd ${HDRS} ${SRCS})
 add_dependencies(phurl_cmd hurlcore)
 SET_TARGET_PROPERTIES(phurl_cmd PROPERTIES OUTPUT_NAME "phurl")
 target_link_libraries(phurl_cmd
+  ${DEBUG_LIBRARIES}
   ${CMAKE_BINARY_DIR}/ext/nghttp2/src/libnghttp2.a
   ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
   ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
