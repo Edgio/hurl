@@ -163,7 +163,13 @@ endif()
 #
 # ------------------------------------------------------------------------------
 # make the cmake list variables into .deb-compatible strings
+set(CPACK_DEBIAN_PACKAGE_DEPENDS_LIST
+	"libssl-dev"
+)
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
+set(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST
+	"libssl-dev"
+)
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST}")
 # ------------------------------------------------------------------------------
 # Version

@@ -37,13 +37,18 @@ main() {
     if [[ "${build_asan}" -eq 1 ]]; then
         cmake ../ \
         -DBUILD_SYMBOLS=ON \
+        -DDEBUG_MODE=ON \
         -DBUILD_TCMALLOC=OFF \
         -DBUILD_ASAN=ON\
+        -DBUILD_TESTS=ON \
+        -DBUILD_LINUX=ON \
         -DCMAKE_INSTALL_PREFIX=/usr
     else
         cmake ../ \
         -DBUILD_SYMBOLS=ON \
         -DBUILD_TCMALLOC=ON \
+        -DBUILD_TESTS=ON \
+        -DBUILD_LINUX=ON \
         -DCMAKE_INSTALL_PREFIX=/usr
     fi
 
