@@ -179,7 +179,6 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       long a_options,
                       const std::string &a_ca_file,
                       const std::string &a_ca_path,
-                      bool a_server_flag,
                       const std::string &a_tls_key_file,
                       const std::string &a_tls_crt_file,
                       bool a_force_h1)
@@ -189,23 +188,9 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
         // -------------------------------------------------
         SSL_CTX *l_ctx;
 #if OPENSSL_VERSION_NUMBER >= 0x10100000L
-        if (a_server_flag)
-        {
-                l_ctx = SSL_CTX_new(TLS_server_method());
-        }
-        else
-        {
-                l_ctx = SSL_CTX_new(TLS_client_method());
-        }
+        l_ctx = SSL_CTX_new(TLS_client_method());
 #else
-        if (a_server_flag)
-        {
-                l_ctx = SSL_CTX_new(SSLv23_server_method());
-        }
-        else
-        {
-                l_ctx = SSL_CTX_new(SSLv23_client_method());
-        }
+        l_ctx = SSL_CTX_new(SSLv23_client_method());
 #endif
         if (l_ctx == nullptr)
         {

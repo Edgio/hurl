@@ -607,8 +607,8 @@ public:
         bool m_no_host;
         uint32_t m_timeout_ms;
         ns_hurl::host_info m_host_info;
-        void *m_data;
-        SSL_CTX *m_tls_ctx;
+        void* m_data;
+        SSL_CTX* m_tls_ctx;
 private:
         // Disallow copy/assign
         request& operator=(const request &);
@@ -745,7 +745,6 @@ int32_t request::init_with_url(const std::string &a_url)
                                                   m_conf_tls_options,     // ctx options
                                                   m_conf_tls_ca_file,     // ctx ca file
                                                   m_conf_tls_ca_path,     // ctx ca path
-                                                  false,                  // is server?
                                                   l_unused,               // tls key
                                                   l_unused,               // tls crt
                                                   m_h1);                  // force h1
@@ -950,13 +949,17 @@ public:
                         m_orphan_out_q = nullptr;
                 }
                 // clean up connections
-                for(nconn_set_t::iterator i_n = m_nconn_set.begin();
-                    i_n != m_nconn_set.end();
-                    ++i_n)
+                for (auto && i_n : m_nconn_set)
                 {
-                        if (*i_n)
+                        if (i_n)
                         {
-                                delete *i_n;
+                                // TODO delete any associated sessions
+                                session *l_ses = static_cast<session *>(i_n->get_data());
+                                if (l_ses)
+                                {
+                                        delete l_ses;
+                                }
+                                delete i_n;
                         }
                 }
                 m_nconn_set.clear();
@@ -2208,6 +2211,30 @@ state_top:
         //                ANSI_COLOR_FG_YELLOW, ANSI_COLOR_OFF, l_nconn, l_nconn->get_state(), a_conn_mode);
         if (g_test_finished)
         {
+                session *l_ses = static_cast<session *>(l_nconn->get_data());
+                if (l_ses)
+                {
+                        l_ses->cancel_timer(l_ses->m_timer_obj);
+                        // TODO Check status
+                        l_ses->m_timer_obj = nullptr;
+                        int32_t l_s;
+                        l_s = l_t_hurl->session_cleanup(l_ses, l_nconn);
+                        if (l_s != STATUS_OK)
+                        {
+                                TRC_ERROR("performing session_cleanup\n");
+                                // TODO -error???
+                        }
+                }
+                else
+                {
+                        int32_t l_s;
+                        l_s = l_t_hurl->session_cleanup(nullptr, l_nconn);
+                        if (l_s != STATUS_OK)
+                        {
+                                TRC_ERROR("performing session_cleanup\n");
+                                // TODO -error???
+                        }
+                }
                 return STATUS_DONE;
         }
         switch(l_nconn->get_state())
@@ -4507,6 +4534,11 @@ int main(int argc, char** argv)
         }
         if (l_request)
         {
+                if (l_request->m_tls_ctx)
+                {
+                        SSL_CTX_free(l_request->m_tls_ctx);
+                        l_request->m_tls_ctx = nullptr;
+                }
                 delete l_request;
                 l_request = nullptr;
         }
@@ -4515,13 +4547,5 @@ int main(int argc, char** argv)
                 delete l_body_q;
                 l_body_q = nullptr;
         }
-#if 0
-        // TODO delete SSL_CTX...
-        if (l_ctx)
-        {
-                SSL_CTX_free(l_ctx);
-                l_ctx = nullptr;
-        }
-#endif
         return 0;
 }
