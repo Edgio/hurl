@@ -4,7 +4,6 @@
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/ext
-    ${LIBUDNS_INCLUDE_DIR}
 )
 # ------------------------------------------------------------------------------
 # OS X Specific
@@ -57,10 +56,6 @@ SET(HDRS)
 # library
 # ------------------------------------------------------------------------------
 add_library(hurlcore STATIC ${HDRS} ${SRCS})
-if(BUILD_UDNS)
-  add_dependencies(hurlcore ext_udns)
-endif()
-target_link_libraries(hurlcore UDNS_OBJS_OBJECT)
 # Create symlink for libhurlcore.so.<soversion>
 SET_TARGET_PROPERTIES(hurlcore
   PROPERTIES

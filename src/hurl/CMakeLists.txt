@@ -32,7 +32,6 @@ target_link_libraries(hurl_cmd
   ${DEBUG_LIBRARIES}
   ${CMAKE_BINARY_DIR}/ext/nghttp2/src/libnghttp2.a
   ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
-  ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
   ${LIBRARIES}
 )
 install(TARGETS hurl_cmd

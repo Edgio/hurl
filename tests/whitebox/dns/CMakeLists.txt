@@ -8,7 +8,6 @@ target_link_libraries(wb_ai_cache
   compiled_catch
   ${DEBUG_LIBRARIES}
   ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
-  ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
   ${LIBRARIES}
 )
 SET_TARGET_PROPERTIES(wb_ai_cache PROPERTIES OUTPUT_NAME "wb_ai_cache")
@@ -23,7 +22,6 @@ target_link_libraries(wb_nresolver
   compiled_catch
   ${DEBUG_LIBRARIES}
   ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
-  ${CMAKE_SOURCE_DIR}/ext/udns-0.4/libudns.a
   ${LIBRARIES}
 )
 SET_TARGET_PROPERTIES(wb_nresolver PROPERTIES OUTPUT_NAME "wb_nresolver")
