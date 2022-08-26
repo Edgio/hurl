@@ -80,13 +80,13 @@ std::string uri_decode(const std::string & a_src)
         char * pEnd = pStart;
         while (pSrc < SRC_LAST_DEC)
         {
-                if(*pSrc == '+')
+                if (*pSrc == '+')
                 {
                         *pEnd = ' ';
                 }
                 else
                 {
-                        if(*pSrc == '%')
+                        if (*pSrc == '%')
                         {
                                 char dec1;
                                 char dec2;
@@ -175,7 +175,7 @@ UriCodecTest::UriCodecTest()
         // random test
         const int MAX_LEN = 128;
         char a[MAX_LEN];
-        srand((unsigned) time(NULL));
+        srand((unsigned) time(nullptr));
         for (int i = 0; i < 100; i++)
         {
                 for (int j = 0; j < MAX_LEN; j++)

@@ -72,7 +72,7 @@ public:
         void set_idx(uint64_t a_idx) {m_idx = a_idx;}
         bool read_avail_is_max_limit(void)
         {
-                if((m_max_read_queue > 0) &&
+                if ((m_max_read_queue > 0) &&
                    (m_total_read_avail >= (uint64_t)m_max_read_queue))
                 {
                         return true;

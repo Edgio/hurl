@@ -38,18 +38,18 @@ public:
         // ---------------------------------------
         _Tp *get_free(void)
         {
-                if(m_free_idx_set.size())
+                if (m_free_idx_set.size())
                 {
                         idx_t l_idx = *(m_free_idx_set.begin());
                         m_free_idx_set.erase(l_idx);
                         m_used_idx_set.insert(l_idx);
                         return m_obj_vec[l_idx];
                 }
-                return NULL;
+                return nullptr;
         }
         void add(_Tp *a_obj)
         {
-                if(!a_obj)
+                if (!a_obj)
                 {
                         return;
                 }
@@ -60,7 +60,7 @@ public:
         }
         void release(_Tp *a_obj)
         {
-                if(!a_obj)
+                if (!a_obj)
                 {
                         return;
                 }
@@ -88,10 +88,10 @@ public:
                     i_obj != m_obj_vec.end();
                     ++i_obj)
                 {
-                        if(*i_obj)
+                        if (*i_obj)
                         {
                                 delete *i_obj;
-                                *i_obj = NULL;
+                                *i_obj = nullptr;
                         }
                 }
                 m_obj_vec.clear();

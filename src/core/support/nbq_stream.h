@@ -39,7 +39,7 @@ public:
         // -------------------------------------------------
         Ch Peek() const
         {
-                if(m_nbq.read_avail())
+                if (m_nbq.read_avail())
                 {
                         return m_nbq.peek();
                 }
@@ -53,7 +53,7 @@ public:
                 char l_c;
                 int64_t l_s;
                 l_s = m_nbq.read(&l_c, 1);
-                if(l_s != 1)
+                if (l_s != 1)
                 {
                         return '\0';
                 }

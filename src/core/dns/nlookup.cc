@@ -49,14 +49,14 @@ int32_t nlookup(const std::string &a_host,
         struct addrinfo* l_addrinfo;
         int l_gaierr;
         l_gaierr = getaddrinfo(a_host.c_str(), portstr, &l_hints, &l_addrinfo);
-        if(l_gaierr != 0)
+        if (l_gaierr != 0)
         {
                 //NDBG_PRINT("Error getaddrinfo '%s': %s\n", a_host.c_str(), gai_strerror(l_gaierr));
                 return STATUS_ERROR;
         }
         // Find the first IPv4 and IPv6 entries.
-        struct addrinfo* l_addrinfo_v4 = NULL;
-        struct addrinfo* l_addrinfo_v6 = NULL;
+        struct addrinfo* l_addrinfo_v4 = nullptr;
+        struct addrinfo* l_addrinfo_v6 = nullptr;
         for (struct addrinfo* i_addrinfo = l_addrinfo;
              i_addrinfo != (struct addrinfo*) 0;
              i_addrinfo = i_addrinfo->ai_next)
@@ -65,7 +65,7 @@ int32_t nlookup(const std::string &a_host,
                 {
                 case AF_INET:
                 {
-                        if(l_addrinfo_v4 == (struct addrinfo*) 0)
+                        if (l_addrinfo_v4 == (struct addrinfo*) 0)
                         {
                                 l_addrinfo_v4 = i_addrinfo;
                         }
@@ -73,7 +73,7 @@ int32_t nlookup(const std::string &a_host,
                 }
                 case AF_INET6:
                 {
-                        if(l_addrinfo_v6 == (struct addrinfo*) 0)
+                        if (l_addrinfo_v6 == (struct addrinfo*) 0)
                         {
                                 l_addrinfo_v6 = i_addrinfo;
                         }
@@ -81,7 +81,7 @@ int32_t nlookup(const std::string &a_host,
                 }
                 }
                 // hack to force to check all lookups for localhost...
-                if((a_host != "localhost") &&
+                if ((a_host != "localhost") &&
                    (l_addrinfo_v4 ||
                     l_addrinfo_v6))
                 {
@@ -89,9 +89,9 @@ int32_t nlookup(const std::string &a_host,
                 }
         }
         // If there's an IPv4 address, use that, otherwise try IPv6.
-        if(l_addrinfo_v4 != NULL)
+        if (l_addrinfo_v4 != nullptr)
         {
-                if(sizeof(ao_host_info.m_sa) < l_addrinfo_v4->ai_addrlen)
+                if (sizeof(ao_host_info.m_sa) < l_addrinfo_v4->ai_addrlen)
                 {
                         //NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n",
                         //           a_host.c_str(),
@@ -114,9 +114,9 @@ int32_t nlookup(const std::string &a_host,
                 ((sockaddr_in *)(&(ao_host_info.m_sa)))->sin_port = htons(a_port);
                 freeaddrinfo(l_addrinfo);
         }
-        else if(l_addrinfo_v6 != NULL)
+        else if (l_addrinfo_v6 != nullptr)
         {
-                if(sizeof(ao_host_info.m_sa) < l_addrinfo_v6->ai_addrlen)
+                if (sizeof(ao_host_info.m_sa) < l_addrinfo_v6->ai_addrlen)
                 {
                         //NDBG_PRINT("Error %s - sockaddr too small (%lu < %lu)\n",
                         //           a_host.c_str(),

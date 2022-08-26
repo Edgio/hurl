@@ -29,11 +29,11 @@ TEST_CASE( "ai cache test", "[ai_cache]" )
                 l_host_info->m_expires_s = ns_hurl::get_time_s() + 100;
                 l_ai_cache->add(l_handle, l_host_info);
                 l_host_info = l_ai_cache->lookup(l_handle);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 delete l_ai_cache;
                 l_ai_cache = new ns_hurl::ai_cache(l_bad_ai_cache_file);
                 l_host_info = l_ai_cache->lookup(l_handle);
-                REQUIRE(( l_host_info == NULL ));
+                REQUIRE(( l_host_info == nullptr ));
                 delete l_ai_cache;
         }
         SECTION("Open valid cache file")
@@ -52,18 +52,18 @@ TEST_CASE( "ai cache test", "[ai_cache]" )
                 l_ai_cache->add(l_handle_2, l_host_info_2);
                 ns_hurl::host_info *l_host_info;
                 l_host_info = l_ai_cache->lookup(l_handle_1);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 13 ));
                 l_host_info = l_ai_cache->lookup(l_handle_2);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 8 ));
                 delete l_ai_cache;
                 l_ai_cache = new ns_hurl::ai_cache(l_bad_ai_cache_file);
                 l_host_info = l_ai_cache->lookup(l_handle_1);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 13 ));
                 l_host_info = l_ai_cache->lookup(l_handle_2);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 8 ));
                 delete l_ai_cache;
         }
@@ -83,19 +83,19 @@ TEST_CASE( "ai cache test", "[ai_cache]" )
                 l_ai_cache->add(l_handle_2, l_host_info_2);
                 ns_hurl::host_info *l_host_info;
                 l_host_info = l_ai_cache->lookup(l_handle_1);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 13 ));
                 l_host_info = l_ai_cache->lookup(l_handle_2);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 8 ));
                 sleep(2);
                 delete l_ai_cache;
                 l_ai_cache = new ns_hurl::ai_cache(l_bad_ai_cache_file);
                 l_host_info = l_ai_cache->lookup(l_handle_1);
-                REQUIRE(( l_host_info != NULL ));
+                REQUIRE(( l_host_info != nullptr ));
                 REQUIRE(( l_host_info->m_sa_len == 13 ));
                 l_host_info = l_ai_cache->lookup(l_handle_2);
-                REQUIRE(( l_host_info == NULL ));
+                REQUIRE(( l_host_info == nullptr ));
                 delete l_ai_cache;
         }
 }

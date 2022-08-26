@@ -32,7 +32,7 @@ TEST_CASE( "nconn tls test", "[nconn_tls]" )
                 // TLS Init...
                 ns_hurl::tls_init();
                 SSL_CTX *l_ctx = ns_hurl::tls_init_ctx("",0,"","",false,"","");
-                REQUIRE((l_ctx != NULL));
+                REQUIRE((l_ctx != nullptr));
                 // TLS Setup...
                 int32_t l_s;
                 ns_hurl::nconn_tls l_c;
@@ -46,12 +46,12 @@ TEST_CASE( "nconn tls test", "[nconn_tls]" )
                 ns_hurl::nbq l_oq(16384);
                 l_oq.write("GET\r\n\r\n", strlen("GET\r\n\r\n"));
                 do {
-                        l_s = l_c.nc_run_state_machine(NULL,ns_hurl::nconn::NC_MODE_WRITE, &l_iq, &l_oq);
+                        l_s = l_c.nc_run_state_machine(nullptr,ns_hurl::nconn::NC_MODE_WRITE, &l_iq, &l_oq);
                         REQUIRE((l_s != ns_hurl::nconn::NC_STATUS_ERROR));
                         usleep(100000);
                 } while(l_s == ns_hurl::nconn::NC_STATUS_AGAIN);
                 do {
-                        l_s = l_c.nc_run_state_machine(NULL,ns_hurl::nconn::NC_MODE_READ, &l_iq, &l_oq);
+                        l_s = l_c.nc_run_state_machine(nullptr,ns_hurl::nconn::NC_MODE_READ, &l_iq, &l_oq);
                         REQUIRE((l_s != ns_hurl::nconn::NC_STATUS_ERROR));
                         usleep(100000);
                 } while(l_s == ns_hurl::nconn::NC_STATUS_AGAIN);

@@ -78,8 +78,8 @@ public:
         // ---------------------------------------
         nconn_tls():
                 nconn_tcp(),
-                m_tls_ctx(NULL),
-                m_tls(NULL),
+                m_tls_ctx(nullptr),
+                m_tls(nullptr),
                 m_tls_opt_verify(false),
                 m_tls_opt_sni(false),
                 m_tls_opt_verify_allow_self_signed(false),

@@ -27,12 +27,12 @@ namespace ns_hurl {
 //! ----------------------------------------------------------------------------
 //! Macros
 //! ----------------------------------------------------------------------------
-#define CHECK_FOR_NULL_AND_LEN(_buf, _len)\
+#define CHECK_FOR_nullptr_AND_LEN(_buf, _len)\
         do{\
-                if(!_buf) {\
+                if (!_buf) {\
                         return -1;\
                 }\
-                if(!_len) {\
+                if (!_len) {\
                         return 0;\
                 }\
         }while(0)\
@@ -44,7 +44,7 @@ typedef struct nb_struct {
         // std constructor
         // -------------------------------------------------
         nb_struct(uint32_t a_len):
-                m_data(NULL),
+                m_data(nullptr),
                 m_len(a_len),
                 m_written(0),
                 m_read(0),
@@ -67,12 +67,12 @@ typedef struct nb_struct {
         // -------------------------------------------------
         ~nb_struct(void)
         {
-                if(m_data &&
+                if (m_data &&
                   !m_ref)
                 {
                         free(m_data);
                 }
-                m_data = NULL;
+                m_data = nullptr;
                 m_len = 0;
         }
         uint32_t write_avail(void) { return m_len - m_written;}
@@ -124,7 +124,7 @@ nbq::~nbq(void)
 {
         for(nb_list_t::iterator i_b = m_q.begin(); i_b != m_q.end(); ++i_b)
         {
-                if(*i_b)
+                if (*i_b)
                 {
                         delete *i_b;
                 }
@@ -138,16 +138,16 @@ nbq::~nbq(void)
 //! -----------------------------------------------------------------------------
 int64_t nbq::write(const char *a_buf, uint64_t a_len)
 {
-        CHECK_FOR_NULL_AND_LEN(a_buf, a_len);
+        CHECK_FOR_nullptr_AND_LEN(a_buf, a_len);
         uint64_t l_left = a_len;
         uint64_t l_written = 0;
         const char *l_buf = a_buf;
         while(l_left)
         {
-                if(b_write_avail() <= 0)
+                if (b_write_avail() <= 0)
                 {
                         int32_t l_status = b_write_add_avail();
-                        if(l_status <= 0)
+                        if (l_status <= 0)
                         {
                                 TRC_ERROR("error performing b_write_add_avail\n");
                                 return -1;
@@ -170,7 +170,7 @@ int64_t nbq::write(const char *a_buf, uint64_t a_len)
 //! ----------------------------------------------------------------------------
 int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
 {
-        if(!a_len)
+        if (!a_len)
         {
                 return 0;
         }
@@ -178,10 +178,10 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
         uint64_t l_written = 0;
         while(l_left)
         {
-                if(b_write_avail() <= 0)
+                if (b_write_avail() <= 0)
                 {
                         int32_t l_status = b_write_add_avail();
-                        if(l_status <= 0)
+                        if (l_status <= 0)
                         {
                                 // TODO error...
                                 return -1;
@@ -191,19 +191,19 @@ int64_t nbq::write_fd(int a_fd, uint64_t a_len, ssize_t &a_status)
                 uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
                 errno = 0;
                 a_status = ::read(a_fd, b_write_ptr(), l_write);
-                if(a_status > 0)
+                if (a_status > 0)
                 {
                         b_write_incr(a_status);
                         b_read_incr(0);
                         l_left -= a_status;
                         l_written += a_status;
                 }
-                else if((a_status == 0) ||
+                else if ((a_status == 0) ||
                    ((a_status < 0) && (errno == EAGAIN)))
                 {
                         break;
                 }
-                else if(a_status < 0)
+                else if (a_status < 0)
                 {
                         return STATUS_ERROR;
                 }
@@ -221,10 +221,10 @@ int64_t nbq::write_q(nbq &a_q)
         uint64_t l_written = 0;
         while(l_left)
         {
-                if(b_write_avail() <= 0)
+                if (b_write_avail() <= 0)
                 {
                         int32_t l_status = b_write_add_avail();
-                        if(l_status <= 0)
+                        if (l_status <= 0)
                         {
                                 TRC_ERROR("b_write_add_avail()\n");
                                 return STATUS_ERROR;
@@ -233,12 +233,12 @@ int64_t nbq::write_q(nbq &a_q)
                 uint32_t l_write_avail = b_write_avail();
                 uint32_t l_write = (l_left > l_write_avail)?l_write_avail:l_left;
                 ssize_t l_status = a_q.read(b_write_ptr(), l_write);
-                if(l_status < 0)
+                if (l_status < 0)
                 {
                         TRC_ERROR("a_q.read()\n");
                         return STATUS_ERROR;
                 }
-                if(l_status == 0)
+                if (l_status == 0)
                 {
                         break;
                 }
@@ -255,7 +255,7 @@ int64_t nbq::write_q(nbq &a_q)
 //! ----------------------------------------------------------------------------
 char nbq::peek(void) const
 {
-        if(read_avail())
+        if (read_avail())
         {
                 return *b_read_ptr();
         }
@@ -268,7 +268,7 @@ char nbq::peek(void) const
 //! ----------------------------------------------------------------------------
 int64_t nbq::read(char *a_buf, uint64_t a_len)
 {
-        if(!a_len)
+        if (!a_len)
         {
                 return 0;
         }
@@ -280,7 +280,7 @@ int64_t nbq::read(char *a_buf, uint64_t a_len)
         {
                 uint32_t l_read_avail = b_read_avail();
                 uint32_t l_read_size = (l_left > l_read_avail)?l_read_avail:l_left;
-                if(l_buf)
+                if (l_buf)
                 {
                         memcpy(l_buf, b_read_ptr(), l_read_size);
                         l_buf += l_read_size;
@@ -299,7 +299,7 @@ int64_t nbq::read(char *a_buf, uint64_t a_len)
 uint64_t nbq::read_seek(uint64_t a_off)
 {
         reset_read();
-        return read(NULL, a_off);
+        return read(nullptr, a_off);
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -340,16 +340,16 @@ void nbq::reset_write(void)
             i_b != m_q.end();
             )
         {
-                if(!(*i_b))
+                if (!(*i_b))
                 {
                         ++i_b;
                         continue;
                 }
                 // erase references
-                if((*i_b)->ref())
+                if ((*i_b)->ref())
                 {
                         delete (*i_b);
-                        (*i_b) = NULL;
+                        (*i_b) = nullptr;
                         m_q.erase(i_b++);
                 }
                 else
@@ -374,10 +374,10 @@ void nbq::reset(void)
             i_b != m_q.end();
             ++i_b)
         {
-                if(*i_b)
+                if (*i_b)
                 {
                         delete *i_b;
-                        *i_b = NULL;
+                        *i_b = nullptr;
                 }
         }
         m_q.clear();
@@ -396,26 +396,26 @@ void nbq::shrink(void)
         while(m_q.begin() != m_cur_read_block)
         {
                 nb_t *l_nb = m_q.front();
-                if(!l_nb)
+                if (!l_nb)
                 {
-                        TRC_ERROR("l_nb == NULL\n");
+                        TRC_ERROR("l_nb == nullptr\n");
                         return;
                 }
                 m_q.pop_front();
                 m_cur_write_offset -= l_nb->size();
                 delete l_nb;
-                l_nb = NULL;
+                l_nb = nullptr;
         }
-        if((m_cur_read_block != m_q.end()) &&
+        if ((m_cur_read_block != m_q.end()) &&
            (m_cur_write_block != m_q.end()) &&
            (*m_cur_read_block == *m_cur_write_block))
         {
                 nb_t *l_nb = (*m_cur_read_block);
-                if((l_nb->read_avail() == 0) &&
+                if ((l_nb->read_avail() == 0) &&
                    (l_nb->write_avail() == 0))
                 {
                         delete l_nb;
-                        l_nb = NULL;
+                        l_nb = nullptr;
                         m_q.clear();
                         m_cur_write_block = m_q.end();
                         m_cur_read_block = m_q.end();
@@ -450,12 +450,12 @@ void nbq::print(void)
 //! ----------------------------------------------------------------------------
 int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
 {
-        *ao_nbq_tail = NULL;
-        if(!a_offset)
+        *ao_nbq_tail = nullptr;
+        if (!a_offset)
         {
                 return STATUS_OK;
         }
-        if(a_offset >= m_cur_write_offset)
+        if (a_offset >= m_cur_write_offset)
         {
                 TRC_ERROR("requested split at offset: %" PRIu64 " > write_offset: %" PRIu64 "\n", a_offset, m_cur_write_offset);
                 return STATUS_ERROR;
@@ -469,13 +469,13 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
             i_b != m_q.end();
             ++i_b)
         {
-                if(!(*i_b))
+                if (!(*i_b))
                 {
-                        TRC_ERROR("block iter in nbq == NULL\n");
+                        TRC_ERROR("block iter in nbq == nullptr\n");
                         return STATUS_ERROR;
                 }
                 uint32_t l_w = (*i_b)->written();
-                if(l_w > i_offset)
+                if (l_w > i_offset)
                 {
                         break;
                 }
@@ -485,10 +485,10 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
         // create new nbq and append remainder
         // ---------------------------------------
         nbq *l_nbq = new nbq(m_bsize);
-        if(i_offset > 0)
+        if (i_offset > 0)
         {
                 nb_t &l_b = *(*i_b);
-                if(i_offset >= l_b.written())
+                if (i_offset >= l_b.written())
                 {
                         TRC_ERROR("i_offset: %" PRIu64 " >= l_b.written(): %u\n", i_offset, l_b.written());
                         return STATUS_ERROR;
@@ -505,9 +505,9 @@ int32_t nbq::split(nbq **ao_nbq_tail, uint64_t a_offset)
         ++i_b;
         while (i_b != m_q.end())
         {
-                if(!(*i_b))
+                if (!(*i_b))
                 {
-                        TRC_ERROR("block iter in nbq == NULL\n");
+                        TRC_ERROR("block iter in nbq == nullptr\n");
                         return STATUS_ERROR;
                 }
                 //NDBG_PRINT("adding tail block\n");
@@ -539,7 +539,7 @@ int32_t nbq::join_ref(const nbq &a_nbq_tail)
             i_b != l_nbq_tail.m_q.end();
             ++i_b)
         {
-                if(!(*i_b))
+                if (!(*i_b))
                 {
                         return STATUS_ERROR;
                 }
@@ -550,7 +550,7 @@ int32_t nbq::join_ref(const nbq &a_nbq_tail)
                 m_total_read_avail += l_b_ref->written();
         }
         m_cur_write_block = m_q.end();
-        if(l_empty)
+        if (l_empty)
         {
                 m_cur_read_block = m_q.begin();
         }
@@ -564,9 +564,9 @@ int32_t nbq::join_ref(const nbq &a_nbq_tail)
 //! ----------------------------------------------------------------------------
 char * nbq::b_write_ptr(void)
 {
-        if(m_cur_write_block == m_q.end())
+        if (m_cur_write_block == m_q.end())
         {
-                return NULL;
+                return nullptr;
         }
         return (*m_cur_write_block)->write_ptr();
 }
@@ -577,7 +577,7 @@ char * nbq::b_write_ptr(void)
 //! ----------------------------------------------------------------------------
 uint32_t nbq::b_write_avail(void)
 {
-        if(m_cur_write_block == m_q.end())
+        if (m_cur_write_block == m_q.end())
         {
                 return 0;
         }
@@ -592,14 +592,14 @@ int32_t nbq::b_write_add_avail(void)
 {
         nb_t *l_block = new nb_struct(m_bsize);
         m_q.push_back(l_block);
-        if(m_q.size() == 1)
+        if (m_q.size() == 1)
         {
                 m_cur_read_block = m_q.begin();
                 m_cur_write_block = m_q.begin();
         }
         else
         {
-                if(((*m_cur_write_block)->write_avail() == 0) &&
+                if (((*m_cur_write_block)->write_avail() == 0) &&
                     (m_cur_write_block != --m_q.end()))
                 {
                         ++m_cur_write_block;
@@ -617,13 +617,13 @@ void nbq::b_write_incr(uint32_t a_len)
         m_cur_write_offset += a_len;
         (*m_cur_write_block)->write_inc(a_len);
         m_total_read_avail += a_len;
-        if(((*m_cur_write_block)->write_avail() == 0) &&
+        if (((*m_cur_write_block)->write_avail() == 0) &&
              (m_cur_write_block != --m_q.end()))
         {
                 ++m_cur_write_block;
         }
         // check for cur read block
-        if((a_len > 0) &&
+        if ((a_len > 0) &&
            ((*m_cur_read_block)->read_avail() == 0))
         {
                 ++m_cur_read_block;
@@ -636,9 +636,9 @@ void nbq::b_write_incr(uint32_t a_len)
 //! ----------------------------------------------------------------------------
 char *nbq::b_read_ptr(void) const
 {
-        if(m_cur_read_block == m_q.end())
+        if (m_cur_read_block == m_q.end())
         {
-                return NULL;
+                return nullptr;
         }
         return (*m_cur_read_block)->read_ptr();
 }
@@ -649,11 +649,11 @@ char *nbq::b_read_ptr(void) const
 //! ----------------------------------------------------------------------------
 int32_t nbq::b_read_avail(void) const
 {
-        if(m_cur_read_block == m_q.end())
+        if (m_cur_read_block == m_q.end())
         {
                 return 0;
         }
-        else if(m_cur_read_block == m_cur_write_block)
+        else if (m_cur_read_block == m_cur_write_block)
         {
                 return m_total_read_avail;
         }
@@ -673,7 +673,7 @@ void nbq::b_read_incr(uint32_t a_len)
         m_total_read_avail -= a_len;
         l_avail -= a_len;
         (*m_cur_read_block)->read_inc(a_len);
-        if(!l_avail &&
+        if (!l_avail &&
            m_total_read_avail)
         {
                 ++m_cur_read_block;
@@ -686,14 +686,14 @@ void nbq::b_read_incr(uint32_t a_len)
 //! ----------------------------------------------------------------------------
 void nbq::b_display_written(void)
 {
-        if(m_q.empty())
+        if (m_q.empty())
         {
                 return;
         }
         uint32_t i_block_num = 0;
         for(nb_list_t::iterator i_b = m_q.begin(); i_b != m_q.end(); ++i_b, ++i_block_num)
         {
-                if(!(*i_b))
+                if (!(*i_b))
                 {
                         return;
                 }
@@ -702,7 +702,7 @@ void nbq::b_display_written(void)
                 NDBG_OUTPUT("+------------------------------------+\n");
                 nb_t &l_b = *(*i_b);
                 mem_display((const uint8_t *)(l_b.data()), l_b.written(), false);
-                if(i_b == m_cur_write_block)
+                if (i_b == m_cur_write_block)
                 {
                         break;
                 }
@@ -718,7 +718,7 @@ void nbq::b_display_all(void)
         uint32_t i_block_num = 0;
         for(nb_list_t::iterator i_b = m_q.begin(); i_b != m_q.end(); ++i_b, ++i_block_num)
         {
-                if(!(*i_b))
+                if (!(*i_b))
                 {
                         return;
                 }
@@ -739,11 +739,11 @@ void nbq::b_display_all(void)
 //! ----------------------------------------------------------------------------
 char *copy_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
 {
-        char *l_buf = NULL;
+        char *l_buf = nullptr;
         l_buf = (char *)calloc(1, sizeof(char)*a_len + 1);
-        if(!l_buf)
+        if (!l_buf)
         {
-                return NULL;
+                return nullptr;
         }
         a_nbq.read_from(a_off, l_buf, a_len);
         l_buf[a_len] = '\0';
@@ -758,10 +758,10 @@ void print_part(nbq &a_nbq, uint64_t a_off, uint64_t a_len)
 {
         char *l_buf = copy_part(a_nbq, a_off, a_len);
         TRC_OUTPUT("%.*s", (int)a_len, l_buf);
-        if(l_buf)
+        if (l_buf)
         {
                 free(l_buf);
-                l_buf = NULL;
+                l_buf = nullptr;
         }
 }
 } // ns_hurl

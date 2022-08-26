@@ -23,11 +23,11 @@ namespace ns_hurl {
 //! \param:   TODO
 //! ----------------------------------------------------------------------------
 hmsg::hmsg(void):
-        m_http_parser_settings(NULL),
-        m_http_parser(NULL),
+        m_http_parser_settings(nullptr),
+        m_http_parser(nullptr),
         m_expect_resp_body_flag(true),
         m_cur_off(0),
-        m_cur_buf(NULL),
+        m_cur_buf(nullptr),
         m_save(false),
         m_p_h_list_key(),
         m_p_h_list_val(),
@@ -37,10 +37,10 @@ hmsg::hmsg(void):
         m_complete(false),
         m_supports_keep_alives(false),
         m_type(TYPE_NONE),
-        m_q(NULL),
-        m_body_q(NULL),
+        m_q(nullptr),
+        m_body_q(nullptr),
         m_idx(0),
-        m_headers(NULL)
+        m_headers(nullptr)
 {
         m_http_parser_settings = (http_parser_settings *)calloc(1, sizeof(http_parser_settings));
         m_http_parser = (http_parser *)calloc(1, sizeof(http_parser));
@@ -53,19 +53,19 @@ hmsg::hmsg(void):
 //! ----------------------------------------------------------------------------
 hmsg::~hmsg(void)
 {
-        if(m_body_q)
+        if (m_body_q)
         {
                 delete m_body_q;
         }
-        if(m_headers)
+        if (m_headers)
         {
                 delete m_headers;
         }
-        if(m_http_parser_settings)
+        if (m_http_parser_settings)
         {
                 free(m_http_parser_settings);
         }
-        if(m_http_parser)
+        if (m_http_parser)
         {
                 free(m_http_parser);
         }
@@ -85,15 +85,15 @@ void hmsg::init(bool a_save)
         m_complete = false;
         m_supports_keep_alives = false;
         m_save = a_save;
-        if(m_headers)
+        if (m_headers)
         {
                 delete m_headers;
-                m_headers = NULL;
+                m_headers = nullptr;
         }
-        if(m_body_q)
+        if (m_body_q)
         {
                 delete m_body_q;
-                m_body_q = NULL;
+                m_body_q = nullptr;
         }
 }
 //! ----------------------------------------------------------------------------
@@ -124,19 +124,19 @@ nbq *hmsg::get_q(void) const
 //! ----------------------------------------------------------------------------
 nbq *hmsg::get_body_q(void)
 {
-        if(m_body_q)
+        if (m_body_q)
         {
                 return m_body_q;
         }
-        if(!m_p_body.m_off)
+        if (!m_p_body.m_off)
         {
-                return NULL;
+                return nullptr;
         }
         int32_t l_s;
         l_s = m_q->split(&m_body_q, m_p_body.m_off);
-        if(l_s != STATUS_OK)
+        if (l_s != STATUS_OK)
         {
-                return NULL;
+                return nullptr;
         }
         return m_body_q;
 }
@@ -166,20 +166,20 @@ void hmsg::get_headers(kv_map_list_t *ao_headers) const
                 // for each entry in the lists of headers
                 char *l_h_k_b = copy_part(*m_q, i_k->m_off, i_k->m_len);
                 std::string l_h_k = l_h_k_b;
-                if(l_h_k_b)
+                if (l_h_k_b)
                 {
                         free(l_h_k_b);
-                        l_h_k_b = NULL;
+                        l_h_k_b = nullptr;
                 }
                 char *l_h_v_b = copy_part(*m_q, i_v->m_off, i_v->m_len);
                 std::string l_h_v = l_h_v_b;
-                if(l_h_v_b)
+                if (l_h_v_b)
                 {
                         free(l_h_v_b);
-                        l_h_v_b = NULL;
+                        l_h_v_b = nullptr;
                 }
                 ns_hurl::kv_map_list_t::iterator i_obj = ao_headers->find(l_h_k);
-                if(i_obj != ao_headers->end()){
+                if (i_obj != ao_headers->end()){
                         i_obj->second.push_back(l_h_v);
                 } else {
                         ns_hurl::str_list_t l_list;
@@ -196,7 +196,7 @@ void hmsg::get_headers(kv_map_list_t *ao_headers) const
 //! ----------------------------------------------------------------------------
 const kv_map_list_t &hmsg::get_headers()
 {
-        if(NULL == m_headers)
+        if (nullptr == m_headers)
         {
                 // need to initialize
                 m_headers = new kv_map_list_t();
@@ -241,7 +241,7 @@ void hmsg::set_q(nbq *a_q)
 //! ----------------------------------------------------------------------------
 void hmsg::reset_body_q(void)
 {
-       m_body_q = NULL;
+       m_body_q = nullptr;
        m_p_body.m_len = 0;
        m_p_body.m_off = 0;
 }

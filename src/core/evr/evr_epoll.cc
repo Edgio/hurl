@@ -46,8 +46,8 @@ evr_epoll::evr_epoll(void):
         }
         
         int32_t l_status = 0;
-        l_status = add(m_ctrl_fd, EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET, NULL);
-        if(l_status != 0)
+        l_status = add(m_ctrl_fd, EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_ET, nullptr);
+        if (l_status != 0)
         {
                 printf("Error: failed to add ctrl fd.\n");
                 exit(-1);
@@ -79,12 +79,12 @@ int evr_epoll::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
 static inline uint32_t get_epoll_attr(uint32_t a_attr_mask)
 {
         uint32_t l_attr = 0;
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_READ)         l_attr |= EPOLLIN;
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_WRITE)        l_attr |= EPOLLOUT;
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) l_attr |= EPOLLERR;
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       l_attr |= EPOLLRDHUP;
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          l_attr |= EPOLLRDHUP;
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_ET)           l_attr |= EPOLLET;
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_READ)         l_attr |= EPOLLIN;
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_WRITE)        l_attr |= EPOLLOUT;
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) l_attr |= EPOLLERR;
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       l_attr |= EPOLLRDHUP;
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          l_attr |= EPOLLRDHUP;
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_ET)           l_attr |= EPOLLET;
         return l_attr;
 }
 //! ----------------------------------------------------------------------------
@@ -141,7 +141,7 @@ int evr_epoll::del(int a_fd)
         // TODO Can skip del for close(fd) -since is removed automagically
         //NDBG_PRINT("%sdel%s: fd: %d\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_fd);
         struct epoll_event ev;
-        if((m_fd > 0) && (a_fd > 0))
+        if ((m_fd > 0) && (a_fd > 0))
         {
                 if (0 != epoll_ctl(m_fd, EPOLL_CTL_DEL, a_fd, &ev))
                 {
@@ -164,7 +164,7 @@ int32_t evr_epoll::signal(void)
         ssize_t l_write_status = 0;
         //NDBG_PRINT("WRITING m_ctrl_fd: %d\n", m_ctrl_fd);
         l_write_status = write(m_ctrl_fd, &l_value, sizeof (l_value));
-        if(l_write_status == -1)
+        if (l_write_status == -1)
         {
                 //NDBG_PRINT("l_write_status: %ld\n", l_write_status);
                 return STATUS_ERROR;

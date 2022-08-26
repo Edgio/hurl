@@ -31,7 +31,7 @@ static int get_stack_string(char* ao_stack_str, bool a_color)
         const char *l_c_red = "";
         const char *l_c_green = "";
         const char *l_c_off = "";
-        if(a_color)
+        if (a_color)
         {
                 l_c_blue = ANSI_COLOR_BG_BLUE;
                 l_c_red = ANSI_COLOR_FG_RED;
@@ -41,7 +41,7 @@ static int get_stack_string(char* ao_stack_str, bool a_color)
         size_t stack_depth = 0;
         //Max depth == 20
         void* stack_addrs[NDBG_NUM_BACKTRACE_IN_TAG] = { (void*)0 };
-        char** stack_strings = NULL;
+        char** stack_strings = nullptr;
         int status = 0;
         stack_depth = backtrace(stack_addrs, NDBG_NUM_BACKTRACE_IN_TAG);
         stack_strings = backtrace_symbols(stack_addrs, stack_depth);
@@ -72,7 +72,7 @@ static int get_stack_string(char* ao_stack_str, bool a_color)
                                          l_c_blue, i - 2, l_c_green);
                         }
                         strcat(ao_stack_str, frame_str);
-                        if(pretty_name)
+                        if (pretty_name)
                         {
                                 strncat(ao_stack_str, pretty_name, 256);
                                 free(pretty_name);
@@ -98,7 +98,7 @@ void print_bt(const char* a_file, const char* a_func, const int a_line, bool a_c
         const char *l_c_blue = "";
         const char *l_c_yellow = "";
         const char *l_c_off = "";
-        if(a_color)
+        if (a_color)
         {
                 l_c_blue = ANSI_COLOR_BG_BLUE;
                 l_c_yellow = ANSI_COLOR_FG_YELLOW;
@@ -129,7 +129,7 @@ void mem_display(const uint8_t* a_mem_buf, uint32_t a_length, bool a_color)
                 const char *l_addr_color = "";
                 const char *l_data_color = "";
                 const char *l_color_off = "";
-                if(a_color)
+                if (a_color)
                 {
                         l_addr_color = ANSI_COLOR_FG_BLUE;
                         l_data_color = ANSI_COLOR_FG_GREEN;

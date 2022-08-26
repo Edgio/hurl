@@ -50,9 +50,9 @@ nresolver::nresolver():
         m_port(53),
         m_use_cache(true),
         m_cache_mutex(),
-        m_ai_cache(NULL)
+        m_ai_cache(nullptr)
 {
-        pthread_mutex_init(&m_cache_mutex, NULL);
+        pthread_mutex_init(&m_cache_mutex, nullptr);
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -62,10 +62,10 @@ nresolver::nresolver():
 nresolver::~nresolver()
 {
         // Sync back to disk
-        if(m_use_cache && m_ai_cache)
+        if (m_use_cache && m_ai_cache)
         {
                 delete m_ai_cache;
-                m_ai_cache = NULL;
+                m_ai_cache = nullptr;
         }
         pthread_mutex_destroy(&m_cache_mutex);
 }
@@ -77,18 +77,18 @@ nresolver::~nresolver()
 int32_t nresolver::init(bool a_use_cache,
                         const std::string &a_ai_cache_file)
 {
-        if(m_is_initd)
+        if (m_is_initd)
         {
                 return STATUS_OK;
         }
         m_use_cache = a_use_cache;
-        if(m_use_cache)
+        if (m_use_cache)
         {
                 m_ai_cache = new ai_cache(a_ai_cache_file);
         }
         else
         {
-                m_ai_cache = NULL;
+                m_ai_cache = nullptr;
         }
         m_is_initd = true;
         return STATUS_OK;
@@ -125,10 +125,10 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
         //           a_host.c_str(), a_port);
         int32_t l_s;
-        if(!m_is_initd)
+        if (!m_is_initd)
         {
                 l_s = init();
-                if(l_s != STATUS_OK)
+                if (l_s != STATUS_OK)
                 {
                         return STATUS_ERROR;
                 }
@@ -136,23 +136,23 @@ int32_t nresolver::lookup_tryfast(const std::string &a_host,
         // ---------------------------------------
         // cache lookup
         // ---------------------------------------
-        host_info *l_host_info = NULL;
+        host_info *l_host_info = nullptr;
         // Create a cache key
         std::string l_cache_key = get_cache_key(a_host, a_port);
         // Lookup in map
-        if(m_use_cache && m_ai_cache)
+        if (m_use_cache && m_ai_cache)
         {
                 pthread_mutex_lock(&m_cache_mutex);
                 l_host_info = m_ai_cache->lookup(l_cache_key);
                 pthread_mutex_unlock(&m_cache_mutex);
         }
-        if(l_host_info)
+        if (l_host_info)
         {
                 ao_host_info = *l_host_info;
                 return STATUS_OK;
         }
         // Lookup inline
-        if(is_valid_ip_address(a_host.c_str()))
+        if (is_valid_ip_address(a_host.c_str()))
         {
                 return lookup_inline(a_host, a_port, ao_host_info);
         }
@@ -168,18 +168,18 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         int32_t l_s;
         host_info *l_host_info = new host_info();
         l_s = nlookup(a_host, a_port, *l_host_info);
-        if(l_s != STATUS_OK)
+        if (l_s != STATUS_OK)
         {
                 delete l_host_info;
                 return STATUS_ERROR;
         }
         //show_host_info();
-        if(m_use_cache && m_ai_cache)
+        if (m_use_cache && m_ai_cache)
         {
                 l_host_info = m_ai_cache->lookup(get_cache_key(a_host, a_port), l_host_info);
         }
         int32_t l_retval = STATUS_OK;
-        if(l_host_info)
+        if (l_host_info)
         {
                 ao_host_info = *l_host_info;
                 l_retval = STATUS_OK;
@@ -188,10 +188,10 @@ int32_t nresolver::lookup_inline(const std::string &a_host, uint16_t a_port, hos
         {
                 l_retval = STATUS_ERROR;
         }
-        if(l_host_info && (!m_use_cache || !m_ai_cache))
+        if (l_host_info && (!m_use_cache || !m_ai_cache))
         {
                 delete l_host_info;
-                l_host_info = NULL;
+                l_host_info = nullptr;
         }
         return l_retval;
 }
@@ -206,17 +206,17 @@ int32_t nresolver::lookup_sync(const std::string &a_host, uint16_t a_port, host_
         //           ANSI_COLOR_FG_RED, ANSI_COLOR_OFF,
         //           a_host.c_str(), a_port);
         int32_t l_s;
-        if(!m_is_initd)
+        if (!m_is_initd)
         {
                 l_s = init();
-                if(l_s != STATUS_OK)
+                if (l_s != STATUS_OK)
                 {
                         return STATUS_ERROR;
                 }
         }
         // tryfast lookup
         l_s = lookup_tryfast(a_host, a_port, ao_host_info);
-        if(l_s == STATUS_OK)
+        if (l_s == STATUS_OK)
         {
                 return STATUS_OK;
         }

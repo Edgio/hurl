@@ -41,7 +41,7 @@
                                 _sock_opt_name, \
                                 &_l__sock_opt_val, \
                                 sizeof(_l__sock_opt_val)); \
-                if(_l_status == -1) { \
+                if (_l_status == -1) { \
                         TRC_ERROR("Failed to set sock_opt: %s.  Reason: %s.\n", #_sock_opt_name, strerror(errno)); \
                         return NC_STATUS_ERROR;\
                 } \
@@ -119,9 +119,9 @@ int32_t nconn_tcp::ncset_listening(int32_t a_val)
         int l_opt = 1;
         ioctl(m_fd, FIONBIO, &l_opt);
         // Add to event handler
-        if(m_evr_loop)
+        if (m_evr_loop)
         {
-                if(0 != m_evr_loop->add_fd(a_val,
+                if (0 != m_evr_loop->add_fd(a_val,
                                            EVR_FILE_ATTR_MASK_READ |
                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                            EVR_FILE_ATTR_MASK_RD_HUP |
@@ -149,14 +149,14 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
         // -------------------------------------------
         errno = 0;
         const int flags = ::fcntl(m_fd, F_GETFL, 0);
-        if(flags == -1)
+        if (flags == -1)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error getting flags for fd. Reason: %s\n",
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-        if(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        if (::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n",
@@ -164,9 +164,9 @@ int32_t nconn_tcp::ncset_listening_nb(int32_t a_val)
                 return NC_STATUS_ERROR;
         }
         // Add to event handler
-        if(m_evr_loop)
+        if (m_evr_loop)
         {
-                if(0 != m_evr_loop->add_fd(a_val,
+                if (0 != m_evr_loop->add_fd(a_val,
                                            EVR_FILE_ATTR_MASK_READ|
                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                            EVR_FILE_ATTR_MASK_RD_HUP |
@@ -196,14 +196,14 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
         // -------------------------------------------
         // Set the file descriptor to no-delay mode.
         const int flags = ::fcntl(m_fd, F_GETFL, 0);
-        if(flags == -1)
+        if (flags == -1)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error getting flags for fd. Reason: %s\n",
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-        if(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        if (::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n",
@@ -212,9 +212,9 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
         }
 #endif
         // Add to event handler
-        if(m_evr_loop)
+        if (m_evr_loop)
         {
-                if(0 != m_evr_loop->add_fd(m_fd,
+                if (0 != m_evr_loop->add_fd(m_fd,
                                            EVR_FILE_ATTR_MASK_READ|
                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                            EVR_FILE_ATTR_MASK_RD_HUP |
@@ -235,14 +235,14 @@ int32_t nconn_tcp::ncset_accepting(int a_fd)
 //! ----------------------------------------------------------------------------
 int32_t nconn_tcp::ncset_connected(void)
 {
-        if(!m_sock_opt_no_delay)
+        if (!m_sock_opt_no_delay)
         {
                 m_sock_opt_no_delay = true;
                 SET_SOCK_OPT(m_fd, SOL_TCP, TCP_NODELAY, 1);
         }
-        if(m_evr_loop)
+        if (m_evr_loop)
         {
-                if(0 != m_evr_loop->mod_fd(m_fd,
+                if (0 != m_evr_loop->mod_fd(m_fd,
                                            EVR_FILE_ATTR_MASK_READ|
                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                            EVR_FILE_ATTR_MASK_RD_HUP |
@@ -267,19 +267,19 @@ int32_t nconn_tcp::ncread(char *a_buf, uint32_t a_buf_len)
         int32_t l_bytes_read = 0;
         //l_status = read(m_fd, a_buf, a_buf_len);
         errno = 0;
-        l_status = recvfrom(m_fd, a_buf, a_buf_len, 0, NULL, NULL);
+        l_status = recvfrom(m_fd, a_buf, a_buf_len, 0, nullptr, nullptr);
         TRC_ALL("HOST[%s] fd[%3d] READ: %zd bytes. Reason: %s\n",
                 m_label.c_str(),
                 m_fd,
                 l_status,
                 ::strerror(errno));
-        if(l_status > 0) TRC_ALL_MEM((const uint8_t *)a_buf, l_status);
-        if(l_status > 0)
+        if (l_status > 0) TRC_ALL_MEM((const uint8_t *)a_buf, l_status);
+        if (l_status > 0)
         {
                 l_bytes_read += l_status;
                 return l_bytes_read;
         }
-        else if(l_status == 0)
+        else if (l_status == 0)
         {
                 //NDBG_PRINT("l_status: %ld --errno: %d -%s\n", l_status, errno, ::strerror(errno));
                 return NC_STATUS_EOF;
@@ -331,16 +331,16 @@ int32_t nconn_tcp::ncwrite(char *a_buf, uint32_t a_buf_len)
                 m_fd,
                 l_status,
                 ::strerror(errno));
-        if(l_status > 0) TRC_ALL_MEM((const uint8_t*)(a_buf), (uint32_t)(l_status));
+        if (l_status > 0) TRC_ALL_MEM((const uint8_t*)(a_buf), (uint32_t)(l_status));
         //NDBG_PRINT("write: status: %d\n", l_status);
-        if(l_status < 0)
+        if (l_status < 0)
         {
-                if(errno == EAGAIN)
+                if (errno == EAGAIN)
                 {
                         // Add to writeable
-                        if(m_evr_loop)
+                        if (m_evr_loop)
                         {
-                                if(0 != m_evr_loop->mod_fd(m_fd,
+                                if (0 != m_evr_loop->mod_fd(m_fd,
                                                            EVR_FILE_ATTR_MASK_WRITE|
                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
                                                            EVR_FILE_ATTR_MASK_RD_HUP |
@@ -389,7 +389,7 @@ int32_t nconn_tcp::ncsetup()
         fcntl(m_fd, F_SETFD, FD_CLOEXEC);
 #endif
         //NDBG_PRINT("%sSOCKET %s[%3d]: \n", ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF, m_fd);
-        if(m_fd < 0)
+        if (m_fd < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error creating socket. Reason: %s\n",
@@ -404,15 +404,15 @@ int32_t nconn_tcp::ncsetup()
 #ifdef SO_REUSEPORT
         SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_REUSEPORT, 1);
 #endif
-        if(m_sock_opt_send_buf_size)
+        if (m_sock_opt_send_buf_size)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_SNDBUF, m_sock_opt_send_buf_size);
         }
-        if(m_sock_opt_recv_buf_size)
+        if (m_sock_opt_recv_buf_size)
         {
                 SET_SOCK_OPT(m_fd, SOL_SOCKET, SO_RCVBUF, m_sock_opt_recv_buf_size);
         }
-        if(m_sock_opt_no_delay)
+        if (m_sock_opt_no_delay)
         {
                 SET_SOCK_OPT(m_fd, SOL_TCP, TCP_NODELAY, 1);
         }
@@ -421,14 +421,14 @@ int32_t nconn_tcp::ncsetup()
         // -------------------------------------------
         // Set the file descriptor to no-delay mode.
         const int flags = ::fcntl(m_fd, F_GETFL, 0);
-        if(flags == -1)
+        if (flags == -1)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error getting flags for fd. Reason: %s\n",
                             m_label.c_str(), ::strerror(errno));
                 return NC_STATUS_ERROR;
         }
-        if(::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
+        if (::fcntl(m_fd, F_SETFL, flags | O_NONBLOCK) < 0)
         {
                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                             "LABEL[%s]: Error setting fd to non-block mode. Reason: %s\n",
@@ -438,9 +438,9 @@ int32_t nconn_tcp::ncsetup()
         // -------------------------------------------
         // Add to reactor
         // -------------------------------------------
-        if(m_evr_loop)
+        if (m_evr_loop)
         {
-                if(0 != m_evr_loop->add_fd(m_fd,
+                if (0 != m_evr_loop->add_fd(m_fd,
                                             EVR_FILE_ATTR_MASK_READ|EVR_FILE_ATTR_MASK_RD_HUP|EVR_FILE_ATTR_MASK_ET,
                                             &m_evr_fd))
                 {
@@ -459,7 +459,7 @@ int32_t nconn_tcp::ncsetup()
 //! ----------------------------------------------------------------------------
 int32_t nconn_tcp::ncaccept()
 {
-        if(m_tcp_state == TCP_STATE_LISTENING)
+        if (m_tcp_state == TCP_STATE_LISTENING)
         {
                 int l_fd;
                 //NDBG_PRINT("%sRUN_STATE_MACHINE%s: ACCEPT[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_fd);
@@ -476,7 +476,7 @@ int32_t nconn_tcp::ncaccept()
                               (struct sockaddr *)&m_remote_sa,
                               &m_remote_sa_len);
 #endif
-                if(l_fd < 0)
+                if (l_fd < 0)
                 {
                         TRC_ERROR("accept failed. Reason[%d]: %s\n", errno, ::strerror(errno));
                         return NC_STATUS_ERROR;
@@ -485,14 +485,14 @@ int32_t nconn_tcp::ncaccept()
                 int l_s;
                 errno = 0;
                 int l_flags = fcntl(l_fd, F_GETFL, 0);
-                if(l_flags == -1)
+                if (l_flags == -1)
                 {
                         TRC_ERROR("fcntl failed. Reason[%d]: %s\n", errno, ::strerror(errno));
                         return NC_STATUS_ERROR;
                 }
                 errno = 0;
                 l_s = fcntl(l_fd, F_SETFL, l_flags | O_NONBLOCK);
-                if(l_s == -1)
+                if (l_s == -1)
                 {
                         TRC_ERROR("fcntl failed. Reason[%d]: %s\n", errno, ::strerror(errno));
                         return NC_STATUS_ERROR;
@@ -526,7 +526,7 @@ state_top:
         //           m_fd, l_retry_connect_count, l_connect_status,
         //           errno,
         //           ::strerror(errno));
-        if(l_connect_status < 0)
+        if (l_connect_status < 0)
         {
                 switch (errno)
                 {
@@ -540,7 +540,7 @@ state_top:
                         int l_err;
                         socklen_t l_errlen;
                         l_errlen = sizeof(l_err);
-                        if(::getsockopt(m_fd, SOL_SOCKET, SO_ERROR, (void*) &l_err, &l_errlen) < 0)
+                        if (::getsockopt(m_fd, SOL_SOCKET, SO_ERROR, (void*) &l_err, &l_errlen) < 0)
                         {
                                 NCONN_ERROR(CONN_STATUS_ERROR_INTERNAL,
                                             "LABEL[%s]: Error performing getsockopt. Unknown connect error\n",
@@ -564,9 +564,9 @@ state_top:
                 {
                         //NDBG_PRINT("Error Connection in progress. Reason: %s\n", ::strerror(errno));
                         // Set to writeable and try again
-                        if(m_evr_loop)
+                        if (m_evr_loop)
                         {
-                                if(0 != m_evr_loop->mod_fd(m_fd,
+                                if (0 != m_evr_loop->mod_fd(m_fd,
                                                            EVR_FILE_ATTR_MASK_READ |
                                                            EVR_FILE_ATTR_MASK_WRITE |
                                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
@@ -589,7 +589,7 @@ state_top:
                         // TODO -bad to spin like this???
                         // Retry connect
                         //NDBG_PRINT("%sRETRY CONNECT%s\n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
-                        if(++l_retry_connect_count < 1024)
+                        if (++l_retry_connect_count < 1024)
                         {
                                 usleep(1000);
                                 goto state_top;
@@ -618,16 +618,16 @@ state_top:
         setsockopt(m_fd, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
 #endif
         // TODO Stats???
-        //if(m_collect_stats_flag)
+        //if (m_collect_stats_flag)
         //{
         //        m_stat.m_tt_connect_us = get_delta_time_us(m_connect_start_time_us);
         //        // Save last connect time for reuse
         //        m_last_connect_time_us = m_stat.m_tt_connect_us;
         //}
         // Add to readable
-        if(m_evr_loop)
+        if (m_evr_loop)
         {
-                if(0 != m_evr_loop->mod_fd(m_fd,
+                if (0 != m_evr_loop->mod_fd(m_fd,
                                            EVR_FILE_ATTR_MASK_READ |
                                            EVR_FILE_ATTR_MASK_WRITE |
                                            EVR_FILE_ATTR_MASK_STATUS_ERROR |
@@ -654,7 +654,7 @@ int32_t nconn_tcp::nccleanup()
         // Shut down connection
         //NDBG_PRINT("CLOSE[%d] %s--CONN--%s last_state: %d\n", m_fd, ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, m_tcp_state);
         //NDBG_PRINT_BT();
-        if(m_evr_loop
+        if (m_evr_loop
 #if defined(__linux__)
            && (m_evr_loop->get_loop_type() != EVR_LOOP_EPOLL)
 #endif
@@ -662,9 +662,9 @@ int32_t nconn_tcp::nccleanup()
         {
                 m_evr_loop->del_fd(m_fd);
         }
-        if(m_fd > 0)
+        if (m_fd > 0)
         {
-                if(m_sock_opt_no_linger)
+                if (m_sock_opt_no_linger)
                 {
 #if defined(__linux__)
                         shutdown(m_fd, SHUT_RDWR);
@@ -679,7 +679,7 @@ int32_t nconn_tcp::nccleanup()
         }
         m_evr_fd.m_magic = 0;
         m_fd = -1;
-        m_evr_loop = NULL;
+        m_evr_loop = nullptr;
         m_tcp_state = TCP_STATE_NONE;
         // Reset all the values
         // TODO Make init function...
@@ -701,7 +701,7 @@ int nconn_get_fd(nconn &a_nconn)
         uint32_t l_len;
         int l_status;
         l_status = a_nconn.get_opt(nconn_tcp::OPT_TCP_FD, (void **)&l_fd, &l_len);
-        if(l_status != nconn::NC_STATUS_OK)
+        if (l_status != nconn::NC_STATUS_OK)
         {
                 return -1;
         }

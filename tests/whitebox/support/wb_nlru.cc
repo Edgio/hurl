@@ -73,8 +73,8 @@ int main(void)
         l_animal_lru.show();
         l_animal_lru.insert(l_bear_label, new animal("Honey"));
         l_animal_lru.show();
-        animal *l_get = NULL;
-        const char *l_animal_label = NULL;
+        animal *l_get = nullptr;
+        const char *l_animal_label = nullptr;
         l_animal_label = l_panda_label;
         printf("* TEST: CALLING GET: %p\n", l_get);
         l_get = l_animal_lru.get(l_animal_label);
@@ -121,17 +121,17 @@ TEST_CASE( "nlru test", "[nlru]" ) {
                 REQUIRE(( l_num_call == 2 ));
                 INFO("Get an entry");
                 //l_animal_lru.show();
-                animal *l_get = NULL;
+                animal *l_get = nullptr;
                 l_get = l_animal_lru.get(l_panda_label);
                 //l_animal_lru.show();
                 REQUIRE( (l_animal_lru.size() == 3) );
-                REQUIRE( (l_get != NULL) );
+                REQUIRE( (l_get != nullptr) );
                 printf("l_get->m_name: %s\n", l_get->m_name.c_str());
                 REQUIRE( (l_get->m_name == "Droopy") );
                 if(l_get)
                 {
                         delete l_get;
-                        l_get = NULL;
+                        l_get = nullptr;
                 }
         }
         while(l_animal_lru.size())

@@ -84,7 +84,7 @@
 #define ENSURE_POD(class_name)\
         void __do_check_pod_##class_name() const \
         { \
-                if(0) { \
+                if (0) { \
                         static_assert(std::is_pod <class_name>::value, #class_name "must be POD"); \
                 }\
         }
@@ -92,7 +92,7 @@
 
 #ifndef CHECK_FOR_POD
 #define CHECK_FOR_POD(_class) \
-    if(0){ \
+    if (0){ \
         _class var; \
         check_for_pod(1, var); \
     }

@@ -30,9 +30,9 @@ int32_t nconn::nc_read(nbq *a_in_q, char **ao_buf, uint32_t &ao_read)
 {
         //NDBG_PRINT("%sTRY_READ%s: a_in_q: %p\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_in_q);
         ao_read = 0;
-        if(!a_in_q)
+        if (!a_in_q)
         {
-                TRC_ERROR("a_in_q == NULL\n");
+                TRC_ERROR("a_in_q == nullptr\n");
                 return NC_STATUS_ERROR;
         }
         // -------------------------------------------------
@@ -43,20 +43,20 @@ int32_t nconn::nc_read(nbq *a_in_q, char **ao_buf, uint32_t &ao_read)
         // -------------------------------------------------
         int32_t l_s = 0;
         uint32_t l_read_size = 0;
-        if(a_in_q->read_avail_is_max_limit())
+        if (a_in_q->read_avail_is_max_limit())
         {
                 return NC_STATUS_READ_UNAVAILABLE;
         }
-        if(a_in_q->b_write_avail() <= 0)
+        if (a_in_q->b_write_avail() <= 0)
         {
                 int32_t l_s = a_in_q->b_write_add_avail();
-                if(l_s <= 0)
+                if (l_s <= 0)
                 {
                         //NDBG_PRINT("Error performing b_write_add_avail\n");
                         return NC_STATUS_ERROR;
                 }
         }
-        if((a_in_q->get_max_read_queue() > 0) &&
+        if ((a_in_q->get_max_read_queue() > 0) &&
            ((a_in_q->read_avail() + a_in_q->b_write_avail()) > (uint64_t)a_in_q->get_max_read_queue()))
         {
                 l_read_size = a_in_q->get_max_read_queue() - a_in_q->read_avail();
@@ -78,7 +78,7 @@ int32_t nconn::nc_read(nbq *a_in_q, char **ao_buf, uint32_t &ao_read)
         //                l_s,
         //                (int)a_in_q->read_avail(),
         //                errno, strerror(errno));
-        if(l_s < 0)
+        if (l_s < 0)
         {
                 switch(l_s)
                 {
@@ -97,7 +97,7 @@ int32_t nconn::nc_read(nbq *a_in_q, char **ao_buf, uint32_t &ao_read)
                 //???
                 return l_s;
         }
-        else if(l_s == 0)
+        else if (l_s == 0)
         {
                 //???
                 return l_s;
@@ -117,12 +117,12 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
 {
         //NDBG_PRINT("%sTRY_WRITE%s: m_out_q: %p\n", ANSI_COLOR_BG_GREEN, ANSI_COLOR_OFF, a_out_q);
         ao_written = 0;
-        if(!a_out_q)
+        if (!a_out_q)
         {
-                TRC_ERROR("a_out_q == NULL\n");
+                TRC_ERROR("a_out_q == nullptr\n");
                 return NC_STATUS_ERROR;
         }
-        if(!a_out_q->read_avail())
+        if (!a_out_q->read_avail())
         {
                 //TRC_ERROR("Error a_out_q->read_avail() == 0\n");
                 return NC_STATUS_OK;
@@ -140,7 +140,7 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
         //                a_out_q->b_read_avail());
         l_s = ncwrite(a_out_q->b_read_ptr(), a_out_q->b_read_avail());
         //NDBG_PRINT("%sTRY_WRITE%s: l_bytes_written: %d\n", ANSI_COLOR_FG_GREEN, ANSI_COLOR_OFF, l_s);
-        if(l_s < 0)
+        if (l_s < 0)
         {
                 switch(l_s)
                 {
@@ -157,7 +157,7 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
                 //???
                 return l_s;
         }
-        else if(l_s == 0)
+        else if (l_s == 0)
         {
                 //???
                 return NC_STATUS_OK;
@@ -177,7 +177,7 @@ int32_t nconn::nc_write(nbq *a_out_q, uint32_t &ao_written)
 bool nconn::can_reuse(void)
 {
         //NDBG_PRINT("CONN ka num %ld / %ld \n", m_num_reqs, m_num_reqs_per_conn);
-        if(((m_num_reqs_per_conn == -1) ||
+        if (((m_num_reqs_per_conn == -1) ||
             (m_num_reqs < m_num_reqs_per_conn)))
         {
                 return true;
@@ -200,7 +200,7 @@ int32_t nconn::nc_set_listening(int32_t a_val)
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
         int32_t l_s;
         l_s = ncset_listening(a_val);
-        if(l_s != NC_STATUS_OK)
+        if (l_s != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
         }
@@ -217,7 +217,7 @@ int32_t nconn::nc_set_listening_nb(int32_t a_val)
         //NDBG_PRINT("%sRUN_STATE_MACHINE%s: SET_LISTENING[%d]\n", ANSI_COLOR_BG_RED, ANSI_COLOR_OFF, a_val);
         int32_t l_s;
         l_s = ncset_listening_nb(a_val);
-        if(l_s != NC_STATUS_OK)
+        if (l_s != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
         }
@@ -233,7 +233,7 @@ int32_t nconn::nc_set_accepting(int a_fd)
 {
         int32_t l_s;
         l_s = ncset_accepting(a_fd);
-        if(l_s != NC_STATUS_OK)
+        if (l_s != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
         }
@@ -249,7 +249,7 @@ int32_t nconn::nc_set_connected(void)
 {
         int32_t l_s;
         l_s = ncset_connected();
-        if(l_s != NC_STATUS_OK)
+        if (l_s != NC_STATUS_OK)
         {
                 return STATUS_ERROR;
         }
@@ -274,12 +274,12 @@ int32_t nconn::nc_cleanup()
         l_s = nccleanup();
         m_nc_state = NC_STATE_FREE;
         m_num_reqs = 0;
-        if(l_s != NC_STATUS_OK)
+        if (l_s != NC_STATUS_OK)
         {
                 TRC_ERROR("Error performing nccleanup.\n");
                 return STATUS_ERROR;
         }
-        m_data = NULL;
+        m_data = nullptr;
         m_host_info_is_set = false;
         return STATUS_OK;
 }
@@ -289,7 +289,7 @@ int32_t nconn::nc_cleanup()
 //! \param:   TODO
 //! ----------------------------------------------------------------------------
 nconn::nconn(void):
-      m_evr_loop(NULL),
+      m_evr_loop(nullptr),
       m_evr_fd(),
       m_scheme(SCHEME_NONE),
       m_label(),
@@ -297,15 +297,15 @@ nconn::nconn(void):
       m_stat(),
       m_collect_stats_flag(false),
 #endif
-      m_ctx(NULL),
-      m_data(NULL),
+      m_ctx(nullptr),
+      m_data(nullptr),
 #if 0
       m_connect_start_time_us(0),
       m_request_start_time_us(0),
 #endif
       m_conn_status(CONN_STATUS_OK),
       m_last_error(""),
-      m_host_data(NULL),
+      m_host_data(nullptr),
       m_host_info(),
       m_host_info_is_set(false),
       m_num_reqs_per_conn(-1),
@@ -320,13 +320,13 @@ nconn::nconn(void):
       m_idx(0),
       m_pool_id(0),
       m_alpn(ALPN_HTTP_VER_V1_1),
-      m_alpn_buf(NULL),
+      m_alpn_buf(nullptr),
       m_alpn_buf_len(0),
-      m_timer_obj(NULL)
+      m_timer_obj(nullptr)
 {
 #if 0
         // Set stats
-        if(m_collect_stats_flag)
+        if (m_collect_stats_flag)
         {
                 conn_stat_init(m_stat);
         }
@@ -341,10 +341,10 @@ nconn::nconn(void):
 nconn::~nconn(void)
 {
         //NDBG_PRINT("%s--CONN--%s last_state: %d this: %p\n", ANSI_COLOR_FG_RED, ANSI_COLOR_OFF, m_nc_state, this);
-        if(m_alpn_buf)
+        if (m_alpn_buf)
         {
                 free(m_alpn_buf);
-                m_alpn_buf = NULL;
+                m_alpn_buf = nullptr;
                 m_alpn_buf_len = 0;
         }
 }

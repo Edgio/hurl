@@ -71,7 +71,7 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
                 REQUIRE(( l_animal_pool->used_size() == 4 ));
                 INFO("Get free");
                 animal *l_af = l_animal_pool->get_free();
-                REQUIRE((l_af != NULL));
+                REQUIRE((l_af != nullptr));
                 REQUIRE((l_af->m_name == "Bongo"));
                 REQUIRE(( l_animal_pool->free_size() == 0 ));
                 REQUIRE(( l_animal_pool->used_size() == 5 ));
@@ -82,11 +82,11 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
                 REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
                 INFO("Add null");
-                l_animal_pool->add(NULL);
+                l_animal_pool->add(nullptr);
                 REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
                 INFO("Release null");
-                l_animal_pool->release(NULL);
+                l_animal_pool->release(nullptr);
                 REQUIRE(( l_animal_pool->free_size() == 3 ));
                 REQUIRE(( l_animal_pool->used_size() == 2 ));
                 INFO("Release 1");
@@ -96,7 +96,7 @@ TEST_CASE( "obj pool test", "[obj_pool]" ) {
                 INFO("Cleanup");
                 g_num_deleted = 0;
                 delete l_animal_pool;
-                l_animal_pool = NULL;
+                l_animal_pool = nullptr;
                 REQUIRE(( g_num_deleted == 5 ));
         }
 }

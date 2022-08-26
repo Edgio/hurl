@@ -42,14 +42,14 @@ int evr_kqueue::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
 {
         int l_ne;
         struct timespec l_to;
-        struct timespec *l_to_p = NULL;
-        if(a_timeout_msec > -1)
+        struct timespec *l_to_p = nullptr;
+        if (a_timeout_msec > -1)
         {
                 l_to.tv_sec = a_timeout_msec/1000;
                 l_to.tv_nsec = (a_timeout_msec%1000)*1000000;
                 l_to_p = &l_to;
         }
-        l_ne = kevent(m_fd, NULL, 0, m_events, m_setsize, l_to_p);
+        l_ne = kevent(m_fd, nullptr, 0, m_events, m_setsize, l_to_p);
 #if 0
 
         if (l_ne > 0)
@@ -78,18 +78,18 @@ int evr_kqueue::add(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
 {
         struct kevent l_ke;
         // TODO -map attributes...
-        if(a_attr_mask & AE_READABLE)
+        if (a_attr_mask & AE_READABLE)
         {
-                EV_SET(&l_ke, a_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
-                if (kevent(m_fd, &l_ke, 1, NULL, 0, NULL) == -1)
+                EV_SET(&l_ke, a_fd, EVFILT_READ, EV_ADD, 0, 0, nullptr);
+                if (kevent(m_fd, &l_ke, 1, nullptr, 0, nullptr) == -1)
                 {
                         return STATUS_ERROR;
                 }
         }
-        if(a_attr_mask & AE_WRITABLE)
+        if (a_attr_mask & AE_WRITABLE)
         {
-                EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_ADD, 0, 0, NULL);
-                if(kevent(m_fd, &l_ke, 1, NULL, 0, NULL) == -1)
+                EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_ADD, 0, 0, nullptr);
+                if (kevent(m_fd, &l_ke, 1, nullptr, 0, nullptr) == -1)
                 {
                         return STATUS_ERROR;
                 }
@@ -117,13 +117,13 @@ int evr_kqueue::del(int a_fd)
         // TODO del with attrs???
         if (mask & AE_READABLE)
         {
-                EV_SET(&l_ke, a_fd, EVFILT_READ, EV_DELETE, 0, 0, NULL);
-                kevent(m_fd, &l_ke, 1, NULL, 0, NULL);
+                EV_SET(&l_ke, a_fd, EVFILT_READ, EV_DELETE, 0, 0, nullptr);
+                kevent(m_fd, &l_ke, 1, nullptr, 0, nullptr);
         }
         if (mask & AE_WRITABLE)
         {
-                EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_DELETE, 0, 0, NULL);
-                kevent(m_fd, &l_ke, 1, NULL, 0, NULL);
+                EV_SET(&l_ke, a_fd, EVFILT_WRITE, EV_DELETE, 0, 0, nullptr);
+                kevent(m_fd, &l_ke, 1, nullptr, 0, nullptr);
         }
         return STATUS_OK;
 }
