@@ -752,10 +752,6 @@ int32_t request::init_with_url(const std::string &a_url)
                 // modes from nghttp2 client example
                 SSL_CTX_set_mode(m_tls_ctx, SSL_MODE_AUTO_RETRY);
                 SSL_CTX_set_mode(m_tls_ctx, SSL_MODE_RELEASE_BUFFERS);
-#ifdef HAS_NPN
-                // set npn callback
-                SSL_CTX_set_next_proto_select_cb(m_tls_ctx, alpn_select_next_proto_cb, this);
-#endif
         }
         // -------------------------------------------------
         // done
