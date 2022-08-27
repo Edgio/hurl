@@ -1059,282 +1059,6 @@ private:
         int32_t m_num_to_request;
 };
 //! ****************************************************************************
-//! ******************** N G H T T P 2   S U P P O R T *************************
-//! ****************************************************************************
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_send_callback. Here we transmit the |data|, |length| bytes,
-//!           to the network. Because we are using libevent bufferevent, we just
-//!           write those bytes into bufferevent buffer
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
-                             const uint8_t *a_data,
-                             size_t a_length,
-                             int a_flags _U_,
-                             void *a_user_data)
-{
-        session *l_ses = (session *)a_user_data;
-        int64_t l_s;
-        l_s = l_ses->m_out_q->write((const char *)a_data,(uint64_t)a_length);
-        return (ssize_t)l_s;
-}
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
-//!           received a complete frame from the remote peer.
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static int ngxxx_frame_recv_cb(nghttp2_session *a_session,
-                               const nghttp2_frame *a_frame,
-                               void *a_user_data)
-{
-        //NDBG_PRINT("%sFRAME%s: TYPE[%6u] ID[%6d]\n",
-        //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
-        //           a_frame->hd.type,
-        //           a_frame->hd.stream_id);
-        session *l_ses = (session *)a_user_data;
-        switch (a_frame->hd.type)
-        {
-        case NGHTTP2_GOAWAY:
-        {
-                l_ses->m_goaway = true;
-        }
-        default:
-        {
-                break;
-        }
-        }
-        return 0;
-}
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
-//!           received a complete frame from the remote peer.
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static int ngxxx_frame_send_cb(nghttp2_session *a_session,
-                               const nghttp2_frame *a_frame,
-                               void *a_user_data)
-{
-        //NDBG_PRINT("%sFRAME%s: TYPE[%6u] ID[%6d] CAT[%d]\n",
-        //           ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF,
-        //           a_frame->hd.type,
-        //           a_frame->hd.stream_id,
-        //           a_frame->headers.cat);
-        // TODO FIX!!!
-#if 0
-        request *l_request = (request *)a_user_data;
-        switch (a_frame->hd.type)
-        {
-        case NGHTTP2_HEADERS:
-        {
-                if ((a_frame->headers.cat == NGHTTP2_HCAT_RESPONSE) &&
-                   (l_request->m_ngxxx_session_stream_id == a_frame->hd.stream_id))
-                {
-                        //fprintf(stderr, "All headers received\n");
-                }
-                break;
-        }
-        }
-#endif
-        return 0;
-}
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_on_data_chunk_recv_callback: Called when DATA frame is
-//!           received from the remote peer. In this implementation, if the frame
-//!           is meant to the stream we initiated, print the received data in
-//!           stdout, so that the user can redirect its output to the file
-//!           easily.
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static int ngxxx_data_chunk_recv_cb(nghttp2_session *a_session _U_,
-                                    uint8_t a_flags _U_,
-                                    int32_t a_stream_id,
-                                    const uint8_t *a_data,
-                                    size_t a_len,
-                                    void *a_user_data)
-{
-        //NDBG_PRINT("%sCHUNK%s: ID[%6d]\n",
-        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
-        //           a_stream_id);
-        if (g_verbose)
-        {
-        TRC_OUTPUT("%.*s", (int)a_len, a_data);
-        }
-        // TODO FIX!!!
-#if 0
-        request *l_request = (request *)a_user_data;
-        if (l_request->m_ngxxx_session_stream_id == a_stream_id)
-        {
-                TRC_OUTPUT("%.*s", (int)a_len, a_data);
-        }
-#endif
-        return 0;
-}
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_on_stream_close_callback: Called when a stream is about to
-//!           closed. This example program only deals with 1 HTTP request (1
-//!           stream), if it is closed, we send GOAWAY and tear down the
-//!           session
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static int ngxxx_stream_close_cb(nghttp2_session *a_session,
-                                 int32_t a_stream_id,
-                                 uint32_t a_error_code,
-                                 void *a_user_data)
-{
-        //NDBG_PRINT("%sCLOSE%s: ID[%6d]\n",
-        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
-        //           a_stream_id);
-        session *l_ses = (session *)a_user_data;
-        // TODO check status
-        int32_t l_s;
-        l_s = l_ses->request_complete();
-        if (l_s != STATUS_OK)
-        {
-                TRC_ERROR("performing request_complete\n");
-                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-        }
-        // TODO -get request status from header cb
-        l_ses->request_log_status(200);
-        if ((l_ses->m_nconn->can_reuse() == false) ||
-           (l_ses->m_request->m_keepalive == false))
-        {
-                l_ses->m_goaway = true;
-        }
-        return 0;
-}
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_on_header_callback: Called when nghttp2 library emits
-//!           single header name/value pair
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static int ngxxx_header_cb(nghttp2_session *a_session _U_,
-                           const nghttp2_frame *a_frame,
-                           const uint8_t *a_name,
-                           size_t a_namelen,
-                           const uint8_t *a_value,
-                           size_t a_valuelen,
-                           uint8_t a_flags _U_,
-                           void *a_user_data)
-{
-        //NDBG_PRINT("%sHEADER%s: \n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
-        switch (a_frame->hd.type)
-        {
-        case NGHTTP2_HEADERS:
-        {
-                if (a_frame->headers.cat == NGHTTP2_HCAT_RESPONSE)
-                {
-                        if (g_verbose)
-                        {
-                        // Print response headers for the initiated request.
-                        fprintf(stdout, "%s%.*s%s: %s%.*s%s\n",
-                                ANSI_COLOR_FG_BLUE, (int)a_namelen, a_name, ANSI_COLOR_OFF,
-                                ANSI_COLOR_FG_GREEN, (int)a_valuelen, a_value, ANSI_COLOR_OFF);
-                        }
-                        break;
-                }
-        }
-        default:
-        {
-        }
-        }
-        return 0;
-}
-//! ----------------------------------------------------------------------------
-//! \details: nghttp2_on_begin_headers_callback:
-//!           Called when nghttp2 library gets started to receive header block.
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
-                                  const nghttp2_frame *a_frame,
-                                  void *a_user_data)
-{
-        //NDBG_PRINT("%sBEGIN_HEADERS%s: \n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
-        // TODO FIX!!!
-#if 0
-        request *l_request = (request *)a_user_data;
-        switch (a_frame->hd.type)
-        {
-        case NGHTTP2_HEADERS:
-        {
-                if ((a_frame->headers.cat == NGHTTP2_HCAT_RESPONSE) &&
-                  (l_request->m_ngxxx_session_stream_id == a_frame->hd.stream_id))
-                {
-                        //fprintf(stderr, "Response headers for stream ID=%d:\n", a_frame->hd.stream_id);
-                }
-                break;
-        }
-        }
-#endif
-        return 0;
-}
-//! ----------------------------------------------------------------------------
-//! \details: TODO
-//! \return:  TODO
-//! \param:   TODO
-//! ----------------------------------------------------------------------------
-static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
-                                         int32_t a_stream_id,
-                                         uint8_t *a_buf,
-                                         size_t a_length,
-                                         uint32_t *a_data_flags,
-                                         nghttp2_data_source *a_source,
-                                         void *a_user_data)
-{
-        //NDBG_PRINT("%sDATA_SOURCE_READ_CB%s: push up to: %lu bytes\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, a_length);
-        // copy up to length into buffer
-        session *l_ses = (session *)a_user_data;
-        if (!l_ses)
-        {
-                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-        }
-        if (!a_data_flags)
-        {
-                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-        }
-        request *l_request = l_ses->m_request;
-        if (!l_request)
-        {
-                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
-        }
-        if (!l_request->m_body_q)
-        {
-                return 0;
-        }
-        if (!l_ses->m_h2_body_q)
-        {
-                l_ses->m_h2_body_q = new ns_hurl::nbq(8*1024);
-                l_ses->m_h2_body_q->join_ref(*(l_request->m_body_q));
-        }
-        uint64_t l_r_avail = l_ses->m_h2_body_q->read_avail();
-        size_t l_len = a_length;
-        if (l_len > l_r_avail)
-        {
-                l_len = l_r_avail;
-        }
-        uint64_t l_read;
-        l_read = l_ses->m_h2_body_q->read((char *)a_buf, l_len);
-        if (g_verbose)
-        {
-        TRC_OUTPUT("%.*s", (int)l_read, a_buf);
-        }
-        if (!l_ses->m_h2_body_q->read_avail())
-        {
-                *a_data_flags |= NGHTTP2_DATA_FLAG_EOF;
-                if (g_verbose)
-                {
-                TRC_OUTPUT("\n");
-                }
-        }
-        return l_read;
-}
-//! ****************************************************************************
 //! ************************ H T T P   S U P P O R T ***************************
 //! ****************************************************************************
 //! ----------------------------------------------------------------------------
@@ -1729,6 +1453,288 @@ private:
         // -------------------------------------------------
         nghttp2_session *m_ngxxx_session;
 };
+//! ****************************************************************************
+//! ******************** N G H T T P 2   S U P P O R T *************************
+//! ****************************************************************************
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_send_callback. Here we transmit the |data|, |length| bytes,
+//!           to the network. Because we are using libevent bufferevent, we just
+//!           write those bytes into bufferevent buffer
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static ssize_t ngxxx_send_cb(nghttp2_session *a_session _U_,
+                             const uint8_t *a_data,
+                             size_t a_length,
+                             int a_flags _U_,
+                             void *a_user_data)
+{
+        session *l_ses = (session *)a_user_data;
+        int64_t l_s;
+        l_s = l_ses->m_out_q->write((const char *)a_data,(uint64_t)a_length);
+        return (ssize_t)l_s;
+}
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
+//!           received a complete frame from the remote peer.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static int ngxxx_frame_recv_cb(nghttp2_session *a_session,
+                               const nghttp2_frame *a_frame,
+                               void *a_user_data)
+{
+        //NDBG_PRINT("%sFRAME%s: TYPE[%6u] ID[%6d]\n",
+        //           ANSI_COLOR_BG_MAGENTA, ANSI_COLOR_OFF,
+        //           a_frame->hd.type,
+        //           a_frame->hd.stream_id);
+        session *l_ses = (session *)a_user_data;
+        switch (a_frame->hd.type)
+        {
+        case NGHTTP2_GOAWAY:
+        {
+                l_ses->m_goaway = true;
+        }
+        default:
+        {
+                break;
+        }
+        }
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_frame_recv_callback: Called when nghttp2 library
+//!           received a complete frame from the remote peer.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static int ngxxx_frame_send_cb(nghttp2_session *a_session,
+                               const nghttp2_frame *a_frame,
+                               void *a_user_data)
+{
+        //NDBG_PRINT("%sFRAME%s: TYPE[%6u] ID[%6d] CAT[%d]\n",
+        //           ANSI_COLOR_BG_CYAN, ANSI_COLOR_OFF,
+        //           a_frame->hd.type,
+        //           a_frame->hd.stream_id,
+        //           a_frame->headers.cat);
+        // TODO FIX!!!
+#if 0
+        request *l_request = (request *)a_user_data;
+        switch (a_frame->hd.type)
+        {
+        case NGHTTP2_HEADERS:
+        {
+                if ((a_frame->headers.cat == NGHTTP2_HCAT_RESPONSE) &&
+                   (l_request->m_ngxxx_session_stream_id == a_frame->hd.stream_id))
+                {
+                        //fprintf(stderr, "All headers received\n");
+                }
+                break;
+        }
+        }
+#endif
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_data_chunk_recv_callback: Called when DATA frame is
+//!           received from the remote peer. In this implementation, if the frame
+//!           is meant to the stream we initiated, print the received data in
+//!           stdout, so that the user can redirect its output to the file
+//!           easily.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static int ngxxx_data_chunk_recv_cb(nghttp2_session *a_session _U_,
+                                    uint8_t a_flags _U_,
+                                    int32_t a_stream_id,
+                                    const uint8_t *a_data,
+                                    size_t a_len,
+                                    void *a_user_data)
+{
+        //NDBG_PRINT("%sCHUNK%s: ID[%6d]\n",
+        //           ANSI_COLOR_BG_BLUE, ANSI_COLOR_OFF,
+        //           a_stream_id);
+        if (g_verbose)
+        {
+        TRC_OUTPUT("%.*s", (int)a_len, a_data);
+        }
+        // TODO FIX!!!
+#if 0
+        request *l_request = (request *)a_user_data;
+        if (l_request->m_ngxxx_session_stream_id == a_stream_id)
+        {
+                TRC_OUTPUT("%.*s", (int)a_len, a_data);
+        }
+#endif
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_stream_close_callback: Called when a stream is about to
+//!           closed. This example program only deals with 1 HTTP request (1
+//!           stream), if it is closed, we send GOAWAY and tear down the
+//!           session
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static int ngxxx_stream_close_cb(nghttp2_session *a_session,
+                                 int32_t a_stream_id,
+                                 uint32_t a_error_code,
+                                 void *a_user_data)
+{
+        //NDBG_PRINT("%sCLOSE%s: ID[%6d] EC[%u]\n",
+        //           ANSI_COLOR_BG_RED, ANSI_COLOR_OFF,
+        //           a_stream_id,
+        //           a_error_code);
+        h2_session *l_ses = (h2_session *)a_user_data;
+        // TODO check status
+        int32_t l_s;
+        l_s = l_ses->request_complete();
+        if (l_s != STATUS_OK)
+        {
+                TRC_ERROR("performing request_complete\n");
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
+        if ((l_ses->m_nconn->can_reuse() == false) ||
+           (l_ses->m_request->m_keepalive == false))
+        {
+                l_ses->m_goaway = true;
+        }
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_header_callback: Called when nghttp2 library emits
+//!           single header name/value pair
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static int ngxxx_header_cb(nghttp2_session *a_session _U_,
+                           const nghttp2_frame *a_frame,
+                           const uint8_t *a_name,
+                           size_t a_namelen,
+                           const uint8_t *a_value,
+                           size_t a_valuelen,
+                           uint8_t a_flags _U_,
+                           void *a_user_data)
+{
+        //NDBG_PRINT("%sHEADER%s: \n", ANSI_COLOR_BG_YELLOW, ANSI_COLOR_OFF);
+        switch (a_frame->hd.type)
+        {
+        case NGHTTP2_HEADERS:
+        {
+                if (a_frame->headers.cat == NGHTTP2_HCAT_RESPONSE)
+                {
+                        if (strncasecmp((char*)a_name, ":status", a_namelen) == 0)
+                        {
+                                h2_session *l_ses = (h2_session *)a_user_data;
+                                uint16_t l_status;
+                                l_status = (uint16_t)strtoul((char*)a_value, NULL, 10);
+                                l_ses->request_log_status(l_status);
+                        }
+                        if (g_verbose)
+                        {
+                        // Print response headers for the initiated request.
+                        fprintf(stdout, "%s%.*s%s: %s%.*s%s\n",
+                                ANSI_COLOR_FG_BLUE, (int)a_namelen, a_name, ANSI_COLOR_OFF,
+                                ANSI_COLOR_FG_GREEN, (int)a_valuelen, a_value, ANSI_COLOR_OFF);
+                        }
+                        break;
+                }
+        }
+        default:
+        {
+        }
+        }
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! \details: nghttp2_on_begin_headers_callback:
+//!           Called when nghttp2 library gets started to receive header block.
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static int ngxxx_begin_headers_cb(nghttp2_session *a_session _U_,
+                                  const nghttp2_frame *a_frame,
+                                  void *a_user_data)
+{
+        //NDBG_PRINT("%sBEGIN_HEADERS%s: \n", ANSI_COLOR_BG_WHITE, ANSI_COLOR_OFF);
+        // TODO FIX!!!
+#if 0
+        request *l_request = (request *)a_user_data;
+        switch (a_frame->hd.type)
+        {
+        case NGHTTP2_HEADERS:
+        {
+                if ((a_frame->headers.cat == NGHTTP2_HCAT_RESPONSE) &&
+                  (l_request->m_ngxxx_session_stream_id == a_frame->hd.stream_id))
+                {
+                        //fprintf(stderr, "Response headers for stream ID=%d:\n", a_frame->hd.stream_id);
+                }
+                break;
+        }
+        }
+#endif
+        return 0;
+}
+//! ----------------------------------------------------------------------------
+//! \details: TODO
+//! \return:  TODO
+//! \param:   TODO
+//! ----------------------------------------------------------------------------
+static ssize_t ngxxx_data_source_read_cb(nghttp2_session *a_session,
+                                         int32_t a_stream_id,
+                                         uint8_t *a_buf,
+                                         size_t a_length,
+                                         uint32_t *a_data_flags,
+                                         nghttp2_data_source *a_source,
+                                         void *a_user_data)
+{
+        //NDBG_PRINT("%sDATA_SOURCE_READ_CB%s: push up to: %lu bytes\n", ANSI_COLOR_FG_MAGENTA, ANSI_COLOR_OFF, a_length);
+        // copy up to length into buffer
+        session *l_ses = (session *)a_user_data;
+        if (!l_ses)
+        {
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
+        if (!a_data_flags)
+        {
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
+        request *l_request = l_ses->m_request;
+        if (!l_request)
+        {
+                return NGHTTP2_ERR_TEMPORAL_CALLBACK_FAILURE;
+        }
+        if (!l_request->m_body_q)
+        {
+                return 0;
+        }
+        if (!l_ses->m_h2_body_q)
+        {
+                l_ses->m_h2_body_q = new ns_hurl::nbq(8*1024);
+                l_ses->m_h2_body_q->join_ref(*(l_request->m_body_q));
+        }
+        uint64_t l_r_avail = l_ses->m_h2_body_q->read_avail();
+        size_t l_len = a_length;
+        if (l_len > l_r_avail)
+        {
+                l_len = l_r_avail;
+        }
+        uint64_t l_read;
+        l_read = l_ses->m_h2_body_q->read((char *)a_buf, l_len);
+        if (g_verbose)
+        {
+        TRC_OUTPUT("%.*s", (int)l_read, a_buf);
+        }
+        if (!l_ses->m_h2_body_q->read_avail())
+        {
+                *a_data_flags |= NGHTTP2_DATA_FLAG_EOF;
+                if (g_verbose)
+                {
+                TRC_OUTPUT("\n");
+                }
+        }
+        return l_read;
+}
 //! ----------------------------------------------------------------------------
 //! \details: TODO
 //! \return:  TODO
