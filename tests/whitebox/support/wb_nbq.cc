@@ -161,12 +161,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
                 if(l_rbuf)
                 {
                         free(l_rbuf);
-                        l_rbuf = NULL;
+                        l_rbuf = nullptr;
                 }
         }
         SECTION("reset writing then reading to new") {
@@ -189,12 +189,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
                 if(l_rbuf)
                 {
                         free(l_rbuf);
-                        l_rbuf = NULL;
+                        l_rbuf = nullptr;
                 }
         }
         SECTION("reset writing then reading") {
@@ -210,12 +210,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
                 if(l_rbuf)
                 {
                         free(l_rbuf);
-                        l_rbuf = NULL;
+                        l_rbuf = nullptr;
                 }
         }
         SECTION("Reset Writing/Writing then Reading") {
@@ -233,12 +233,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
                 if(l_rbuf)
                 {
                         free(l_rbuf);
-                        l_rbuf = NULL;
+                        l_rbuf = nullptr;
                 }
         }
         SECTION("split") {
@@ -256,16 +256,16 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 // split at > written offset -return nothing
                 l_s = l_nbq.split(&l_nbq_tail, 703);
                 REQUIRE(( l_s == STATUS_ERROR ));
-                REQUIRE(( l_nbq_tail == NULL ));
+                REQUIRE(( l_nbq_tail == nullptr ));
                 REQUIRE(( l_nbq.read_avail() == 703 ));
                 // split at 0 offset -return nothing
                 l_s = l_nbq.split(&l_nbq_tail, 0);
                 REQUIRE(( l_s == STATUS_OK ));
-                REQUIRE(( l_nbq_tail == NULL ));
+                REQUIRE(( l_nbq_tail == nullptr ));
                 REQUIRE(( l_nbq.read_avail() == 703 ));
                 l_s = l_nbq.split(&l_nbq_tail, 400);
                 REQUIRE(( l_s == STATUS_OK ));
-                REQUIRE(( l_nbq_tail != NULL ));
+                REQUIRE(( l_nbq_tail != nullptr ));
                 REQUIRE(( l_nbq_tail->read_avail() == 303 ));
                 l_nbq.reset_read();
                 l_s = verify_contents(l_nbq, 400, 0);
@@ -276,17 +276,17 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_nbq_tail)
                 {
                         delete l_nbq_tail;
-                        l_nbq_tail = NULL;
+                        l_nbq_tail = nullptr;
                 }
                 if(l_uni_buf)
                 {
                         free(l_uni_buf);
-                        l_uni_buf = NULL;
+                        l_uni_buf = nullptr;
                 }
                 if(l_rbuf)
                 {
                         free(l_rbuf);
-                        l_rbuf = NULL;
+                        l_rbuf = nullptr;
                 }
         }
         SECTION("join") {
@@ -312,7 +312,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_nbq)
                 {
                         delete l_nbq;
-                        l_nbq = NULL;
+                        l_nbq = nullptr;
                 }
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 400, 0);
@@ -320,12 +320,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_uni_buf)
                 {
                         free(l_uni_buf);
-                        l_uni_buf = NULL;
+                        l_uni_buf = nullptr;
                 }
                 if(l_nbq_tail)
                 {
                         delete l_nbq_tail;
-                        l_nbq_tail = NULL;
+                        l_nbq_tail = nullptr;
                 }
         }
         SECTION("split and join") {
@@ -341,16 +341,16 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 // split at > written offset -return nothing
                 l_s = l_nbq->split(&l_nbq_tail, 703);
                 REQUIRE(( l_s == STATUS_ERROR ));
-                REQUIRE(( l_nbq_tail == NULL ));
+                REQUIRE(( l_nbq_tail == nullptr ));
                 REQUIRE(( l_nbq->read_avail() == 703 ));
                 // split at 0 offset -return nothing
                 l_s = l_nbq->split(&l_nbq_tail, 0);
                 REQUIRE(( l_s == STATUS_OK ));
-                REQUIRE(( l_nbq_tail == NULL ));
+                REQUIRE(( l_nbq_tail == nullptr ));
                 REQUIRE(( l_nbq->read_avail() == 703 ));
                 l_s = l_nbq->split(&l_nbq_tail, 400);
                 REQUIRE(( l_s == STATUS_OK ));
-                REQUIRE(( l_nbq_tail != NULL ));
+                REQUIRE(( l_nbq_tail != nullptr ));
                 REQUIRE(( l_nbq_tail->read_avail() == 303 ));
                 l_nbq->reset_read();
                 l_s = verify_contents(*l_nbq, 400, 0);
@@ -358,7 +358,7 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_nbq)
                 {
                         delete l_nbq;
-                        l_nbq = NULL;
+                        l_nbq = nullptr;
                 }
                 l_nbq_tail->reset_read();
                 l_s = verify_contents(*l_nbq_tail, 303, 0);
@@ -379,17 +379,17 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_nbq_1)
                 {
                         delete l_nbq_1;
-                        l_nbq_1 = NULL;
+                        l_nbq_1 = nullptr;
                 }
                 if(l_nbq_tail)
                 {
                         delete l_nbq_tail;
-                        l_nbq_tail = NULL;
+                        l_nbq_tail = nullptr;
                 }
                 if(l_uni_buf)
                 {
                         free(l_uni_buf);
-                        l_uni_buf = NULL;
+                        l_uni_buf = nullptr;
                 }
         }
         SECTION("write read write on boundaries") {
@@ -441,12 +441,12 @@ TEST_CASE( "nbq test", "[nbq]" ) {
                 if(l_rbuf)
                 {
                         free(l_rbuf);
-                        l_rbuf = NULL;
+                        l_rbuf = nullptr;
                 }
                 if(l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
         }
 }

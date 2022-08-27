@@ -69,13 +69,13 @@ static __inline__ uint64_t get_rdtsc64()
 //! ----------------------------------------------------------------------------
 static inline bool _use_cached_time(uint64_t &a_last_rdtsc)
 {
-        if(!g_cyles_us)
+        if (!g_cyles_us)
         {
                 uint64_t l_start = get_rdtsc64();
                 usleep(100000);
                 g_cyles_us = (get_rdtsc64()-l_start)/100000;
         }
-        if((get_rdtsc64() - a_last_rdtsc) < MAX_TIMER_RESOLUTION_US*g_cyles_us)
+        if ((get_rdtsc64() - a_last_rdtsc) < MAX_TIMER_RESOLUTION_US*g_cyles_us)
         {
                 return true;
         }
@@ -89,7 +89,7 @@ static inline bool _use_cached_time(uint64_t &a_last_rdtsc)
 //! ----------------------------------------------------------------------------
 const char *get_date_str(void)
 {
-        if(_use_cached_time(g_last_date_str_s_rdtsc) && g_last_s)
+        if (_use_cached_time(g_last_date_str_s_rdtsc) && g_last_s)
         {
                 return g_last_date_str;
         }
@@ -125,7 +125,7 @@ static void _rt_gettime(struct timespec &ao_timespec)
 //! ----------------------------------------------------------------------------
 uint64_t get_time_s(void)
 {
-        if(_use_cached_time(g_last_s_rdtsc) && g_last_s)
+        if (_use_cached_time(g_last_s_rdtsc) && g_last_s)
         {
                 return g_last_s;
         }
@@ -142,7 +142,7 @@ uint64_t get_time_s(void)
 //! ----------------------------------------------------------------------------
 uint64_t get_time_ms(void)
 {
-        if(_use_cached_time(g_last_ms_rdtsc) && g_last_ms)
+        if (_use_cached_time(g_last_ms_rdtsc) && g_last_ms)
         {
                 return g_last_ms;
         }
@@ -159,7 +159,7 @@ uint64_t get_time_ms(void)
 //! ----------------------------------------------------------------------------
 uint64_t get_time_us(void)
 {
-        if(_use_cached_time(g_last_us_rdtsc) && g_last_us)
+        if (_use_cached_time(g_last_us_rdtsc) && g_last_us)
         {
                 return g_last_us;
         }

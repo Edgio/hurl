@@ -19,13 +19,13 @@
 //! ----------------------------------------------------------------------------
 //! trace macros
 //! ----------------------------------------------------------------------------
-// TODO -open file if NULL???
+// TODO -open file if nullptr???
 #ifndef TRC_PRINT
 #define TRC_PRINT(_level, ...) \
         do { \
-        if(ns_hurl::g_trc_log_file)\
+        if (ns_hurl::g_trc_log_file)\
         {\
-        if(ns_hurl::g_trc_log_level >= _level) { \
+        if (ns_hurl::g_trc_log_level >= _level) { \
         fprintf(ns_hurl::g_trc_log_file, "%.3f %s %s:%s.%d: ", \
                         ((double)ns_hurl::get_time_ms())/1000.0, \
                         ns_hurl::trc_log_level_str(_level), \
@@ -39,9 +39,9 @@
 #ifndef TRC_MEM
 #define TRC_MEM(_level, _buf, _len) \
         do { \
-        if(ns_hurl::g_trc_log_file)\
+        if (ns_hurl::g_trc_log_file)\
         {\
-        if(ns_hurl::g_trc_log_level >= _level) { \
+        if (ns_hurl::g_trc_log_level >= _level) { \
         ns_hurl::trc_mem_display(ns_hurl::g_trc_log_file, _buf, _len);\
         fflush(ns_hurl::g_trc_log_file); \
         } \
@@ -69,11 +69,11 @@
 #ifndef TRC_ALL_MEM
 #define TRC_ALL_MEM(_buf,_len) TRC_MEM(ns_hurl::TRC_LOG_LEVEL_ALL, _buf, _len)
 #endif
-// TODO -open file if NULL???
+// TODO -open file if nullptr???
 #ifndef TRC_OUTPUT
 #define TRC_OUTPUT(...) \
         do { \
-        if(ns_hurl::g_trc_out_file)\
+        if (ns_hurl::g_trc_out_file)\
         {\
         fprintf(ns_hurl::g_trc_out_file, __VA_ARGS__); \
         fflush(ns_hurl::g_trc_out_file); \

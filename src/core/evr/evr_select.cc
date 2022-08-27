@@ -50,15 +50,15 @@ int evr_select::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
         }
         int l_sstat = 0;
         uint32_t l_fdsize = 1;
-        if(m_conn_map.size())
+        if (m_conn_map.size())
         {
                 l_fdsize = m_conn_map.rbegin()->first + 1;
         }
         l_sstat = select(l_fdsize,
                          &l_rfdset,
                          &l_wfdset,
-                         NULL,
-                         a_timeout_msec >= 0 ? &l_timeout : NULL);
+                         nullptr,
+                         a_timeout_msec >= 0 ? &l_timeout : nullptr);
         //NDBG_PRINT("l_sstat: %d\n", l_sstat);
         if (l_sstat < 0)
         {
@@ -93,7 +93,7 @@ int evr_select::wait(evr_events_t* a_ev, int a_max_events, int a_timeout_msec)
                         //NDBG_PRINT("INSET: fd: %d\n", l_fd);
                         a_ev[l_p].data.ptr = i_conn->second;
                         ++l_p;
-                        if(l_p > l_sstat)
+                        if (l_p > l_sstat)
                         {
                                 //NDBG_PRINT("Error num events exceeds select result.\n");
                                 return STATUS_ERROR;
@@ -131,11 +131,11 @@ int evr_select::mod(int a_fd, uint32_t a_attr_mask, evr_fd_t *a_evr_fd_event)
         //           a_fd, a_attr_mask);
         FD_CLR(a_fd, &m_wfdset);
         FD_CLR(a_fd, &m_rfdset);
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_READ)         { FD_SET(a_fd, &m_rfdset); }
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_WRITE)        { FD_SET(a_fd, &m_wfdset); }
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       { FD_SET(a_fd, &m_rfdset); }
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          { FD_SET(a_fd, &m_rfdset); }
-        if(a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) { FD_SET(a_fd, &m_rfdset); }
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_READ)         { FD_SET(a_fd, &m_rfdset); }
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_WRITE)        { FD_SET(a_fd, &m_wfdset); }
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_RD_HUP)       { FD_SET(a_fd, &m_rfdset); }
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_HUP)          { FD_SET(a_fd, &m_rfdset); }
+        if (a_attr_mask & EVR_FILE_ATTR_MASK_STATUS_ERROR) { FD_SET(a_fd, &m_rfdset); }
         return STATUS_OK;
 }
 //! ----------------------------------------------------------------------------

@@ -49,8 +49,8 @@ __thread char gts_last_tls_error[256] = "\0";
 static struct CRYPTO_dynlock_value* dyn_create_function(const char* a_file, int a_line)
 {
         struct CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
-        if (!value) return NULL;
-        pthread_mutex_init(&value->mutex, NULL);
+        if (!value) return nullptr;
+        pthread_mutex_init(&value->mutex, nullptr);
         return value;
 }
 #endif
@@ -85,7 +85,7 @@ static void dyn_destroy_function(struct CRYPTO_dynlock_value* a_l,
                                  const char* a_file,
                                  int a_line)
 {
-        if(a_l)
+        if (a_l)
         {
                 pthread_mutex_destroy(&a_l->mutex);
                 free(a_l);
@@ -148,7 +148,7 @@ static void tls_init_locking(void)
         //g_lock_cs =(pthread_mutex_t*)malloc(        l_num_locks * sizeof(pthread_mutex_t));
         for (int i=0; i<l_num_locks; ++i)
         {
-                pthread_mutex_init(&(g_lock_cs[i]),NULL);
+                pthread_mutex_init(&(g_lock_cs[i]),nullptr);
         }
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
         CRYPTO_set_id_callback(pthreads_thread_id);
@@ -202,9 +202,9 @@ void tls_init(void)
 //! ----------------------------------------------------------------------------
 void ssl_kill_locks(void)
 {
-        CRYPTO_set_id_callback(NULL);
-        CRYPTO_set_locking_callback(NULL);
-        if(g_lock_cs)
+        CRYPTO_set_id_callback(nullptr);
+        CRYPTO_set_locking_callback(nullptr);
+        if (g_lock_cs)
         {
                 for (int i=0; i<CRYPTO_num_locks(); ++i)
                 {
@@ -212,7 +212,7 @@ void ssl_kill_locks(void)
                 }
         }
         OPENSSL_free(g_lock_cs);
-        g_lock_cs = NULL;
+        g_lock_cs = nullptr;
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -224,7 +224,7 @@ tls_options_map_t g_tls_options_map;
 int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
 {
         std::string l_options_str = a_options_str;
-        if(g_tls_options_map.empty())
+        if (g_tls_options_map.empty())
         {
                 g_tls_options_map["SSL_OP_NO_SSLv2"] = SSL_OP_NO_SSLv2;
                 g_tls_options_map["SSL_OP_NO_SSLv3"] = SSL_OP_NO_SSLv3;
@@ -236,7 +236,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 g_tls_options_map["SSL_OP_NO_TLSv1_1"] = SSL_OP_NO_TLSv1_1;
         }
         // Remove whitespace
-        l_options_str.erase( std::remove_if( l_options_str.begin(), l_options_str.end(), ::isspace ), l_options_str.end() );
+        l_options_str.erase( std::remove_if ( l_options_str.begin(), l_options_str.end(), ::isspace ), l_options_str.end() );
         ao_val = 0;
         std::string l_token;
         std::string l_delim = "|";
@@ -249,7 +249,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
                 l_end = l_options_str.find(l_delim, l_start);
                 //NDBG_PRINT("TOKEN: %s\n", l_token.c_str());
                 tls_options_map_t::iterator i_option  = g_tls_options_map.find(l_token);
-                if(i_option == g_tls_options_map.end())
+                if (i_option == g_tls_options_map.end())
                 {
                         TRC_ERROR("unrecognized ssl option: %s\n", l_token.c_str());
                         return STATUS_ERROR;
@@ -259,7 +259,7 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
         l_token = l_options_str.substr(l_start, l_options_str.length() - l_start);
         //NDBG_PRINT("TOKEN: %s\n", l_token.c_str());
         tls_options_map_t::iterator i_option  = g_tls_options_map.find(l_token);
-        if(i_option == g_tls_options_map.end())
+        if (i_option == g_tls_options_map.end())
         {
                 TRC_ERROR("unrecognized ssl option: %s\n", l_token.c_str());
                 return STATUS_ERROR;
@@ -275,9 +275,9 @@ int32_t get_tls_options_str_val(const std::string a_options_str, long &ao_val)
 //! ----------------------------------------------------------------------------
 const char *get_tls_info_cipher_str(SSL *a_ssl)
 {
-        if(!a_ssl)
+        if (!a_ssl)
         {
-            return NULL;
+            return nullptr;
         }
         return SSL_get_cipher_name(a_ssl);
 }
@@ -288,13 +288,13 @@ const char *get_tls_info_cipher_str(SSL *a_ssl)
 //! ----------------------------------------------------------------------------
 int32_t get_tls_info_protocol_num(SSL *a_ssl)
 {
-        if(!a_ssl)
+        if (!a_ssl)
         {
             return -1;
         }
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
         SSL_SESSION *m_tls_session = SSL_get_session(a_ssl);
-        if(!m_tls_session)
+        if (!m_tls_session)
         {
                 return -1;
         }
@@ -352,7 +352,7 @@ const char *get_tls_info_protocol_str(int32_t a_version)
                 return "unknown";
         }
         }
-        return NULL;
+        return nullptr;
 }
 //! ----------------------------------------------------------------------------
 //! \details: TODO
@@ -362,11 +362,11 @@ const char *get_tls_info_protocol_str(int32_t a_version)
 //! ----------------------------------------------------------------------------
 int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
 {
-        if(ok)
+        if (ok)
         {
                 return ok;
         }
-        if(!store)
+        if (!store)
         {
                 return ok;
         }
@@ -396,11 +396,11 @@ int tls_cert_verify_callback_allow_self_signed(int ok, X509_STORE_CTX* store)
 //! ----------------------------------------------------------------------------
 int tls_cert_verify_callback(int ok, X509_STORE_CTX* store)
 {
-        if(ok)
+        if (ok)
         {
                 return ok;
         }
-        if(store)
+        if (store)
         {
                 // TODO Can add check for depth here.
                 //int depth = X509_STORE_CTX_get_error_depth(store);
@@ -424,8 +424,8 @@ bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
         }
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
         // First, the DNS-IDs (dNSName entries in the subjectAltName extension)
-        GENERAL_NAMES* l_names = (GENERAL_NAMES*)X509_get_ext_d2i(x509, NID_subject_alt_name, NULL, NULL);
-        if(l_names)
+        GENERAL_NAMES* l_names = (GENERAL_NAMES*)X509_get_ext_d2i(x509, NID_subject_alt_name, nullptr, nullptr);
+        if (l_names)
         {
                 std::string l_san;
                 for (int i = 0; i < sk_GENERAL_NAME_num(l_names); ++i)
@@ -442,7 +442,7 @@ bool tls_x509_get_ids(X509* x509, std::vector<std::string>& ids)
                         }
                 }
         }
-        if(l_names)
+        if (l_names)
         {
                 sk_GENERAL_NAME_pop_free(l_names, GENERAL_NAME_free);
         }
@@ -477,7 +477,7 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
         cert_name_list_t l_cert_name_list;
         bool l_get_ids_status = false;
         l_get_ids_status = tls_x509_get_ids(a_cert, l_cert_name_list);
-        if(!l_get_ids_status)
+        if (!l_get_ids_status)
         {
                 // No names found bail out
                 //NDBG_PRINT("LABEL[%s]: tls_x509_get_ids returned no names.\n", a_host);
@@ -485,7 +485,7 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
         }
         for(uint32_t i_name = 0; i_name < l_cert_name_list.size(); ++i_name)
         {
-                if(Curl_cert_hostcheck(l_cert_name_list[i_name].c_str(), a_host))
+                if (Curl_cert_hostcheck(l_cert_name_list[i_name].c_str(), a_host))
                 {
                         return 0;
                 }
@@ -501,11 +501,11 @@ static int validate_server_certificate_hostname(X509* a_cert, const char* a_host
 //! ----------------------------------------------------------------------------
 int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disallow_self_signed)
 {
-        X509* l_cert = NULL;
+        X509* l_cert = nullptr;
         //NDBG_PRINT("a_host: %s\n", a_host);
         // Get certificate
         l_cert = SSL_get_peer_certificate(a_tls);
-        if(NULL == l_cert)
+        if (nullptr == l_cert)
         {
                 //NDBG_PRINT("LABEL[%s]: SSL_get_peer_certificate error.  tls: %p", a_host, (void *)a_tls);
                 return -1;
@@ -513,44 +513,44 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
         // Example of displaying cert
         //X509_print_fp(stdout, l_cert);
         // Check host name
-        if(a_host)
+        if (a_host)
         {
                 int l_status = 0;
                 l_status = validate_server_certificate_hostname(l_cert, a_host);
-                if(0 != l_status)
+                if (0 != l_status)
                 {
                         sprintf(gts_last_tls_error, "Error[%d].  Reason: %s", -1, "hostname check failed");
-                        if(NULL != l_cert)
+                        if (nullptr != l_cert)
                         {
                                 X509_free(l_cert);
-                                l_cert = NULL;
+                                l_cert = nullptr;
                         }
                         return -1;
                 }
         }
-        if(NULL != l_cert)
+        if (nullptr != l_cert)
         {
                 X509_free(l_cert);
-                l_cert = NULL;
+                l_cert = nullptr;
         }
 #if 0
         long l_tls_verify_result;
         l_tls_verify_result = SSL_get_verify_result(a_tls);
-        if(l_tls_verify_result != X509_V_OK)
+        if (l_tls_verify_result != X509_V_OK)
         {
                 // Check for self-signed failures
                 //a_disallow_self_signed
-                if(a_disallow_self_signed == false)
+                if (a_disallow_self_signed == false)
                 {
                         if ((l_tls_verify_result == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT) ||
                             (l_tls_verify_result == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN))
                         {
                                 sprintf(gts_last_tls_error, "Error[%d].  Reason: %s", -1, "self-signed certificate");
                                 // No errors return success(0)
-                                if(NULL != l_cert)
+                                if (nullptr != l_cert)
                                 {
                                         X509_free(l_cert);
-                                        l_cert = NULL;
+                                        l_cert = nullptr;
                                 }
                                 //NDBG_PRINT("Error self-signed.\n");
                                 return -1;
@@ -560,10 +560,10 @@ int32_t validate_server_certificate(SSL *a_tls, const char* a_host, bool a_disal
                 //      a_host,
                 //      l_tls_verify_result,
                 //      X509_verify_cert_error_string(l_tls_verify_result));
-                if(NULL != l_cert)
+                if (nullptr != l_cert)
                 {
                         X509_free(l_cert);
-                        l_cert = NULL;
+                        l_cert = nullptr;
                 }
                 //NDBG_PRINT("Error\n");
                 return -1;
@@ -582,7 +582,7 @@ int32_t tls_cleanup(void)
 {
         EVP_cleanup();
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-        ERR_remove_thread_state(NULL);
+        ERR_remove_thread_state(nullptr);
 #endif
         ERR_free_strings();
         CRYPTO_cleanup_all_ex_data();

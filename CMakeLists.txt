@@ -14,9 +14,7 @@ option(BUILD_TCMALLOC       "Build with tcmalloc" OFF)
 option(BUILD_PROFILER       "Enable google cpu and heap profiler support" OFF)
 option(BUILD_ASAN           "Build with Address Sanitizer" OFF)
 option(BUILD_UBSAN          "Build with Undefined Behavior Sanitizer" OFF)
-option(BUILD_UDNS           "Build with udns (async dns support)" ON)
 option(BUILD_CUSTOM_OPENSSL "Build with custom OpenSSL" OFF)
-option(BUILD_APPS           "Build hurl/phurl/fsurve" ON)
 option(BUILD_TESTS          "Build the unit tests." OFF)
 option(BUILD_LINUX          "Build for Linux" OFF)
 option(BUILD_KTLS_SUPPORT   "Build with KTLS support - requires OpenSSL to be built with KTLS support as well" OFF)
@@ -35,10 +33,8 @@ message("    Build with tcmalloc:                       " "BUILD_TCMALLOC       
 message("    Enable google cpu/heap profiler support:   " "BUILD_PROFILER          " ${BUILD_PROFILER})
 message("    Build with Address Sanitizer:              " "BUILD_ASAN              " ${BUILD_ASAN})
 message("    Build with Undefined Behavior Sanitizer:   " "BUILD_UBSAN             " ${BUILD_UBSAN})
-message("    Build with udns support:                   " "BUILD_UDNS              " ${BUILD_UDNS})
 message("    Build for custom OpenSSL:                  " "BUILD_CUSTOM_OPENSSL    " ${BUILD_CUSTOM_OPENSSL})
 message("    Build unit tests:                          " "BUILD_TESTS             " ${BUILD_TESTS})
-message("    Build applications (hurl/phurl/fsurv):     " "BUILD_APPS              " ${BUILD_APPS})
 message("    Build for Linux (adds package help):       " "BUILD_LINUX             " ${BUILD_LINUX})
 message("    Build with KTLS support:                   " "BUILD_KTLS_SUPPORT      " ${BUILD_KTLS_SUPPORT})
 message("")
@@ -80,7 +76,7 @@ endmacro(fail_if_not_found_library)
 # ------------------------------------------------------------------------------
 if(BUILD_ASAN)
   set(DEBUG_LIBRARIES asan ${DEBUG_LIBRARIES})
-  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=address)
+  add_definitions(-fno-omit-frame-pointer -fsanitize=address)
   set(DEBUG_MODE ON)
   set(BUILD_PROFILER OFF)
   set(BUILD_TCMALLOC OFF)
@@ -89,7 +85,7 @@ if(BUILD_ASAN)
 # ------------------------------------------------------------------------------
 elseif(BUILD_UBSAN)
   set(DEBUG_LIBRARIES asan ${DEBUG_LIBRARIES})
-  add_definitions(-g3 -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover)
+  add_definitions(-fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover)
   set(DEBUG_MODE ON)
   set(BUILD_PROFILER OFF)
   set(BUILD_TCMALLOC OFF)
@@ -99,31 +95,13 @@ endif()
 # ------------------------------------------------------------------------------
 if (DEBUG_MODE)
   add_definitions(-O0 -g3)
+elseif (BUILD_SYMBOLS)
+  add_definitions(-g3)
 else()
   add_definitions(-O2)
 endif()
-if (BUILD_SYMBOLS)
-  add_definitions(-g3)
-endif()
 # Less strict/faster parsing
 add_definitions(-DHTTP_PARSER_STRICT=0)
-# ------------------------------------------------------------------------------
-# Build UDNS
-# ------------------------------------------------------------------------------
-if(BUILD_UDNS)
-  include(ExternalProject)
-  ExternalProject_Add(ext_udns
-    # Optional approach -including from external url
-    #URL http://www.corpit.ru/mjt/udns/udns-0.4.tar.gz
-    DOWNLOAD_COMMAND ""
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
-    BINARY_DIR ${CMAKE_SOURCE_DIR}/ext/udns-0.4
-    CONFIGURE_COMMAND "./configure"
-    #BUILD_COMMAND $(MAKE) COMMAND $(MAKE)
-    INSTALL_COMMAND ""
-  )
-  add_definitions(-DASYNC_DNS_WITH_UDNS=1)
-endif()
 # ------------------------------------------------------------------------------
 # add ssl libraries
 # ------------------------------------------------------------------------------
@@ -184,7 +162,13 @@ endif()
 #
 # ------------------------------------------------------------------------------
 # make the cmake list variables into .deb-compatible strings
+set(CPACK_DEBIAN_PACKAGE_DEPENDS_LIST
+	"libssl-dev"
+)
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS_LIST}")
+set(CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST
+	"libssl-dev"
+)
 string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS "${CPACK_DEBIAN_PACKAGE_BUILDS_DEPENDS_LIST}")
 # ------------------------------------------------------------------------------
 # Version

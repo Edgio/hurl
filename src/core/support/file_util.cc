@@ -33,13 +33,13 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         struct stat l_stat;
         int32_t l_s = STATUS_OK;
         l_s = stat(a_file, &l_stat);
-        if(l_s != 0)
+        if (l_s != 0)
         {
                 printf("Error performing stat on file: %s.  Reason: %s\n", a_file, strerror(errno));
                 return STATUS_ERROR;
         }
         // Check if is regular file
-        if(!(l_stat.st_mode & S_IFREG))
+        if (!(l_stat.st_mode & S_IFREG))
         {
                 printf("Error opening file: %s.  Reason: is NOT a regular file\n", a_file);
                 return STATUS_ERROR;
@@ -47,7 +47,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         // Open file...
         FILE * l_file;
         l_file = fopen(a_file,"r");
-        if (NULL == l_file)
+        if (nullptr == l_file)
         {
                 printf("Error opening file: %s.  Reason: %s\n", a_file, strerror(errno));
                 return STATUS_ERROR;
@@ -58,7 +58,7 @@ int32_t read_file(const char *a_file, char **a_buf, uint32_t *a_len)
         *a_len = l_size;
         int32_t l_read_size;
         l_read_size = fread(*a_buf, 1, l_size, l_file);
-        if(l_read_size != l_size)
+        if (l_read_size != l_size)
         {
                 printf("Error performing fread.  Reason: %s [%d:%d]\n",
                                 strerror(errno), l_read_size, l_size);
@@ -84,13 +84,13 @@ int32_t read_file_nbq(nbq &ao_nbq, uint32_t &ao_len, const char *a_file)
         struct stat l_stat;
         int32_t l_s = STATUS_OK;
         l_s = stat(a_file, &l_stat);
-        if(l_s != 0)
+        if (l_s != 0)
         {
                 printf("Error performing stat on file: %s.  Reason: %s\n", a_file, strerror(errno));
                 return STATUS_ERROR;
         }
         // Check if is regular file
-        if(!(l_stat.st_mode & S_IFREG))
+        if (!(l_stat.st_mode & S_IFREG))
         {
                 printf("Error opening file: %s.  Reason: is NOT a regular file\n", a_file);
                 return STATUS_ERROR;
@@ -98,7 +98,7 @@ int32_t read_file_nbq(nbq &ao_nbq, uint32_t &ao_len, const char *a_file)
         // Open file...
         int l_fd;
         l_fd = open(a_file, O_RDONLY);
-        if(l_fd == -1)
+        if (l_fd == -1)
         {
                 printf("Error opening file: %s.  Reason: %s\n", a_file, strerror(errno));
                 return STATUS_ERROR;

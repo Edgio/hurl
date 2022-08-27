@@ -89,7 +89,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 bool l_use_cache = l_nresolver->get_use_cache();
                 ns_hurl::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
                 REQUIRE(( l_use_cache == false ));
-                REQUIRE(( l_ai_cache == NULL ));
+                REQUIRE(( l_ai_cache == nullptr ));
                 delete l_nresolver;
         }
         SECTION("Validate cache")
@@ -109,7 +109,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 bool l_use_cache = l_nresolver->get_use_cache();
                 ns_hurl::ai_cache *l_ai_cache = l_nresolver->get_ai_cache();
                 REQUIRE(( l_use_cache == true ));
-                REQUIRE(( l_ai_cache != NULL ));
+                REQUIRE(( l_ai_cache != nullptr ));
                 delete l_nresolver;
         }
 #ifdef ASYNC_DNS_SUPPORT
@@ -125,14 +125,14 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->set_timeout_s(1);
                 // Set up poller
                 // TODO
-                ns_hurl::nresolver::adns_ctx *l_adns_ctx = NULL;
-                l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
-                REQUIRE((l_adns_ctx != NULL));
+                ns_hurl::nresolver::adns_ctx *l_adns_ctx = nullptr;
+                l_adns_ctx = l_nresolver->get_new_adns_ctx(nullptr, test_resolved_cb);
+                REQUIRE((l_adns_ctx != nullptr));
                 uint64_t l_active;
                 ns_hurl::nresolver::lookup_job_q_t l_lookup_job_q;
                 ns_hurl::nresolver::lookup_job_pq_t l_lookup_job_pq;
                 int32_t l_status = 0;
-                void *l_job_handle = NULL;
+                void *l_job_handle = nullptr;
                 // Set globals
                 g_lkp_sucess = 0;
                 g_lkp_fail = 0;
@@ -179,7 +179,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                         l_status = l_nresolver->lookup_async(l_ctx,
                                                              l_unused, 0,
                                                              test_resolved_cb,
-                                                             NULL,
+                                                             nullptr,
                                                              l_active, l_lookup_job_q, l_lookup_job_pq, &l_job_handle);
                         REQUIRE((l_status == 0));
                         if(g_dns_reqs_qd == 0)
@@ -226,12 +226,12 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                 l_nresolver->set_timeout_s(1);
                 // Set up poller
                 // TODO
-                ns_hurl::nresolver::adns_ctx *l_adns_ctx = NULL;
-                l_adns_ctx = l_nresolver->get_new_adns_ctx(NULL, test_resolved_cb);
-                REQUIRE((l_adns_ctx != NULL));
+                ns_hurl::nresolver::adns_ctx *l_adns_ctx = nullptr;
+                l_adns_ctx = l_nresolver->get_new_adns_ctx(nullptr, test_resolved_cb);
+                REQUIRE((l_adns_ctx != nullptr));
                 uint64_t l_active;
                 int32_t l_status = 0;
-                void *l_job_handle = NULL;
+                void *l_job_handle = nullptr;
                 // Set globals
                 g_lkp_sucess = 0;
                 g_lkp_fail = 0;
@@ -277,7 +277,7 @@ TEST_CASE( "nresolver test", "[nresolver]" )
                         std::string l_unused;
                         l_status = l_nresolver->lookup_async(l_adns_ctx,
                                                              l_unused, 0,
-                                                             NULL,
+                                                             nullptr,
                                                              l_active, &l_job_handle);
                         REQUIRE((l_status == 0));
                         if(g_dns_reqs_qd == 0)

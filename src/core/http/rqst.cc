@@ -67,7 +67,7 @@ void rqst::init(bool a_save)
         m_url_query_map.clear();
         m_url_fragment.clear();
         m_url_parsed = false;
-        if(m_http_parser_settings)
+        if (m_http_parser_settings)
         {
                 m_http_parser_settings->on_status = hp_on_status;
                 m_http_parser_settings->on_message_complete = hp_on_message_complete;
@@ -78,7 +78,7 @@ void rqst::init(bool a_save)
                 m_http_parser_settings->on_headers_complete = hp_on_headers_complete;
                 m_http_parser_settings->on_body = hp_on_body;
         }
-        if(m_http_parser)
+        if (m_http_parser)
         {
                 http_parser_init(m_http_parser, HTTP_REQUEST);
                 m_http_parser->data = this;
@@ -95,10 +95,10 @@ void rqst::init(bool a_save)
 const std::string &rqst::get_url()
 {
         static std::string l_empty_str = std::string();
-        if(!m_url_parsed)
+        if (!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         // return empty string
                         return l_empty_str;
@@ -113,10 +113,10 @@ const std::string &rqst::get_url()
 //! ----------------------------------------------------------------------------
 const std::string &rqst::get_url_path()
 {
-        if(!m_url_parsed)
+        if (!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -130,10 +130,10 @@ const std::string &rqst::get_url_path()
 //! ----------------------------------------------------------------------------
 const std::string &rqst::get_url_query()
 {
-        if(!m_url_parsed)
+        if (!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -147,10 +147,10 @@ const std::string &rqst::get_url_query()
 //! ----------------------------------------------------------------------------
 const query_map_t &rqst::get_url_query_map()
 {
-        if(m_url_query_map.empty())
+        if (m_url_query_map.empty())
         {
                 int32_t l_status = parse_query(get_url_query(), m_url_query_map);
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -164,10 +164,10 @@ const query_map_t &rqst::get_url_query_map()
 //! ----------------------------------------------------------------------------
 const std::string &rqst::get_url_fragment()
 {
-        if(!m_url_parsed)
+        if (!m_url_parsed)
         {
                 int32_t l_status = parse_uri();
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         // do nothing...
                 }
@@ -199,17 +199,17 @@ const char *rqst::get_method_str()
 //! ----------------------------------------------------------------------------
 int32_t rqst::parse_uri()
 {
-        if(m_url_parsed)
+        if (m_url_parsed)
         {
                 return STATUS_OK;
         }
         // Copy out the url...
         // TODO zero copy???
-        if(m_q && m_p_url.m_off && m_p_url.m_len)
+        if (m_q && m_p_url.m_off && m_p_url.m_len)
         {
-                char *l_path = NULL;
+                char *l_path = nullptr;
                 l_path = copy_part(*m_q, m_p_url.m_off, m_p_url.m_len);
-                if(l_path && strlen(l_path))
+                if (l_path && strlen(l_path))
                 {
                         m_url = l_path;
                         free(l_path);
@@ -217,7 +217,7 @@ int32_t rqst::parse_uri()
         }
         std::string l_url_fixed = m_url;
         // Find scheme prefix "://"
-        if(m_url.find("://", 0) == std::string::npos)
+        if (m_url.find("://", 0) == std::string::npos)
         {
                 l_url_fixed = "http://bloop.com" + m_url;
         }
@@ -227,7 +227,7 @@ int32_t rqst::parse_uri()
         //memset(&l_url, 0, sizeof(l_url));
         int l_status;
         l_status = http_parser_parse_url(l_url_fixed.c_str(), l_url_fixed.length(), 0, &l_url);
-        if(l_status != 0)
+        if (l_status != 0)
         {
                 TRC_ERROR("parsing url: %s\n", l_url_fixed.c_str());
                 // TODO get error msg from http_parser
@@ -238,7 +238,7 @@ int32_t rqst::parse_uri()
                 //NDBG_PRINT("i_part: %d offset: %d len: %d\n", i_part, l_url.field_data[i_part].off, l_url.field_data[i_part].len);
                 //NDBG_PRINT("len+off: %d\n",       l_url.field_data[i_part].len + l_url.field_data[i_part].off);
                 //NDBG_PRINT("a_url.length(): %d\n", (int)a_url.length());
-                if(l_url.field_data[i_part].len &&
+                if (l_url.field_data[i_part].len &&
                   // TODO Some bug with parser -parsing urls like "http://127.0.0.1" sans paths
                   ((l_url.field_data[i_part].len + l_url.field_data[i_part].off) <= l_url_fixed.length()))
                 {
@@ -294,13 +294,13 @@ int32_t rqst::parse_query(const std::string &a_query, query_map_t &ao_query_map)
                 std::string l_val;
                 size_t l_eq_pos = l_part.find("=");
                 l_key = uri_decode(l_part.substr(0, l_eq_pos));
-                if(l_eq_pos != std::string::npos)
+                if (l_eq_pos != std::string::npos)
                 {
                         l_val = uri_decode(l_part.substr(l_eq_pos + 1, std::string::npos));
                 }
                 //printf("PART: l_key: %s l_val: %s\n", l_key.c_str(), l_val.c_str());
                 query_map_t::iterator i_obj = ao_query_map.find(l_key);
-                if(i_obj != ao_query_map.end())
+                if (i_obj != ao_query_map.end())
                 {
                         i_obj->second.push_back(l_val);
                 }
@@ -327,19 +327,19 @@ void rqst::show(bool a_color)
         m_q->reset_read();
         cr_list_t::const_iterator i_k = m_p_h_list_key.begin();
         cr_list_t::const_iterator i_v = m_p_h_list_val.begin();
-        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
+        if (a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
         print_part(*m_q, m_p_url.m_off, m_p_url.m_len);
-        if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+        if (a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
         TRC_OUTPUT("\r\n");
         for(;i_k != m_p_h_list_key.end() && i_v != m_p_h_list_val.end(); ++i_k, ++i_v)
         {
-                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_BLUE);
+                if (a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_BLUE);
                 print_part(*m_q, i_k->m_off, i_k->m_len);
-                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+                if (a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 TRC_OUTPUT(": ");
-                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
+                if (a_color) TRC_OUTPUT("%s", ANSI_COLOR_FG_GREEN);
                 print_part(*m_q, i_v->m_off, i_v->m_len);
-                if(a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
+                if (a_color) TRC_OUTPUT("%s", ANSI_COLOR_OFF);
                 TRC_OUTPUT("\r\n");
         }
         TRC_OUTPUT("\r\n");

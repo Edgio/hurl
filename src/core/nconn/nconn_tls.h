@@ -78,8 +78,8 @@ public:
         // ---------------------------------------
         nconn_tls():
                 nconn_tcp(),
-                m_tls_ctx(NULL),
-                m_tls(NULL),
+                m_tls_ctx(nullptr),
+                m_tls(nullptr),
                 m_tls_opt_verify(false),
                 m_tls_opt_sni(false),
                 m_tls_opt_verify_allow_self_signed(false),
@@ -166,7 +166,6 @@ SSL_CTX* tls_init_ctx(const std::string &a_cipher_list,
                       long a_options = 0,
                       const std::string &a_ca_file = "",
                       const std::string &a_ca_path = "",
-                      bool a_server_flag = false,
                       const std::string &a_tls_key_file = "",
                       const std::string &a_tls_crt_file = "",
                       bool a_force_h1 = false);

@@ -158,7 +158,7 @@ public:
         alpn_t get_alpn(void) { return m_alpn;}
         int32_t get_alpn_result(char **ao_buf, uint32_t &ao_buf_len)
         {
-                if(!ao_buf)
+                if (!ao_buf)
                 {
                         // TODO TRC_ERROR ???
                         return STATUS_ERROR;
@@ -205,7 +205,7 @@ public:
         void set_alpn(alpn_t a_alpn) { m_alpn = a_alpn;}
         int32_t set_alpn_result(char *a_buf, uint32_t a_buf_len)
         {
-                if(m_alpn_buf)
+                if (m_alpn_buf)
                 {
                         free(m_alpn_buf);
                         m_alpn_buf_len = 0;

@@ -40,10 +40,10 @@ ai_cache::ai_cache(const std::string &a_ai_cache_file):
         m_ai_cache_map(),
         m_ai_cache_file(a_ai_cache_file)
 {
-        if(!m_ai_cache_file.empty())
+        if (!m_ai_cache_file.empty())
         {
                 int32_t l_status = read(m_ai_cache_file, m_ai_cache_map);
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         //NDBG_PRINT("Error: read with cache file: %s.\n",
                         //                m_ai_cache_file.c_str());
@@ -57,10 +57,10 @@ ai_cache::ai_cache(const std::string &a_ai_cache_file):
 //! ----------------------------------------------------------------------------
 ai_cache::~ai_cache()
 {
-        if(!m_ai_cache_file.empty())
+        if (!m_ai_cache_file.empty())
         {
                 int32_t l_status = sync(m_ai_cache_file, m_ai_cache_map);
-                if(l_status != STATUS_OK)
+                if (l_status != STATUS_OK)
                 {
                         //NDBG_PRINT("Error: sync with ai_cache file: %s.\n",
                         //                m_ai_cache_file.c_str());
@@ -70,10 +70,10 @@ ai_cache::~ai_cache()
             i_h != m_ai_cache_map.end();
             ++i_h)
         {
-                if(i_h->second)
+                if (i_h->second)
                 {
                         delete i_h->second;
-                        i_h->second = NULL;
+                        i_h->second = nullptr;
                 }
         }
 }
@@ -84,13 +84,13 @@ ai_cache::~ai_cache()
 //! ----------------------------------------------------------------------------
 host_info *ai_cache::lookup(const std::string a_label)
 {
-        host_info *l_host_info = NULL;
-        if(m_ai_cache_map.find(a_label) != m_ai_cache_map.end())
+        host_info *l_host_info = nullptr;
+        if (m_ai_cache_map.find(a_label) != m_ai_cache_map.end())
         {
                 l_host_info = m_ai_cache_map[a_label];
                 // Check expires
                 //NDBG_PRINT("Seconds left: %ld\n", (l_host_info->m_expires_s - get_time_s()));
-                if(l_host_info->m_expires_s &&
+                if (l_host_info->m_expires_s &&
                    (get_time_s() > l_host_info->m_expires_s))
                 {
                         //NDBG_PRINT("KEY: %s EXPIRED! -diff: %lu -expires: %lu cur: %lu -l_host_info: %p\n",
@@ -101,7 +101,7 @@ host_info *ai_cache::lookup(const std::string a_label)
                         //                l_host_info);
                         m_ai_cache_map.erase(a_label);
                         delete l_host_info;
-                        l_host_info = NULL;
+                        l_host_info = nullptr;
                 }
         }
         return l_host_info;
@@ -114,7 +114,7 @@ host_info *ai_cache::lookup(const std::string a_label)
 host_info *ai_cache::lookup(const std::string a_label, host_info *a_host_info)
 {
         host_info *l_host_info = lookup(a_label);
-        if(!l_host_info)
+        if (!l_host_info)
         {
                 m_ai_cache_map[a_label] = a_host_info;
                 l_host_info = a_host_info;
@@ -133,12 +133,12 @@ host_info *ai_cache::lookup(const std::string a_label, host_info *a_host_info)
 void ai_cache::add(const std::string a_label, host_info *a_host_info)
 {
         ai_cache_map_t::iterator i_h = m_ai_cache_map.find(a_label);
-        if(i_h != m_ai_cache_map.end())
+        if (i_h != m_ai_cache_map.end())
         {
-                if(i_h->second)
+                if (i_h->second)
                 {
                         delete i_h->second;
-                        i_h->second = NULL;
+                        i_h->second = nullptr;
                 }
         }
         m_ai_cache_map[a_label] = a_host_info;
@@ -153,7 +153,7 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
 {
         int32_t l_status = 0;
         FILE *l_file_ptr = fopen(a_ai_cache_file.c_str(), "w+");
-        if(l_file_ptr == NULL)
+        if (l_file_ptr == nullptr)
         {
                 //NDBG_PRINT("Error performing fopen. Reason: %s\n", strerror(errno));
                 return STATUS_ERROR;
@@ -172,14 +172,14 @@ int32_t ai_cache::sync(const std::string &a_ai_cache_file,
                 fprintf(l_file_ptr, "\"host\": \"%s\",", i_entry->first.c_str());
                 fprintf(l_file_ptr, "\"ai\": \"%s\"", l_ai_val64.c_str());
                 ++i_len;
-                if(i_len == l_len)
+                if (i_len == l_len)
                 fprintf(l_file_ptr, "}");
                 else
                 fprintf(l_file_ptr, "},");
         }
         fprintf(l_file_ptr, "]");
         l_status = fclose(l_file_ptr);
-        if(l_status != 0)
+        if (l_status != 0)
         {
                 NDBG_PRINT("Error performing fclose. Reason: %s\n", strerror(errno));
                 return STATUS_ERROR;
@@ -197,13 +197,13 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         struct stat l_stat;
         int32_t l_status = STATUS_OK;
         l_status = stat(a_ai_cache_file.c_str(), &l_stat);
-        if(l_status != 0)
+        if (l_status != 0)
         {
                 //NDBG_PRINT("Error performing stat on file: %s.  Reason: %s\n",
                 //           a_ai_cache_file.c_str(), strerror(errno));
                 return STATUS_OK;
         }
-        if(!(l_stat.st_mode & S_IFREG))
+        if (!(l_stat.st_mode & S_IFREG))
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: is NOT a regular file\n",
                 //           a_ai_cache_file.c_str());
@@ -211,7 +211,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         }
         FILE * l_file;
         l_file = fopen(a_ai_cache_file.c_str(),"r");
-        if (NULL == l_file)
+        if (nullptr == l_file)
         {
                 //NDBG_PRINT("Error opening file: %s.  Reason: %s\n",
                 //           a_ai_cache_file.c_str(), strerror(errno));
@@ -222,7 +222,7 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         int32_t l_read_size;
         char *l_buf = (char *)malloc(sizeof(char)*l_size);
         l_read_size = fread(l_buf, 1, l_size, l_file);
-        if(l_read_size != l_size)
+        if (l_read_size != l_size)
         {
                 //NDBG_PRINT("Error performing fread.  Reason: %s [%d:%d]\n",
                 //                strerror(errno), l_read_size, l_size);
@@ -233,37 +233,37 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         // NOTE: rapidjson assert's on errors -interestingly
         rapidjson::Document l_doc;
         l_doc.Parse(l_buf_str.c_str());
-        if(!l_doc.IsArray())
+        if (!l_doc.IsArray())
         {
                 //NDBG_PRINT("Error reading json from file: %s. Data not an array\n",
                 //                a_ai_cache_file.c_str());
-                if(l_buf)
+                if (l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
                 return STATUS_OK;
         }
         // rapidjson uses SizeType instead of size_t.
         for(rapidjson::SizeType i_record = 0; i_record < l_doc.Size(); ++i_record)
         {
-                if(!l_doc[i_record].IsObject())
+                if (!l_doc[i_record].IsObject())
                 {
                         //NDBG_PRINT("Error reading json from file: %s. Array member not an object\n",
                         //           a_ai_cache_file.c_str());
-                        if(l_buf)
+                        if (l_buf)
                         {
                                 free(l_buf);
-                                l_buf = NULL;
+                                l_buf = nullptr;
                         }
                         return STATUS_OK;
                 }
                 std::string l_host;
                 std::string l_ai;
-                if(l_doc[i_record].HasMember("host"))
+                if (l_doc[i_record].HasMember("host"))
                 {
                         l_host = l_doc[i_record]["host"].GetString();
-                        if(l_doc[i_record].HasMember("ai"))
+                        if (l_doc[i_record].HasMember("ai"))
                         {
                                 l_ai = l_doc[i_record]["ai"].GetString();
                                 std::string l_ai_decoded;
@@ -278,17 +278,17 @@ int32_t ai_cache::read(const std::string &a_ai_cache_file,
         if (STATUS_OK != l_status)
         {
                 NDBG_PRINT("Error performing fclose.  Reason: %s\n", strerror(errno));
-                if(l_buf)
+                if (l_buf)
                 {
                         free(l_buf);
-                        l_buf = NULL;
+                        l_buf = nullptr;
                 }
                 return STATUS_ERROR;
         }
-        if(l_buf)
+        if (l_buf)
         {
                 free(l_buf);
-                l_buf = NULL;
+                l_buf = nullptr;
         }
         return STATUS_OK;
 }

@@ -55,9 +55,9 @@ public:
                         m_item_list_size(0),
                         m_id_label_map(),
                         m_max_entries(a_max_entries),
-                        m_delete_cb(NULL),
+                        m_delete_cb(nullptr),
                         m_next_id(0),
-                        m_o_1(NULL)
+                        m_o_1(nullptr)
         {}
 
         // ---------------------------------------
@@ -74,12 +74,12 @@ public:
         // ---------------------------------------
         void evict(void)
         {
-                if(m_item_list.empty())
+                if (m_item_list.empty())
                 {
                         return;
                 }
                 _Tp *l_ref = m_item_list.back().second;
-                if(m_delete_cb)
+                if (m_delete_cb)
                 {
                         m_delete_cb(m_o_1, l_ref);
                 }
@@ -97,7 +97,7 @@ public:
                 ++m_item_list_size;
                 m_item_list.push_front(std::make_pair(l_id, a_new_entry));
                 label_id_set_map_t::iterator i_set = m_label_id_set_map.find(a_label);
-                if(i_set == m_label_id_set_map.end())
+                if (i_set == m_label_id_set_map.end())
                 {
                         id_set_t l_set;
                         l_set.insert(l_id);
@@ -135,22 +135,22 @@ public:
         _Tp* get(const label_t &a_label)
         {
                 typename label_id_set_map_t::iterator i_set = m_label_id_set_map.find(a_label);
-                if(i_set == m_label_id_set_map.end())
+                if (i_set == m_label_id_set_map.end())
                 {
-                        return NULL;
+                        return nullptr;
                 }
 
-                if(i_set->second.empty())
+                if (i_set->second.empty())
                 {
-                        return NULL;
+                        return nullptr;
                 }
 
                 // Pick one from set
                 typename id_set_t::iterator i_id = i_set->second.begin();
                 typename item_list_map_t::iterator i_item = m_item_list_map.find(*i_id);
-                if(i_item == m_item_list_map.end())
+                if (i_item == m_item_list_map.end())
                 {
-                        return NULL;
+                        return nullptr;
                 }
 
                 _Tp* l_retval = ((i_item->second->second));
@@ -174,32 +174,32 @@ public:
         {
                 // Get label
                 typename id_label_map_t::iterator i_label = m_id_label_map.find(a_id);
-                if(i_label == m_id_label_map.end())
+                if (i_label == m_id_label_map.end())
                 {
                         // Error couldn't find...
                         return;
                 }
                 typename label_id_set_map_t::iterator i_set = m_label_id_set_map.find(i_label->second);
-                if(i_set == m_label_id_set_map.end())
+                if (i_set == m_label_id_set_map.end())
                 {
                         return;
                 }
                 // Find in set
                 typename id_set_t::iterator i_idx = i_set->second.find(a_id);
-                if(i_idx == i_set->second.end())
+                if (i_idx == i_set->second.end())
                 {
                         return;
                 }
 
                 typename item_list_map_t::iterator i_id = m_item_list_map.find(a_id);
-                if(i_id == m_item_list_map.end())
+                if (i_id == m_item_list_map.end())
                 {
                         return;
                 }
 
                 // Remove
                 i_set->second.erase(i_idx);
-                if(i_set->second.empty())
+                if (i_set->second.empty())
                 {
                         m_label_id_set_map.erase(i_set);
                 }
