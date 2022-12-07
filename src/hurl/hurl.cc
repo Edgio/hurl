@@ -508,7 +508,6 @@ public:
         {}
         int set_header(const std::string &a_key, const std::string &a_val)
         {
-                NDBG_PRINT("SET! %s: %s\n", a_key.c_str(), a_val.c_str());
                 bool l_replace = false;
                 bool l_remove = false;
                 if (!strcasecmp(a_key.c_str(), "User-Agent") ||
