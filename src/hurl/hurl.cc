@@ -117,6 +117,7 @@
                         return STATUS_ERROR;\
                 }\
         } while(0)
+#define _STRN_CASE_CMP(_a,_b) ((strncasecmp(_a, _b, strlen(_a)) == 0) && (strlen(_a) == strlen(_b)))
 //! ----------------------------------------------------------------------------
 //! types
 //! ----------------------------------------------------------------------------
@@ -507,13 +508,14 @@ public:
         {}
         int set_header(const std::string &a_key, const std::string &a_val)
         {
+                NDBG_PRINT("SET! %s: %s\n", a_key.c_str(), a_val.c_str());
                 bool l_replace = false;
                 bool l_remove = false;
                 if (!strcasecmp(a_key.c_str(), "User-Agent") ||
-                   !strcasecmp(a_key.c_str(), "Referer") ||
-                   !strcasecmp(a_key.c_str(), "Accept") ||
-                   !strcasecmp(a_key.c_str(), "X-Forwarded-For") ||
-                   !strcasecmp(a_key.c_str(), "Host"))
+                    !strcasecmp(a_key.c_str(), "Referer") ||
+                    !strcasecmp(a_key.c_str(), "Accept") ||
+                    !strcasecmp(a_key.c_str(), "X-Forwarded-For") ||
+                    !strcasecmp(a_key.c_str(), "Host"))
                 {
                         l_replace = true;
                         if (a_val.empty())
@@ -528,7 +530,7 @@ public:
                 ns_hurl::kv_map_list_t::iterator i_obj = m_headers.find(a_key);
                 if (i_obj != m_headers.end())
                 {
-                        // Special handling for Host/User-agent/referer
+                        // Special handling for Host/User-agent/Referer
                         if (l_replace)
                         {
                                 i_obj->second.clear();
@@ -1170,7 +1172,6 @@ int32_t http_session::srequest(void)
         }
         ns_hurl::kv_map_list_t::const_iterator i_hdr;
         bool l_specd_host = false;
-#define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
 #define SET_IF_V1(_key) do { \
 i_hdr = m_request->m_headers.find(_key);\
 if (i_hdr != m_request->m_headers.end()) { \
@@ -1193,9 +1194,9 @@ if (i_hdr != m_request->m_headers.end()) { \
             i_hl != m_request->m_headers.end();
             ++i_hl)
         {
-                if (STRN_CASE_CMP("host", i_hl->first.c_str()) ||
-                   STRN_CASE_CMP("accept", i_hl->first.c_str()) ||
-                   STRN_CASE_CMP("user-agent", i_hl->first.c_str()))
+                if (_STRN_CASE_CMP("host", i_hl->first.c_str()) ||
+                    _STRN_CASE_CMP("accept", i_hl->first.c_str()) ||
+                    _STRN_CASE_CMP("user-agent", i_hl->first.c_str()))
                 {
                         continue;
                 }
@@ -1847,15 +1848,15 @@ int32_t h2_session::srequest(void)
         // -----------------------------------------
         // std headers
         // -----------------------------------------
-#define SET_IF(_key) do { \
+#define _SET_IF(_key) do { \
         i_hdr = m_request->m_headers.find(_key);\
         if (i_hdr != m_request->m_headers.end()) { \
                 SET_HEADER(l_hdr_idx, i_hdr->first, i_hdr->second.front()); \
                 ++l_hdr_idx;\
         }\
 } while(0)
-        SET_IF("user-agent");
-        SET_IF("accept");
+        _SET_IF("user-agent");
+        _SET_IF("accept");
         // -----------------------------------------
         // the rest...
         // -----------------------------------------
@@ -1863,14 +1864,13 @@ int32_t h2_session::srequest(void)
             i_hdr != m_request->m_headers.end();
             ++i_hdr)
         {
-#define STRN_CASE_CMP(_a,_b) (strncasecmp(_a, _b, strlen(_a)) == 0)
-                if (STRN_CASE_CMP("accept", i_hdr->first.c_str()) ||
-                   STRN_CASE_CMP("user-agent", i_hdr->first.c_str()))
+                if (_STRN_CASE_CMP("accept", i_hdr->first.c_str()) ||
+                    _STRN_CASE_CMP("user-agent", i_hdr->first.c_str()))
                 {
                         continue;
                 }
                 if (!m_request->m_no_host &&
-                    STRN_CASE_CMP("host", i_hdr->first.c_str()))
+                                _STRN_CASE_CMP("host", i_hdr->first.c_str()))
                 {
                         continue;
                 }

@@ -1,8 +1,27 @@
 # ------------------------------------------------------------------------------
+# includes
+# ------------------------------------------------------------------------------
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/src/core
+  ${CMAKE_SOURCE_DIR}/ext
+)
+# ------------------------------------------------------------------------------
 # build catch
 # ------------------------------------------------------------------------------
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../ext/)
-add_library(compiled_catch STATIC ${CMAKE_CURRENT_SOURCE_DIR}/../../ext/catch/catch.hpp _catch.cc)
+add_library(compiled_catch STATIC ${CMAKE_SOURCE_DIR}/ext/catch/catch.hpp _catch.cc)
+# ------------------------------------------------------------------------------
+# macros
+# ------------------------------------------------------------------------------
+macro (add_hurl_wb_test test_name)
+  add_executable("wb_${test_name}" "wb_${test_name}.cc")
+  target_link_libraries("wb_${test_name}"
+    ${DEBUG_LIBRARIES}
+    compiled_catch
+    ${CMAKE_BINARY_DIR}/src/core/libhurlcore.a
+    ${LIBRARIES})
+  add_test(${test_name} "wb_${test_name}")
+endmacro()
 # ------------------------------------------------------------------------------
 # fix for error
 # ...
